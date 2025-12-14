@@ -569,13 +569,7 @@ export default function EmployeeProfilePage() {
                     <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                         <span>📍</span> Address
                     </h3>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setEditingSection('contact')}
-                    >
-                        Edit Address
-                    </Button>
+
                 </div>
                 {profile?.address && (profile.address.streetAddress || profile.address.city || profile.address.country) ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -595,9 +589,7 @@ export default function EmployeeProfilePage() {
                 ) : (
                     <div className="text-center py-6 bg-slate-50 rounded-lg">
                         <p className="text-slate-500 mb-2">No address information available</p>
-                        <Button size="sm" onClick={() => setEditingSection('contact')}>
-                            Add Address
-                        </Button>
+
                     </div>
                 )}
             </div>
@@ -608,22 +600,14 @@ export default function EmployeeProfilePage() {
                     <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                         <span>📄</span> Biography
                     </h3>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setEditingSection('bio')}
-                    >
-                        {profile?.biography ? 'Edit Bio' : 'Add Bio'}
-                    </Button>
+
                 </div>
                 {profile?.biography ? (
                     <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{profile.biography}</p>
                 ) : (
                     <div className="text-center py-6 bg-slate-50 rounded-lg">
                         <p className="text-slate-500 mb-2">No biography added yet</p>
-                        <Button size="sm" onClick={() => setEditingSection('bio')}>
-                            Add Biography
-                        </Button>
+
                     </div>
                 )}
             </div>
