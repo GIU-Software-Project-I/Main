@@ -30,6 +30,11 @@ const DEPARTMENT_EMPLOYEE_NAV: NavItem[] = [
     icon: 'user',
   },
   {
+    label: 'My Onboarding',
+    href: '/portal/my-onboarding',
+    icon: 'clipboard-check',
+  },
+  {
     label: 'Organization',
     href: '/dashboard/department-employee/organization',
     icon: 'building',
@@ -53,6 +58,11 @@ const DEPARTMENT_EMPLOYEE_NAV: NavItem[] = [
     label: 'My Payslips',
     href: '/dashboard/department-employee/payroll',
     icon: 'dollar-sign',
+  },
+  {
+    label: 'Resignation',
+    href: '/portal/my-resignation',
+    icon: 'log-out',
   },
 ];
 
@@ -94,6 +104,11 @@ const DEPARTMENT_HEAD_NAV: NavItem[] = [
     label: 'My Profile',
     href: '/dashboard/department-employee/employee-profile',
     icon: 'user',
+  },
+  {
+    label: 'Resignation',
+    href: '/portal/my-resignation',
+    icon: 'log-out',
   },
 ];
 
@@ -168,14 +183,14 @@ const HR_EMPLOYEE_NAV: NavItem[] = [
     icon: 'users',
   },
   {
-    label: 'Recruitment',
-    href: '/dashboard/hr-employee/recruitment',
-    icon: 'user-plus',
+    label: 'Onboarding',
+    href: '/dashboard/hr-manager/onboarding',
+    icon: 'clipboard-check',
   },
   {
-    label: 'Onboarding',
-    href: '/dashboard/hr-employee/onboarding',
-    icon: 'clipboard-check',
+    label: 'Equipment Reservation',
+    href: '/portal/equipment-reservation',
+    icon: 'briefcase',
   },
   {
     label: 'Performance',
@@ -225,37 +240,32 @@ const HR_ADMIN_NAV: NavItem[] = [
   },
   {
     label: 'Organization',
-    href: '/dashboard/organization',
+    href: '/dashboard/hr-manager/organization',
     icon: 'building',
   },
   {
-    label: 'Recruitment',
-    href: '/dashboard/recruitment',
-    icon: 'user-plus',
-  },
-  {
     label: 'Onboarding',
-    href: '/dashboard/onboarding',
+    href: '/dashboard/hr-manager/onboarding',
     icon: 'clipboard-check',
   },
   {
     label: 'Performance',
-    href: '/dashboard/performance',
+    href: '/dashboard/hr-manager/performance-templates',
     icon: 'trending-up',
   },
   {
     label: 'Payroll',
-    href: '/dashboard/payroll',
+    href: '/dashboard/payroll-manager/overview',
     icon: 'dollar-sign',
   },
   {
     label: 'Leaves',
-    href: '/dashboard/leaves',
+    href: '/dashboard/hr-manager/leaves',
     icon: 'calendar',
   },
   {
     label: 'Offboarding',
-    href: '/dashboard/offboarding',
+    href: '/dashboard/hr-manager/offboarding',
     icon: 'log-out',
   },
 ];
@@ -268,6 +278,11 @@ const SYSTEM_ADMIN_NAV: NavItem[] = [
     label: 'Dashboard',
     href: '/dashboard/system-admin',
     icon: 'home',
+  },
+  {
+    label: 'Access Management',
+    href: '/portal/access-management',
+    icon: 'shield',
   },
   {
     label: 'Organization',
@@ -463,6 +478,11 @@ const JOB_CANDIDATE_NAV: NavItem[] = [
     label: 'Dashboard',
     href: '/dashboard/job-candidate',
     icon: 'home',
+  },
+  {
+    label: 'My Onboarding',
+    href: '/portal/my-onboarding',
+    icon: 'clipboard-check',
   },
   {
     label: 'My Applications',

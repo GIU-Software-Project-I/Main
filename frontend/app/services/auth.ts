@@ -1,24 +1,27 @@
-import api from './api';
+// filepath: d:\WebstormProjects\HR System\Main\frontend\app\services\auth.ts
+import api, { setAccessToken, removeAccessToken } from './api';
 
-// Types matching backend DTOs
+// Types matching backend response
 export interface LoginRequest {
   email: string;
   password: string;
 }
 
+export interface BackendUser {
+  _id: string;
+  email: string;
+  roles: string[];
+  employeeNumber?: string;
+  firstName: string;
+  lastName: string;
+}
+
 export interface LoginResponse {
   message: string;
-  user: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    department?: string;
-  };
+  user: BackendUser;
   userType: 'employee' | 'candidate';
   expiresIn: string;
-  access_token?: string; // Only in dev mode
+  access_token: string;
 }
 
 export interface RegisterCandidateRequest {
@@ -44,10 +47,16 @@ export interface LogoutResponse {
 export const authService = {
   /**
    * Login with email and password
-   * Sets HTTP-only cookie with JWT token
+   * Stores access token in cookie on success
    */
   async login(credentials: LoginRequest) {
     const response = await api.post<LoginResponse>('/auth/login', credentials);
+
+    // Store the access token in cookie if login successful
+    if (response.data?.access_token) {
+      setAccessToken(response.data.access_token);
+    }
+
     return response;
   },
 
@@ -55,8 +64,7 @@ export const authService = {
    * Register a new candidate (public registration)
    */
   async registerCandidate(data: RegisterCandidateRequest) {
-    const response = await api.post<RegisterCandidateResponse>('/auth/register-candidate', data);
-    return response;
+    return api.post<RegisterCandidateResponse>('/auth/register-candidate', data);
   },
 
   /**
@@ -64,14 +72,8 @@ export const authService = {
    */
   async logout() {
     const response = await api.post<LogoutResponse>('/auth/logout');
-    return response;
-  },
-
-  /**
-   * Get current user profile (if authenticated)
-   */
-  async getCurrentUser() {
-    const response = await api.get<LoginResponse['user']>('/employee/profile/me');
+    // Remove the token from cookie
+    removeAccessToken();
     return response;
   },
 };

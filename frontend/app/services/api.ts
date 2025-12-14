@@ -1,13 +1,37 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-if (typeof window !== 'undefined') {
-  console.log('[API] Base URL:', API_BASE_URL);
-}
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
 
 interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
   status: number;
+}
+
+// Get access token from cookie
+function getAccessToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'access_token') {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
+// Set access token in cookie
+export function setAccessToken(token: string): void {
+  if (typeof window === 'undefined') return;
+  // Set cookie with 7 days expiry, secure in production
+  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `access_token=${encodeURIComponent(token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax${secure}`;
+}
+
+// Remove access token from cookie
+export function removeAccessToken(): void {
+  if (typeof window === 'undefined') return;
+  document.cookie = 'access_token=; path=/; max-age=0';
 }
 
 class ApiService {
@@ -27,13 +51,19 @@ class ApiService {
       'Content-Type': 'application/json',
     };
 
+    // Add authorization header if we have a token
+    const token = getAccessToken();
+    if (token) {
+      (defaultHeaders as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
+
     const config: RequestInit = {
       ...options,
       headers: {
         ...defaultHeaders,
         ...options.headers,
       },
-      credentials: 'include', // Important for cookies
+      credentials: 'include',
     };
 
     try {
@@ -99,5 +129,8 @@ class ApiService {
   }
 }
 
-export const api = new ApiService(API_BASE_URL);
-export default api;
+const apiService = new ApiService(API_BASE_URL);
+
+export default apiService;
+export { API_BASE_URL };
+

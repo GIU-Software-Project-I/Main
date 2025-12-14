@@ -1,169 +1,116 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useAuth } from '@/app/context/AuthContext';
 
-/**
- * Department Employee Dashboard
- * Main hub for self-service employee features
- * Features: Employee Profile, Organization, Performance
- */
 export default function DepartmentEmployeePage() {
-  const [stats, setStats] = useState({
-    pendingRequests: 0,
-    lastAppraisal: 'N/A',
-    profileCompleteness: 85
-  });
+  const { user } = useAuth();
+
+  const quickActions = [
+    { label: 'Request Leave', href: '/dashboard/department-employee/leaves' },
+    { label: 'Log Time', href: '/dashboard/department-employee/time-management' },
+    { label: 'View Payslip', href: '/dashboard/department-employee/payroll' },
+    { label: 'My Performance', href: '/dashboard/department-employee/performance' },
+  ];
+
+  const modules = [
+    {
+      title: 'Employee Profile',
+      description: 'View and manage your personal information, update contact details, and request corrections.',
+      href: '/dashboard/department-employee/employee-profile',
+      features: ['View profile', 'Update contact info', 'Request corrections', 'Upload documents'],
+    },
+    {
+      title: 'Organization',
+      description: 'View organizational structure, reporting lines, and find colleagues across departments.',
+      href: '/dashboard/department-employee/organization',
+      features: ['View org chart', 'See reporting lines', 'Explore departments', 'Find colleagues'],
+    },
+    {
+      title: 'Performance',
+      description: 'Access your appraisal history, view ratings and feedback, and track development goals.',
+      href: '/dashboard/department-employee/performance',
+      features: ['View appraisals', 'See feedback', 'Track goals', 'Raise concerns'],
+    },
+  ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold text-slate-900">Employee Dashboard</h1>
-        <p className="text-slate-600 mt-2">Manage your profile, view organization structure, and track performance</p>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-700 text-sm font-medium">Pending Requests</p>
-              <p className="text-3xl font-bold text-blue-900 mt-2">{stats.pendingRequests}</p>
-            </div>
-            <div className="text-4xl">📋</div>
+      <div className="border-b border-slate-200 pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-900">Employee Dashboard</h1>
+            <p className="text-sm text-slate-500 mt-1">Welcome back, {user?.firstName || 'Employee'}</p>
           </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-700 text-sm font-medium">Last Appraisal</p>
-              <p className="text-2xl font-bold text-purple-900 mt-2">{stats.lastAppraisal}</p>
-            </div>
-            <div className="text-4xl">📊</div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-700 text-sm font-medium">Profile Complete</p>
-              <div className="flex items-center gap-2 mt-2">
-                <p className="text-3xl font-bold text-green-900">{stats.profileCompleteness}%</p>
-              </div>
-            </div>
-            <div className="text-4xl">✅</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Employee Subsystems - 3 Feature Cards */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">Employee Subsystems</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Employee Profile */}
           <Link href="/dashboard/department-employee/employee-profile">
-            <div className="group bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-lg hover:border-blue-300 transition-all p-8 cursor-pointer h-full">
-              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">👤</div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Employee Profile</h3>
-              <p className="text-slate-600 text-sm mb-6">View and manage your personal information, update contact details, and request data corrections.</p>
-              <div className="space-y-2">
-                <div className="flex items-center text-sm text-slate-700">
-                  <span className="mr-2">✓</span> View my profile
-                </div>
-                <div className="flex items-center text-sm text-slate-700">
-                  <span className="mr-2">✓</span> Update contact info
-                </div>
-                <div className="flex items-center text-sm text-slate-700">
-                  <span className="mr-2">✓</span> Request corrections
-                </div>
-              </div>
-              <div className="mt-6 text-blue-600 font-semibold text-sm group-hover:translate-x-1 transition-transform">Go to Profile →</div>
-            </div>
-          </Link>
-
-          {/* Organization Structure */}
-          <Link href="/dashboard/department-employee/organization">
-            <div className="group bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-lg hover:border-green-300 transition-all p-8 cursor-pointer h-full">
-              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">🏢</div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Organization</h3>
-              <p className="text-slate-600 text-sm mb-6">View organizational structure, reporting lines, departments, and your position in the hierarchy.</p>
-              <div className="space-y-2">
-                <div className="flex items-center text-sm text-slate-700">
-                  <span className="mr-2">✓</span> View org chart
-                </div>
-                <div className="flex items-center text-sm text-slate-700">
-                  <span className="mr-2">✓</span> See reporting lines
-                </div>
-                <div className="flex items-center text-sm text-slate-700">
-                  <span className="mr-2">✓</span> Explore structure
-                </div>
-              </div>
-              <div className="mt-6 text-green-600 font-semibold text-sm group-hover:translate-x-1 transition-transform">View Structure →</div>
-            </div>
-          </Link>
-
-          {/* Performance */}
-          <Link href="/dashboard/department-employee/performance">
-            <div className="group bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-lg hover:border-purple-300 transition-all p-8 cursor-pointer h-full">
-              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">📊</div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Performance</h3>
-              <p className="text-slate-600 text-sm mb-6">View your appraisals, ratings, feedback, and development notes. Raise objections if needed.</p>
-              <div className="space-y-2">
-                <div className="flex items-center text-sm text-slate-700">
-                  <span className="mr-2">✓</span> View ratings
-                </div>
-                <div className="flex items-center text-sm text-slate-700">
-                  <span className="mr-2">✓</span> Read feedback
-                </div>
-                <div className="flex items-center text-sm text-slate-700">
-                  <span className="mr-2">✓</span> Raise objections
-                </div>
-              </div>
-              <div className="mt-6 text-purple-600 font-semibold text-sm group-hover:translate-x-1 transition-transform">View Ratings →</div>
-            </div>
+            <button className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors">
+              View Profile
+            </button>
           </Link>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-8">
-        <h2 className="text-xl font-bold text-slate-900 mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Link href="/dashboard/department-employee/employee-profile/edit">
-            <button className="w-full p-4 border border-slate-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-center group">
-              <div className="text-3xl mb-2">✏️</div>
-              <p className="font-medium text-slate-900 group-hover:text-blue-700">Edit Profile</p>
-              <p className="text-xs text-slate-500 mt-1">Update your info</p>
-            </button>
-          </Link>
+      <div>
+        <h2 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {quickActions.map((action, index) => (
+            <Link key={index} href={action.href}>
+              <div className="bg-white border border-slate-200 rounded-lg p-4 text-center hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer">
+                <p className="text-sm font-medium text-slate-700">{action.label}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
 
-          <Link href="/dashboard/department-employee/employee-profile">
-            <button className="w-full p-4 border border-slate-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-center group">
-              <div className="text-3xl mb-2">👁️</div>
-              <p className="font-medium text-slate-900 group-hover:text-blue-700">View Profile</p>
-              <p className="text-xs text-slate-500 mt-1">See your details</p>
-            </button>
-          </Link>
+      {/* Main Modules */}
+      <div>
+        <h2 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">Employee Services</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {modules.map((module, index) => (
+            <Link key={index} href={module.href}>
+              <div className="bg-white border border-slate-200 rounded-lg p-5 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer h-full">
+                <div className="flex items-start justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-slate-900">{module.title}</h3>
+                  <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+                <p className="text-sm text-slate-500 mb-4">{module.description}</p>
+                <ul className="space-y-1">
+                  {module.features.map((feature, idx) => (
+                    <li key={idx} className="text-xs text-slate-400 flex items-center gap-2">
+                      <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
 
-          <Link href="/dashboard/department-employee/organization">
-            <button className="w-full p-4 border border-slate-300 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors text-center group">
-              <div className="text-3xl mb-2">🗺️</div>
-              <p className="font-medium text-slate-900 group-hover:text-green-700">Org Chart</p>
-              <p className="text-xs text-slate-500 mt-1">View hierarchy</p>
+      {/* Help Section */}
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Need Assistance?</h3>
+            <p className="text-sm text-slate-500 mt-1">Contact HR for any questions or support.</p>
+          </div>
+          <div className="flex gap-2">
+            <button className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+              View FAQ
             </button>
-          </Link>
-
-          <Link href="/dashboard/department-employee/performance">
-            <button className="w-full p-4 border border-slate-300 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors text-center group">
-              <div className="text-3xl mb-2">📈</div>
-              <p className="font-medium text-slate-900 group-hover:text-purple-700">Ratings</p>
-              <p className="text-xs text-slate-500 mt-1">See appraisals</p>
+            <button className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors">
+              Contact HR
             </button>
-          </Link>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+

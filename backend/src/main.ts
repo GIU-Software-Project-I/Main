@@ -27,7 +27,7 @@ async function bootstrap() {
             // Allow requests with no origin (like mobile apps or curl requests)
             if (!origin) return callback(null, true);
             // Allow any localhost origin during development
-            if (origin.startsWith('http://localhost:4000')) {
+            if (origin.includes('http://192.168.21.1:8000')) {
                 return callback(null, true);
             }
             callback(new Error('Not allowed by CORS'));
@@ -47,7 +47,7 @@ async function bootstrap() {
 
     SwaggerModule.setup('api', app, document);
 
-    const port = Number(process.env.PORT) || 8000;
+    const port = Number(process.env.PORT) || 9000;
 
     await app.listen(port);
 

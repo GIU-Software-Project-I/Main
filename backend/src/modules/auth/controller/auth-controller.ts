@@ -1,4 +1,4 @@
-import {Controller, Post, Body, HttpCode, HttpStatus, Req, Res, UseGuards, InternalServerErrorException, Patch, Param,} from '@nestjs/common';
+import {Controller, Post, Body, HttpCode, HttpStatus, Req, Res, UseGuards, InternalServerErrorException, BadRequestException, Patch, Param,} from '@nestjs/common';
 import type { Response } from 'express';
 import { Public } from '../decorators/public-decorator';
 import { Roles } from '../decorators/roles-decorator';
@@ -41,7 +41,11 @@ export class AuthController {
         try {
             return await this.auth.registerCandidate(dto);
         } catch (e) {
-            throw new InternalServerErrorException('Something went wrong during candidate registration.');
+            console.error('Candidate registration error:', e);
+            if (e instanceof BadRequestException) {
+                throw e;
+            }
+            throw new InternalServerErrorException(e.message || 'Something went wrong during candidate registration.');
         }
     }
 

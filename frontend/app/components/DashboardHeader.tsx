@@ -1,17 +1,16 @@
+// filepath: d:\WebstormProjects\HR System\Main\frontend\app\components\DashboardHeader.tsx
 'use client';
 
 import { useAuth } from '@/app/context/AuthContext';
 import NotificationDropdown from './NotificationDropdown';
 import UserMenu from './UserMenu';
-import RoleSwitcher from './RoleSwitcher';
-import { SystemRole } from '@/app/types';
 
 interface DashboardHeaderProps {
   onMenuClick: () => void;
 }
 
 export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
-  const { user, setMockRole } = useAuth();
+  const { user } = useAuth();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -66,22 +65,6 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
               />
             </div>
           </div>
-
-          {/* Quick Actions */}
-          <button className="hidden lg:flex items-center px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Quick Action
-          </button>
-
-          <div className="h-6 w-px bg-slate-200 hidden lg:block" />
-
-          {/* Role Switcher - Development Mode */}
-          <RoleSwitcher
-            currentRole={user?.role as SystemRole || SystemRole.DEPARTMENT_EMPLOYEE}
-            onRoleChange={setMockRole}
-          />
 
           <div className="h-6 w-px bg-slate-200 hidden lg:block" />
 

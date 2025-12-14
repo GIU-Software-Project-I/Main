@@ -1,26 +1,35 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Notification, SystemRole } from '@/app/types';
-import { MOCK_NOTIFICATIONS } from '@/app/constants';
-import { authService, LoginResponse } from '@/app/services';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { authService, BackendUser } from '@/app/services/auth';
+import { removeAccessToken } from '@/app/services/api';
 
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-  notifications: Notification[];
-  unreadCount: number;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (data: RegisterData) => Promise<boolean>;
-  logout: () => Promise<void>;
-  clearError: () => void;
-  markNotificationRead: (id: string) => void;
-  markAllNotificationsRead: () => void;
-  hasRole: (roles: SystemRole | SystemRole[]) => boolean;
-  getDefaultRoute: () => string;
-  setMockRole: (role: SystemRole) => void; // For development testing
+// System roles enum
+export enum SystemRole {
+  DEPARTMENT_EMPLOYEE = 'department employee',
+  DEPARTMENT_HEAD = 'department head',
+  HR_MANAGER = 'HR Manager',
+  HR_EMPLOYEE = 'HR Employee',
+  PAYROLL_SPECIALIST = 'Payroll Specialist',
+  PAYROLL_MANAGER = 'Payroll Manager',
+  SYSTEM_ADMIN = 'System Admin',
+  LEGAL_POLICY_ADMIN = 'Legal & Policy Admin',
+  RECRUITER = 'Recruiter',
+  FINANCE_STAFF = 'Finance Staff',
+  JOB_CANDIDATE = 'Job Candidate',
+  HR_ADMIN = 'HR Admin',
+}
+
+// User type stored in context
+export interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: SystemRole;
+  roles: string[];
+  employeeNumber?: string;
 }
 
 interface RegisterData {
@@ -32,9 +41,24 @@ interface RegisterData {
   mobilePhone: string;
 }
 
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (data: RegisterData) => Promise<boolean>;
+  logout: () => Promise<void>;
+  clearError: () => void;
+  getDashboardRoute: () => string;
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Map backend role to SystemRole enum
+// Storage keys
+const USER_STORAGE_KEY = 'hr_system_user';
+
+// Map backend role string to SystemRole enum
 function mapRole(role: string): SystemRole {
   const roleMap: Record<string, SystemRole> = {
     'department employee': SystemRole.DEPARTMENT_EMPLOYEE,
@@ -53,158 +77,36 @@ function mapRole(role: string): SystemRole {
   return roleMap[role] || SystemRole.DEPARTMENT_EMPLOYEE;
 }
 
-// Get default route based on user role
-function getDefaultRouteForRole(role: SystemRole): string {
-  switch (role) {
-    // Admin roles - full dashboard access
-    case SystemRole.SYSTEM_ADMIN:
-    case SystemRole.HR_ADMIN:
-      return '/dashboard';
-
-    // HR roles - HR focused dashboard
-    case SystemRole.HR_MANAGER:
-    case SystemRole.HR_EMPLOYEE:
-      return '/dashboard';
-
-    // Payroll roles - payroll dashboard
-    case SystemRole.PAYROLL_MANAGER:
-    case SystemRole.PAYROLL_SPECIALIST:
-      return '/dashboard/payroll';
-
-    // Finance - payroll and reports
-    case SystemRole.FINANCE_STAFF:
-      return '/dashboard/payroll';
-
-    // Recruiter - recruitment dashboard
-    case SystemRole.RECRUITER:
-      return '/dashboard/recruitment';
-
-    // Department head - team management
-    case SystemRole.DEPARTMENT_HEAD:
-      return '/dashboard';
-
-    // Job candidate - recruitment/application status
-    case SystemRole.JOB_CANDIDATE:
-      return '/dashboard/recruitment';
-
-    // Regular employee - employee self-service
-    case SystemRole.DEPARTMENT_EMPLOYEE:
-    default:
-      return '/dashboard';
-  }
+// Get dashboard route for a given role
+function getDashboardRouteForRole(role: SystemRole): string {
+  const routes: Record<SystemRole, string> = {
+    [SystemRole.SYSTEM_ADMIN]: '/dashboard/system-admin',
+    [SystemRole.HR_ADMIN]: '/dashboard/hr-admin',
+    [SystemRole.HR_MANAGER]: '/dashboard/hr-manager',
+    [SystemRole.HR_EMPLOYEE]: '/dashboard/hr-employee',
+    [SystemRole.PAYROLL_MANAGER]: '/dashboard/payroll-manager',
+    [SystemRole.PAYROLL_SPECIALIST]: '/dashboard/payroll-specialist',
+    [SystemRole.FINANCE_STAFF]: '/dashboard/finance-staff',
+    [SystemRole.RECRUITER]: '/dashboard/recruiter',
+    [SystemRole.DEPARTMENT_HEAD]: '/dashboard/department-head',
+    [SystemRole.LEGAL_POLICY_ADMIN]: '/dashboard/legal-policy-admin',
+    [SystemRole.JOB_CANDIDATE]: '/dashboard/job-candidate',
+    [SystemRole.DEPARTMENT_EMPLOYEE]: '/dashboard/department-employee',
+  };
+  return routes[role] || '/dashboard/department-employee';
 }
 
-// Define which roles can access which routes
-export const ROLE_PERMISSIONS: Record<string, SystemRole[]> = {
-  // Admin routes - full access
-  '/dashboard/admin': [SystemRole.SYSTEM_ADMIN, SystemRole.HR_ADMIN],
-
-  // Organization structure
-  '/dashboard/organization': [
-    SystemRole.SYSTEM_ADMIN,
-    SystemRole.HR_ADMIN,
-    SystemRole.HR_MANAGER,
-    SystemRole.HR_EMPLOYEE,
-    SystemRole.DEPARTMENT_HEAD,
-  ],
-
-  // Recruitment - HR, Recruiters, and Candidates (limited)
-  '/dashboard/recruitment': [
-    SystemRole.SYSTEM_ADMIN,
-    SystemRole.HR_ADMIN,
-    SystemRole.HR_MANAGER,
-    SystemRole.HR_EMPLOYEE,
-    SystemRole.RECRUITER,
-    SystemRole.JOB_CANDIDATE,
-  ],
-
-  // Onboarding
-  '/dashboard/onboarding': [
-    SystemRole.SYSTEM_ADMIN,
-    SystemRole.HR_ADMIN,
-    SystemRole.HR_MANAGER,
-    SystemRole.HR_EMPLOYEE,
-  ],
-
-  // Offboarding
-  '/dashboard/offboarding': [
-    SystemRole.SYSTEM_ADMIN,
-    SystemRole.HR_ADMIN,
-    SystemRole.HR_MANAGER,
-    SystemRole.HR_EMPLOYEE,
-  ],
-
-  // Payroll - Payroll team and Finance
-  '/dashboard/payroll': [
-    SystemRole.SYSTEM_ADMIN,
-    SystemRole.HR_ADMIN,
-    SystemRole.PAYROLL_MANAGER,
-    SystemRole.PAYROLL_SPECIALIST,
-    SystemRole.FINANCE_STAFF,
-    SystemRole.DEPARTMENT_EMPLOYEE, // Can view own payslips
-    SystemRole.DEPARTMENT_HEAD,
-  ],
-
-  // Performance - HR and Managers
-  '/dashboard/performance': [
-    SystemRole.SYSTEM_ADMIN,
-    SystemRole.HR_ADMIN,
-    SystemRole.HR_MANAGER,
-    SystemRole.HR_EMPLOYEE,
-    SystemRole.DEPARTMENT_HEAD,
-    SystemRole.DEPARTMENT_EMPLOYEE, // Can view own performance
-  ],
-
-  // Time Management - Everyone
-  '/dashboard/time-management': [
-    SystemRole.SYSTEM_ADMIN,
-    SystemRole.HR_ADMIN,
-    SystemRole.HR_MANAGER,
-    SystemRole.HR_EMPLOYEE,
-    SystemRole.DEPARTMENT_HEAD,
-    SystemRole.DEPARTMENT_EMPLOYEE,
-    SystemRole.PAYROLL_SPECIALIST,
-    SystemRole.PAYROLL_MANAGER,
-  ],
-
-  // Leaves - Everyone
-  '/dashboard/leaves': [
-    SystemRole.SYSTEM_ADMIN,
-    SystemRole.HR_ADMIN,
-    SystemRole.HR_MANAGER,
-    SystemRole.HR_EMPLOYEE,
-    SystemRole.DEPARTMENT_HEAD,
-    SystemRole.DEPARTMENT_EMPLOYEE,
-    SystemRole.PAYROLL_SPECIALIST,
-    SystemRole.PAYROLL_MANAGER,
-    SystemRole.FINANCE_STAFF,
-    SystemRole.RECRUITER,
-  ],
-
-  // Employee profile - Everyone
-  '/dashboard/employee': [
-    SystemRole.SYSTEM_ADMIN,
-    SystemRole.HR_ADMIN,
-    SystemRole.HR_MANAGER,
-    SystemRole.HR_EMPLOYEE,
-    SystemRole.DEPARTMENT_HEAD,
-    SystemRole.DEPARTMENT_EMPLOYEE,
-    SystemRole.PAYROLL_SPECIALIST,
-    SystemRole.PAYROLL_MANAGER,
-    SystemRole.FINANCE_STAFF,
-    SystemRole.RECRUITER,
-  ],
-};
-
-// Transform backend user response to frontend User type
-function transformUser(backendUser: LoginResponse['user']): User {
+// Transform backend user to frontend user
+function transformUser(backendUser: BackendUser): User {
+  const primaryRole = backendUser.roles?.[0] || 'department employee';
   return {
-    id: backendUser.id,
+    id: backendUser._id,
     firstName: backendUser.firstName,
     lastName: backendUser.lastName,
     email: backendUser.email,
-    role: mapRole(backendUser.role),
-    department: backendUser.department,
+    role: mapRole(primaryRole),
+    roles: backendUser.roles || [],
+    employeeNumber: backendUser.employeeNumber,
   };
 }
 
@@ -212,23 +114,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const router = useRouter();
 
+  // Load user from localStorage on mount
   useEffect(() => {
-    // Check for stored session on mount
-    const storedUser = localStorage.getItem('hr_user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-        setNotifications(MOCK_NOTIFICATIONS);
-      } catch {
-        localStorage.removeItem('hr_user');
+    try {
+      const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        setUser(parsed);
       }
+    } catch (e) {
+      console.error('Failed to parse stored user:', e);
+      localStorage.removeItem(USER_STORAGE_KEY);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
 
@@ -237,28 +141,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.error) {
         setError(response.error);
+        setIsLoading(false);
         return false;
       }
 
       if (response.data?.user) {
         const transformedUser = transformUser(response.data.user);
         setUser(transformedUser);
-        setNotifications(MOCK_NOTIFICATIONS);
-        localStorage.setItem('hr_user', JSON.stringify(transformedUser));
+
+        // Store user in localStorage
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(transformedUser));
+
+        setIsLoading(false);
         return true;
       }
 
       setError('Invalid response from server');
+      setIsLoading(false);
       return false;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
-      return false;
-    } finally {
       setIsLoading(false);
+      return false;
     }
-  };
+  }, []);
 
-  const register = async (data: RegisterData): Promise<boolean> => {
+  const register = useCallback(async (data: RegisterData): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
 
@@ -274,67 +182,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.error) {
         setError(response.error);
+        setIsLoading(false);
         return false;
       }
 
+      setIsLoading(false);
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
-      return false;
-    } finally {
       setIsLoading(false);
+      return false;
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     setIsLoading(true);
     try {
       await authService.logout();
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
+      // Clear user state and storage
       setUser(null);
-      setNotifications([]);
-      localStorage.removeItem('hr_user');
+      localStorage.removeItem(USER_STORAGE_KEY);
+      removeAccessToken();
       setIsLoading(false);
+      router.push('/login');
     }
-  };
+  }, [router]);
 
-  const clearError = () => setError(null);
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
 
-  //Check if user has one of the specified roles
-  const hasRole = (roles: SystemRole | SystemRole[]): boolean => {
-    if (!user) return false;
-    const roleArray = Array.isArray(roles) ? roles : [roles];
-    return roleArray.includes(user.role);
-  };
-
-  // Get the default route for the current user's role
-  const getDefaultRoute = (): string => {
+  const getDashboardRoute = useCallback((): string => {
     if (!user) return '/login';
-    return getDefaultRouteForRole(user.role);
-  };
-
-  // Set mock role for development testing
-  const setMockRole = (role: SystemRole) => {
-    if (user) {
-      const updatedUser = { ...user, role };
-      setUser(updatedUser);
-      localStorage.setItem('hr_user', JSON.stringify(updatedUser));
-    }
-  };
-
-  const markNotificationRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, read: true } : n))
-    );
-  };
-
-  const markAllNotificationsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+    return getDashboardRouteForRole(user.role);
+  }, [user]);
 
   return (
     <AuthContext.Provider
@@ -343,17 +227,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         error,
-        notifications,
-        unreadCount,
         login,
         register,
         logout,
         clearError,
-        markNotificationRead,
-        markAllNotificationsRead,
-        hasRole,
-        getDefaultRoute,
-        setMockRole,
+        getDashboardRoute,
       }}
     >
       {children}
@@ -367,4 +245,6 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
- }
+}
+
+export { getDashboardRouteForRole };
