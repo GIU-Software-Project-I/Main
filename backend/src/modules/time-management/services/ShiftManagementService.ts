@@ -151,9 +151,9 @@ export class ShiftManagementService {
     // Shift Assignment
     // --------------------------
     // FR: assign shifts to employee/department/position; BR: no overlapping assignments
-    @UseGuards(AuthenticationGuard,AuthorizationGuard)
-    @Roles(SystemRole.SYSTEM_ADMIN, SystemRole.HR_ADMIN)
-    @ApiBearerAuth('access-token')
+    // @UseGuards(AuthenticationGuard,AuthorizationGuard)
+    // @Roles(SystemRole.SYSTEM_ADMIN, SystemRole.HR_ADMIN)
+    // @ApiBearerAuth('access-token')
     async assignShiftToEmployee(dto: AssignShiftDto): Promise<ShiftAssignment> {
         // validate shift exists
         const shift = await this.shiftModel.findById(dto.shiftId).lean();
@@ -749,6 +749,10 @@ export class ShiftManagementService {
     async deactivateScheduleRule(id: string) {
         return this.scheduleRuleModel.findByIdAndUpdate(id, { active: false });
     }
+
+
+    //////////////////////////////////////////////////////////////////////////////
+
 
 
 }

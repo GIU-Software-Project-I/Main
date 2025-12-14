@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Body, Query, Param, Patch } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery } from '@nestjs/swagger';
+import {ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery, ApiParam} from '@nestjs/swagger';
 import { AttendanceSyncService } from '../services/AttendanceSyncService';
+import {GetEscalatedResponse, TriggerEscalationDto, TriggerEscalationResponse} from "../dto/escalation";
 
 @ApiTags('Attendance Sync')
 @Controller('attendance-sync')
@@ -307,7 +308,58 @@ export class AttendanceSyncController {
     })
     @ApiResponse({ status: 500, description: 'Escalation failed' })
     async escalateTimeRequests() {
-        return await this.syncService.manuallyEscalateTimeRequests();
+        // Call the existing escalation method on the service
+        return await this.syncService.escalatePendingTimeRequests();
+    }
+
+    /**
+     * Trigger escalation of pending time requests to HR Admin
+     */
+    @Post('escalate/trigger')
+    @ApiOperation({
+        summary: 'Trigger escalation of pending time requests',
+        description: 'Escalates all SUBMITTED/PENDING requests to specified HR Admin X days before payroll period. Creates single notification with all request IDs.'
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Escalation triggered successfully',
+        type: TriggerEscalationResponse
+    })
+    @ApiResponse({ status: 400, description: 'Invalid parameters' })
+    @ApiResponse({ status: 404, description: 'Payroll or HR Admin not found' })
+    async triggerEscalation(
+        @Body() dto: TriggerEscalationDto
+    ): Promise<TriggerEscalationResponse> {
+        return this.syncService.triggerEscalation(
+            dto.daysBeforePayroll,
+            dto.hrAdminId,
+            dto.payrollRunId
+        );
+    }
+
+    /**
+     * Get all requests escalated to a specific HR Admin
+     */
+    @Get('escalate/to/:hrAdminId')
+    @ApiOperation({
+        summary: 'Get all requests escalated to HR Admin',
+        description: 'Returns all time requests (corrections, exceptions, break permissions) escalated to specified HR Admin'
+    })
+    @ApiParam({
+        name: 'hrAdminId',
+        description: 'HR Admin user ID',
+        example: '507f1f77bcf86cd799439011'
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Escalated requests retrieved successfully',
+        type: GetEscalatedResponse
+    })
+    @ApiResponse({ status: 400, description: 'Invalid HR Admin ID' })
+    async getEscalatedRequests(
+        @Param('hrAdminId') hrAdminId: string
+    ): Promise<GetEscalatedResponse> {
+        return this.syncService.getEscalatedRequests(hrAdminId);
     }
 }
 

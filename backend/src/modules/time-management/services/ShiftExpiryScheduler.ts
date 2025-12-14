@@ -27,7 +27,7 @@ export class ShiftExpiryScheduler {
      * Automatically finds HR/Admin users to notify - no configuration required!
      */
     // Run daily at 02:00 server time to notify about expiring shift assignments
-    @Cron('16 20 * * *')  // At 19:38 (7:38 PM) every day
+    @Cron('0 2 * * *')
     async runDaily() {
         try {
             const daysEnv = Number(process.env.SHIFT_EXPIRY_NOTIFICATION_DAYS ?? 7);

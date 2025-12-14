@@ -7,8 +7,8 @@ import {
     Get,
     Param,
     Put,
-    Query,Logger,
-    BadRequestException, Req,
+    Query,
+    BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 
@@ -25,7 +25,6 @@ import { AttendanceService } from "../services/AttendanceService";
 @Controller('attendance')
 export class AttendanceController {
     constructor(private readonly attendanceService: AttendanceService) {}
-    private readonly logger = new Logger(AttendanceController.name);
 
     // --------------------------------------------------
     // PUNCH IN

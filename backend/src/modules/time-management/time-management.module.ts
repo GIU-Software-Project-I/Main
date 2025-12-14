@@ -12,6 +12,7 @@ import { ShiftSchema, Shift } from './models/shift.schema';
 import { ShiftAssignmentSchema, ShiftAssignment } from './models/shift-assignment.schema';
 import { LatenessRule, latenessRuleSchema } from './models/lateness-rule.schema';
 import { HolidaySchema, Holiday } from './models/holiday.schema';
+import { payrollRuns, payrollRunsSchema } from '../payroll/payroll-execution/models/payrollRuns.schema';
 import {AttendanceController} from "./controllers/AttendanceController";
 import {TimeExceptionController} from "./controllers/TimeExceptionController";
 import {AttendanceCorrectionController} from "./controllers/AttendanceCorrectionController";
@@ -21,7 +22,6 @@ import {TimeExceptionService} from "./services/TimeExceptionService";
 import {AttendanceCorrectionService} from "./services/AttendanceCorrectionService";
 import {ShiftManagementService} from "./services/ShiftManagementService";
 import {HolidayService} from "./services/HolidayService";
-
 import {RepeatedLatenessService} from "./services/RepeatedLatenessService";
 import {HolidayController} from "./controllers/HolidayController";
 import {NotificationController} from "./controllers/NotificationController";
@@ -41,6 +41,8 @@ import {AuthModule} from "../auth/auth-module";
             { name: NotificationLog.name, schema: NotificationLogSchema },
             { name: AttendanceCorrectionRequest.name, schema: AttendanceCorrectionRequestSchema },
             { name: ShiftType.name, schema: ShiftTypeSchema },
+            { name: payrollRuns.name, schema: payrollRunsSchema },
+            { name: AttendanceCorrectionRequest.name, schema: AttendanceCorrectionRequestSchema },
             { name: ScheduleRule.name, schema: ScheduleRuleSchema },
             { name: AttendanceRecord.name, schema: AttendanceRecordSchema },
             { name: TimeException.name, schema: TimeExceptionSchema },
