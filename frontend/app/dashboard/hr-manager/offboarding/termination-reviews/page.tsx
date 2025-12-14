@@ -223,41 +223,47 @@ export default function TerminationReviewsPage() {
               <p>No termination reviews found.</p>
             </div>
           ) : (
-            terminations.map((termination) => (
-              <Link
-                key={termination._id}
-                href={`/dashboard/hr-manager/offboarding/resignations/${termination._id}`}
-                className="block p-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-medium text-gray-900">Employee: {termination.employeeId}</h3>
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusBadge(termination.status)}`}>
-                        {termination.status.replace('_', ' ').toUpperCase()}
-                      </span>
-                      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                        {termination.initiator.toUpperCase()} Initiated
-                      </span>
+            terminations.map((termination) => {
+              const employee = typeof termination.employeeId === 'object' ? termination.employeeId as any : null;
+              const employeeName = employee
+                ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Employee'
+                : 'Employee';
+              return (
+                <Link
+                  key={termination._id}
+                  href={`/dashboard/hr-manager/offboarding/resignations/${termination._id}`}
+                  className="block p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h3 className="font-medium text-gray-900">{employeeName}</h3>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusBadge(termination.status)}`}>
+                          {termination.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                          {termination.initiator.toUpperCase()} Initiated
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">Reason: {termination.reason}</p>
+                      {termination.terminationDate && (
+                        <p className="text-sm text-gray-500">
+                          Effective Date: {new Date(termination.terminationDate).toLocaleDateString()}
+                        </p>
+                      )}
+                      {termination.performanceWarnings && termination.performanceWarnings.length > 0 && (
+                        <p className="text-sm text-orange-600 mt-1">
+                          Performance warnings: {termination.performanceWarnings.length}
+                        </p>
+                      )}
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">Reason: {termination.reason}</p>
-                    {termination.terminationDate && (
-                      <p className="text-sm text-gray-500">
-                        Effective Date: {new Date(termination.terminationDate).toLocaleDateString()}
-                      </p>
-                    )}
-                    {termination.performanceWarnings && termination.performanceWarnings.length > 0 && (
-                      <p className="text-sm text-orange-600 mt-1">
-                        Performance warnings: {termination.performanceWarnings.length}
-                      </p>
-                    )}
+                    <div className="text-right text-sm text-gray-500">
+                      <p>Created: {new Date(termination.createdAt).toLocaleDateString()}</p>
+                    </div>
                   </div>
-                  <div className="text-right text-sm text-gray-500">
-                    <p>Created: {new Date(termination.createdAt).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              </Link>
-            ))
+                </Link>
+              );
+            })
           )}
         </div>
       </div>

@@ -109,33 +109,39 @@ export default function ResignationsPage() {
               <p>No resignation requests found.</p>
             </div>
           ) : (
-            filteredResignations.map((resignation) => (
-              <Link
-                key={resignation._id}
-                href={`/dashboard/hr-manager/offboarding/resignations/${resignation._id}`}
-                className="block p-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-medium text-gray-900">Employee: {resignation.employeeId}</h3>
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusBadge(resignation.status)}`}>
-                        {resignation.status.replace('_', ' ').toUpperCase()}
-                      </span>
+            filteredResignations.map((resignation) => {
+              const employee = typeof resignation.employeeId === 'object' ? resignation.employeeId as any : null;
+              const employeeName = employee
+                ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Employee'
+                : 'Employee';
+              return (
+                <Link
+                  key={resignation._id}
+                  href={`/dashboard/hr-manager/offboarding/resignations/${resignation._id}`}
+                  className="block p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h3 className="font-medium text-gray-900">{employeeName}</h3>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusBadge(resignation.status)}`}>
+                          {resignation.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">Reason: {resignation.reason}</p>
+                      {resignation.terminationDate && (
+                        <p className="text-sm text-gray-500">
+                          Effective Date: {new Date(resignation.terminationDate).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">Reason: {resignation.reason}</p>
-                    {resignation.terminationDate && (
-                      <p className="text-sm text-gray-500">
-                        Effective Date: {new Date(resignation.terminationDate).toLocaleDateString()}
-                      </p>
-                    )}
+                    <div className="text-right text-sm text-gray-500">
+                      <p>Submitted: {new Date(resignation.createdAt).toLocaleDateString()}</p>
+                    </div>
                   </div>
-                  <div className="text-right text-sm text-gray-500">
-                    <p>Submitted: {new Date(resignation.createdAt).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              </Link>
-            ))
+                </Link>
+              );
+            })
           )}
         </div>
       </div>

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { onboardingService, Onboarding, OnboardingTaskStatus } from '@/app/services/onboarding';
-import { offboardingService, TerminationRequest, TerminationStatus } from '@/app/services/offboarding';
 
 export default function SystemAdminOnboardingPage() {
   const [loading, setLoading] = useState(true);
@@ -227,9 +226,10 @@ export default function SystemAdminOnboardingPage() {
             </div>
           ) : (
             filteredOnboardings.map((onboarding) => {
-              const employeeIdDisplay = typeof onboarding.employeeId === 'object'
-                ? (onboarding.employeeId as any)?._id || (onboarding.employeeId as any)?.firstName || 'Unknown'
-                : onboarding.employeeId;
+              const employee = typeof onboarding.employeeId === 'object' ? onboarding.employeeId as any : null;
+              const employeeName = employee
+                ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'New Employee'
+                : 'New Employee';
               const itTasks = getITTasks(onboarding);
               const hasPending = hasITPendingTasks(onboarding);
 
@@ -238,7 +238,7 @@ export default function SystemAdminOnboardingPage() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <h3 className="font-medium text-gray-900">Employee: {employeeIdDisplay}</h3>
+                        <h3 className="font-medium text-gray-900">{employeeName}</h3>
                         <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
                           hasPending ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'
                         }`}>

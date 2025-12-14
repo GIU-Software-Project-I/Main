@@ -123,8 +123,15 @@ export default function FinalSettlementPage() {
         <h2 className="text-lg font-semibold mb-4">Termination Details</h2>
         <dl className="grid grid-cols-2 gap-4">
           <div>
-            <dt className="text-sm font-medium text-gray-500">Employee ID</dt>
-            <dd className="mt-1 text-gray-900">{request.employeeId}</dd>
+            <dt className="text-sm font-medium text-gray-500">Employee</dt>
+            <dd className="mt-1 text-gray-900">
+              {(() => {
+                const employee = typeof request.employeeId === 'object' ? request.employeeId as any : null;
+                return employee
+                  ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Employee'
+                  : 'Employee';
+              })()}
+            </dd>
           </div>
           <div>
             <dt className="text-sm font-medium text-gray-500">Status</dt>

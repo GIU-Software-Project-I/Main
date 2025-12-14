@@ -4,7 +4,7 @@ import { Model, Types } from 'mongoose';
 import { EmployeeProfile, EmployeeProfileDocument } from '../models/employee/employee-profile.schema';
 import { EmployeeProfileChangeRequest, EmployeeProfileChangeRequestDocument } from '../models/employee/ep-change-request.schema';
 import { EmployeeSystemRole, EmployeeSystemRoleDocument } from '../models/employee/employee-system-role.schema';
-import { EmployeeDocument } from '../models/employee/employee-document.schema';
+
 import { UpdateContactInfoDto } from '../dto/employee-profile/update-contact-info.dto';
 import { UpdateBioDto } from '../dto/employee-profile/update-bio.dto';
 import { CreateCorrectionRequestDto } from '../dto/employee-profile/create-correction-request.dto';

@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/app/context/AuthContext';
 import { employeeProfileService } from '@/app/services/employee-profile';
 import Button from '@/app/components/ui/Button';
 import Input from '@/app/components/ui/Input';
 
 export default function EmergencyContactsPage() {
+    const { user } = useAuth();
     const [contacts, setContacts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -21,13 +23,17 @@ export default function EmergencyContactsPage() {
     });
 
     useEffect(() => {
-        loadContacts();
-    }, []);
+        if (user?.id) {
+            loadContacts();
+        }
+    }, [user]);
 
     const loadContacts = async () => {
+        if (!user?.id) return;
+
         try {
             setLoading(true);
-            const response = await employeeProfileService.getEmergencyContacts();
+            const response = await employeeProfileService.getEmergencyContacts(user.id);
             setContacts(Array.isArray(response.data) ? response.data : []);
         } catch (err: any) {
             console.error('Failed to load emergency contacts:', err);
@@ -39,11 +45,16 @@ export default function EmergencyContactsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (!user?.id) {
+            alert('Unable to determine user identity');
+            return;
+        }
+
         try {
             if (editingIndex !== null) {
-                await employeeProfileService.updateEmergencyContact(editingIndex, formData);
+                await employeeProfileService.updateEmergencyContact(user.id, editingIndex, formData);
             } else {
-                await employeeProfileService.addEmergencyContact(formData);
+                await employeeProfileService.addEmergencyContact(user.id, formData);
             }
 
             setFormData({ name: '', relationship: '', phone: '', email: '', isPrimary: false });
@@ -73,8 +84,13 @@ export default function EmergencyContactsPage() {
             return;
         }
 
+        if (!user?.id) {
+            alert('Unable to determine user identity');
+            return;
+        }
+
         try {
-            await employeeProfileService.deleteEmergencyContact(index);
+            await employeeProfileService.deleteEmergencyContact(user.id, index);
             loadContacts();
             alert('Contact deleted successfully!');
         } catch (err: any) {

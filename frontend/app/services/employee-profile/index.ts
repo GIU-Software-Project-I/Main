@@ -1,11 +1,5 @@
 import apiService from '../api';
 
-// =============================================
-// TEMPORARY: Test User ID for Development
-// =============================================
-// TODO: Remove this and use actual authentication in production
-const TEST_USER_ID = '693dc3ddee07fbcd93854e05'; // Replace with actual user ID from your database
-
 /**
  * Helper function to build query string
  */
@@ -18,62 +12,83 @@ const buildQueryString = (params: Record<string, any>): string => {
 };
 
 /**
+ * Configuration for API mode
+ * Set USE_AUTH_ENDPOINTS to true when using the authenticated controller in production
+ * Set to false when using the no-auth testing controller
+ */
+const USE_AUTH_ENDPOINTS = true; // Production mode - user ID extracted from JWT token
+
+/**
+ * Helper to build the self-service endpoint path
+ * - Auth mode: /employee-profile/me (user ID from JWT token)
+ * - No-auth mode: /employee-profile/me/:userId (user ID in path)
+ */
+const getMePath = (userId?: string, suffix: string = '') => {
+  if (USE_AUTH_ENDPOINTS) {
+    return `/employee-profile/me${suffix}`;
+  }
+  if (!userId) throw new Error('User ID is required');
+  return `/employee-profile/me/${userId}${suffix}`;
+};
+
+/**
  * Employee Profile Service
  * Handles all employee profile CRUD operations and corrections
+ *
+ * NOTE: When USE_AUTH_ENDPOINTS is true, the userId parameter is ignored
+ * and the user ID is extracted from the JWT token on the backend.
  */
 export const employeeProfileService = {
-  // =============================================
-  // Self-Service Endpoints (Employee)
-  // =============================================
 
-  /**
-   * Get own profile (self-service)
-   * GET /employee-profile/me/:userId (no-auth version for testing)
-   */
-  getMyProfile: async () => {
-    // Using test user ID for development - in production this would use authenticated user
-    return apiService.get(`/employee-profile/me/${TEST_USER_ID}`);
+
+  getMyProfile: async (userId?: string) => {
+    return apiService.get(getMePath(userId));
   },
 
   /**
    * Update contact information
-   * PATCH /employee-profile/me/:userId/contact-info
+   * Auth: PATCH /employee-profile/me/contact-info
+   * No-auth: PATCH /employee-profile/me/:userId/contact-info
    */
-  updateContactInfo: async (data: any) => {
-    return apiService.patch(`/employee-profile/me/${TEST_USER_ID}/contact-info`, data);
+  updateContactInfo: async (userId: string, data: any) => {
+    return apiService.patch(getMePath(userId, '/contact-info'), data);
   },
 
   /**
    * Update biography and photo
-   * PATCH /employee-profile/me/:userId/bio
+   * Auth: PATCH /employee-profile/me/bio
+   * No-auth: PATCH /employee-profile/me/:userId/bio
    */
-  updateBio: async (data: any) => {
-    return apiService.patch(`/employee-profile/me/${TEST_USER_ID}/bio`, data);
+  updateBio: async (userId: string, data: any) => {
+    return apiService.patch(getMePath(userId, '/bio'), data);
   },
 
   /**
    * Submit correction request
-   * POST /employee-profile/me/:userId/correction-request
+   * Auth: POST /employee-profile/me/correction-request
+   * No-auth: POST /employee-profile/me/:userId/correction-request
    */
-  submitCorrectionRequest: async (data: any) => {
-    return apiService.post(`/employee-profile/me/${TEST_USER_ID}/correction-request`, data);
+  submitCorrectionRequest: async (userId: string, data: any) => {
+    return apiService.post(getMePath(userId, '/correction-request'), data);
   },
 
   /**
    * Get own correction requests (paginated)
-   * GET /employee-profile/me/:userId/correction-requests
+   * Auth: GET /employee-profile/me/correction-requests
+   * No-auth: GET /employee-profile/me/:userId/correction-requests
    */
-  getMyCorrectionRequests: async (page?: number, limit?: number) => {
+  getMyCorrectionRequests: async (userId: string, page?: number, limit?: number) => {
     const query = buildQueryString({ page, limit });
-    return apiService.get(`/employee-profile/me/${TEST_USER_ID}/correction-requests${query}`);
+    return apiService.get(getMePath(userId, `/correction-requests${query}`));
   },
 
   /**
    * Cancel own correction request
-   * PATCH /employee-profile/me/:userId/correction-requests/:requestId/cancel
+   * Auth: PATCH /employee-profile/me/correction-requests/:requestId/cancel
+   * No-auth: PATCH /employee-profile/me/:userId/correction-requests/:requestId/cancel
    */
-  cancelCorrectionRequest: async (requestId: string) => {
-    return apiService.patch(`/employee-profile/me/${TEST_USER_ID}/correction-requests/${requestId}/cancel`, {});
+  cancelCorrectionRequest: async (userId: string, requestId: string) => {
+    return apiService.patch(getMePath(userId, `/correction-requests/${requestId}/cancel`), {});
   },
 
   // =============================================
@@ -82,71 +97,80 @@ export const employeeProfileService = {
 
   /**
    * Upload a document
-   * POST /employee-profile/me/:userId/documents
+   * Auth: POST /employee-profile/me/documents
+   * No-auth: POST /employee-profile/me/:userId/documents
    */
-  uploadDocument: async (data: any) => {
-    return apiService.post(`/employee-profile/me/${TEST_USER_ID}/documents`, data);
+  uploadDocument: async (userId: string, data: any) => {
+    return apiService.post(getMePath(userId, '/documents'), data);
   },
 
   /**
    * Get all my documents
-   * GET /employee-profile/me/:userId/documents
+   * Auth: GET /employee-profile/me/documents
+   * No-auth: GET /employee-profile/me/:userId/documents
    */
-  getMyDocuments: async () => {
-    return apiService.get(`/employee-profile/me/${TEST_USER_ID}/documents`);
+  getMyDocuments: async (userId: string) => {
+    return apiService.get(getMePath(userId, '/documents'));
   },
 
   /**
    * Get a specific document (full data including file)
-   * GET /employee-profile/me/:userId/documents/:documentId
+   * Auth: GET /employee-profile/me/documents/:documentId
+   * No-auth: GET /employee-profile/me/:userId/documents/:documentId
    */
-  getDocument: async (documentId: string) => {
-    return apiService.get(`/employee-profile/me/${TEST_USER_ID}/documents/${documentId}`);
+  getDocument: async (userId: string, documentId: string) => {
+    return apiService.get(getMePath(userId, `/documents/${documentId}`));
   },
 
   /**
    * Delete a document
-   * DELETE /employee-profile/me/:userId/documents/:documentId
+   * Auth: DELETE /employee-profile/me/documents/:documentId
+   * No-auth: DELETE /employee-profile/me/:userId/documents/:documentId
    */
-  deleteDocument: async (documentId: string) => {
-    return apiService.delete(`/employee-profile/me/${TEST_USER_ID}/documents/${documentId}`);
+  deleteDocument: async (userId: string, documentId: string) => {
+    return apiService.delete(getMePath(userId, `/documents/${documentId}`));
   },
 
   // =============================================
-  // Emergency Contact Management  
+  // Emergency Contact Management
   // =============================================
 
   /**
    * Get all emergency contacts
-   * GET /employee-profile/me/:userId/emergency-contacts
+   * Auth: GET /employee-profile/me/emergency-contacts
+   * No-auth: GET /employee-profile/me/:userId/emergency-contacts
    */
-  getEmergencyContacts: async () => {
-    return apiService.get(`/employee-profile/me/${TEST_USER_ID}/emergency-contacts`);
+  getEmergencyContacts: async (userId: string) => {
+    return apiService.get(getMePath(userId, '/emergency-contacts'));
   },
 
   /**
    * Add emergency contact
-   * POST /employee-profile/me/:userId/emergency-contacts
+   * Auth: POST /employee-profile/me/emergency-contacts
+   * No-auth: POST /employee-profile/me/:userId/emergency-contacts
    */
-  addEmergencyContact: async (data: any) => {
-    return apiService.post(`/employee-profile/me/${TEST_USER_ID}/emergency-contacts`, data);
+  addEmergencyContact: async (userId: string, data: any) => {
+    return apiService.post(getMePath(userId, '/emergency-contacts'), data);
   },
 
   /**
    * Update emergency contact
-   * PATCH /employee-profile/me/:userId/emergency-contacts/:index
+   * Auth: PATCH /employee-profile/me/emergency-contacts/:index
+   * No-auth: PATCH /employee-profile/me/:userId/emergency-contacts/:index
    */
-  updateEmergencyContact: async (index: number, data: any) => {
-    return apiService.patch(`/employee-profile/me/${TEST_USER_ID}/emergency-contacts/${index}`, data);
+  updateEmergencyContact: async (userId: string, index: number, data: any) => {
+    return apiService.patch(getMePath(userId, `/emergency-contacts/${index}`), data);
   },
 
   /**
    * Delete emergency contact
-   * DELETE /employee-profile/me/:userId/emergency-contacts/:index
+   * Auth: DELETE /employee-profile/me/emergency-contacts/:index
+   * No-auth: DELETE /employee-profile/me/:userId/emergency-contacts/:index
    */
-  deleteEmergencyContact: async (index: number) => {
-    return apiService.delete(`/employee-profile/me/${TEST_USER_ID}/emergency-contacts/${index}`);
+  deleteEmergencyContact: async (userId: string, index: number) => {
+    return apiService.delete(getMePath(userId, `/emergency-contacts/${index}`));
   },
+
 
   // =============================================
   // Manager Endpoints (Team View)

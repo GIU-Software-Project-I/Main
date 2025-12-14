@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { offboardingService, TerminationRequest, TerminationStatus, ClearanceChecklist } from '@/app/services/offboarding';
+import { offboardingService, TerminationRequest, TerminationStatus } from '@/app/services/offboarding';
 
 export default function SystemAdminOffboardingPage() {
   const [loading, setLoading] = useState(true);
@@ -136,9 +136,10 @@ export default function SystemAdminOffboardingPage() {
             </div>
           ) : (
             requests.map((request) => {
-              const employeeIdDisplay = typeof request.employeeId === 'object'
-                ? (request.employeeId as any)?._id || (request.employeeId as any)?.firstName || 'Unknown'
-                : request.employeeId;
+              const employee = typeof request.employeeId === 'object' ? request.employeeId as any : null;
+              const employeeName = employee
+                ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Employee'
+                : 'Employee';
               const reasonDisplay = typeof request.reason === 'object'
                 ? JSON.stringify(request.reason)
                 : request.reason;
@@ -148,7 +149,7 @@ export default function SystemAdminOffboardingPage() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <h3 className="font-medium text-gray-900">Employee: {employeeIdDisplay}</h3>
+                        <h3 className="font-medium text-gray-900">{employeeName}</h3>
                         <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800">
                           Access Active
                         </span>

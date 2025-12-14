@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
-import { getSidebarConfig, NavItem } from '@/app/config/sidebarConfig';
+import { getSidebarConfig, NavItem, NavSection } from '@/app/config/sidebarConfig';
 import { SystemRole } from '@/app/types';
 
 interface SidebarProps {
@@ -326,8 +326,24 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {sidebarConfig.navItems.map(item => renderNavItem(item))}
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
+          {sidebarConfig.sections.map((section, sectionIndex) => (
+            <div key={section.title} className={sectionIndex > 0 ? 'mt-6' : ''}>
+              {/* Section Header */}
+              {sectionIndex > 0 && (
+                <div className="border-t border-slate-200 mb-4"></div>
+              )}
+              <div className="px-3 mb-2">
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  {section.title}
+                </h3>
+              </div>
+              {/* Section Items */}
+              <div className="space-y-1">
+                {section.items.map(item => renderNavItem(item))}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Bottom section - Logout */}

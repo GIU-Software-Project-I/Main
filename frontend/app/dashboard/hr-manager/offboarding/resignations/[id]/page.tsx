@@ -156,7 +156,15 @@ export default function ResignationDetailPage() {
           <h1 className="text-2xl font-bold text-gray-900 mt-2">
             {isResignation ? 'Resignation' : 'Termination'} Request Details
           </h1>
-          <p className="text-gray-600 mt-1">Employee ID: {request.employeeId}</p>
+          {(() => {
+            const employee = typeof request.employeeId === 'object' ? request.employeeId as any : null;
+            const employeeName = employee
+              ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim()
+              : null;
+            return employeeName ? (
+              <p className="text-gray-600 mt-1">{employeeName}</p>
+            ) : null;
+          })()}
         </div>
         <div className="flex gap-3">
           {request.status === TerminationStatus.PENDING && (

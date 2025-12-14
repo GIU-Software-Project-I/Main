@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from "@nestjs/mongoose";
 
 // Models
@@ -15,6 +15,27 @@ import { Contract, ContractSchema } from "./models/contract.schema";
 import { Document, DocumentSchema } from "./models/document.schema";
 import { Onboarding, OnboardingSchema } from "./models/onboarding.schema";
 import { TerminationRequest, TerminationRequestSchema } from "./models/termination-request.schema";
+
+// Payroll Models for Integration
+import { employeeSigningBonus, employeeSigningBonusSchema } from "../payroll/payroll-execution/models/EmployeeSigningBonus.schema";
+import { signingBonus, signingBonusSchema } from "../payroll/payroll-configuration/models/signingBonus.schema";
+import { employeePayrollDetails, employeePayrollDetailsSchema } from "../payroll/payroll-execution/models/employeePayrollDetails.schema";
+import { payrollRuns, payrollRunsSchema } from "../payroll/payroll-execution/models/payrollRuns.schema";
+import { EmployeeTerminationResignation, EmployeeTerminationResignationSchema } from "../payroll/payroll-execution/models/EmployeeTerminationResignation.schema";
+import { terminationAndResignationBenefits, terminationAndResignationBenefitsSchema } from "../payroll/payroll-configuration/models/terminationAndResignationBenefits";
+
+// Leaves Models for Offboarding Integration
+import { LeaveEntitlement, LeaveEntitlementSchema } from "../leaves/models/leave-entitlement.schema";
+import { LeaveRequest, LeaveRequestSchema } from "../leaves/models/leave-request.schema";
+import { LeaveType, LeaveTypeSchema } from "../leaves/models/leave-type.schema";
+
+// Employee Models for Integration
+import { EmployeeProfile, EmployeeProfileSchema } from "../employee/models/employee/employee-profile.schema";
+import { EmployeeSystemRole, EmployeeSystemRoleSchema } from "../employee/models/employee/employee-system-role.schema";
+import { payGrade, payGradeSchema } from "../payroll/payroll-configuration/models/payGrades.schema";
+
+// Payroll Module for Service Integration
+import { PayrollExecutionModule } from "../payroll/payroll-execution/payroll-execution.module";
 
 // controllers
 import { RecruitmentController } from "./controllers/recruitment.controller";
@@ -34,6 +55,7 @@ import {AuthModule} from "../auth/auth-module";
 @Module({
     imports: [
         AuthModule,
+        forwardRef(() => PayrollExecutionModule),
         MongooseModule.forFeature([
             // Recruitment Models
             { name: JobTemplate.name, schema: JobTemplateSchema },
@@ -49,6 +71,21 @@ import {AuthModule} from "../auth/auth-module";
             { name: ClearanceChecklist.name, schema: ClearanceChecklistSchema },
             { name: Onboarding.name, schema: OnboardingSchema },
             { name: TerminationRequest.name, schema: TerminationRequestSchema },
+            // Payroll Models for Integration
+            { name: employeeSigningBonus.name, schema: employeeSigningBonusSchema },
+            { name: signingBonus.name, schema: signingBonusSchema },
+            { name: employeePayrollDetails.name, schema: employeePayrollDetailsSchema },
+            { name: payrollRuns.name, schema: payrollRunsSchema },
+            { name: EmployeeTerminationResignation.name, schema: EmployeeTerminationResignationSchema },
+            { name: terminationAndResignationBenefits.name, schema: terminationAndResignationBenefitsSchema },
+            { name: payGrade.name, schema: payGradeSchema },
+            // Leaves Models for Offboarding Integration
+            { name: LeaveEntitlement.name, schema: LeaveEntitlementSchema },
+            { name: LeaveRequest.name, schema: LeaveRequestSchema },
+            { name: LeaveType.name, schema: LeaveTypeSchema },
+            // Employee Models
+            { name: EmployeeProfile.name, schema: EmployeeProfileSchema },
+            { name: EmployeeSystemRole.name, schema: EmployeeSystemRoleSchema },
         ]),
         SharedModule,
 

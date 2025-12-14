@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
@@ -6,7 +6,7 @@ import { EmployeeProfile, EmployeeProfileDocument } from '../../employee/models/
 import { EmployeeSystemRole, EmployeeSystemRoleDocument } from '../../employee/models/employee/employee-system-role.schema';
 import { Candidate, CandidateDocument } from '../../employee/models/employee/Candidate.Schema';
 
-import { SystemRole } from '../../employee/enums/employee-profile.enums';
+import { SystemRole, EmployeeStatus } from '../../employee/enums/employee-profile.enums';
 import {RegisterEmployeeDto} from "../dto/register-employee-dto";
 import {RegisterCandidateDto} from "../dto/register-candidate-dto";
 
@@ -141,14 +141,33 @@ export class EmployeeAuthService {
       throw new BadRequestException('Invalid credentials');
     }
 
+    // Check if employee is terminated or suspended - prevent login
+    if (employee.status === EmployeeStatus.TERMINATED) {
+      throw new UnauthorizedException('Your account has been terminated. Access denied.');
+    }
+
+    if (employee.status === EmployeeStatus.SUSPENDED) {
+      throw new UnauthorizedException('Your account has been suspended. Please contact HR.');
+    }
+
+    if (employee.status === EmployeeStatus.INACTIVE) {
+      throw new UnauthorizedException('Your account is inactive. Please contact HR.');
+    }
+
     const isPasswordValid = await bcrypt.compare(plainPassword, employee.password);
     if (!isPasswordValid) {
       throw new BadRequestException('Invalid credentials');
     }
 
-    // Get employee roles
+    // Get employee roles - only active roles
     const systemRole = await this.employeeSystemRoleModel.findOne({ employeeProfileId: employee._id, isActive: true }).exec();
-    const roles = systemRole?.roles || [SystemRole.DEPARTMENT_EMPLOYEE];
+
+    // If no active roles found, deny access
+    if (!systemRole || !systemRole.roles || systemRole.roles.length === 0) {
+      throw new UnauthorizedException('No active roles assigned. Access denied.');
+    }
+
+    const roles = systemRole.roles;
 
     return { employee, roles };
   }

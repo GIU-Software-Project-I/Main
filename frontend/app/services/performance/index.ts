@@ -370,5 +370,33 @@ export const performanceService = {
   getCompletionDashboard: async (cycleId: string) => {
     return apiService.get(`/performance/dashboard/${cycleId}`);
   },
+
+  // =============================================
+  // Self-Service (Employee Portal)
+  // =============================================
+
+  /**
+   * Get my appraisal history
+   * GET /performance/employee/me/history
+   */
+  getAppraisalHistory: async () => {
+    return apiService.get(`/performance/employee/me/history`);
+  },
+
+  /**
+   * Get my goals
+   * GET /performance/employee/me/goals
+   */
+  getMyGoals: async () => {
+    return apiService.get(`/performance/employee/me/goals`);
+  },
+
+  /**
+   * Get my current appraisal
+   * GET /performance/employee/me/current
+   */
+  getMyCurrentAppraisal: async () => {
+    return apiService.get(`/performance/employee/me/current`);
+  },
 };
 

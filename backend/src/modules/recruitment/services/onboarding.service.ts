@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
@@ -7,6 +7,17 @@ import { Onboarding, OnboardingDocument } from '../models/onboarding.schema';
 import { Contract, ContractDocument } from '../models/contract.schema';
 import { Document, DocumentDocument } from '../models/document.schema';
 import { Offer, OfferDocument } from '../models/offer.schema';
+
+// Payroll Models
+import { employeeSigningBonus, employeeSigningBonusDocument } from '../../payroll/payroll-execution/models/EmployeeSigningBonus.schema';
+import { signingBonus, signingBonusDocument } from '../../payroll/payroll-configuration/models/signingBonus.schema';
+import { employeePayrollDetails, employeePayrollDetailsDocument } from '../../payroll/payroll-execution/models/employeePayrollDetails.schema';
+import { payrollRuns, payrollRunsDocument } from '../../payroll/payroll-execution/models/payrollRuns.schema';
+import { BonusStatus, BankStatus } from '../../payroll/payroll-execution/enums/payroll-execution-enum';
+import { ConfigStatus } from '../../payroll/payroll-configuration/enums/payroll-configuration-enums';
+
+// Payroll Service
+import { PayrollExecutionService } from '../../payroll/payroll-execution/services/payroll-execution.service';
 
 // DTOs
 import {CreateOnboardingDto, CreateOnboardingTaskDto, UpdateTaskStatusDto, UploadDocumentDto, ReserveEquipmentDto, ProvisionAccessDto, TriggerPayrollInitiationDto, ScheduleAccessRevocationDto, CancelOnboardingDto,} from '../dto/onboarding';
@@ -19,11 +30,20 @@ import { SharedRecruitmentService } from '../../shared/services/shared-recruitme
 
 @Injectable()
 export class OnboardingService {
+    private readonly logger = new Logger(OnboardingService.name);
+
     constructor(
         @InjectModel(Onboarding.name) private onboardingModel: Model<OnboardingDocument>,
         @InjectModel(Contract.name) private contractModel: Model<ContractDocument>,
         @InjectModel(Document.name) private documentModel: Model<DocumentDocument>,
         @InjectModel(Offer.name) private offerModel: Model<OfferDocument>,
+        // Payroll Models
+        @InjectModel(employeeSigningBonus.name) private employeeSigningBonusModel: Model<employeeSigningBonusDocument>,
+        @InjectModel(signingBonus.name) private signingBonusModel: Model<signingBonusDocument>,
+        @InjectModel(employeePayrollDetails.name) private employeePayrollDetailsModel: Model<employeePayrollDetailsDocument>,
+        @InjectModel(payrollRuns.name) private payrollRunsModel: Model<payrollRunsDocument>,
+        // Services
+        @Inject(forwardRef(() => PayrollExecutionService)) private readonly payrollExecutionService: PayrollExecutionService,
         private readonly sharedRecruitmentService: SharedRecruitmentService,
     ) {}
 
@@ -64,7 +84,7 @@ export class OnboardingService {
 
         if (!dto.tasks || dto.tasks.length === 0) {
             throw new BadRequestException(
-                'Onboarding tasks must be provided. Alternatively, load from template configuration (TODO: implement template system)'
+                'Onboarding tasks must be provided.'
             );
         }
 
@@ -273,7 +293,7 @@ export class OnboardingService {
             });
         }
 
-        return {employeeId, pendingTasks, overdueTasks,};
+        return { employeeId, pendingTasks, overdueTasks };
     }
 
     async uploadDocument(dto: UploadDocumentDto): Promise<Document> {
@@ -306,7 +326,7 @@ export class OnboardingService {
             .exec();
     }
 
-    async linkDocumentToTask(onboardingId: string, taskName: string, documentId: string,): Promise<Onboarding> {
+    async linkDocumentToTask(onboardingId: string, taskName: string, documentId: string): Promise<Onboarding> {
         const onboarding = await this.onboardingModel.findById(onboardingId).exec();
 
         if (!onboarding) {
@@ -324,7 +344,12 @@ export class OnboardingService {
         return onboarding.save();
     }
 
-    async provisionSystemAccess(dto: ProvisionAccessDto): Promise<{ success: boolean; employeeId: string; message: string; provisionedAt: Date; }> {
+    async provisionSystemAccess(dto: ProvisionAccessDto): Promise<{
+        success: boolean;
+        employeeId: string;
+        message: string;
+        provisionedAt: Date;
+    }> {
         const employee = await this.sharedRecruitmentService.validateEmployeeExists(dto.employeeId);
 
         await this.sharedRecruitmentService.notifySystemAccessProvisioned({
@@ -341,7 +366,16 @@ export class OnboardingService {
         };
     }
 
-    async reserveEquipment(dto: ReserveEquipmentDto): Promise<{ success: boolean; employeeId: string; reservedItems: { equipment?: string[];deskNumber?: string; accessCardNumber?: string; }; message: string; }> {
+    async reserveEquipment(dto: ReserveEquipmentDto): Promise<{
+        success: boolean;
+        employeeId: string;
+        reservedItems: {
+            equipment?: string[];
+            deskNumber?: string;
+            accessCardNumber?: string;
+        };
+        message: string;
+    }> {
         const employee = await this.sharedRecruitmentService.validateEmployeeExists(dto.employeeId);
 
         await this.sharedRecruitmentService.notifyEquipmentReserved({
@@ -386,11 +420,22 @@ export class OnboardingService {
         };
     }
 
+    /**
+     * REQ-PY-23: Trigger payroll initiation for new hire
+     * Creates employee payroll details entry with pro-rated salary
+     */
     async triggerPayrollInitiation(dto: TriggerPayrollInitiationDto): Promise<{
         success: boolean;
         contractId: string;
         message: string;
         triggeredAt: Date;
+        payrollDetails?: {
+            employeeId: string;
+            baseSalary: number;
+            proRatedSalary: number;
+            startDate: Date;
+            payrollRunId?: string;
+        };
     }> {
         const contract = await this.contractModel.findById(dto.contractId).exec();
 
@@ -398,26 +443,104 @@ export class OnboardingService {
             throw new NotFoundException(`Contract with ID ${dto.contractId} not found`);
         }
 
-        // TODO: Integration with Payroll Module (PY)
-        // TODO: REQ-PY-23: Trigger payroll initiation
-        // TODO: Create payroll entry based on contract signing date
-        // TODO: Calculate pro-rated salary for current pay cycle
-        // TODO: Setup benefits enrollment
-        // TODO: Configure tax withholdings
+        // Find the onboarding record to get the employeeId
+        const onboarding = await this.onboardingModel.findOne({
+            contractId: new Types.ObjectId(dto.contractId)
+        }).exec();
+
+        if (!onboarding) {
+            throw new BadRequestException('No onboarding record found for this contract. Please create onboarding first.');
+        }
+
+        const employeeId = onboarding.employeeId.toString();
+
+        // Calculate pro-rated salary for current pay cycle
+        const startDate = contract.acceptanceDate || new Date();
+        const currentMonth = new Date();
+        const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+        const startDay = new Date(startDate).getDate();
+        const remainingDays = Math.max(1, daysInMonth - startDay + 1);
+        const dailyRate = contract.grossSalary / daysInMonth;
+        const proRatedSalary = Math.round(dailyRate * remainingDays * 100) / 100;
+
+        let payrollRunId: string | undefined;
+
+        try {
+            // Find current active payroll run (draft or pending)
+            const activePayrollRun = await this.payrollRunsModel.findOne({
+                status: { $in: ['draft', 'under review', 'pending finance approval'] }
+            }).sort({ payrollPeriod: -1 }).exec();
+
+            if (activePayrollRun) {
+                // Check if employee already has payroll details for this run
+                const existingDetails = await this.employeePayrollDetailsModel.findOne({
+                    employeeId: new Types.ObjectId(employeeId),
+                    payrollRunId: activePayrollRun._id
+                }).exec();
+
+                if (!existingDetails) {
+                    // Create employee payroll details entry
+                    await this.employeePayrollDetailsModel.create({
+                        employeeId: new Types.ObjectId(employeeId),
+                        baseSalary: contract.grossSalary,
+                        allowances: 0,
+                        deductions: 0,
+                        netSalary: proRatedSalary,
+                        netPay: proRatedSalary,
+                        bankStatus: BankStatus.MISSING,
+                        exceptions: 'New hire - pro-rated salary for partial month',
+                        bonus: 0,
+                        benefit: 0,
+                        payrollRunId: activePayrollRun._id
+                    });
+
+                    this.logger.log(`Payroll details created for employee ${employeeId} in run ${activePayrollRun.runId}`);
+                } else {
+                    this.logger.log(`Payroll details already exist for employee ${employeeId}`);
+                }
+
+                payrollRunId = activePayrollRun._id.toString();
+            } else {
+                this.logger.warn(`No active payroll run found. Employee ${employeeId} will be added to next cycle.`);
+            }
+        } catch (err) {
+            this.logger.error(`Failed to create payroll details: ${err.message}`);
+            throw new BadRequestException(`Failed to create payroll details: ${err.message}`);
+        }
 
         return {
             success: true,
             contractId: dto.contractId,
-            message: 'Payroll initiation triggered successfully. employee added to current payroll cycle.',
+            message: payrollRunId
+                ? 'Payroll initiation triggered successfully. Employee added to current payroll cycle.'
+                : 'Payroll initiation triggered. Employee will be added to next payroll cycle.',
             triggeredAt: new Date(),
+            payrollDetails: {
+                employeeId,
+                baseSalary: contract.grossSalary,
+                proRatedSalary,
+                startDate: new Date(startDate),
+                payrollRunId
+            }
         };
     }
 
+    /**
+     * REQ-PY-27: Process signing bonus for new hire
+     * BR 28: Signing bonus disbursed only once
+     */
     async processSigningBonus(contractId: string): Promise<{
         success: boolean;
         contractId: string;
         bonusAmount: number;
         message: string;
+        bonusDetails?: {
+            bonusRecordId: string;
+            employeeId: string;
+            signingBonusConfigId: string;
+            scheduledPaymentDate?: Date;
+            status: string;
+        };
     }> {
         const contract = await this.contractModel.findById(contractId).exec();
 
@@ -429,17 +552,82 @@ export class OnboardingService {
             throw new BadRequestException('No signing bonus specified in contract');
         }
 
-        // TODO: Integration with Payroll Module (PY)
-        // TODO: REQ-PY-27: Process signing bonus
-        // TODO: Create bonus payment entry
-        // TODO: Schedule bonus payment (first paycheck or separate payment)
-        // TODO: Apply tax calculations to bonus
+        // Find the onboarding record to get the employeeId
+        const onboarding = await this.onboardingModel.findOne({
+            contractId: new Types.ObjectId(contractId)
+        }).exec();
+
+        if (!onboarding) {
+            throw new BadRequestException('No onboarding record found for this contract. Please create onboarding first.');
+        }
+
+        const employeeId = onboarding.employeeId.toString();
+
+        // BR 28: Check if signing bonus already exists for this employee (disbursed only once)
+        const existingBonus = await this.employeeSigningBonusModel.findOne({
+            employeeId: new Types.ObjectId(employeeId)
+        }).exec();
+
+        if (existingBonus) {
+            return {
+                success: true,
+                contractId,
+                bonusAmount: existingBonus.givenAmount,
+                message: 'Signing bonus already processed for this employee (BR 28: disbursed only once).',
+                bonusDetails: {
+                    bonusRecordId: existingBonus._id.toString(),
+                    employeeId,
+                    signingBonusConfigId: existingBonus.signingBonusId?.toString() || '',
+                    scheduledPaymentDate: existingBonus.paymentDate,
+                    status: existingBonus.status
+                }
+            };
+        }
+
+        // Find or create signing bonus configuration based on role/position
+        let signingBonusConfig = await this.signingBonusModel.findOne({
+            positionName: contract.role || 'Unknown',
+            amount: contract.signingBonus
+        }).exec();
+
+        if (!signingBonusConfig) {
+            // Create new signing bonus configuration
+            signingBonusConfig = await this.signingBonusModel.create({
+                positionName: contract.role || 'Unknown',
+                amount: contract.signingBonus,
+                status: ConfigStatus.APPROVED
+            });
+            this.logger.log(`Created signing bonus config for position ${contract.role}: ${contract.signingBonus}`);
+        }
+
+        // Schedule payment for first paycheck (first of next month)
+        const paymentDate = new Date();
+        paymentDate.setMonth(paymentDate.getMonth() + 1);
+        paymentDate.setDate(1);
+
+        // Create employee signing bonus record
+        const bonusRecord = await this.employeeSigningBonusModel.create({
+            employeeId: new Types.ObjectId(employeeId),
+            signingBonusId: signingBonusConfig._id,
+            givenAmount: contract.signingBonus,
+            paymentDate: paymentDate,
+            status: BonusStatus.PENDING
+        });
+
+        this.logger.log(`Signing bonus record created for employee ${employeeId}: ${contract.signingBonus}`);
 
         return {
             success: true,
             contractId,
             bonusAmount: contract.signingBonus,
             message: `Signing bonus of ${contract.signingBonus} scheduled for processing.`,
+            bonusDetails: {
+                bonusRecordId: bonusRecord._id.toString(),
+                employeeId,
+                signingBonusConfigId: signingBonusConfig._id.toString(),
+                scheduledPaymentDate: paymentDate,
+                status: BonusStatus.PENDING
+            }
         };
     }
 

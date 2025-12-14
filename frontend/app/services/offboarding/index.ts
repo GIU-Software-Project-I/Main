@@ -82,7 +82,7 @@ export interface ClearanceCompletionStatus {
 // DTOs for API calls
 export interface CreateTerminationRequestDto {
   employeeId: string;
-  contractId: string;
+  contractId?: string;
   initiator: TerminationInitiation;
   reason: string;
   employeeComments?: string;
@@ -92,7 +92,7 @@ export interface CreateTerminationRequestDto {
 
 export interface CreateResignationRequestDto {
   employeeId: string;
-  contractId: string;
+  contractId?: string;
   reason: string;
   employeeComments?: string;
   terminationDate?: string;

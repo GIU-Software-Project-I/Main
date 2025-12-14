@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
@@ -6,6 +6,26 @@ import { Model, Types } from 'mongoose';
 import { TerminationRequest, TerminationRequestDocument } from '../models/termination-request.schema';
 import { ClearanceChecklist, ClearanceChecklistDocument } from '../models/clearance-checklist.schema';
 import { Contract, ContractDocument } from '../models/contract.schema';
+
+// Payroll Models
+import { EmployeeTerminationResignation, EmployeeTerminationResignationDocument } from '../../payroll/payroll-execution/models/EmployeeTerminationResignation.schema';
+import { terminationAndResignationBenefits, terminationAndResignationBenefitsDocument } from '../../payroll/payroll-configuration/models/terminationAndResignationBenefits';
+import { BenefitStatus } from '../../payroll/payroll-execution/enums/payroll-execution-enum';
+
+// Payroll Service
+import { PayrollExecutionService } from '../../payroll/payroll-execution/services/payroll-execution.service';
+
+// Leaves Models
+import { LeaveEntitlement, LeaveEntitlementDocument } from '../../leaves/models/leave-entitlement.schema';
+import { LeaveRequest, LeaveRequestDocument } from '../../leaves/models/leave-request.schema';
+import { LeaveType, LeaveTypeDocument } from '../../leaves/models/leave-type.schema';
+import { LeaveStatus } from '../../leaves/enums/leave-status.enum';
+
+// Employee Models
+import { EmployeeProfile, EmployeeProfileDocument } from '../../employee/models/employee/employee-profile.schema';
+import { EmployeeSystemRole, EmployeeSystemRoleDocument } from '../../employee/models/employee/employee-system-role.schema';
+import { payGrade, payGradeDocument } from '../../payroll/payroll-configuration/models/payGrades.schema';
+import { EmployeeStatus } from '../../employee/enums/employee-profile.enums';
 
 // DTOs
 import {
@@ -29,12 +49,28 @@ import { SharedRecruitmentService } from '../../shared/services/shared-recruitme
 
 @Injectable()
 export class OffboardingService {
+    private readonly logger = new Logger(OffboardingService.name);
+
     constructor(
         @InjectModel(TerminationRequest.name) private terminationRequestModel: Model<TerminationRequestDocument>,
         @InjectModel(ClearanceChecklist.name) private clearanceChecklistModel: Model<ClearanceChecklistDocument>,
         @InjectModel(Contract.name) private contractModel: Model<ContractDocument>,
+        // Payroll Models
+        @InjectModel(EmployeeTerminationResignation.name) private employeeTerminationResignationModel: Model<EmployeeTerminationResignationDocument>,
+        @InjectModel(terminationAndResignationBenefits.name) private terminationBenefitsModel: Model<terminationAndResignationBenefitsDocument>,
+        // Leaves Models
+        @InjectModel(LeaveEntitlement.name) private leaveEntitlementModel: Model<LeaveEntitlementDocument>,
+        @InjectModel(LeaveRequest.name) private leaveRequestModel: Model<LeaveRequestDocument>,
+        @InjectModel(LeaveType.name) private leaveTypeModel: Model<LeaveTypeDocument>,
+        // Employee Models
+        @InjectModel(EmployeeProfile.name) private employeeProfileModel: Model<EmployeeProfileDocument>,
+        @InjectModel(EmployeeSystemRole.name) private employeeSystemRoleModel: Model<EmployeeSystemRoleDocument>,
+        @InjectModel(payGrade.name) private payGradeModel: Model<payGradeDocument>,
+        // Services
+        @Inject(forwardRef(() => PayrollExecutionService)) private readonly payrollExecutionService: PayrollExecutionService,
         private readonly sharedRecruitmentService: SharedRecruitmentService,
     ) {}
+
 
     private validateObjectId(id: string, fieldName: string): void {
         if (!Types.ObjectId.isValid(id)) {
@@ -506,8 +542,17 @@ export class OffboardingService {
         employeeId: string;
         message: string;
         revokedAt: Date;
+        details: {
+            employeeDeactivated: boolean;
+            systemRolesDisabled: number;
+        };
     }> {
-        const employee = await this.sharedRecruitmentService.validateEmployeeExists(dto.employeeId);
+        this.validateObjectId(dto.employeeId, 'employeeId');
+
+        const employee = await this.employeeProfileModel.findById(dto.employeeId).exec();
+        if (!employee) {
+            throw new NotFoundException(`Employee with ID ${dto.employeeId} not found`);
+        }
 
         const terminationRequest = await this.terminationRequestModel
             .findOne({
@@ -522,16 +567,55 @@ export class OffboardingService {
             );
         }
 
-        await this.sharedRecruitmentService.deactivateEmployee(
-            dto.employeeId,
-            `Access revoked due to termination. Initiator: ${terminationRequest.initiator}`
+        // Check if already terminated
+        if (employee.status === EmployeeStatus.TERMINATED) {
+            return {
+                success: true,
+                employeeId: dto.employeeId,
+                message: 'Employee already terminated. Access was already revoked.',
+                revokedAt: new Date(),
+                details: {
+                    employeeDeactivated: true,
+                    systemRolesDisabled: 0,
+                },
+            };
+        }
+
+        // 1. Update employee status to TERMINATED
+        employee.status = EmployeeStatus.TERMINATED;
+        employee.statusEffectiveFrom = new Date();
+        await employee.save();
+
+        // 2. Disable all system roles for this employee
+        const roleUpdateResult = await this.employeeSystemRoleModel.updateMany(
+            { employeeProfileId: new Types.ObjectId(dto.employeeId) },
+            { $set: { isActive: false } }
+        ).exec();
+
+        // 3. Notify relevant parties
+        const employeeName = employee.fullName || `${employee.firstName} ${employee.lastName}`;
+
+        await this.sharedRecruitmentService.notifyHRUsers(
+            'SYSTEM_ACCESS_REVOKED',
+            `System access revoked for ${employeeName} (${employee.employeeNumber}). All roles disabled.`
         );
+
+        await this.sharedRecruitmentService.notifyITAdmins(
+            'ACCESS_REVOCATION_COMPLETED',
+            `Access revocation completed for ${employeeName} (${employee.employeeNumber}). Employee status: TERMINATED.`
+        );
+
+        this.logger.log(`System access revoked for employee ${dto.employeeId}: ${roleUpdateResult.modifiedCount} roles disabled`);
 
         return {
             success: true,
             employeeId: dto.employeeId,
-            message: 'System access revoked successfully. All accounts disabled.',
+            message: 'System access revoked successfully. Employee terminated and all roles disabled.',
             revokedAt: new Date(),
+            details: {
+                employeeDeactivated: true,
+                systemRolesDisabled: roleUpdateResult.modifiedCount,
+            },
         };
     }
 
@@ -540,6 +624,14 @@ export class OffboardingService {
         terminationId: string;
         message: string;
         triggeredAt: Date;
+        leaveEncashment?: {
+            unusedDays: number;
+            encashmentAmount: number;
+        };
+        terminationBenefit?: {
+            benefitId: string;
+            amount: number;
+        };
     }> {
         this.validateObjectId(dto.terminationId, 'terminationId');
 
@@ -571,12 +663,32 @@ export class OffboardingService {
 
         const employee = await this.sharedRecruitmentService.validateEmployeeExists(terminationRequest.employeeId.toString());
         const employeeName = employee.fullName || `${employee.firstName} ${employee.lastName}`;
+        const employeeId = terminationRequest.employeeId.toString();
 
-        // TODO: Integration with Leaves Module - Fetch employee leave balance and calculate unused annual leave encashment
-        // TODO: Integration with Payroll Module - Trigger final pay calculation entry (unused leave, deductions, loans, severance)
+        // Integration with Leaves Module - Fetch employee leave balance and calculate unused annual leave encashment
+        let leaveEncashment: { unusedDays: number; encashmentAmount: number } | undefined;
+        try {
+            leaveEncashment = await this.calculateLeaveEncashment(employeeId);
+            this.logger.log(`Leave encashment calculated for employee ${employeeId}: ${leaveEncashment.unusedDays} days, ${leaveEncashment.encashmentAmount} amount`);
+        } catch (err) {
+            this.logger.warn(`Failed to calculate leave encashment for employee ${employeeId}: ${err.message}`);
+        }
+
+        // Integration with Payroll Module - Create termination benefit record
+        let terminationBenefit: { benefitId: string; amount: number } | undefined;
+        try {
+            terminationBenefit = await this.createTerminationBenefitRecord(
+                employeeId,
+                dto.terminationId,
+                leaveEncashment?.encashmentAmount || 0
+            );
+            this.logger.log(`Termination benefit created for employee ${employeeId}: ${terminationBenefit.amount} amount`);
+        } catch (err) {
+            this.logger.warn(`Failed to create termination benefit for employee ${employeeId}: ${err.message}`);
+        }
 
         await this.sharedRecruitmentService.notifyFinalSettlementTriggered({
-            employeeId: terminationRequest.employeeId.toString(),
+            employeeId,
             employeeName,
             terminationId: dto.terminationId,
         });
@@ -586,6 +698,157 @@ export class OffboardingService {
             terminationId: dto.terminationId,
             message: 'Final settlement triggered. Benefits termination scheduled and final pay calculation initiated.',
             triggeredAt: new Date(),
+            leaveEncashment,
+            terminationBenefit,
+        };
+    }
+
+    /**
+     * Integration with Leaves Module
+     * Fetches employee leave balances and calculates unused annual leave encashment
+     * BR 9, 11: Unused annuals encashed at termination
+     */
+    private async calculateLeaveEncashment(employeeId: string): Promise<{
+        unusedDays: number;
+        encashmentAmount: number;
+    }> {
+        // Fetch employee entitlements
+        const entitlements = await this.leaveEntitlementModel.find({
+            employeeId: new Types.ObjectId(employeeId),
+        }).exec();
+
+        if (!entitlements || entitlements.length === 0) {
+            return { unusedDays: 0, encashmentAmount: 0 };
+        }
+
+        // Fetch leave types to identify annual leave types (encashable)
+        const leaveTypeIds = entitlements.map(e => e.leaveTypeId);
+        const leaveTypes = await this.leaveTypeModel.find({
+            _id: { $in: leaveTypeIds },
+        }).exec();
+
+        // Calculate total unused days for encashable leave types
+        let totalUnusedDays = 0;
+        for (const entitlement of entitlements) {
+            const leaveType = leaveTypes.find(lt => lt._id.toString() === entitlement.leaveTypeId?.toString());
+
+            // Check if this leave type is encashable (annual leave types typically are)
+            const isEncashable = (leaveType as any)?.isEncashable !== false &&
+                                 ((leaveType as any)?.code === 'ANNUAL' ||
+                                  leaveType?.name?.toLowerCase().includes('annual') ||
+                                  (leaveType as any)?.category === 'annual');
+
+            if (isEncashable) {
+                // Calculate taken days from approved leave requests
+                const takenAgg = await this.leaveRequestModel.aggregate([
+                    {
+                        $match: {
+                            employeeId: new Types.ObjectId(employeeId),
+                            leaveTypeId: entitlement.leaveTypeId,
+                            status: LeaveStatus.APPROVED,
+                        },
+                    },
+                    { $group: { _id: null, takenDays: { $sum: '$durationDays' } } },
+                ]);
+
+                const takenDays = takenAgg[0]?.takenDays ?? 0;
+                const accrued = (entitlement as any).accruedRounded ?? (entitlement as any).accruedActual ?? entitlement.yearlyEntitlement ?? 0;
+                const carryForward = (entitlement as any).carryForward ?? 0;
+                const taken = (entitlement as any).taken ?? 0;
+                const remaining = Math.max(0, accrued + carryForward - takenDays - taken);
+
+                totalUnusedDays += remaining;
+            }
+        }
+
+        // Calculate encashment amount based on daily rate
+        let dailyRate = 0;
+        try {
+            const employeeProfile = await this.employeeProfileModel.findById(employeeId).exec();
+
+            if (employeeProfile?.payGradeId) {
+                const payGradeDoc = await this.payGradeModel.findById(employeeProfile.payGradeId).exec();
+
+                if (payGradeDoc?.baseSalary) {
+                    // Calculate daily rate (assuming 22 working days per month)
+                    dailyRate = payGradeDoc.baseSalary / 22;
+                }
+            }
+
+            // Fallback: Try to get from contract if pay grade not found
+            if (dailyRate === 0) {
+                const contract = await this.contractModel.findOne({
+                    offerId: { $exists: true },
+                }).sort({ createdAt: -1 }).exec();
+
+                if (contract?.grossSalary) {
+                    dailyRate = contract.grossSalary / 22;
+                }
+            }
+        } catch (err) {
+            this.logger.warn(`Failed to fetch daily rate for employee ${employeeId}: ${err.message}`);
+        }
+
+        const encashmentAmount = Math.round(totalUnusedDays * dailyRate * 100) / 100;
+
+        return {
+            unusedDays: totalUnusedDays,
+            encashmentAmount,
+        };
+    }
+
+    /**
+     * Integration with Payroll Module
+     * Creates termination/resignation benefit record in payroll execution
+     * BR 29, BR 56: Auto-calculate termination/resignation benefits
+     */
+    private async createTerminationBenefitRecord(
+        employeeId: string,
+        terminationId: string,
+        leaveEncashmentAmount: number
+    ): Promise<{
+        benefitId: string;
+        amount: number;
+    }> {
+        // Check if benefit record already exists
+        const existingBenefit = await this.employeeTerminationResignationModel.findOne({
+            employeeId: new Types.ObjectId(employeeId),
+            terminationId: new Types.ObjectId(terminationId),
+        }).exec();
+
+        if (existingBenefit) {
+            return {
+                benefitId: existingBenefit._id.toString(),
+                amount: existingBenefit.givenAmount || 0,
+            };
+        }
+
+        // Fetch termination benefit configuration
+        const benefitConfig = await this.terminationBenefitsModel.findOne({
+            status: 'approved',
+        }).exec();
+
+        // Calculate total benefit amount
+        let baseAmount = 0;
+        if (benefitConfig) {
+            baseAmount = (benefitConfig as any).amount || 0;
+        }
+
+        // Add leave encashment to the total
+        const totalAmount = baseAmount + leaveEncashmentAmount;
+
+        // Create the benefit record
+        const benefitRecord = await this.employeeTerminationResignationModel.create({
+            employeeId: new Types.ObjectId(employeeId),
+            benefitId: benefitConfig?._id || new Types.ObjectId(),
+            terminationId: new Types.ObjectId(terminationId),
+            givenAmount: totalAmount,
+            status: BenefitStatus.PENDING,
+        });
+
+        return {
+            benefitId: benefitRecord._id.toString(),
+            amount: totalAmount,
         };
     }
 
