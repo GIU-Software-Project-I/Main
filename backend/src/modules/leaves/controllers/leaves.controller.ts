@@ -167,6 +167,13 @@ export class UnifiedLeaveController {
     });
   }
 
+  @Get('requests/overdue')
+  @Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  async getOverdueRequests(@Query('hours') hours?: string) {
+    const hoursNum = hours ? Number(hours) : 48;
+    return this.service.getOverdueRequests(hoursNum);
+  }
+
   @Get('requests/:id')
   @Roles(SystemRole.DEPARTMENT_EMPLOYEE, SystemRole.DEPARTMENT_HEAD, SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
   async getRequest(@Param('id') id: string) {
@@ -609,12 +616,6 @@ export class UnifiedLeaveController {
     return this.service.getPendingApprovalsCount(managerId);
   }
 
-  @Get('requests/overdue')
-  @Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
-  async getOverdueRequests(@Query('hours') hours?: string) {
-    const hoursNum = hours ? Number(hours) : 48;
-    return this.service.getOverdueRequests(hoursNum);
-  }
 
   @Post('requests/escalate-overdue')
   @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
