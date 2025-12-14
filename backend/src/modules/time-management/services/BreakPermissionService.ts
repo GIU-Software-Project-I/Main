@@ -29,6 +29,8 @@ const BREAK_PERMISSION_TYPE = 'SHORT_TIME';
 @Injectable()
 export class BreakPermissionService {
     private readonly logger = new Logger(BreakPermissionService.name);
+    // runtime-configurable limit for break permission duration (minutes)
+    private maxLimitMinutes: number;
 
     constructor(
         @InjectModel(TimeException.name)
@@ -39,8 +41,26 @@ export class BreakPermissionService {
         private readonly notificationModel: Model<NotificationLogDocument>,
     ) {}
 
-    // ... ALL YOUR SERVICE METHODS FROM THE SECOND HALF OF YOUR FILE ...
-    // Keep the complete service implementation here
+    // Initialize runtime limit from env or default
+    onModuleInit() {
+        const maxEnv = process.env.BREAK_PERMISSION_MAX_MINUTES;
+        const parsed = maxEnv ? parseInt(maxEnv, 10) : NaN;
+        this.maxLimitMinutes = !isNaN(parsed) && parsed > 0 ? parsed : 180;
+        this.logger.debug(`BreakPermissionService initialized with maxLimitMinutes=${this.maxLimitMinutes}`);
+    }
+
+    // Expose setter/getter to change limit at runtime
+    setPermissionMaxLimit(minutes: number) {
+        if (!Number.isInteger(minutes) || minutes <= 0) throw new BadRequestException('maxMinutes must be a positive integer');
+        this.maxLimitMinutes = minutes;
+        this.logger.log(`Break permission max limit updated to ${minutes} minutes`);
+        return { maxMinutes: this.maxLimitMinutes };
+    }
+
+    getPermissionMaxLimit() {
+        return { maxMinutes: this.maxLimitMinutes };
+    }
+
     /**
      * Create a break permission request for a specific duration during shift
      * This time will be excluded from total working hours when approved
@@ -66,6 +86,15 @@ export class BreakPermissionService {
 
             if (duration <= 0) {
                 throw new BadRequestException('Break duration must be greater than 0');
+            }
+
+            const maxLimit = this.maxLimitMinutes ?? (process.env.BREAK_PERMISSION_MAX_MINUTES ? parseInt(process.env.BREAK_PERMISSION_MAX_MINUTES,10) : 180);
+            if (isNaN(maxLimit) || maxLimit <= 0) {
+                // fallback
+            }
+
+            if (duration > maxLimit) {
+                throw new BadRequestException(`Requested break duration (${duration} minutes) exceeds allowed limit of ${maxLimit} minutes`);
             }
 
             // Verify attendance record exists and belongs to employee
@@ -200,6 +229,20 @@ export class BreakPermissionService {
             (permission as any).approvedBy = approverOid;
             (permission as any).approvedAt = new Date();
             await permission.save();
+
+            // Mark related attendance record as not finalised for payroll so it will be re-evaluated
+            try {
+                const att = await this.attendanceModel.findById((permission as any).attendanceRecordId);
+                if (att) {
+                    // Mark as not finalised and request recompute to fully apply approved break
+                    att.finalisedForPayroll = false;
+                    await att.save().catch(e => this.logger.warn('Failed to save attendance prior to recompute', e));
+
+                    // Attendance will be updated by the attendance sync workflow or recompute; do not modify totalWorkMinutes here.
+                }
+            } catch (e) {
+                this.logger.warn('Failed to mark attendance as not finalised after break approval', e);
+            }
 
             // Create approval notification
             try {
@@ -346,5 +389,7 @@ export class BreakPermissionService {
             return 0;
         }
     }
-}
 
+
+
+}

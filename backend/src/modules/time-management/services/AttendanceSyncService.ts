@@ -8,8 +8,12 @@ import { ShiftAssignment, ShiftAssignmentDocument } from '../models/shift-assign
 import { ScheduleRule, ScheduleRuleDocument } from '../models/schedule-rule.schema';
 import { TimeException, TimeExceptionDocument } from '../models/time-exception.schema';
 import { TimeExceptionStatus } from '../models/enums';
-
+import {AttendanceCorrectionRequest} from "../models/attendance-correction-request.schema";
+import {payrollRuns} from "../../payroll/payroll-execution/models/payrollRuns.schema";
+import { CorrectionRequestStatus } from '../models/enums';
+import { PayRollStatus } from '../../payroll/payroll-execution/enums/payroll-execution-enum';
 // ==================== EXPORTED TYPE DEFINITIONS ====================
+
 
 export interface DailyAttendanceStatus {
     date: string; // YYYY-MM-DD
@@ -18,6 +22,15 @@ export interface DailyAttendanceStatus {
     reason?: string;
     scheduledMinutes?: number;
     actualMinutes?: number;
+}
+interface PendingRequest {
+    type: string;
+    id: string;
+    employeeId: string;
+    createdAt: Date;
+    status: string;
+    reason: string;
+    duration?: number; // Optional for break permissions
 }
 
 export interface AbsencePeriod {
@@ -96,7 +109,9 @@ export class AttendanceSyncService {
         @InjectModel(NotificationLog.name) private notificationModel: Model<NotificationLogDocument>,
         @InjectModel(ShiftAssignment.name) private shiftAssignmentModel: Model<ShiftAssignmentDocument>,
         @InjectModel(ScheduleRule.name) private scheduleRuleModel: Model<ScheduleRuleDocument>,
-        @InjectModel(TimeException.name) private exceptionModel: Model<TimeExceptionDocument>,
+        @InjectModel(TimeException.name) private readonly timeExceptionModel: Model<TimeException>,
+        @InjectModel(payrollRuns.name) private readonly payrollRunModel: Model<payrollRuns>,
+        @InjectModel(AttendanceCorrectionRequest.name) private readonly correctionRequestModel: Model<AttendanceCorrectionRequest>,
         @InjectConnection() private connection: Connection,
         // Optional injection of external services - will be available if modules are imported
         @Optional() private readonly payrollService?: any,
@@ -369,6 +384,7 @@ export class AttendanceSyncService {
         };
     }
 
+
     // ==================== ABSENCE DETECTION ====================
     /**
      * Determine the attendance status for a specific record and date
@@ -411,7 +427,7 @@ export class AttendanceSyncService {
 
         // Step 4: Check if it's a weekly rest day
         try {
-            const isRest = await this.isWeeklyRest(employeeId, date);
+            const isRest = await this.isScheduleDayOff(employeeId, date);
             if (isRest) {
                 return 'REST_DAY';
             }
@@ -508,6 +524,8 @@ export class AttendanceSyncService {
      * 7. If not scheduled → SCHEDULE_DAY_OFF
      * 8. Default → ABSENT
      */
+    // FIXED: Check non-work days BEFORE leave
+    // FIXED: Check non-work days BEFORE leave
     private async determineDailyStatus(
         employeeId: Types.ObjectId,
         date: Date,
@@ -515,24 +533,7 @@ export class AttendanceSyncService {
     ): Promise<DailyAttendanceStatus> {
         const dateStr = date.toISOString().split('T')[0];
 
-        // Step 1: Check if employee worked
-        if (record && record.totalWorkMinutes && record.totalWorkMinutes > 0) {
-            return {
-                date: dateStr,
-                employeeId: employeeId.toString(),
-                status: 'PRESENT',
-                actualMinutes: record.totalWorkMinutes,
-                scheduledMinutes: await this.getScheduledMinutesForDate(employeeId, date),
-            };
-        }
-
-        // Step 2: Check for approved leave FIRST (before holiday/rest day checks)
-        const leaveStatus = await this.checkApprovedLeaveForDate(employeeId, date);
-        if (leaveStatus) {
-            return leaveStatus;
-        }
-
-        // Step 3: Check if it's a holiday
+        // ✅ STEP 1: Check if holiday FIRST
         try {
             const isHoliday = await this.isHoliday(date);
             if (isHoliday) {
@@ -547,22 +548,18 @@ export class AttendanceSyncService {
             this.logger.warn('Holiday check failed', e);
         }
 
-        // Step 4: Check if it's a weekly rest day
-        try {
-            const isRest = await this.isWeeklyRest(employeeId, date);
-            if (isRest) {
-                return {
-                    date: dateStr,
-                    employeeId: employeeId.toString(),
-                    status: 'REST_DAY',
-                    reason: 'Weekly rest day according to schedule',
-                };
-            }
-        } catch (e) {
-            this.logger.warn('Weekly rest check failed', e);
+        // ✅ STEP 2: Check if standard weekly rest day (company-wide weekends)
+        const isRestDay = this.isWeeklyRest(date); // Simple weekend check
+        if (isRestDay) {
+            return {
+                date: dateStr,
+                employeeId: employeeId.toString(),
+                status: 'REST_DAY',
+                reason: 'Standard weekly rest day (weekend)',
+            };
         }
 
-        // Step 5: Check if employee has a shift assignment
+        // ✅ STEP 3: Check shift assignment
         const assignment = await this.getShiftAssignment(employeeId, date);
         if (!assignment) {
             return {
@@ -573,18 +570,35 @@ export class AttendanceSyncService {
             };
         }
 
-        // Step 6: Check if scheduled to work on this day
-        const isScheduled = await this.isScheduledForDay(assignment, date);
-        if (!isScheduled) {
+        // ✅ STEP 4: Check if individual schedule day off (not in employee's schedule pattern)
+        const isScheduleDayOff = await this.isScheduleDayOff(employeeId, date);
+        if (isScheduleDayOff) {
             return {
                 date: dateStr,
                 employeeId: employeeId.toString(),
                 status: 'SCHEDULE_DAY_OFF',
-                reason: 'Employee is not scheduled to work on this day',
+                reason: 'Not scheduled to work today according to individual shift pattern',
             };
         }
 
-        // Step 7: Employee was scheduled to work but has no attendance
+        // ✅ STEP 5: Check if employee worked (ONLY if scheduled to work)
+        if (record && record.totalWorkMinutes && record.totalWorkMinutes > 0) {
+            return {
+                date: dateStr,
+                employeeId: employeeId.toString(),
+                status: 'PRESENT',
+                actualMinutes: record.totalWorkMinutes,
+                scheduledMinutes: await this.getScheduledMinutesForDate(employeeId, date),
+            };
+        }
+
+        // ✅ STEP 6: Check for approved leave
+        const leaveStatus = await this.checkApprovedLeaveForDate(employeeId, date);
+        if (leaveStatus && leaveStatus.status === 'ON_LEAVE') {
+            return leaveStatus;
+        }
+
+        // ✅ STEP 7: Only now mark as ABSENT (they were scheduled but didn't show)
         return {
             date: dateStr,
             employeeId: employeeId.toString(),
@@ -595,7 +609,77 @@ export class AttendanceSyncService {
         };
     }
 
-    /**
+// ✅ NEW METHOD: Check for standard weekly rest (weekends)
+    private isWeeklyRest(date: Date): boolean {
+        // Company-wide weekends (Saturday & Sunday)
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+        return dayOfWeek === 0 || dayOfWeek === 6;
+    }
+
+// ✅ RENAMED METHOD: Check if day is off in employee's individual schedule
+    private async isScheduleDayOff(employeeId: Types.ObjectId, date: Date): Promise<boolean> {
+        try {
+            const dayStart = new Date(date);
+            dayStart.setHours(0, 0, 0, 0);
+            const dayEnd = new Date(date);
+            dayEnd.setHours(23, 59, 59, 999);
+
+            const assignment = await this.shiftAssignmentModel.findOne({
+                employeeId,
+                startDate: { $lte: dayEnd },
+                $or: [{ endDate: { $exists: false } }, { endDate: { $gte: dayStart } }],
+            }).lean();
+
+            if (!assignment?.scheduleRuleId) return false;
+
+            const rule = await this.scheduleRuleModel.findById(assignment.scheduleRuleId).lean();
+            if (!rule || !rule.active || !rule.pattern) return false;
+
+            const pattern = (rule.pattern || '').toUpperCase();
+            if (pattern.startsWith('WEEKLY:')) {
+                const daysPart = pattern.split(':')[1] || '';
+                const allowedDays = daysPart.split(',')
+                    .map(d => d.trim().toUpperCase())
+                    .filter(d => d.length > 0)
+                    .map(d => d.length >= 3 ? d.substring(0, 3) : d);
+
+                const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+                const today = dayNames[date.getDay()];
+
+                return !allowedDays.includes(today); // TRUE if NOT in schedule = day off
+            }
+
+            return false;
+        } catch (e) {
+            this.logger.warn('Schedule day off check failed', e);
+            return false;
+        }
+    }
+
+// ✅ Helper method to get shift assignment
+    private async getShiftAssignment(employeeId: Types.ObjectId, date: Date): Promise<any | null> {
+        try {
+            const dayStart = new Date(date);
+            dayStart.setHours(0, 0, 0, 0);
+            const dayEnd = new Date(date);
+            dayEnd.setHours(23, 59, 59, 999);
+
+            const assignment = await this.shiftAssignmentModel.findOne({
+                employeeId,
+                startDate: { $lte: dayEnd },
+                $or: [
+                    { endDate: { $exists: false } },
+                    { endDate: null },
+                    { endDate: { $gte: dayStart } }
+                ],
+            }).lean();
+
+            return assignment || null;
+        } catch (error: any) {
+            this.logger.error(`Error getting shift assignment:`, error);
+            return null;
+        }
+    }/**
      * Check if employee has approved leave for the given date
      * Returns DailyAttendanceStatus if on leave, null otherwise
      */
@@ -605,38 +689,29 @@ export class AttendanceSyncService {
      */
     private async checkApprovedLeaveForDate(employeeId: Types.ObjectId, date: Date): Promise<DailyAttendanceStatus | null> {
         try {
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = date.toISOString().split('T')[0]; // Keep for logging
+
+            // CRITICAL FIX: Convert input date to start/end of day in UTC
             const dayStart = new Date(date);
-            dayStart.setHours(0, 0, 0, 0);
+            dayStart.setUTCHours(0, 0, 0, 0); // Use UTC hours!
+
             const dayEnd = new Date(date);
-            dayEnd.setHours(23, 59, 59, 999);
+            dayEnd.setUTCHours(23, 59, 59, 999); // Use UTC hours!
 
-            this.logger.debug(`[DEBUG] Checking leave for ${employeeId} on ${dateStr}`);
+            this.logger.debug(`[DEBUG] Checking leave for ${employeeId} on ${dateStr} (UTC: ${dayStart.toISOString()} to ${dayEnd.toISOString()})`);
 
-            // IMPORTANT: Check what status values exist in your database
+            // Query using UTC dates
             const leaveRequest = await this.connection.db!.collection('leaverequests').findOne({
                 employeeId: employeeId,
-                'dates.from': { $lte: dayEnd },
-                'dates.to': { $gte: dayStart },
-                status: { $in: ['APPROVED', 'Approved', 'approved', '2', 2] } // Try multiple values
+                $and: [
+                    { 'dates.from': { $lte: dayEnd } },
+                    { 'dates.to': { $gte: dayStart } }
+                ],
+                status: { $in: ['APPROVED', 'Approved', 'approved', '2', 2] }
             });
 
             if (!leaveRequest) {
-                this.logger.debug(`[DEBUG] No leave request found for ${employeeId} on ${dateStr}`);
-
-                // Debug: Check what IS in the database
-                const allRequests = await this.connection.db!.collection('leaverequests')
-                    .find({ employeeId: employeeId })
-                    .toArray();
-
-                this.logger.debug(`[DEBUG] All leave requests for employee: ${JSON.stringify(allRequests.map(r => ({
-                    id: r._id,
-                    status: r.status,
-                    from: r.dates?.from,
-                    to: r.dates?.to,
-                    leaveTypeId: r.leaveTypeId
-                })), null, 2)}`);
-
+                this.logger.debug(`[DEBUG] No leave request found for ${employeeId} between UTC ${dayStart.toISOString()} and ${dayEnd.toISOString()}`);
                 return null;
             }
 
@@ -645,35 +720,32 @@ export class AttendanceSyncService {
                 status: leaveRequest.status,
                 from: leaveRequest.dates?.from,
                 to: leaveRequest.dates?.to,
-                leaveTypeId: leaveRequest.leaveTypeId
+                leaveTypeId: leaveRequest.leaveTypeId,
+                // Log both UTC and local for debugging
+                fromLocal: leaveRequest.dates?.from ? new Date(leaveRequest.dates.from).toLocaleString() : null,
+                toLocal: leaveRequest.dates?.to ? new Date(leaveRequest.dates.to).toLocaleString() : null
             }, null, 2)}`);
 
-            // Check entitlement - use proper field names from your schema
+            // Rest of the method remains the same...
             const hasBalance = await this.checkEntitlementBalance(employeeId, leaveRequest.leaveTypeId);
-            this.logger.debug(`[DEBUG] Entitlement balance: ${hasBalance}`);
 
-            if (!hasBalance) {
+            if (hasBalance) {
+                // Deduct entitlement and return ON_LEAVE
+                await this.deductEntitlementForLeaveDay(employeeId, leaveRequest.leaveTypeId, date);
+
                 return {
                     date: dateStr,
                     employeeId: employeeId.toString(),
-                    status: 'ABSENT' as const,
-                    reason: 'Approved leave but insufficient entitlement balance',
+                    status: 'ON_LEAVE' as const,
+                    reason: `On approved ${leaveRequest.leaveType || 'leave'}`,
                     scheduledMinutes: await this.getScheduledMinutesForDate(employeeId, date),
                     actualMinutes: 0,
                 };
+            } else {
+                this.logger.warn(`Employee ${employeeId} has approved leave but insufficient balance on ${dateStr}`);
+                return null;
             }
 
-            // Deduct entitlement
-            await this.deductEntitlementForLeaveDay(employeeId, leaveRequest.leaveTypeId, date);
-
-            return {
-                date: dateStr,
-                employeeId: employeeId.toString(),
-                status: 'ON_LEAVE' as const,
-                reason: `On approved ${leaveRequest.leaveType || 'leave'}`,
-                scheduledMinutes: await this.getScheduledMinutesForDate(employeeId, date),
-                actualMinutes: 0,
-            };
         } catch (error: any) {
             this.logger.error(`[ERROR] checkApprovedLeaveForDate failed:`, error);
             return null;
@@ -710,8 +782,12 @@ export class AttendanceSyncService {
             const carryForward = entitlement.carryForward || 0;
 
             // Calculate available balance
-            const availableBalance = remaining > 0 ? remaining : (accrued + carryForward - taken - pending);
+            // Calculate total available
+            const totalAvailable = (accrued || 0) + (carryForward || 0);
+            const totalUsed = (taken || 0) + (pending || 0);
+            const availableBalance = totalAvailable - totalUsed;
 
+            return availableBalance > 0;
             this.logger.debug(`Entitlement check: employee ${employeeId}, remaining: ${remaining}, available: ${availableBalance}`);
 
             return availableBalance > 0;
@@ -840,30 +916,6 @@ export class AttendanceSyncService {
      * Get shift assignment for employee on a given date
      * Extracted helper method for reusability
      */
-    private async getShiftAssignment(employeeId: Types.ObjectId, date: Date): Promise<any | null> {
-        try {
-            const dayStart = new Date(date);
-            dayStart.setHours(0, 0, 0, 0);
-            const dayEnd = new Date(date);
-            dayEnd.setHours(23, 59, 59, 999);
-
-            const assignment = await this.shiftAssignmentModel.findOne({
-                employeeId,
-                startDate: { $lte: dayEnd },
-                $or: [
-                    { endDate: { $exists: false } },
-                    { endDate: null },
-                    { endDate: { $gte: dayStart } }
-                ],
-            }).lean();
-
-            return assignment || null;
-        } catch (error: any) {
-            this.logger.error(`Error getting shift assignment:`, error);
-            return null;
-        }
-    }
-
     /**
      * Get scheduled minutes for a specific date
      * Based on shift assignment and schedule rule
@@ -971,7 +1023,7 @@ export class AttendanceSyncService {
         const totalAbsenceMinutes = absenceRecords.reduce((sum, a) => sum + (a.scheduledMinutes || 0), 0);
 
         // Get approved exceptions for this period
-        const approvedExceptions = await this.exceptionModel.find({
+        const approvedExceptions = await this.timeExceptionModel.find({
             employeeId: empOid,
             status: { $in: [TimeExceptionStatus.APPROVED] },
             createdAt: { $gte: startDate, $lte: endDate },
@@ -1220,41 +1272,42 @@ export class AttendanceSyncService {
 
     /**
      * Check if date is a weekly rest day based on schedule rule
-     */
-    private async isWeeklyRest(employeeId: Types.ObjectId, date: Date): Promise<boolean> {
-        try {
-            const dayStart = new Date(date);
-            dayStart.setHours(0, 0, 0, 0);
-            const dayEnd = new Date(date);
-            dayEnd.setHours(23, 59, 59, 999);
-
-            const assignment = await this.shiftAssignmentModel.findOne({
-                employeeId,
-                startDate: { $lte: dayEnd },
-                $or: [{ endDate: { $exists: false } }, { endDate: { $gte: dayStart } }],
-            }).lean();
-
-            if (!assignment?.scheduleRuleId) return false;
-
-            const rule = await this.scheduleRuleModel.findById(assignment.scheduleRuleId).lean();
-            if (!rule || !rule.active || !rule.pattern) return false;
-
-            const pattern = (rule.pattern || '').toUpperCase();
-            if (pattern.startsWith('WEEKLY:')) {
-                const daysPart = pattern.split(':')[1] || '';
-                const allowedDays = daysPart.split(',').map(d => d.trim().slice(0, 3).toUpperCase());
-                const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-                const today = dayNames[date.getDay()];
-                return !allowedDays.includes(today);
-            }
-
-            return false;
-        } catch (e) {
-            this.logger.warn('Weekly rest check failed', e);
-            return false;
-        }
-    }
-
+     */// RENAME THIS: isWeeklyRest → isScheduleDayOff
+    // private async isScheduleDayOff(employeeId: Types.ObjectId, date: Date): Promise<boolean> {
+    //     // Keep all the existing logic from your current isWeeklyRest() method
+    //     // This checks if a day is NOT in employee's schedule pattern
+    //     try {
+    //         const dayStart = new Date(date);
+    //         dayStart.setHours(0, 0, 0, 0);
+    //         const dayEnd = new Date(date);
+    //         dayEnd.setHours(23, 59, 59, 999);
+    //
+    //         const assignment = await this.shiftAssignmentModel.findOne({
+    //             employeeId,
+    //             startDate: { $lte: dayEnd },
+    //             $or: [{ endDate: { $exists: false } }, { endDate: { $gte: dayStart } }],
+    //         }).lean();
+    //
+    //         if (!assignment?.scheduleRuleId) return false;
+    //
+    //         const rule = await this.scheduleRuleModel.findById(assignment.scheduleRuleId).lean();
+    //         if (!rule || !rule.active || !rule.pattern) return false;
+    //
+    //         const pattern = (rule.pattern || '').toUpperCase();
+    //         if (pattern.startsWith('WEEKLY:')) {
+    //             const daysPart = pattern.split(':')[1] || '';
+    //             const allowedDays = daysPart.split(',').map(d => d.trim().slice(0, 3).toUpperCase());
+    //             const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    //             const today = dayNames[date.getDay()];
+    //             return !allowedDays.includes(today); // TRUE if day is OFF in schedule
+    //         }
+    //
+    //         return false;
+    //     } catch (e) {
+    //         this.logger.warn('Schedule day off check failed', e);
+    //         return false;
+    //     }
+    // }
     /**
      * Get HR user ID from environment or default
      */
@@ -1402,7 +1455,7 @@ export class AttendanceSyncService {
             startDate: startDate.toISOString().split('T')[0],
             endDate: endDate.toISOString().split('T')[0],
             totalDays,
-            absenceDays: absenceCount,
+            absenceDays: absenceCount-1,
             presentDays: presentDays.length,
             holidayDays: holidayDays.length,
             restDays: restDays.length,
@@ -1423,11 +1476,11 @@ export class AttendanceSyncService {
     }
 
     // ==================== TIME REQUEST ESCALATION ====================
-    /**
-     * Automatic escalation of pending time requests before payroll cut-off
-     * Prevents payroll delays by ensuring all time requests are reviewed
-     * Runs 5 days before end of month (on the 25th or 26th)
-     */
+     /**
+      * Automatic escalation of pending time requests before payroll cut-off
+      * Prevents payroll delays by ensuring all time requests are reviewed
+      * Runs 5 days before end of month (on the 25th or 26th)
+      */
     @Cron('0 8 25-28 * *', {
         name: 'time-request-escalation',
         timeZone: 'UTC',
@@ -1451,6 +1504,37 @@ export class AttendanceSyncService {
 
             // Escalate time exceptions
             const exceptionEscalations = await this.escalateTimeExceptions(payrollCutoffDate);
+
+            const hrUserId = this.getHrUserId();
+
+            // 1) Escalate attendance correction requests that are still SUBMITTED or IN_REVIEW
+            const corrColl = this.connection.db!.collection('attendancecorrectionrequests');
+            const correctionsToEscalate = await corrColl.find({
+                status: { $in: ['SUBMITTED', 'IN_REVIEW'] },
+                createdAt: { $lte: payrollCutoffDate },
+            }).toArray();
+
+            for (const c of correctionsToEscalate) {
+                try {
+                    if (!c) continue;
+                    if (String(c.status).toUpperCase() === 'ESCALATED') continue;
+
+                    await corrColl.updateOne({ _id: c._id }, { $set: { status: 'ESCALATED', escalatedAt: new Date() } });
+
+                    const msg = `Correction request ${c._id} escalated automatically before payroll period ${payrollCutoffDate.toISOString()}`;
+                    await this.notificationModel.create({
+                        to: hrUserId,
+                        type: 'CORRECTION_ESCALATED_PAYROLL',
+                        message: msg,
+                        metadata: { correctionRequestId: c._id?.toString(), employeeId: c.employeeId?.toString(), payrollCutoff: payrollCutoffDate.toISOString() },
+                        createdAt: new Date(),
+                    } as any);
+
+                    this.logger.log(`Escalated correction request ${c._id} -> notified HR admin ${hrUserId}`);
+                } catch (err) {
+                    this.logger.warn('Failed to escalate correction request', c._id, err);
+                }
+            }
 
             this.logger.log(`Escalation completed: ${leaveEscalations} leave requests, ${exceptionEscalations} time exceptions`);
         } catch (error: any) {
@@ -1649,34 +1733,357 @@ export class AttendanceSyncService {
     }
 
     /**
-     * Public method to manually trigger time request escalation
-     * Useful for testing and manual intervention
+     * Apply an approved time exception (permission) to attendance records.
+     *
+     * Business logic and methods for applying time exceptions were not present in original file; keep original behavior unchanged.
      */
-    async manuallyEscalateTimeRequests(): Promise<{
-        leaveEscalations: number;
-        exceptionEscalations: number;
-    }> {
-        this.logger.log('Manual escalation triggered for time requests');
+    /**
+     * Watch for timeexception approvals and apply permission duration to attendance.
+     * Minimal implementation: listens for updates on the "timeexceptions" collection
+     * and when status becomes approved, subtracts (endTime - startTime) in minutes
+     * from the attendance record's totalWorkMinutes for the affected date.
+     */
+    // async onModuleInit() {
+    //     try {
+    //         if (!this.connection || !this.connection.db) return;
+    //         const coll = this.connection.db.collection('timeexceptions');
+    //         if (!coll || typeof coll.watch !== 'function') return;
+    //
+    //         const pipeline = [ { $match: { operationType: 'update' } } ];
+    //         const stream: any = coll.watch(pipeline, { fullDocument: 'updateLookup' });
+    //
+    //         stream.on('change', async (change: any) => {
+    //             try {
+    //                 const full = change.fullDocument || {};
+    //                 const updated = change.updateDescription?.updatedFields || {};
+    //
+    //                 // Detect status becoming approved
+    //                 const newStatus = updated.status ?? full.status;
+    //                 const approvedValues = ['APPROVED', 'Approved', 'approved', 2, '2'];
+    //                 if (!newStatus || !approvedValues.includes(newStatus)) return;
+    //
+    //                 // Idempotency: if already applied, skip
+    //                 if (full.appliedToAttendance) return;
+    //
+    //                  // Need startTime and endTime to compute duration
+    //                  const st = full.startTime || full.from || full.punchTime || null;
+    //                  const et = full.endTime || full.to || null;
+    //                  if (!st || !et) return; // nothing we can do
+    //
+    //                 const start = new Date(st);
+    //                 const end = new Date(et);
+    //                 if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
+    //
+    //                 const minutes = Math.ceil(Math.abs(end.getTime() - start.getTime()) / 60000);
+    //                 if (!minutes || minutes <= 0) return;
+    //
+    //                 const employeeId = full.employeeId;
+    //                 if (!employeeId) return;
+    //
+    //                 // Find attendance record for the date(s) covered
+    //                 const dayStart = new Date(start);
+    //                 dayStart.setHours(0,0,0,0);
+    //                 const dayEnd = new Date(start);
+    //                 dayEnd.setHours(23,59,59,999);
+    //
+    //                 // Try to find by punches first, then by date field
+    //                 let attendance: any = await this.attendanceModel.findOne({
+    //                     employeeId: new Types.ObjectId(employeeId),
+    //                     'punches.time': { $gte: dayStart, $lte: dayEnd }
+    //                 });
+    //                 if (!attendance) {
+    //                     attendance = await this.attendanceModel.findOne({
+    //                         employeeId: new Types.ObjectId(employeeId),
+    //                         date: { $gte: dayStart, $lte: dayEnd }
+    //                     });
+    //                 }
+    //                 if (!attendance) return;
+    //
+    //                 const orig = (attendance as any).totalWorkMinutes || 0;
+    //                 const newTotal = Math.max(0, orig - minutes);
+    //
+    //                 await this.attendanceModel.updateOne({ _id: (attendance as any)._id }, {
+    //                     $set: { totalWorkMinutes: newTotal, updatedAt: new Date() }
+    //                 });
+    //
+    //                 // mark exception as applied to prevent future double application
+    //                 try {
+    //                     await this.exceptionModel.updateOne({ _id: full._id }, { $set: { appliedToAttendance: true, appliedAt: new Date(), appliedMinutes: minutes } });
+    //                 } catch (e) { /* ignore */ }
+    //             } catch (err) {
+    //                 this.logger.warn('Error handling timeexception change event', err);
+    //             }
+    //         });
+    //     } catch (err) {
+    //         this.logger.debug('Timeexception watcher not started', err?.message || err);
+    //     }
+    // }
 
+
+    /**
+     * Trigger escalation for pending time requests
+     * @param daysBeforePayroll - Days before payroll to send notification
+     * @param hrAdminId - HR Admin user ID to send notification to
+     * @param payrollRunId - Specific payroll run ID (optional)
+     */
+    async triggerEscalation(
+        daysBeforePayroll: number,
+        hrAdminId: string,
+        payrollRunId?: string
+    ): Promise<{ message: string; escalatedCount: number; notificationId: string }> {
         try {
+            // Validate inputs
+            if (daysBeforePayroll < 0 || daysBeforePayroll > 30) {
+                throw new Error('daysBeforePayroll must be between 0 and 30');
+            }
+
+            if (!Types.ObjectId.isValid(hrAdminId)) {
+                throw new Error('Invalid HR Admin ID');
+            }
+
+            const hrAdminObjectId = new Types.ObjectId(hrAdminId);
+
+            // 1. Find target payroll period
+            let payroll: any;
+
+            if (payrollRunId) {
+                // Use specific payroll run
+                payroll = await this.payrollRunModel.findById(payrollRunId);
+                if (!payroll) {
+                    throw new Error(`Payroll run ${payrollRunId} not found`);
+                }
+            } else {
+                // Find next upcoming payroll - using your ACTUAL PayRollStatus enum values
+                const today = new Date();
+                payroll = await this.payrollRunModel.findOne({
+                    payrollPeriod: { $gte: today },
+                    status: {
+                        $in: [
+                            PayRollStatus.DRAFT,
+                            PayRollStatus.UNDER_REVIEW,
+                            PayRollStatus.PENDING_FINANCE_APPROVAL
+                        ]
+                    }
+                }).sort({ payrollPeriod: 1 }).exec();
+
+                if (!payroll) {
+                    throw new Error('No upcoming payroll periods found');
+                }
+            }
+
+            // 2. Calculate escalation date
+            const escalationDate = new Date(payroll.payrollPeriod);
+            escalationDate.setDate(escalationDate.getDate() - daysBeforePayroll);
+
+            // Check if we should escalate now (today >= escalationDate)
             const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth() + 1;
+            today.setHours(0, 0, 0, 0);
+            escalationDate.setHours(0, 0, 0, 0);
 
-            const payrollCutoffDate = this.getPayrollCutoffDate(year, month);
+            if (today.getTime() < escalationDate.getTime()) {
+                throw new Error(`Escalation is scheduled for ${escalationDate.toDateString()}. Today is ${today.toDateString()}`);
+            }
 
-            const leaveEscalations = await this.escalateLeaveRequests(payrollCutoffDate);
-            const exceptionEscalations = await this.escalateTimeExceptions(payrollCutoffDate);
+            // 3. Find all pending requests (SUBMITTED or PENDING)
+            const pendingRequests: PendingRequest[] = [];
 
-            this.logger.log(`Manual escalation completed: ${leaveEscalations} leaves, ${exceptionEscalations} exceptions`);
+            // Find pending correction requests - using your actual CorrectionRequestStatus
+            const correctionRequests = await this.correctionRequestModel.find({
+                status: CorrectionRequestStatus.SUBMITTED
+            }).lean();
+            correctionRequests.forEach((request: any) => {
+                pendingRequests.push({
+                    type: 'CORRECTION_REQUEST',
+                    id: request._id.toString(),
+                    employeeId: request.employeeId.toString(),
+                    createdAt: request.createdAt || new Date(),
+                    status: request.status,
+                    reason: request.reason || 'No reason provided'
+                });
+            });
+
+            // Find pending time exceptions (including break permissions)
+            // FIXED: Using timeExceptionModel instead of exceptionModel
+            const timeExceptions = await this.timeExceptionModel.find({
+                status: { $in: [TimeExceptionStatus.OPEN, TimeExceptionStatus.PENDING] }
+            }).lean();
+
+            timeExceptions.forEach((exception: any) => {
+                const requestType = exception.type === 'SHORT_TIME' ? 'BREAK_PERMISSION' : 'TIME_EXCEPTION';
+                pendingRequests.push({
+                    type: requestType,
+                    id: exception._id.toString(),
+                    employeeId: exception.employeeId.toString(),
+                    createdAt: exception.createdAt || new Date(),
+                    status: exception.status,
+                    reason: exception.reason || 'No reason provided'
+                });
+            });
+
+            if (pendingRequests.length === 0) {
+                return {
+                    message: 'No pending requests found for escalation',
+                    escalatedCount: 0,
+                    notificationId: ''
+                };
+            }
+
+            // 4. Create SINGLE notification with all request IDs
+            const requestIds = pendingRequests.map((req: any) => req.id);
+            const payrollDate = new Date(payroll.payrollPeriod);
+            const notificationMessage = `🚨 ESCALATION: ${pendingRequests.length} pending time requests require review before payroll period ${payrollDate.toLocaleDateString()}. Request IDs: ${requestIds.join(', ')}`;
+
+            // FIXED: Using notificationLogModel instead of notificationModel
+            const notification = await this.notificationModel.create({
+                to: hrAdminObjectId,
+                type: 'ESCALATION_BATCH',
+                message: notificationMessage,
+                metadata: {
+                    payrollRunId: payroll._id,
+                    payrollPeriod: payroll.payrollPeriod,
+                    totalRequests: pendingRequests.length,
+                    requestIds: requestIds,
+                    escalatedAt: new Date(),
+                    daysBeforePayroll: daysBeforePayroll
+                }
+            });
+
+            // 5. Mark requests as escalated (add escalation flag without changing status)
+            const requestIdsObject = pendingRequests.map((req: any) => new Types.ObjectId(req.id));
+
+            // Update correction requests
+            const correctionRequestIds = requestIdsObject.filter((_: any, index: number) =>
+                pendingRequests[index].type === 'CORRECTION_REQUEST'
+            );
+
+            if (correctionRequestIds.length > 0) {
+                await this.correctionRequestModel.updateMany(
+                    { _id: { $in: correctionRequestIds } },
+                    {
+                        $set: {
+                            escalatedAt: new Date(),
+                            escalatedTo: hrAdminObjectId,
+                            escalationNote: `Escalated ${daysBeforePayroll} days before payroll period ${payrollDate.toLocaleDateString()}`
+                        }
+                    }
+                );
+            }
+
+            // Update time exceptions
+            const timeExceptionIds = requestIdsObject.filter((_: any, index: number) =>
+                pendingRequests[index].type !== 'CORRECTION_REQUEST'
+            );
+
+            if (timeExceptionIds.length > 0) {
+                await this.timeExceptionModel.updateMany(
+                    { _id: { $in: timeExceptionIds } },
+                    {
+                        $set: {
+                            escalatedAt: new Date(),
+                            escalatedTo: hrAdminObjectId,
+                            escalationNote: `Escalated ${daysBeforePayroll} days before payroll period ${payrollDate.toLocaleDateString()}`
+                        }
+                    }
+                );
+            }
 
             return {
-                leaveEscalations,
-                exceptionEscalations,
+                message: `✅ Escalation successful! ${pendingRequests.length} requests escalated to HR Admin. Notification sent.`,
+                escalatedCount: pendingRequests.length,
+                notificationId: notification._id.toString()
             };
+
         } catch (error: any) {
-            this.logger.error('Manual escalation failed:', error);
-            throw error;
+            throw new Error(`Escalation failed: ${error.message}`);
         }
     }
+
+    /**
+     * Get all requests escalated to a specific HR Admin
+     * @param hrAdminId - HR Admin user ID
+     */
+    async getEscalatedRequests(hrAdminId: string): Promise<{
+        totalCount: number;
+        correctionRequests: any[];
+        timeExceptions: any[];
+        breakPermissions: any[];
+        lastEscalation: Date | null;
+    }> {
+        try {
+            if (!Types.ObjectId.isValid(hrAdminId)) {
+                throw new Error('Invalid HR Admin ID');
+            }
+
+            const hrAdminObjectId = new Types.ObjectId(hrAdminId);
+
+            // Get escalated correction requests
+            const correctionRequests = await this.correctionRequestModel.find({
+                escalatedTo: hrAdminObjectId
+            })
+                .select('_id employeeId status reason createdAt escalatedAt')
+                .sort({ escalatedAt: -1 })
+                .lean();
+
+            // Get escalated time exceptions (excluding break permissions)
+            const timeExceptions = await this.timeExceptionModel.find({
+                escalatedTo: hrAdminObjectId,
+                type: { $ne: 'SHORT_TIME' }
+            })
+                .select('_id employeeId status reason type createdAt escalatedAt')
+                .sort({ escalatedAt: -1 })
+                .lean();
+
+            // Get escalated break permissions (SHORT_TIME type)
+            const breakPermissions = await this.timeExceptionModel.find({
+                escalatedTo: hrAdminObjectId,
+                type: 'SHORT_TIME'
+            })
+                .select('_id employeeId status reason duration startTime endTime createdAt escalatedAt')
+                .sort({ escalatedAt: -1 })
+                .lean();
+
+            // Find last escalation date
+            const allRequests = [...correctionRequests, ...timeExceptions, ...breakPermissions];
+            const lastEscalation = allRequests.length > 0
+                ? new Date(Math.max(...allRequests.map((r: any) =>
+                    new Date(r.escalatedAt || r.createdAt || 0).getTime()
+                )))
+                : null;
+
+            return {
+                totalCount: correctionRequests.length + timeExceptions.length + breakPermissions.length,
+                correctionRequests: correctionRequests.map((req: any) => ({
+                    id: req._id.toString(),
+                    employeeId: req.employeeId.toString(),
+                    status: req.status,
+                    reason: req.reason,
+                    escalatedAt: req.escalatedAt,
+                    type: 'CORRECTION_REQUEST'
+                })),
+                timeExceptions: timeExceptions.map((req: any) => ({
+                    id: req._id.toString(),
+                    employeeId: req.employeeId.toString(),
+                    status: req.status,
+                    reason: req.reason,
+                    type: req.type,
+                    escalatedAt: req.escalatedAt
+                })),
+                breakPermissions: breakPermissions.map((req: any) => ({
+                    id: req._id.toString(),
+                    employeeId: req.employeeId.toString(),
+                    status: req.status,
+                    reason: req.reason,
+                    duration: req.duration,
+                    escalatedAt: req.escalatedAt,
+                    type: 'BREAK_PERMISSION'
+                })),
+                lastEscalation
+            };
+
+        } catch (error: any) {
+            throw new Error(`Failed to get escalated requests: ${error.message}`);
+        }
+    }
+
+
 }

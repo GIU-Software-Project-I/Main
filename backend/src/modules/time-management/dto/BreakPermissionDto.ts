@@ -47,3 +47,18 @@ export class RejectBreakPermissionDto {
     })
     rejectionReason: string;
 }
+
+export class PermissionLimitDto {
+    @ApiProperty({
+        description: 'Maximum allowed break/permission duration in minutes',
+        example: 180,
+    })
+    maxMinutes: number;
+
+    @ApiProperty({
+        description: 'Optionally the ID of the admin/user setting the limit',
+        required: false,
+        example: '507f1f77bcf86cd799439011'
+    })
+    setBy?: string;
+}

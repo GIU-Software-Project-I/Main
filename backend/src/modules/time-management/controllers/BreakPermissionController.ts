@@ -2,6 +2,7 @@ import { Controller, Post, Get, Delete, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {BreakPermissionService} from "../services/BreakPermissionService";
 import {ApproveBreakPermissionDto, BreakPermissionDto, RejectBreakPermissionDto} from "../dto/BreakPermissionDto";
+import { PermissionLimitDto } from '../dto/BreakPermissionDto';
 
 @ApiTags('Break Permissions')
 @Controller('break-permissions')
@@ -9,6 +10,9 @@ export class BreakPermissionController {
     constructor(private readonly breakPermissionService: BreakPermissionService) {}
 
     @Post()
+    // @UseGuards(AuthenticationGuard,AuthorizationGuard)
+    // @Roles(SystemRole.HR_ADMIN)
+    // @ApiBearerAuth('access-token')
     @ApiOperation({ summary: 'Create a break permission request' })
     @ApiResponse({ status: 201, description: 'Break permission created successfully' })
     @ApiResponse({ status: 400, description: 'Invalid request data' })
@@ -17,6 +21,9 @@ export class BreakPermissionController {
     }
 
     @Post(':permissionId/approve')
+    // @UseGuards(AuthenticationGuard,AuthorizationGuard)
+    // @Roles(SystemRole.HR_ADMIN, SystemRole.Department_HEAD)
+    // @ApiBearerAuth('access-token')
     @ApiOperation({ summary: 'Approve a break permission' })
     async approveBreakPermission(
         @Param('permissionId') permissionId: string,
@@ -48,5 +55,17 @@ export class BreakPermissionController {
     async getApprovedBreakMinutes(@Param('attendanceRecordId') attendanceRecordId: string) {
         const minutes = await this.breakPermissionService.calculateApprovedBreakMinutes(attendanceRecordId);
         return { attendanceRecordId, approvedBreakMinutes: minutes };
+    }
+
+    @Get('limit')
+    @ApiOperation({ summary: 'Get current max break/permission duration limit' })
+    async getPermissionLimit() {
+        return this.breakPermissionService.getPermissionMaxLimit();
+    }
+
+    @Post('limit')
+    @ApiOperation({ summary: 'Set the max break/permission duration limit' })
+    async setPermissionLimit(@Body() dto: PermissionLimitDto) {
+        return this.breakPermissionService.setPermissionMaxLimit(dto.maxMinutes);
     }
 }

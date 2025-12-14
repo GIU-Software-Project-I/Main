@@ -254,12 +254,7 @@ export class PayrollTrackingController {
     @Param('employeeId') employeeId: string,
     @Body() createDisputeDto: CreateDisputeDto
   ) {
-    return {
-      employeeId,
-      dispute: createDisputeDto,
-      status: 'UNDER_REVIEW',
-      note: 'createDispute temporarily handled at controller level',
-    };
+    return this.payrollTrackingService.createDispute(employeeId, createDisputeDto);
   }
 
   @Post('employee/:employeeId/claims')
@@ -269,23 +264,13 @@ export class PayrollTrackingController {
     @Param('employeeId') employeeId: string,
     @Body() createClaimDto: CreateClaimDto
   ) {
-    return {
-      employeeId,
-      claim: createClaimDto,
-      status: 'UNDER_REVIEW',
-      note: 'createClaim temporarily handled at controller level',
-    };
+    return this.payrollTrackingService.createClaim(employeeId, createClaimDto);
   }
 
   @Get('employee/:employeeId/track-requests')
   // @Roles(SystemRole.DEPARTMENT_EMPLOYEE, SystemRole.DEPARTMENT_HEAD, SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER)
   async trackClaimsAndDisputes(@Param('employeeId') employeeId: string) {
-    return {
-      employeeId,
-      claims: [],
-      disputes: [],
-      note: 'trackClaimsAndDisputes temporarily returns empty data from controller',
-    };
+    return this.payrollTrackingService.trackClaimsAndDisputes(employeeId);
   }
 
   // ========== Operational Reports Endpoints ==========
