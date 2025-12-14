@@ -77,6 +77,78 @@ export const employeeProfileService = {
   },
 
   // =============================================
+  // Document Management
+  // =============================================
+
+  /**
+   * Upload a document
+   * POST /employee-profile/me/:userId/documents
+   */
+  uploadDocument: async (data: any) => {
+    return apiService.post(`/employee-profile/me/${TEST_USER_ID}/documents`, data);
+  },
+
+  /**
+   * Get all my documents
+   * GET /employee-profile/me/:userId/documents
+   */
+  getMyDocuments: async () => {
+    return apiService.get(`/employee-profile/me/${TEST_USER_ID}/documents`);
+  },
+
+  /**
+   * Get a specific document (full data including file)
+   * GET /employee-profile/me/:userId/documents/:documentId
+   */
+  getDocument: async (documentId: string) => {
+    return apiService.get(`/employee-profile/me/${TEST_USER_ID}/documents/${documentId}`);
+  },
+
+  /**
+   * Delete a document
+   * DELETE /employee-profile/me/:userId/documents/:documentId
+   */
+  deleteDocument: async (documentId: string) => {
+    return apiService.delete(`/employee-profile/me/${TEST_USER_ID}/documents/${documentId}`);
+  },
+
+  // =============================================
+  // Emergency Contact Management  
+  // =============================================
+
+  /**
+   * Get all emergency contacts
+   * GET /employee-profile/me/:userId/emergency-contacts
+   */
+  getEmergencyContacts: async () => {
+    return apiService.get(`/employee-profile/me/${TEST_USER_ID}/emergency-contacts`);
+  },
+
+  /**
+   * Add emergency contact
+   * POST /employee-profile/me/:userId/emergency-contacts
+   */
+  addEmergencyContact: async (data: any) => {
+    return apiService.post(`/employee-profile/me/${TEST_USER_ID}/emergency-contacts`, data);
+  },
+
+  /**
+   * Update emergency contact
+   * PATCH /employee-profile/me/:userId/emergency-contacts/:index
+   */
+  updateEmergencyContact: async (index: number, data: any) => {
+    return apiService.patch(`/employee-profile/me/${TEST_USER_ID}/emergency-contacts/${index}`, data);
+  },
+
+  /**
+   * Delete emergency contact
+   * DELETE /employee-profile/me/:userId/emergency-contacts/:index
+   */
+  deleteEmergencyContact: async (index: number) => {
+    return apiService.delete(`/employee-profile/me/${TEST_USER_ID}/emergency-contacts/${index}`);
+  },
+
+  // =============================================
   // Manager Endpoints (Team View)
   // =============================================
 

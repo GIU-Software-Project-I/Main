@@ -2,7 +2,7 @@
 // TEMPORARY CONTROLLER WITHOUT AUTHORIZATION - FOR TESTING PURPOSES ONLY
 // Remove this file and uncomment the original controller in production
 
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { UpdateContactInfoDto } from '../dto/employee-profile/update-contact-info.dto';
 import { UpdateBioDto } from '../dto/employee-profile/update-bio.dto';
 import { CreateCorrectionRequestDto } from '../dto/employee-profile/create-correction-request.dto';
@@ -12,10 +12,15 @@ import { SearchEmployeesDto, PaginationQueryDto } from '../dto/employee-profile/
 import { ProcessChangeRequestDto } from '../dto/employee-profile/process-change-request.dto';
 import { ProfileChangeStatus } from '../enums/employee-profile.enums';
 import { EmployeeProfileService } from '../services/employee-profile.service';
+import { EmployeeDocumentService } from '../services/employee-document.service';
+import { UploadDocumentDto } from '../dto/employee-profile/upload-document.dto';
 
 @Controller('employee-profile')
 export class EmployeeProfileNoAuthController {
-    constructor(private readonly employeeProfileService: EmployeeProfileService) { }
+    constructor(
+        private readonly employeeProfileService: EmployeeProfileService,
+        private readonly employeeDocumentService: EmployeeDocumentService,
+    ) { }
 
     // ==========================================
     // EMPLOYEE SELF-SERVICE ROUTES
@@ -55,6 +60,67 @@ export class EmployeeProfileNoAuthController {
     @Patch('me/:userId/correction-requests/:requestId/cancel')
     async cancelMyChangeRequest(@Param('userId') userId: string, @Param('requestId') requestId: string) {
         return this.employeeProfileService.cancelMyChangeRequest(userId, requestId);
+    }
+
+    // ==========================================
+    // DOCUMENT MANAGEMENT ROUTES
+    // ==========================================
+
+    // Upload a document
+    @Post('me/:userId/documents')
+    async uploadDocument(@Param('userId') userId: string, @Body() dto: UploadDocumentDto) {
+        return this.employeeDocumentService.uploadDocument(userId, dto);
+    }
+
+    // Get all my documents
+    @Get('me/:userId/documents')
+    async getMyDocuments(@Param('userId') userId: string) {
+        return this.employeeDocumentService.getMyDocuments(userId);
+    }
+
+    // Get a specific document
+    @Get('me/:userId/documents/:documentId')
+    async getDocument(@Param('userId') userId: string, @Param('documentId') documentId: string) {
+        return this.employeeDocumentService.getDocument(userId, documentId);
+    }
+
+    // Delete a document
+    @Delete('me/:userId/documents/:documentId')
+    async deleteDocument(@Param('userId') userId: string, @Param('documentId') documentId: string) {
+        await this.employeeDocumentService.deleteDocument(userId, documentId);
+        return { message: 'Document deleted successfully' };
+    }
+
+    // ==========================================
+    // EMERGENCY CONTACT MANAGEMENT ROUTES
+    // ==========================================
+
+    // Get all emergency contacts
+    @Get('me/:userId/emergency-contacts')
+    async getEmergencyContacts(@Param('userId') userId: string) {
+        return this.employeeProfileService.getEmergencyContacts(userId);
+    }
+
+    // Add emergency contact
+    @Post('me/:userId/emergency-contacts')
+    async addEmergencyContact(@Param('userId') userId: string, @Body() dto: any) {
+        return this.employeeProfileService.addEmergencyContact(userId, dto);
+    }
+
+    // Update emergency contact
+    @Patch('me/:userId/emergency-contacts/:index')
+    async updateEmergencyContact(
+        @Param('userId') userId: string,
+        @Param('index') index: string,
+        @Body() dto: any
+    ) {
+        return this.employeeProfileService.updateEmergencyContact(userId, parseInt(index), dto);
+    }
+
+    // Delete emergency contact
+    @Delete('me/:userId/emergency-contacts/:index')
+    async deleteEmergencyContact(@Param('userId') userId: string, @Param('index') index: string) {
+        return this.employeeProfileService.deleteEmergencyContact(userId, parseInt(index));
     }
 
     // ==========================================

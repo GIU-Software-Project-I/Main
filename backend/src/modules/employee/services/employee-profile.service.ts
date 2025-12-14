@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { EmployeeProfile, EmployeeProfileDocument } from '../models/employee/employee-profile.schema';
 import { EmployeeProfileChangeRequest, EmployeeProfileChangeRequestDocument } from '../models/employee/ep-change-request.schema';
 import { EmployeeSystemRole, EmployeeSystemRoleDocument } from '../models/employee/employee-system-role.schema';
+import { EmployeeDocument } from '../models/employee/employee-document.schema';
 import { UpdateContactInfoDto } from '../dto/employee-profile/update-contact-info.dto';
 import { UpdateBioDto } from '../dto/employee-profile/update-bio.dto';
 import { CreateCorrectionRequestDto } from '../dto/employee-profile/create-correction-request.dto';
@@ -23,7 +24,7 @@ export class EmployeeProfileService {
         @InjectModel(EmployeeSystemRole.name)
         private systemRoleModel: Model<EmployeeSystemRoleDocument>,
         private readonly sharedEmployeeService: SharedEmployeeService,
-    ) {}
+    ) { }
 
     private validateObjectId(id: string, fieldName: string): void {
         if (!Types.ObjectId.isValid(id)) {
@@ -670,5 +671,107 @@ export class EmployeeProfileService {
 
     async getPendingChangeRequestsCount(): Promise<number> {
         return this.changeRequestModel.countDocuments({ status: ProfileChangeStatus.PENDING });
+    }
+
+    // =============================================
+    // Emergency Contact Management
+    // =============================================
+
+    async getEmergencyContacts(userId: string): Promise<any[]> {
+        this.validateObjectId(userId, 'userId');
+
+        const profile = await this.employeeProfileModel.findById(userId).select('emergencyContacts');
+        if (!profile) {
+            throw new NotFoundException('Employee profile not found');
+        }
+
+        return profile.emergencyContacts || [];
+    }
+
+    async addEmergencyContact(userId: string, contactData: any): Promise<any> {
+        this.validateObjectId(userId, 'userId');
+
+        const profile = await this.employeeProfileModel.findById(userId);
+        if (!profile) {
+            throw new NotFoundException('Employee profile not found');
+        }
+
+        if (profile.status === EmployeeStatus.TERMINATED) {
+            throw new BadRequestException('Cannot add emergency contact for terminated employee');
+        }
+
+        // If marking as primary, unmark all others
+        if (contactData.isPrimary) {
+            profile.emergencyContacts = profile.emergencyContacts?.map(contact => ({
+                ...contact,
+                isPrimary: false
+            })) || [];
+        }
+
+        // Add new contact
+        const newContact = {
+            name: contactData.name,
+            relationship: contactData.relationship,
+            phone: contactData.phone,
+            email: contactData.email,
+            isPrimary: contactData.isPrimary || false
+        };
+
+        profile.emergencyContacts = [...(profile.emergencyContacts || []), newContact];
+        await profile.save();
+
+        return profile.emergencyContacts;
+    }
+
+    async updateEmergencyContact(userId: string, contactIndex: number, updateData: any): Promise<any> {
+        this.validateObjectId(userId, 'userId');
+
+        const profile = await this.employeeProfileModel.findById(userId);
+        if (!profile) {
+            throw new NotFoundException('Employee profile not found');
+        }
+
+        if (profile.status === EmployeeStatus.TERMINATED) {
+            throw new BadRequestException('Cannot update emergency contact for terminated employee');
+        }
+
+        if (!profile.emergencyContacts || contactIndex >= profile.emergencyContacts.length) {
+            throw new NotFoundException('Emergency contact not found');
+        }
+
+        // If marking as primary, unmark all others
+        if (updateData.isPrimary) {
+            profile.emergencyContacts = profile.emergencyContacts.map((contact, idx) => ({
+                ...contact,
+                isPrimary: idx === contactIndex
+            }));
+        }
+
+        // Update the contact
+        profile.emergencyContacts[contactIndex] = {
+            ...profile.emergencyContacts[contactIndex],
+            ...updateData
+        };
+
+        await profile.save();
+        return profile.emergencyContacts;
+    }
+
+    async deleteEmergencyContact(userId: string, contactIndex: number): Promise<any> {
+        this.validateObjectId(userId, 'userId');
+
+        const profile = await this.employeeProfileModel.findById(userId);
+        if (!profile) {
+            throw new NotFoundException('Employee profile not found');
+        }
+
+        if (!profile.emergencyContacts || contactIndex >= profile.emergencyContacts.length) {
+            throw new NotFoundException('Emergency contact not found');
+        }
+
+        profile.emergencyContacts.splice(contactIndex, 1);
+        await profile.save();
+
+        return profile.emergencyContacts;
     }
 }

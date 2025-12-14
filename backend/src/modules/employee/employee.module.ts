@@ -15,12 +15,14 @@ import {
   EmployeeProfileChangeRequest,
   EmployeeProfileChangeRequestSchema
 } from "./models/employee/ep-change-request.schema";
+import { EmployeeDocument, EmployeeDocumentSchema } from "./models/employee/employee-document.schema";
 import { OrganizationStructureModule } from './organization-structure.module';
 // COMMENTED OUT FOR TESTING - Using no-auth controller
 // import {EmployeeProfileController} from "./controllers/employee-profile.controller";
 import { EmployeeProfileNoAuthController } from "./controllers/employee-profile-no-auth.controller";
 
 import { EmployeeProfileService } from "./services/employee-profile.service";
+import { EmployeeDocumentService } from "./services/employee-document.service";
 import { SharedModule } from '../shared/shared.module';
 import { AuthModule } from "../auth/auth-module";
 
@@ -34,6 +36,7 @@ import { AuthModule } from "../auth/auth-module";
       { name: EmployeeSystemRole.name, schema: EmployeeSystemRoleSchema },
       { name: EmployeeQualification.name, schema: EmployeeQualificationSchema },
       { name: EmployeeProfileChangeRequest.name, schema: EmployeeProfileChangeRequestSchema },
+      { name: EmployeeDocument.name, schema: EmployeeDocumentSchema },
 
     ]),
     OrganizationStructureModule,
@@ -42,7 +45,7 @@ import { AuthModule } from "../auth/auth-module";
   // USING NO-AUTH CONTROLLER FOR TESTING
   // controllers: [EmployeeProfileController],
   controllers: [EmployeeProfileNoAuthController],
-  providers: [EmployeeProfileService],
-  exports: [EmployeeProfileService],
+  providers: [EmployeeProfileService, EmployeeDocumentService],
+  exports: [EmployeeProfileService, EmployeeDocumentService],
 })
 export class EmployeeModule { }

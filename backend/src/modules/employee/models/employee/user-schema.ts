@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
 import { EmployeeSystemRole } from './employee-system-role.schema';
-import {Gender, MaritalStatus} from "../../enums/employee-profile.enums";
+import { Gender, MaritalStatus } from "../../enums/employee-profile.enums";
 
 @Schema({ _id: false })
 export class Address {
@@ -64,6 +64,25 @@ export class UserProfileBase {
 
     @Prop({ type: String })
     profilePictureUrl?: string;
+
+    // Emergency Contacts
+    @Prop({
+        type: [{
+            name: { type: String, required: true },
+            relationship: { type: String, required: true },
+            phone: { type: String, required: true },
+            email: { type: String },
+            isPrimary: { type: Boolean, default: false }
+        }],
+        default: []
+    })
+    emergencyContacts?: Array<{
+        name: string;
+        relationship: string;
+        phone: string;
+        email?: string;
+        isPrimary?: boolean;
+    }>;
 
     @Prop({ type: Types.ObjectId, ref: 'EmployeeSystemRole' })
     accessProfileId?: Types.ObjectId;
