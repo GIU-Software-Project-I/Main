@@ -13,13 +13,14 @@ export default function EmployeeProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'personal' | 'employment' | 'documents'>('personal');
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setLoading(true);
-        const data = await employeeProfileService.getMyProfile();
-        setProfile(data);
+        const response = await employeeProfileService.getMyProfile();
+        setProfile(response.data);
       } catch (err: any) {
         setError(err.message || 'Failed to load profile');
       } finally {
@@ -76,7 +77,26 @@ export default function EmployeeProfilePage() {
       {/* Profile Header Card */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-8 text-white">
         <div className="flex items-center gap-6">
-          <div className="text-8xl">👤</div>
+          {/* Profile Picture */}
+          <div className="w-24 h-24 rounded-full border-4 border-white/30 overflow-hidden bg-white/10 flex items-center justify-center flex-shrink-0">
+            {profile.profilePictureUrl ? (
+              <img
+                src={profile.profilePictureUrl}
+                alt={`${profile.firstName} ${profile.lastName}`}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback to emoji if image fails to load
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="text-6xl">👤</div>
+            )}
+            {!profile.profilePictureUrl && (
+              <div className="text-6xl">👤</div>
+            )}
+          </div>
+
           <div>
             <h2 className="text-3xl font-bold">
               {profile.firstName} {profile.lastName}
@@ -92,112 +112,178 @@ export default function EmployeeProfilePage() {
 
       {/* Navigation Tabs */}
       <div className="flex gap-4 border-b border-slate-200">
-        <button className="px-4 py-3 border-b-2 border-blue-600 text-blue-600 font-medium">
+        <button
+          onClick={() => setActiveTab('personal')}
+          className={`px-4 py-3 font-medium transition-colors ${activeTab === 'personal'
+            ? 'border-b-2 border-blue-600 text-blue-600'
+            : 'text-slate-600 hover:text-slate-900'
+            }`}
+        >
           Personal Information
         </button>
-        <button className="px-4 py-3 text-slate-600 hover:text-slate-900">Employment Details</button>
-        <button className="px-4 py-3 text-slate-600 hover:text-slate-900">Documents</button>
+        <button
+          onClick={() => setActiveTab('employment')}
+          className={`px-4 py-3 font-medium transition-colors ${activeTab === 'employment'
+            ? 'border-b-2 border-blue-600 text-blue-600'
+            : 'text-slate-600 hover:text-slate-900'
+            }`}
+        >
+          Employment Details
+        </button>
+        <button
+          onClick={() => setActiveTab('documents')}
+          className={`px-4 py-3 font-medium transition-colors ${activeTab === 'documents'
+            ? 'border-b-2 border-blue-600 text-blue-600'
+            : 'text-slate-600 hover:text-slate-900'
+            }`}
+        >
+          Documents
+        </button>
       </div>
 
-      {/* Personal Information Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Contact Information */}
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">Contact Information</h3>
-          <div className="space-y-6">
-            <div>
-              <label className="text-sm font-medium text-slate-700">Email Address</label>
-              <p className="text-slate-900 mt-2 text-lg">{profile.email || 'N/A'}</p>
+      {/* Personal Information Tab */}
+      {activeTab === 'personal' && (
+        <>
+          {/* Personal Information Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Contact Information */}
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-6">Contact Information</h3>
+              <div className="space-y-6">
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Work Email</label>
+                  <p className="text-slate-900 mt-2 text-lg">{profile.workEmail || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Personal Email</label>
+                  <p className="text-slate-900 mt-2 text-lg">{profile.personalEmail || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Mobile Phone</label>
+                  <p className="text-slate-900 mt-2 text-lg">{profile.mobilePhone || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Address</label>
+                  <p className="text-slate-900 mt-2">
+                    {profile.address ? (
+                      <>
+                        {profile.address.streetAddress && <>{profile.address.streetAddress}<br /></>}
+                        {profile.address.city && <>{profile.address.city}, </>}
+                        {profile.address.country}
+                      </>
+                    ) : 'N/A'}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700">Phone Number</label>
-              <p className="text-slate-900 mt-2 text-lg">{profile.phone || 'N/A'}</p>
+
+            {/* Personal Details */}
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-6">Personal Details</h3>
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700">Date of Birth</label>
+                    <p className="text-slate-900 mt-2">
+                      {profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700">Gender</label>
+                    <p className="text-slate-900 mt-2">{profile.gender || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700">Marital Status</label>
+                    <p className="text-slate-900 mt-2">{profile.maritalStatus || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700">Nationality</label>
+                    <p className="text-slate-900 mt-2">{profile.nationality || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700">Address</label>
-              <p className="text-slate-900 mt-2">{profile.address || 'N/A'}</p>
+          </div>
+
+          {/* Bio Section */}
+          {profile.biography && (
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-4">About Me</h3>
+              <p className="text-slate-700 leading-relaxed">{profile.biography}</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Employment Details Tab */}
+      {activeTab === 'employment' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Employment Details */}
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+            <h3 className="text-lg font-bold text-slate-900 mb-6">Employment Details</h3>
+            <div className="space-y-6">
+              <div>
+                <label className="text-sm font-medium text-slate-700">Employee ID</label>
+                <p className="text-slate-900 mt-2 font-mono text-lg">{profile.employeeNumber || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">Date of Hire</label>
+                <p className="text-slate-900 mt-2">
+                  {profile.dateOfHire ? new Date(profile.dateOfHire).toLocaleDateString() : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">Contract Type</label>
+                <p className="text-slate-900 mt-2">{profile.contractType || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">Employment Status</label>
+                <p className="text-slate-900 mt-2">
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${profile.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                    {profile.status || 'N/A'}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Position & Management */}
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+            <h3 className="text-lg font-bold text-slate-900 mb-6">Position & Management</h3>
+            <div className="space-y-6">
+              <div>
+                <label className="text-sm font-medium text-slate-700">Department</label>
+                <p className="text-slate-900 mt-2">{profile.department || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">Position</label>
+                <p className="text-slate-900 mt-2">{profile.position || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">Direct Manager</label>
+                <p className="text-slate-900 mt-2">{profile.manager || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">Pay Grade</label>
+                <p className="text-slate-900 mt-2">{profile.payGrade || 'N/A'}</p>
+              </div>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Personal Details */}
+      {/* Documents Tab */}
+      {activeTab === 'documents' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">Personal Details</h3>
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700">Date of Birth</label>
-                <p className="text-slate-900 mt-2">{profile.dateOfBirth || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700">Gender</label>
-                <p className="text-slate-900 mt-2">{profile.gender || 'N/A'}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700">Marital Status</label>
-                <p className="text-slate-900 mt-2">{profile.maritalStatus || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700">Nationality</label>
-                <p className="text-slate-900 mt-2">{profile.nationality || 'N/A'}</p>
-              </div>
-            </div>
+          <h3 className="text-lg font-bold text-slate-900 mb-6">My Documents</h3>
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">📄</div>
+            <p className="text-slate-600 text-lg mb-2">No documents available</p>
+            <p className="text-slate-500 text-sm">Your uploaded documents will appear here</p>
           </div>
-        </div>
-      </div>
-
-      {/* Employment Information */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Employment Details */}
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">Employment Details</h3>
-          <div className="space-y-6">
-            <div>
-              <label className="text-sm font-medium text-slate-700">Employee ID</label>
-              <p className="text-slate-900 mt-2 font-mono text-lg">{profile.employeeId || 'N/A'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700">Join Date</label>
-              <p className="text-slate-900 mt-2">{profile.joinDate || 'N/A'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700">Contract Type</label>
-              <p className="text-slate-900 mt-2">{profile.contractType || 'N/A'}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Position & Management */}
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">Position & Management</h3>
-          <div className="space-y-6">
-            <div>
-              <label className="text-sm font-medium text-slate-700">Department</label>
-              <p className="text-slate-900 mt-2">{profile.department || 'N/A'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700">Position</label>
-              <p className="text-slate-900 mt-2">{profile.position || 'N/A'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700">Direct Manager</label>
-              <p className="text-slate-900 mt-2">{profile.manager || 'N/A'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700">Pay Grade</label>
-              <p className="text-slate-900 mt-2">{profile.payGrade || 'N/A'}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bio Section */}
-      {profile.bio && (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">About Me</h3>
-          <p className="text-slate-700 leading-relaxed">{profile.bio}</p>
         </div>
       )}
 

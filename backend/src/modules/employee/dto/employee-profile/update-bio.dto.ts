@@ -6,6 +6,6 @@ export class UpdateBioDto {
     biography?: string;
 
     @IsOptional()
-    @IsUrl()
+    @IsString()  // Changed from @IsUrl() to support base64 data URLs
     profilePictureUrl?: string;
 }

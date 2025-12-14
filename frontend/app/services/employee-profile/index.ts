@@ -1,5 +1,11 @@
 import apiService from '../api';
 
+// =============================================
+// TEMPORARY: Test User ID for Development
+// =============================================
+// TODO: Remove this and use actual authentication in production
+const TEST_USER_ID = '693dc3ddee07fbcd93854e05'; // Replace with actual user ID from your database
+
 /**
  * Helper function to build query string
  */
@@ -22,51 +28,52 @@ export const employeeProfileService = {
 
   /**
    * Get own profile (self-service)
-   * GET /employee-profile/me
+   * GET /employee-profile/me/:userId (no-auth version for testing)
    */
   getMyProfile: async () => {
-    return apiService.get(`/employee-profile/me`);
+    // Using test user ID for development - in production this would use authenticated user
+    return apiService.get(`/employee-profile/me/${TEST_USER_ID}`);
   },
 
   /**
    * Update contact information
-   * PATCH /employee-profile/me/contact-info
+   * PATCH /employee-profile/me/:userId/contact-info
    */
   updateContactInfo: async (data: any) => {
-    return apiService.patch(`/employee-profile/me/contact-info`, data);
+    return apiService.patch(`/employee-profile/me/${TEST_USER_ID}/contact-info`, data);
   },
 
   /**
    * Update biography and photo
-   * PATCH /employee-profile/me/bio
+   * PATCH /employee-profile/me/:userId/bio
    */
   updateBio: async (data: any) => {
-    return apiService.patch(`/employee-profile/me/bio`, data);
+    return apiService.patch(`/employee-profile/me/${TEST_USER_ID}/bio`, data);
   },
 
   /**
    * Submit correction request
-   * POST /employee-profile/me/correction-request
+   * POST /employee-profile/me/:userId/correction-request
    */
   submitCorrectionRequest: async (data: any) => {
-    return apiService.post(`/employee-profile/me/correction-request`, data);
+    return apiService.post(`/employee-profile/me/${TEST_USER_ID}/correction-request`, data);
   },
 
   /**
    * Get own correction requests (paginated)
-   * GET /employee-profile/me/correction-requests
+   * GET /employee-profile/me/:userId/correction-requests
    */
   getMyCorrectionRequests: async (page?: number, limit?: number) => {
     const query = buildQueryString({ page, limit });
-    return apiService.get(`/employee-profile/me/correction-requests${query}`);
+    return apiService.get(`/employee-profile/me/${TEST_USER_ID}/correction-requests${query}`);
   },
 
   /**
    * Cancel own correction request
-   * PATCH /employee-profile/me/correction-requests/:requestId/cancel
+   * PATCH /employee-profile/me/:userId/correction-requests/:requestId/cancel
    */
   cancelCorrectionRequest: async (requestId: string) => {
-    return apiService.patch(`/employee-profile/me/correction-requests/${requestId}/cancel`, {});
+    return apiService.patch(`/employee-profile/me/${TEST_USER_ID}/correction-requests/${requestId}/cancel`, {});
   },
 
   // =============================================

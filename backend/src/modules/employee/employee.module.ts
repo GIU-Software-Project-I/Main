@@ -1,4 +1,4 @@
-import {forwardRef, Module} from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { Candidate, CandidateSchema } from './models/employee/Candidate.Schema';
@@ -11,36 +11,38 @@ import {
   EmployeeQualification,
   EmployeeQualificationSchema,
 } from './models/employee/qualification.schema';
-import {EmployeeProfileChangeRequest,
+import {
+  EmployeeProfileChangeRequest,
   EmployeeProfileChangeRequestSchema
 } from "./models/employee/ep-change-request.schema";
 import { OrganizationStructureModule } from './organization-structure.module';
 // COMMENTED OUT FOR TESTING - Using no-auth controller
- import {EmployeeProfileController} from "./controllers/employee-profile.controller";
+// import {EmployeeProfileController} from "./controllers/employee-profile.controller";
+import { EmployeeProfileNoAuthController } from "./controllers/employee-profile-no-auth.controller";
 
-import {EmployeeProfileService} from "./services/employee-profile.service";
+import { EmployeeProfileService } from "./services/employee-profile.service";
 import { SharedModule } from '../shared/shared.module';
-import {AuthModule} from "../auth/auth-module";
+import { AuthModule } from "../auth/auth-module";
 
 
 @Module({
   imports: [
-      forwardRef(() => AuthModule),
+    forwardRef(() => AuthModule),
     MongooseModule.forFeature([
       { name: Candidate.name, schema: CandidateSchema },
       { name: EmployeeProfile.name, schema: EmployeeProfileSchema },
       { name: EmployeeSystemRole.name, schema: EmployeeSystemRoleSchema },
       { name: EmployeeQualification.name, schema: EmployeeQualificationSchema },
-      {name: EmployeeProfileChangeRequest.name, schema: EmployeeProfileChangeRequestSchema},
+      { name: EmployeeProfileChangeRequest.name, schema: EmployeeProfileChangeRequestSchema },
 
     ]),
     OrganizationStructureModule,
     SharedModule,
   ],
-  // COMMENTED OUT FOR TESTING - Using no-auth controller
+  // USING NO-AUTH CONTROLLER FOR TESTING
   // controllers: [EmployeeProfileController],
-  controllers: [EmployeeProfileController],
+  controllers: [EmployeeProfileNoAuthController],
   providers: [EmployeeProfileService],
   exports: [EmployeeProfileService],
 })
-export class EmployeeModule {}
+export class EmployeeModule { }
