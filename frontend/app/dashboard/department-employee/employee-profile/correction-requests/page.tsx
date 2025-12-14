@@ -12,17 +12,41 @@ import Button from '@/app/components/ui/Button';
 export default function CorrectionRequestsPage() {
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [cancelingId, setCancelingId] = useState<string | null>(null);
+    const [showNewRequestForm, setShowNewRequestForm] = useState(false);
+
+    // New request form state
+    const [newRequest, setNewRequest] = useState({
+        requestDescription: '',
+        reason: ''
+    });
 
     const fetchRequests = async () => {
         try {
             setLoading(true);
             const response = await employeeProfileService.getMyCorrectionRequests();
-            setRequests(Array.isArray(response.data) ? response.data : []);
+            if (response.error) {
+                setError(response.error);
+                setRequests([]);
+            } else {
+                // Handle both array response and paginated response
+                const data = response.data;
+                if (Array.isArray(data)) {
+                    setRequests(data);
+                } else if (data && typeof data === 'object' && 'items' in data) {
+                    setRequests((data as any).items || []);
+                } else if (data && typeof data === 'object' && 'data' in data) {
+                    setRequests((data as any).data || []);
+                } else {
+                    setRequests([]);
+                }
+            }
         } catch (err: any) {
             setError(err.message || 'Failed to load correction requests');
+            setRequests([]);
         } finally {
             setLoading(false);
         }
@@ -32,6 +56,46 @@ export default function CorrectionRequestsPage() {
         fetchRequests();
     }, []);
 
+    // Clear success message after 3 seconds
+    useEffect(() => {
+        if (successMessage) {
+            const timer = setTimeout(() => setSuccessMessage(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [successMessage]);
+
+    const handleSubmitNewRequest = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!newRequest.requestDescription.trim()) {
+            setError('Please provide a description of what needs to be corrected');
+            return;
+        }
+
+        try {
+            setSubmitting(true);
+            setError(null);
+            const response = await employeeProfileService.submitCorrectionRequest({
+                requestDescription: newRequest.requestDescription.trim(),
+                reason: newRequest.reason.trim() || undefined
+            });
+
+            if (response.error) {
+                setError(response.error);
+            } else {
+                setSuccessMessage('Correction request submitted successfully! HR will review it soon.');
+                setNewRequest({ requestDescription: '', reason: '' });
+                setShowNewRequestForm(false);
+                // Refresh the list
+                await fetchRequests();
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to submit correction request');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const handleCancelRequest = async (requestId: string) => {
         if (!confirm('Are you sure you want to cancel this correction request?')) {
             return;
@@ -40,11 +104,14 @@ export default function CorrectionRequestsPage() {
         try {
             setCancelingId(requestId);
             setError(null);
-            await employeeProfileService.cancelCorrectionRequest(requestId);
-            setSuccessMessage('Correction request cancelled successfully');
-            setTimeout(() => setSuccessMessage(null), 3000);
-            // Refresh the list
-            await fetchRequests();
+            const response = await employeeProfileService.cancelCorrectionRequest(requestId);
+            if (response.error) {
+                setError(response.error);
+            } else {
+                setSuccessMessage('Correction request cancelled successfully');
+                // Refresh the list
+                await fetchRequests();
+            }
         } catch (err: any) {
             setError(err.message || 'Failed to cancel request');
         } finally {
@@ -89,14 +156,14 @@ export default function CorrectionRequestsPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900">My Correction Requests</h1>
-                    <p className="text-slate-600 mt-2">Track the status of your profile correction requests</p>
+                    <p className="text-slate-600 mt-2">Request corrections to your profile data that requires HR approval</p>
                 </div>
                 <div className="flex gap-3">
-                    <Link href="/dashboard/department-employee/employee-profile/edit">
-                        <Button variant="primary">
+                    {!showNewRequestForm && (
+                        <Button onClick={() => setShowNewRequestForm(true)}>
                             + New Request
                         </Button>
-                    </Link>
+                    )}
                     <Link href="/dashboard/department-employee/employee-profile">
                         <Button variant="outline">
                             ← Back to Profile
@@ -107,15 +174,88 @@ export default function CorrectionRequestsPage() {
 
             {/* Success Message */}
             {successMessage && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <p className="text-green-800 font-medium">✓ {successMessage}</p>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+                    <span className="text-green-600 text-xl">✓</span>
+                    <p className="text-green-800 font-medium">{successMessage}</p>
                 </div>
             )}
 
             {/* Error Message */}
             {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p className="text-red-800 font-medium">⚠ {error}</p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+                    <span className="text-red-600 text-xl">⚠</span>
+                    <p className="text-red-800 font-medium">{error}</p>
+                    <button
+                        onClick={() => setError(null)}
+                        className="ml-auto text-red-600 hover:text-red-800"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+
+            {/* New Request Form */}
+            {showNewRequestForm && (
+                <div className="bg-white rounded-lg border-2 border-blue-200 shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-slate-900">📝 Submit New Correction Request</h3>
+                        <span className="text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full">New</span>
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                        <p className="text-amber-800 text-sm">
+                            <strong>Note:</strong> Correction requests are for changes to critical data that require HR approval
+                            (e.g., name changes, national ID corrections, date of birth).
+                            For contact information updates, use the "Update Contact" feature on your profile page.
+                        </p>
+                    </div>
+
+                    <form onSubmit={handleSubmitNewRequest} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                What needs to be corrected? <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                                value={newRequest.requestDescription}
+                                onChange={(e) => setNewRequest({ ...newRequest, requestDescription: e.target.value })}
+                                rows={4}
+                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                placeholder="Please describe what information needs to be corrected. Include the current (incorrect) value and the correct value.&#10;&#10;Example: My first name is spelled incorrectly as 'Jonh'. It should be 'John'."
+                                required
+                            />
+                            <p className="text-xs text-slate-500 mt-1">{newRequest.requestDescription.length} characters</p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Reason for correction (optional)
+                            </label>
+                            <textarea
+                                value={newRequest.reason}
+                                onChange={(e) => setNewRequest({ ...newRequest, reason: e.target.value })}
+                                rows={2}
+                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                placeholder="Provide any additional context or reason for this correction..."
+                            />
+                        </div>
+
+                        <div className="flex gap-3 pt-4 border-t border-slate-200">
+                            <Button type="submit" disabled={submitting}>
+                                {submitting ? 'Submitting...' : '📤 Submit Request'}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setShowNewRequestForm(false);
+                                    setNewRequest({ requestDescription: '', reason: '' });
+                                }}
+                                disabled={submitting}
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </form>
                 </div>
             )}
 
@@ -157,17 +297,17 @@ export default function CorrectionRequestsPage() {
                     <p className="text-slate-600 mb-6">
                         You haven't submitted any correction requests yet.
                     </p>
-                    <Link href="/dashboard/department-employee/employee-profile/edit">
-                        <Button>
+                    {!showNewRequestForm && (
+                        <Button onClick={() => setShowNewRequestForm(true)}>
                             Submit Your First Request
                         </Button>
-                    </Link>
+                    )}
                 </div>
             ) : (
                 <div className="space-y-4">
                     {requests.map((request) => (
                         <div
-                            key={request.id}
+                            key={request._id || request.id}
                             className="bg-white rounded-lg border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow"
                         >
                             <div className="flex items-start justify-between mb-4">
@@ -176,7 +316,7 @@ export default function CorrectionRequestsPage() {
                                     <div>
                                         <div className="flex items-center gap-3 mb-2">
                                             <h3 className="text-lg font-bold text-slate-900">
-                                                Correction Request #{request.id.slice(-8)}
+                                                Correction Request #{(request._id || request.id)?.slice(-8)}
                                             </h3>
                                             <span
                                                 className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(
@@ -203,7 +343,7 @@ export default function CorrectionRequestsPage() {
                                 {/* Request Description */}
                                 <div className="bg-slate-50 rounded-lg p-4">
                                     <h4 className="font-semibold text-slate-900 mb-2">Description:</h4>
-                                    <p className="text-slate-700">{request.requestDescription}</p>
+                                    <p className="text-slate-700 whitespace-pre-wrap">{request.requestDescription}</p>
                                 </div>
 
                                 {/* Reason */}
@@ -243,9 +383,9 @@ export default function CorrectionRequestsPage() {
                                                 day: 'numeric',
                                             })}
                                         </p>
-                                        {request.reviewNotes && (
+                                        {(request.reviewNotes || request.rejectionReason) && (
                                             <p className="text-red-700 text-sm mt-2">
-                                                <strong>Reason:</strong> {request.reviewNotes}
+                                                <strong>Reason:</strong> {request.reviewNotes || request.rejectionReason}
                                             </p>
                                         )}
                                     </div>
@@ -258,10 +398,10 @@ export default function CorrectionRequestsPage() {
                                     <Button
                                         variant="danger"
                                         size="sm"
-                                        isLoading={cancelingId === request.id}
-                                        onClick={() => handleCancelRequest(request.id)}
+                                        disabled={cancelingId === (request._id || request.id)}
+                                        onClick={() => handleCancelRequest(request._id || request.id)}
                                     >
-                                        Cancel Request
+                                        {cancelingId === (request._id || request.id) ? 'Canceling...' : 'Cancel Request'}
                                     </Button>
                                 </div>
                             )}
