@@ -27,10 +27,10 @@ async function bootstrap() {
             // Allow requests with no origin (like mobile apps or curl requests)
             if (!origin) return callback(null, true);
             // Allow any localhost origin during development
-            if (origin.includes('http://192.168.21.1:8000')) {
+            if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('192.168.')) {
                 return callback(null, true);
             }
-            callback(new Error('Not allowed by CORS'));
+            callback(null, true); // Allow all origins in development
         },
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
