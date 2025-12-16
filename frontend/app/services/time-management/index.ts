@@ -74,6 +74,26 @@ export interface UpdateShiftDto {
     active?: boolean;
 }
 
+// Schedule Rule interfaces
+export interface ScheduleRule {
+    _id: string;
+    name: string;
+    pattern: string;
+    active: boolean;
+}
+
+export interface CreateScheduleRuleDto {
+    name: string;
+    pattern: string;
+    active?: boolean;
+}
+
+export interface UpdateScheduleRuleDto {
+    name?: string;
+    pattern?: string;
+    active?: boolean;
+}
+
 export const timeManagementService = {
     // ============================================================
     // ATTENDANCE / PUNCH OPERATIONS
@@ -157,9 +177,33 @@ export const timeManagementService = {
         return apiService.patch<Shift>(`/shift-management/shifts/${id}`, data);
     },
 
-    // Deactivate shift - DELETE /time-management/shifts/:id
+    // Deactivate shift - DELETE /shift-management/shifts/:id
     deactivateShift: async (id: string) => {
         return apiService.delete(`/shift-management/shifts/${id}`);
+    },
+
+    // ============================================================
+    // SCHEDULE RULE OPERATIONS
+    // ============================================================
+
+    // Create schedule rule - POST /shift-management/schedule-rules
+    createScheduleRule: async (data: CreateScheduleRuleDto) => {
+        return apiService.post<ScheduleRule>('/shift-management/schedule-rules', data);
+    },
+
+    // Get all schedule rules - GET /shift-management/schedule-rules
+    getScheduleRules: async () => {
+        return apiService.get<ScheduleRule[]>('/shift-management/schedule-rules');
+    },
+
+    // Update schedule rule - PATCH /shift-management/schedule-rules/:id
+    updateScheduleRule: async (id: string, data: UpdateScheduleRuleDto) => {
+        return apiService.patch<ScheduleRule>(`/shift-management/schedule-rules/${id}`, data);
+    },
+
+    // Deactivate schedule rule - DELETE /shift-management/schedule-rules/:id
+    deactivateScheduleRule: async (id: string) => {
+        return apiService.delete(`/shift-management/schedule-rules/${id}`);
     },
 };
 
