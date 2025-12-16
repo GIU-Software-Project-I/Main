@@ -181,6 +181,11 @@ const HR_MANAGER_SECTIONS: NavSection[] = [
         href: '/dashboard/hr-manager/organization',
         icon: 'building',
       },
+        {
+            label: 'Time Management',
+            href: '/dashboard/hr-manager/time-management',
+            icon: 'clock',
+        },
       {
         label: 'Recruitment',
         href: '/dashboard/hr-manager/recruitment',
@@ -372,6 +377,11 @@ const SYSTEM_ADMIN_SECTIONS: NavSection[] = [
           { label: 'Positions', href: '/dashboard/system-admin/positions', icon: 'briefcase' },
         ],
       },
+        {
+            label: 'Time Management',
+            href: '/dashboard/hr-manager/time-management',
+            icon: 'clock',
+        },
       {
         label: 'User Management',
         href: '/dashboard/system-admin/users',
