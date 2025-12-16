@@ -8,7 +8,7 @@ export interface ApiResponse<T = unknown> {
 }
 
 // Get access token from cookie
-function getAccessToken(): string | null {
+export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
   const cookies = document.cookie.split(';');
   for (const cookie of cookies) {
