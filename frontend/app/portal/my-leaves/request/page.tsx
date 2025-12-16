@@ -1,48 +1,96 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { leavesService } from '@/app/services/leaves';
+import { useAuth } from '@/app/context/AuthContext';
+import type { LeaveBalanceSummary, LeaveType } from '@/app/types/leaves';
 
-interface LeaveBalance {
-  annual: number;
-  sick: number;
-  personal: number;
-  used: {
-    annual: number;
-    sick: number;
-    personal: number;
-  };
+type BalanceList = LeaveBalanceSummary[];
+type LeaveTypeKey = 'annual' | 'sick' | 'personal';
+
+interface TypeBalance {
+  entitled: number;
+  taken: number;
+  pending: number;
+  remaining: number;
+}
+
+interface LeaveTypeMap {
+  annual?: string;
+  sick?: string;
+  personal?: string;
 }
 
 export default function LeaveRequestPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [balance, setBalance] = useState<LeaveBalance | null>(null);
+  const [balance, setBalance] = useState<BalanceList>([]);
+  const [leaveTypeMap, setLeaveTypeMap] = useState<LeaveTypeMap>({});
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    type: LeaveTypeKey;
+    startDate: string;
+    endDate: string;
+    reason: string;
+    attachment: File | null;
+    postLeave: boolean;
+  }>({
     type: 'annual',
     startDate: '',
     endDate: '',
     reason: '',
-    attachment: null as File | null,
+    attachment: null,
+    postLeave: false,
   });
 
   useEffect(() => {
-    fetchBalance();
-  }, []);
+    if (!user) return;
+    void fetchInitialData(user.id);
+  }, [user]);
 
-  const fetchBalance = async () => {
+  const fetchInitialData = async (employeeId: string) => {
     try {
-      const response = await leavesService.getBalance();
-      if (response.data) {
-        setBalance(response.data as LeaveBalance);
+      setLoading(true);
+      setError(null);
+
+      const [balanceRes, typesRes] = await Promise.all([
+        leavesService.getBalance(employeeId),
+        leavesService.getLeaveTypes(),
+      ]);
+
+      if (Array.isArray(balanceRes.data)) {
+        setBalance(balanceRes.data as BalanceList);
+      }
+
+      if (Array.isArray(typesRes.data)) {
+        const types = typesRes.data as LeaveType[];
+        const map: LeaveTypeMap = {};
+
+        for (const t of types) {
+          const name = (t.name || '').toLowerCase();
+          const code = (t.code || '').toLowerCase();
+
+          if (!map.annual && (name.includes('annual') || code.includes('annual'))) {
+            map.annual = t.id;
+          } else if (!map.sick && (name.includes('sick') || code.includes('sick'))) {
+            map.sick = t.id;
+          } else if (!map.personal && (name.includes('personal') || code.includes('personal'))) {
+            map.personal = t.id;
+          }
+        }
+
+        setLeaveTypeMap(map);
       }
     } catch (err) {
-      console.error('Failed to fetch balance:', err);
+      const message = err instanceof Error ? err.message : 'Failed to load leave data';
+      setError(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,23 +103,44 @@ export default function LeaveRequestPage() {
     return diffDays;
   };
 
-  const getAvailableBalance = (type: string) => {
-    if (!balance) return 0;
-    switch (type) {
-      case 'annual':
-        return balance.annual - (balance.used?.annual || 0);
-      case 'sick':
-        return balance.sick - (balance.used?.sick || 0);
-      case 'personal':
-        return balance.personal - (balance.used?.personal || 0);
-      default:
-        return 0;
-    }
+  const getTypeBalance = (key: LeaveTypeKey): TypeBalance => {
+    const match = balance.find((item) => {
+      const name = (item.leaveTypeName || '').toLowerCase();
+      const code = (item.leaveTypeCode || '').toLowerCase();
+
+      if (key === 'annual') {
+        return name.includes('annual') || code.includes('annual');
+      }
+      if (key === 'sick') {
+        return name.includes('sick') || code.includes('sick');
+      }
+      if (key === 'personal') {
+        return name.includes('personal') || code.includes('personal');
+      }
+      return false;
+    });
+
+    return {
+      entitled: match?.entitled ?? 0,
+      taken: match?.taken ?? 0,
+      pending: match?.pending ?? 0,
+      remaining: match?.remaining ?? 0,
+    };
+  };
+
+  const getAvailableBalance = (type: LeaveTypeKey) => {
+    const summary = getTypeBalance(type);
+    return summary.remaining;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!user) {
+      setError('You must be logged in to submit a leave request.');
+      return;
+    }
 
     const days = calculateDays();
     const available = getAvailableBalance(formData.type);
@@ -81,19 +150,46 @@ export default function LeaveRequestPage() {
       return;
     }
 
-    if (days > available) {
-      setError(`Insufficient leave balance. You have ${available} days available.`);
+    // Allow post-leave requests even with 0 balance, otherwise check balance
+    if (!formData.postLeave && days > available) {
+      setError(`Insufficient leave balance. You have ${available} days available. You can submit a post-leave request for emergencies.`);
+      return;
+    }
+
+    const leaveTypeId = leaveTypeMap[formData.type];
+    if (!leaveTypeId) {
+      setError('Configured leave type not found. Please contact HR.');
       return;
     }
 
     try {
       setLoading(true);
+
+      let attachmentId: string | undefined;
+      if (formData.attachment) {
+        const file = formData.attachment;
+        const attachmentRes = await leavesService.saveAttachment({
+          originalName: file.name,
+          filePath: `/uploads/leaves/${file.name}`,
+          fileType: file.type,
+          size: file.size,
+        });
+
+        const created = attachmentRes.data as { _id?: string } | undefined;
+        if (created?._id) {
+          attachmentId = created._id;
+        }
+      }
+
       const response = await leavesService.submitRequest({
-        type: formData.type,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        reason: formData.reason,
-        days,
+        employeeId: user.id,
+        leaveTypeId,
+        from: formData.startDate,
+        to: formData.endDate,
+        durationDays: days,
+        justification: formData.reason,
+        attachmentId,
+        postLeave: formData.postLeave,
       });
 
       if (response.error) {
@@ -104,8 +200,9 @@ export default function LeaveRequestPage() {
       setTimeout(() => {
         router.push('/portal/my-leaves');
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit leave request');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to submit leave request';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -157,51 +254,56 @@ export default function LeaveRequestPage() {
         )}
 
         {/* Available Balance */}
-        {balance && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <h3 className="text-sm font-medium text-gray-500 mb-3">Available Balance</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div className={`p-3 rounded-lg ${formData.type === 'annual' ? 'bg-blue-50 border-2 border-blue-200' : 'bg-gray-50'}`}>
-                <p className="text-sm text-gray-600">Annual</p>
-                <p className="text-xl font-bold text-gray-900">{getAvailableBalance('annual')} days</p>
-              </div>
-              <div className={`p-3 rounded-lg ${formData.type === 'sick' ? 'bg-red-50 border-2 border-red-200' : 'bg-gray-50'}`}>
-                <p className="text-sm text-gray-600">Sick</p>
-                <p className="text-xl font-bold text-gray-900">{getAvailableBalance('sick')} days</p>
-              </div>
-              <div className={`p-3 rounded-lg ${formData.type === 'personal' ? 'bg-purple-50 border-2 border-purple-200' : 'bg-gray-50'}`}>
-                <p className="text-sm text-gray-600">Personal</p>
-                <p className="text-xl font-bold text-gray-900">{getAvailableBalance('personal')} days</p>
-              </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <h3 className="text-sm font-medium text-gray-500 mb-3">Available Balance</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div className={`p-3 rounded-lg ${formData.type === 'annual' ? 'bg-blue-50 border-2 border-blue-200' : 'bg-gray-50'}`}>
+              <p className="text-sm text-gray-600">Annual</p>
+              <p className="text-xl font-bold text-gray-900">{getAvailableBalance('annual')} days</p>
+            </div>
+            <div className={`p-3 rounded-lg ${formData.type === 'sick' ? 'bg-red-50 border-2 border-red-200' : 'bg-gray-50'}`}>
+              <p className="text-sm text-gray-600">Sick</p>
+              <p className="text-xl font-bold text-gray-900">{getAvailableBalance('sick')} days</p>
+            </div>
+            <div className={`p-3 rounded-lg ${formData.type === 'personal' ? 'bg-purple-50 border-2 border-purple-200' : 'bg-gray-50'}`}>
+              <p className="text-sm text-gray-600">Personal</p>
+              <p className="text-xl font-bold text-gray-900">{getAvailableBalance('personal')} days</p>
             </div>
           </div>
-        )}
+          {getAvailableBalance(formData.type) === 0 && !formData.postLeave && (
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800">
+                <strong>No balance available.</strong> You can still submit a post-leave request for emergencies by enabling &quot;Post-Leave Request&quot; below.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Request Form */}
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
           {/* Leave Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Leave Type</label>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { value: 'annual', label: 'Annual Leave', color: 'blue' },
-                { value: 'sick', label: 'Sick Leave', color: 'red' },
-                { value: 'personal', label: 'Personal Leave', color: 'purple' },
-              ].map((type) => (
-                <button
-                  key={type.value}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, type: type.value })}
-                  className={`p-3 rounded-lg border-2 text-sm font-medium transition-colors ${
-                    formData.type === type.value
-                      ? `border-${type.color}-500 bg-${type.color}-50 text-${type.color}-700`
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  {type.label}
-                </button>
-              ))}
-            </div>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { value: 'annual' as LeaveTypeKey, label: 'Annual Leave', color: 'blue' as const },
+                  { value: 'sick' as LeaveTypeKey, label: 'Sick Leave', color: 'red' as const },
+                  { value: 'personal' as LeaveTypeKey, label: 'Personal Leave', color: 'purple' as const },
+                ].map((type) => (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, type: type.value })}
+                    className={`p-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                      formData.type === type.value
+                        ? `border-${type.color}-500 bg-${type.color}-50 text-${type.color}-700`
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
           </div>
 
           {/* Date Range */}
@@ -251,6 +353,45 @@ export default function LeaveRequestPage() {
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
               required
             />
+          </div>
+
+          {/* Attachment */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Attachment (optional)
+            </label>
+            <input
+              type="file"
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  attachment: e.target.files?.[0] ?? null,
+                })
+              }
+              className="w-full text-sm text-gray-700 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Upload supporting documents (e.g. medical certificate for sick leave).
+            </p>
+          </div>
+
+          {/* Post-leave flag */}
+          <div className="flex items-center gap-2">
+            <input
+              id="post-leave"
+              type="checkbox"
+              checked={formData.postLeave}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  postLeave: e.target.checked,
+                })
+              }
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+            />
+            <label htmlFor="post-leave" className="text-sm text-gray-700">
+              This is a post-leave request (submitted after the leave was taken)
+            </label>
           </div>
 
           {/* Submit Button */}
