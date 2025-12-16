@@ -18,6 +18,18 @@ import {
 import { Address } from './employee';
 
 // =====================================================
+// Hiring Stage (for pipeline tracking)
+// =====================================================
+
+export interface HiringStage {
+  id: string;
+  name: string;
+  order: number;
+  description?: string;
+  percentage?: number;
+}
+
+// =====================================================
 // Job Template (matches backend job-template.schema.ts)
 // =====================================================
 
@@ -359,5 +371,138 @@ export interface RecruitmentPipeline {
     name: string;
     appliedAt: string;
     jobTitle: string;
+  }[];
+}
+
+// =====================================================
+// Notification Types (BR-11, BR-36)
+// =====================================================
+
+export type RecruitmentNotificationType =
+  | 'application_stage_change'
+  | 'interview_scheduled'
+  | 'interview_reminder'
+  | 'offer_sent'
+  | 'offer_approved'
+  | 'offer_rejected'
+  | 'offer_accepted'
+  | 'offer_declined'
+  | 'rejection_sent'
+  | 'application_received'
+  | 'feedback_submitted';
+
+export interface RecruitmentNotification {
+  id: string;
+  type: RecruitmentNotificationType;
+  title: string;
+  message: string;
+  entityId?: string; // applicationId, offerId, interviewId, etc.
+  entityType?: 'application' | 'interview' | 'offer' | 'job';
+  actorId?: string;
+  actorName?: string;
+  actorRole?: string;
+  recipientId: string;
+  recipientRole: string;
+  read: boolean;
+  readAt?: string;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+// =====================================================
+// Audit Log Types (BR-37, BR-26)
+// =====================================================
+
+export type AuditEventType =
+  | 'status_change'
+  | 'stage_change'
+  | 'offer_created'
+  | 'offer_approved'
+  | 'offer_rejected'
+  | 'offer_sent'
+  | 'offer_signed'
+  | 'interview_scheduled'
+  | 'interview_completed'
+  | 'feedback_submitted'
+  | 'email_sent'
+  | 'document_uploaded'
+  | 'application_created'
+  | 'rejection_sent'
+  | 'consent_given';
+
+export type AuditActorType = 'hr_employee' | 'hr_manager' | 'recruiter' | 'candidate' | 'system';
+
+export interface AuditLog {
+  id: string;
+  entityId: string;
+  entityType: 'application' | 'interview' | 'offer' | 'job' | 'candidate';
+  eventType: AuditEventType;
+  title: string;
+  description: string;
+  actorId?: string;
+  actorName?: string;
+  actorType: AuditActorType;
+  previousValue?: string;
+  newValue?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+// =====================================================
+// Pipeline Event Types (Analytics)
+// =====================================================
+
+export interface PipelineEvent {
+  id: string;
+  applicationId: string;
+  candidateName: string;
+  jobTitle: string;
+  fromStage?: ApplicationStage | 'new';
+  toStage: ApplicationStage | 'hired' | 'rejected';
+  performedBy: string;
+  performedAt: string;
+  duration?: number; // days in previous stage
+}
+
+// =====================================================
+// Analytics Summary Types (BR-33)
+// =====================================================
+
+export interface AnalyticsSummary {
+  overview: {
+    totalOpenPositions: number;
+    totalApplications: number;
+    pendingInterviews: number;
+    offersExtended: number;
+    hiredThisMonth: number;
+    rejectedThisMonth: number;
+  };
+  timeToHire: {
+    average: number; // days
+    byDepartment: {
+      departmentId: string;
+      departmentName: string;
+      averageDays: number;
+    }[];
+    trend: {
+      month: string;
+      averageDays: number;
+    }[];
+  };
+  pipeline: {
+    stage: string;
+    count: number;
+    percentage: number;
+  }[];
+  sourceEffectiveness: {
+    source: string;
+    applications: number;
+    hires: number;
+    conversionRate: number;
+  }[];
+  conversionRates: {
+    fromStage: string;
+    toStage: string;
+    rate: number;
   }[];
 }

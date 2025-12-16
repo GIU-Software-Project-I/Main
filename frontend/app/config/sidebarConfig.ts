@@ -251,6 +251,17 @@ const HR_EMPLOYEE_SECTIONS: NavSection[] = [
         href: '/dashboard/hr-employee/leaves',
         icon: 'calendar',
       },
+      {
+        label: 'Recruitment',
+        href: '/dashboard/hr-employee/recruitment/jobs',
+        icon: 'user-plus',
+        children: [
+          { label: 'Job Publishing', href: '/dashboard/hr-employee/recruitment/jobs', icon: 'briefcase' },
+          { label: 'Applications', href: '/dashboard/hr-employee/recruitment/applications', icon: 'inbox' },
+          { label: 'Interviews', href: '/dashboard/hr-employee/recruitment/interviews', icon: 'calendar' },
+          { label: 'Offers', href: '/dashboard/hr-employee/recruitment/offers', icon: 'file-text' },
+        ],
+      },
     ],
   },
   SELF_SERVICE_SECTION,

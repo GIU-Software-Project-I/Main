@@ -22,21 +22,38 @@ async function bootstrap() {
 
     app.useGlobalPipes(new ValidationPipe({ whitelist: false, transform: true }));
 
-    app.enableCors({
-        origin: (origin, callback) => {
-            // Allow requests with no origin (like mobile apps or curl requests)
-            if (!origin) return callback(null, true);
-            // Allow any localhost origin during development
-            if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('192.168.')) {
-                return callback(null, true);
-            }
-            callback(null, true); // Allow all origins in development
-        },
+    // app.enableCors({
+    //     origin: (origin, callback) => {
+    //         // Allow requests with no origin (like mobile apps or curl requests)
+    //         if (!origin) return callback(null, true);
+    //         // Allow any localhost origin during development
+    //         if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('192.168.')) {
+    //             return callback(null, true);
+    //         }
+    //         callback(null, true); // Allow all origins in development
+    //     },
+    //     credentials: true,
+    //     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    //     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    // });
+app.enableCors({
+        // Explicitly allow common dev origins
+        origin: [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+            'http://localhost:4000',
+            'http://127.0.0.1:4000',
+            'http://192.168.1.20:4000',
+            'http://localhost:500',
+            'http://localhost:8000',
+            'http://172.24.0.1:8000',
+            'http://172.30.64.1:8000'
+        ],
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+        exposedHeaders: ['Set-Cookie'],
     });
-
     const config = new DocumentBuilder()
         .setTitle('HR System API')
         .setDescription('API documentation — limited to safe public models (no secrets).')

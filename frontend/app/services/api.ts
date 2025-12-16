@@ -127,6 +127,51 @@ class ApiService {
   async delete<T>(endpoint: string, headers?: HeadersInit): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: 'DELETE', headers });
   }
+
+  async postFormData<T>(endpoint: string, formData: FormData): Promise<ApiResponse<T>> {
+    const url = `${this.baseUrl}${endpoint}`;
+    
+    const headers: HeadersInit = {};
+    const token = getAccessToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    // Note: Don't set Content-Type for FormData - browser sets it with boundary
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+        credentials: 'include',
+      });
+
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      }
+
+      if (!response.ok) {
+        return {
+          error: data?.message || `HTTP error! status: ${response.status}`,
+          status: response.status,
+        };
+      }
+
+      return {
+        data,
+        status: response.status,
+      };
+    } catch (error) {
+      console.error('[API] FormData request failed:', url);
+      console.error('[API] Error:', error);
+      return {
+        error: error instanceof Error ? error.message : 'Network error - Is the backend running?',
+        status: 0,
+      };
+    }
+  }
 }
 
 const apiService = new ApiService(API_BASE_URL);
