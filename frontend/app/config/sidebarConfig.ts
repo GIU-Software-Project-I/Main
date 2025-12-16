@@ -232,6 +232,11 @@ const HR_EMPLOYEE_SECTIONS: NavSection[] = [
         href: '/dashboard/hr-manager/onboarding',
         icon: 'clipboard-check',
       },
+        {
+            label: 'Time Management',
+            href: '/dashboard/hr-employee/time-management',
+            icon: 'clock',
+        },
       {
         label: 'Equipment Reservation',
         href: '/portal/equipment-reservation',
