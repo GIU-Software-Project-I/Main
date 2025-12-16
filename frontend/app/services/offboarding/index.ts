@@ -140,10 +140,119 @@ export interface RevokeAccessDto {
 
 export interface TriggerFinalSettlementDto {
   terminationId: string;
+  notes?: string;
+}
+
+// New interfaces for enhanced endpoints
+export interface EmployeePerformanceForTermination {
+  employeeId: string;
+  employeeName: string;
+  employeeStatus: string;
+  performanceData: {
+    hasPublishedAppraisals: boolean;
+    totalAppraisals: number;
+    averageScore: number | null;
+    lowScoreCount: number;
+    latestAppraisal?: {
+      cycleId?: any;
+      totalScore?: number;
+      publishedAt?: string;
+    };
+  };
+  terminationJustification: {
+    isJustified: boolean;
+    warnings: string[];
+  };
+  recommendation: string;
+}
+
+export interface ResignationStatusWithHistory {
+  employeeId: string;
+  hasActiveRequest: boolean;
+  activeRequest?: {
+    requestId: string;
+    reason: string;
+    submittedAt: string;
+    proposedLastDay?: string;
+    status: TerminationStatus;
+    hrComments?: string;
+  };
+  history: {
+    requestId: string;
+    reason: string;
+    status: TerminationStatus;
+    submittedAt: string;
+    resolvedAt?: string;
+  }[];
+}
+
+export interface PendingAccessRevocation {
+  employeeId: string;
+  employeeName: string;
+  employeeNumber: string;
+  workEmail?: string;
+  terminationDate?: string;
+  terminationReason: string;
+  approvedAt: string;
+  daysSinceApproval: number;
+  isUrgent: boolean;
+}
+
+export interface FinalSettlementPreview {
+  terminationId: string;
+  employeeId: string;
+  employeeName: string;
+  terminationDate?: string;
+  clearanceStatus: {
+    hasChecklist: boolean;
+    isComplete: boolean;
+    pendingItems?: string[];
+  };
+  leaveEncashment: {
+    unusedDays: number;
+    dailyRate: number;
+    encashmentAmount: number;
+    leaveDetails: {
+      leaveType: string;
+      entitled: number;
+      taken: number;
+      remaining: number;
+    }[];
+  };
+  terminationBenefit: {
+    hasConfig: boolean;
+    configName?: string;
+    baseAmount: number;
+    totalAmount: number;
+  };
+  canTrigger: boolean;
+  blockers: string[];
+}
+
+export interface ClearanceUpdateResult {
+  checklist: ClearanceChecklist;
+  departmentCleared: boolean;
+  allDepartmentsCleared: boolean;
+  fullyCleared: boolean;
+  pendingDepartments: string[];
+  filedToHR: boolean;
 }
 
 class OffboardingService {
-  // OFF-001: Create termination request (HR Manager)
+  // ============================================================
+  // OFF-001: Termination Review (HR Manager)
+  // ============================================================
+
+  // Get employee performance data before initiating termination
+  async getEmployeePerformanceForTermination(employeeId: string): Promise<EmployeePerformanceForTermination> {
+    const response = await apiService.get<EmployeePerformanceForTermination>(
+      `/offboarding/termination-reviews/employee/${employeeId}/performance`
+    );
+    if (response.error) throw new Error(response.error);
+    return response.data as EmployeePerformanceForTermination;
+  }
+
+  // Create termination request (HR Manager)
   async createTerminationRequest(dto: CreateTerminationRequestDto): Promise<TerminationRequest> {
     const response = await apiService.post<TerminationRequest>('/offboarding/termination-requests', dto);
     if (response.error) throw new Error(response.error);
@@ -243,6 +352,15 @@ class OffboardingService {
     return response.data || [];
   }
 
+  // OFF-019: Get resignation status with history
+  async getResignationStatusWithWorkflow(employeeId: string): Promise<ResignationStatusWithHistory> {
+    const response = await apiService.get<ResignationStatusWithHistory>(
+      `/offboarding/resignation-requests/employee/${employeeId}/workflow-status`
+    );
+    if (response.error) throw new Error(response.error);
+    return response.data as ResignationStatusWithHistory;
+  }
+
   // OFF-006: Create clearance checklist (HR Manager)
   async createClearanceChecklist(dto: CreateClearanceChecklistDto): Promise<ClearanceChecklist> {
     const response = await apiService.post<ClearanceChecklist>('/offboarding/clearance-checklists', dto);
@@ -283,13 +401,13 @@ class OffboardingService {
   }
 
   // OFF-010: Update clearance item (department sign-off)
-  async updateClearanceItem(checklistId: string, dto: UpdateClearanceItemDto): Promise<ClearanceChecklist> {
-    const response = await apiService.patch<ClearanceChecklist>(
+  async updateClearanceItem(checklistId: string, dto: UpdateClearanceItemDto): Promise<ClearanceUpdateResult> {
+    const response = await apiService.patch<ClearanceUpdateResult>(
       `/offboarding/clearance-checklists/${checklistId}/items`,
       dto
     );
     if (response.error) throw new Error(response.error);
-    return response.data as ClearanceChecklist;
+    return response.data as ClearanceUpdateResult;
   }
 
   // Update equipment return status
@@ -326,21 +444,47 @@ class OffboardingService {
     return response.data as ClearanceChecklist;
   }
 
+  // OFF-007: Get employees pending access revocation (System Admin)
+  async getEmployeesPendingAccessRevocation(): Promise<PendingAccessRevocation[]> {
+    const response = await apiService.get<PendingAccessRevocation[]>(
+      '/offboarding/pending-access-revocation'
+    );
+    if (response.error) throw new Error(response.error);
+    return response.data || [];
+  }
+
   // OFF-007: Revoke system access (System Admin)
   async revokeSystemAccess(dto: RevokeAccessDto): Promise<{
     success: boolean;
     employeeId: string;
     message: string;
     revokedAt: string;
+    details: {
+      employeeDeactivated: boolean;
+      systemRolesDisabled: number;
+    };
   }> {
     const response = await apiService.post<{
       success: boolean;
       employeeId: string;
       message: string;
       revokedAt: string;
+      details: {
+        employeeDeactivated: boolean;
+        systemRolesDisabled: number;
+      };
     }>('/offboarding/revoke-access', dto);
     if (response.error) throw new Error(response.error);
     return response.data as any;
+  }
+
+  // OFF-013: Preview final settlement (HR Manager)
+  async previewFinalSettlement(terminationId: string): Promise<FinalSettlementPreview> {
+    const response = await apiService.get<FinalSettlementPreview>(
+      `/offboarding/final-settlement/preview/${terminationId}`
+    );
+    if (response.error) throw new Error(response.error);
+    return response.data as FinalSettlementPreview;
   }
 
   // OFF-013: Trigger final settlement (HR Manager)
@@ -349,12 +493,28 @@ class OffboardingService {
     terminationId: string;
     message: string;
     triggeredAt: string;
+    leaveEncashment?: {
+      unusedDays: number;
+      encashmentAmount: number;
+    };
+    terminationBenefit?: {
+      benefitId: string;
+      amount: number;
+    };
   }> {
     const response = await apiService.post<{
       success: boolean;
       terminationId: string;
       message: string;
       triggeredAt: string;
+      leaveEncashment?: {
+        unusedDays: number;
+        encashmentAmount: number;
+      };
+      terminationBenefit?: {
+        benefitId: string;
+        amount: number;
+      };
     }>('/offboarding/trigger-final-settlement', dto);
     if (response.error) throw new Error(response.error);
     return response.data as any;

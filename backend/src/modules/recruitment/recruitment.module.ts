@@ -36,6 +36,7 @@ import { payGrade, payGradeSchema } from "../payroll/payroll-configuration/model
 
 // Payroll Module for Service Integration
 import { PayrollExecutionModule } from "../payroll/payroll-execution/payroll-execution.module";
+import { PayrollConfigurationModule } from "../payroll/payroll-configuration/payroll-configuration.module";
 
 // controllers
 import { RecruitmentController } from "./controllers/recruitment.controller";
@@ -56,6 +57,7 @@ import {AuthModule} from "../auth/auth-module";
     imports: [
         AuthModule,
         forwardRef(() => PayrollExecutionModule),
+        forwardRef(()=>PayrollConfigurationModule),
         MongooseModule.forFeature([
             // Recruitment Models
             { name: JobTemplate.name, schema: JobTemplateSchema },

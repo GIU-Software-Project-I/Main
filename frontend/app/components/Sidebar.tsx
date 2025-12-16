@@ -218,12 +218,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             onClick={() => toggleExpand(item.label)}
             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
               active
-                ? 'bg-blue-50 text-blue-700'
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
             }`}
           >
             <div className="flex items-center">
-              <span className={`mr-3 ${active ? 'text-blue-600' : 'text-slate-400'}`}>
+              <span className={`mr-3 ${active ? 'text-primary' : 'text-muted-foreground'}`}>
                 {getIcon(item.icon)}
               </span>
               {item.label}
@@ -238,7 +238,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </svg>
           </button>
           {isExpanded && (
-            <div className="ml-4 mt-1 space-y-1 border-l-2 border-slate-200 pl-3">
+            <div className="ml-4 mt-1 space-y-1 border-l-2 border-border pl-3">
               {item.children!.map(child => renderNavItem(child, depth + 1))}
             </div>
           )}
@@ -253,18 +253,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         onClick={onClose}
         className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
           active
-            ? 'bg-blue-50 text-blue-700'
-            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            ? 'bg-primary/10 text-primary'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
         }`}
       >
         <div className="flex items-center">
-          <span className={`mr-3 ${active ? 'text-blue-600' : 'text-slate-400'}`}>
+          <span className={`mr-3 ${active ? 'text-primary' : 'text-muted-foreground'}`}>
             {getIcon(item.icon)}
           </span>
           {item.label}
         </div>
         {item.badge && (
-          <span className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded-full">
+          <span className="px-2 py-0.5 text-xs font-medium bg-destructive/10 text-destructive rounded-full">
             {item.badge}
           </span>
         )}
@@ -277,28 +277,28 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-200 z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-0 flex flex-col ${
+        className={`fixed top-0 left-0 h-full w-64 bg-card border-r border-border z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-0 flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 flex-shrink-0">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-border flex-shrink-0">
           <Link href="/dashboard" className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">HR</span>
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-lg">HR</span>
             </div>
-            <span className="text-lg font-semibold text-slate-800">HR System</span>
+            <span className="text-lg font-semibold text-foreground">HR System</span>
           </Link>
           <button
             onClick={onClose}
-            className="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-500"
+            className="lg:hidden p-2 rounded-lg hover:bg-accent text-muted-foreground"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -307,21 +307,21 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         {/* User info & Role Badge */}
-        <div className="px-4 py-4 border-b border-slate-200 flex-shrink-0">
+        <div className="px-4 py-4 border-b border-border flex-shrink-0">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-medium">
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium">
               {user ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-800 truncate">
+              <p className="text-sm font-medium text-foreground truncate">
                 {user ? `${user.firstName} ${user.lastName}` : 'Guest User'}
               </p>
-              <p className="text-xs text-slate-500 truncate">{user?.role || 'No Role'}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.role || 'No Role'}</p>
             </div>
           </div>
           {/* Portal Title */}
-          <div className="mt-3 px-3 py-1.5 bg-blue-50 rounded-lg">
-            <p className="text-xs font-semibold text-blue-700">{sidebarConfig.title}</p>
+          <div className="mt-3 px-3 py-1.5 bg-primary/10 rounded-lg">
+            <p className="text-xs font-semibold text-primary">{sidebarConfig.title}</p>
           </div>
         </div>
 
@@ -331,10 +331,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div key={section.title} className={sectionIndex > 0 ? 'mt-6' : ''}>
               {/* Section Header */}
               {sectionIndex > 0 && (
-                <div className="border-t border-slate-200 mb-4"></div>
+                <div className="border-t border-border mb-4"></div>
               )}
               <div className="px-3 mb-2">
-                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {section.title}
                 </h3>
               </div>
@@ -347,10 +347,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* Bottom section - Logout */}
-        <div className="p-4 border-t border-slate-200 flex-shrink-0">
+        <div className="p-4 border-t border-border flex-shrink-0">
           <button
             onClick={() => logout()}
-            className="w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+            className="w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
           >
             <span className="mr-3">
               {getIcon('log-out')}

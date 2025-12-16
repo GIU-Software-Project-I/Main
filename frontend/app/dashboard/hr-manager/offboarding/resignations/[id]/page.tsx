@@ -103,15 +103,15 @@ export default function ResignationDetailPage() {
   const getStatusBadge = (status: TerminationStatus) => {
     switch (status) {
       case TerminationStatus.PENDING:
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800';
       case TerminationStatus.UNDER_REVIEW:
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800';
       case TerminationStatus.APPROVED:
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800';
       case TerminationStatus.REJECTED:
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -119,9 +119,9 @@ export default function ResignationDetailPage() {
     return (
       <div className="p-8">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-32 bg-gray-200 rounded mt-6"></div>
+          <div className="h-8 bg-muted rounded w-1/3"></div>
+          <div className="h-4 bg-muted rounded w-1/4"></div>
+          <div className="h-32 bg-muted rounded mt-6"></div>
         </div>
       </div>
     );
@@ -130,10 +130,10 @@ export default function ResignationDetailPage() {
   if (!request) {
     return (
       <div className="p-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
           Request not found
         </div>
-        <Link href="/dashboard/hr-manager/offboarding" className="text-blue-600 hover:underline mt-4 inline-block">
+        <Link href="/dashboard/hr-manager/offboarding" className="text-primary hover:underline mt-4 inline-block">
           Back to Offboarding Dashboard
         </Link>
       </div>
@@ -143,17 +143,17 @@ export default function ResignationDetailPage() {
   const isResignation = request.initiator === TerminationInitiation.EMPLOYEE;
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-8 space-y-6 bg-background min-h-screen">
       <div className="flex justify-between items-start">
         <div>
           <div className="flex items-center gap-2">
-            <Link href="/dashboard/hr-manager/offboarding" className="text-gray-500 hover:text-gray-700">
+            <Link href="/dashboard/hr-manager/offboarding" className="text-muted-foreground hover:text-foreground">
               Offboarding
             </Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-900">{isResignation ? 'Resignation' : 'Termination'} Request</span>
+            <span className="text-muted-foreground/50">/</span>
+            <span className="text-foreground">{isResignation ? 'Resignation' : 'Termination'} Request</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mt-2">
+          <h1 className="text-2xl font-bold text-foreground mt-2">
             {isResignation ? 'Resignation' : 'Termination'} Request Details
           </h1>
           {(() => {
@@ -162,7 +162,7 @@ export default function ResignationDetailPage() {
               ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim()
               : null;
             return employeeName ? (
-              <p className="text-gray-600 mt-1">{employeeName}</p>
+              <p className="text-muted-foreground mt-1">{employeeName}</p>
             ) : null;
           })()}
         </div>
@@ -171,7 +171,7 @@ export default function ResignationDetailPage() {
             <button
               onClick={handleDelete}
               disabled={updating}
-              className="px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 disabled:opacity-50"
+              className="px-4 py-2 border border-destructive/30 text-destructive rounded-md hover:bg-destructive/10 disabled:opacity-50"
             >
               Delete Request
             </button>
@@ -180,18 +180,18 @@ export default function ResignationDetailPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
           {error}
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold mb-4">Request Information</h2>
+          <div className="bg-card rounded-lg border border-border p-6">
+            <h2 className="text-lg font-semibold mb-4 text-foreground">Request Information</h2>
             <dl className="grid grid-cols-2 gap-4">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Status</dt>
+                <dt className="text-sm font-medium text-muted-foreground">Status</dt>
                 <dd className="mt-1">
                   <span className={`px-3 py-1 text-sm font-medium rounded-full border ${getStatusBadge(request.status)}`}>
                     {request.status.replace('_', ' ').toUpperCase()}
@@ -199,75 +199,75 @@ export default function ResignationDetailPage() {
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Type</dt>
-                <dd className="mt-1 text-gray-900">
+                <dt className="text-sm font-medium text-muted-foreground">Type</dt>
+                <dd className="mt-1 text-foreground">
                   {isResignation ? 'Employee Resignation' : `${request.initiator.toUpperCase()} Initiated Termination`}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Submitted Date</dt>
-                <dd className="mt-1 text-gray-900">{new Date(request.createdAt).toLocaleDateString()}</dd>
+                <dt className="text-sm font-medium text-muted-foreground">Submitted Date</dt>
+                <dd className="mt-1 text-foreground">{new Date(request.createdAt).toLocaleDateString()}</dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Effective Date</dt>
-                <dd className="mt-1 text-gray-900">
+                <dt className="text-sm font-medium text-muted-foreground">Effective Date</dt>
+                <dd className="mt-1 text-foreground">
                   {request.terminationDate ? new Date(request.terminationDate).toLocaleDateString() : 'Not specified'}
                 </dd>
               </div>
               <div className="col-span-2">
-                <dt className="text-sm font-medium text-gray-500">Reason</dt>
-                <dd className="mt-1 text-gray-900">{request.reason}</dd>
+                <dt className="text-sm font-medium text-muted-foreground">Reason</dt>
+                <dd className="mt-1 text-foreground">{request.reason}</dd>
               </div>
               {request.employeeComments && (
                 <div className="col-span-2">
-                  <dt className="text-sm font-medium text-gray-500">Employee Comments</dt>
-                  <dd className="mt-1 text-gray-900">{request.employeeComments}</dd>
+                  <dt className="text-sm font-medium text-muted-foreground">Employee Comments</dt>
+                  <dd className="mt-1 text-foreground">{request.employeeComments}</dd>
                 </div>
               )}
               {request.hrComments && (
                 <div className="col-span-2">
-                  <dt className="text-sm font-medium text-gray-500">HR Comments</dt>
-                  <dd className="mt-1 text-gray-900">{request.hrComments}</dd>
+                  <dt className="text-sm font-medium text-muted-foreground">HR Comments</dt>
+                  <dd className="mt-1 text-foreground">{request.hrComments}</dd>
                 </div>
               )}
             </dl>
           </div>
 
           {request.performanceWarnings && request.performanceWarnings.length > 0 && (
-            <div className="bg-orange-50 rounded-lg border border-orange-200 p-6">
-              <h2 className="text-lg font-semibold text-orange-900 mb-4">Performance Warnings</h2>
+            <div className="bg-orange-50 border border-orange-200 dark:bg-orange-900/20 dark:border-orange-900/30 rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-orange-900 dark:text-orange-300 mb-4">Performance Warnings</h2>
               <ul className="space-y-2">
                 {request.performanceWarnings.map((warning, index) => (
-                  <li key={index} className="text-orange-800">{warning}</li>
+                  <li key={index} className="text-orange-800 dark:text-orange-400">{warning}</li>
                 ))}
               </ul>
             </div>
           )}
 
           {request.status === TerminationStatus.APPROVED && (
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold mb-4">Exit Clearance</h2>
+            <div className="bg-card rounded-lg border border-border p-6">
+              <h2 className="text-lg font-semibold mb-4 text-foreground">Exit Clearance</h2>
               {clearance ? (
                 <div>
-                  <p className="text-gray-600 mb-4">
+                  <p className="text-muted-foreground mb-4">
                     Clearance checklist has been created. Track department sign-offs below.
                   </p>
                   <Link
                     href={`/dashboard/hr-manager/offboarding/exit-clearance/${clearance._id}`}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
                   >
                     View Clearance Checklist
                   </Link>
                 </div>
               ) : (
                 <div>
-                  <p className="text-gray-600 mb-4">
+                  <p className="text-muted-foreground mb-4">
                     Create a clearance checklist to track department sign-offs for this employee.
                   </p>
                   <button
                     onClick={handleCreateClearance}
                     disabled={updating}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
                   >
                     {updating ? 'Creating...' : 'Create Clearance Checklist'}
                   </button>
@@ -278,15 +278,15 @@ export default function ResignationDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold mb-4">Actions</h2>
+          <div className="bg-card rounded-lg border border-border p-6">
+            <h2 className="text-lg font-semibold mb-4 text-foreground">Actions</h2>
             <div className="space-y-3">
               {request.status === TerminationStatus.PENDING && (
                 <>
                   <button
                     onClick={() => handleStatusUpdate(TerminationStatus.UNDER_REVIEW)}
                     disabled={updating}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
                   >
                     Start Review
                   </button>
@@ -296,7 +296,7 @@ export default function ResignationDetailPage() {
                       if (comments) handleStatusUpdate(TerminationStatus.REJECTED, comments);
                     }}
                     disabled={updating}
-                    className="w-full px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 disabled:opacity-50"
+                    className="w-full px-4 py-2 border border-destructive/30 text-destructive rounded-md hover:bg-destructive/10 disabled:opacity-50"
                   >
                     Reject Request
                   </button>
@@ -320,7 +320,7 @@ export default function ResignationDetailPage() {
                       if (comments) handleStatusUpdate(TerminationStatus.REJECTED, comments);
                     }}
                     disabled={updating}
-                    className="w-full px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 disabled:opacity-50"
+                    className="w-full px-4 py-2 border border-destructive/30 text-destructive rounded-md hover:bg-destructive/10 disabled:opacity-50"
                   >
                     Reject Request
                   </button>
@@ -329,21 +329,21 @@ export default function ResignationDetailPage() {
               {request.status === TerminationStatus.APPROVED && clearance && (
                 <Link
                   href={`/dashboard/hr-manager/offboarding/final-settlement/${request._id}`}
-                  className="block w-full px-4 py-2 bg-gray-900 text-white text-center rounded-md hover:bg-gray-800"
+                  className="block w-full px-4 py-2 bg-primary text-primary-foreground text-center rounded-md hover:bg-primary/90"
                 >
                   Process Final Settlement
                 </Link>
               )}
               {(request.status === TerminationStatus.APPROVED || request.status === TerminationStatus.REJECTED) && (
-                <p className="text-sm text-gray-500 text-center">
+                <p className="text-sm text-muted-foreground text-center">
                   This request has been {request.status.toLowerCase()}.
                 </p>
               )}
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold mb-4">Workflow Status</h2>
+          <div className="bg-muted/30 rounded-lg border border-border p-6">
+            <h2 className="text-lg font-semibold mb-4 text-foreground">Workflow Status</h2>
             <div className="space-y-3">
               {[
                 { step: 1, label: 'Request Submitted', completed: true },
@@ -355,12 +355,12 @@ export default function ResignationDetailPage() {
                 <div key={item.step} className="flex items-center gap-3">
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                      item.completed ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
+                      item.completed ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'
                     }`}
                   >
                     {item.completed ? '✓' : item.step}
                   </div>
-                  <span className={item.completed ? 'text-gray-900' : 'text-gray-500'}>{item.label}</span>
+                  <span className={item.completed ? 'text-foreground' : 'text-muted-foreground'}>{item.label}</span>
                 </div>
               ))}
             </div>

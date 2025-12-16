@@ -113,12 +113,12 @@ export default function ExitClearancePage() {
   const getStatusBadge = (status: ApprovalStatus) => {
     switch (status) {
       case ApprovalStatus.APPROVED:
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800';
       case ApprovalStatus.REJECTED:
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800';
       case ApprovalStatus.PENDING:
       default:
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800';
     }
   };
 
@@ -126,9 +126,9 @@ export default function ExitClearancePage() {
     return (
       <div className="p-8">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-200 rounded mt-6"></div>
+          <div className="h-8 bg-muted rounded w-1/3"></div>
+          <div className="h-4 bg-muted rounded w-1/4"></div>
+          <div className="h-64 bg-muted rounded mt-6"></div>
         </div>
       </div>
     );
@@ -137,10 +137,10 @@ export default function ExitClearancePage() {
   if (!checklist) {
     return (
       <div className="p-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
           Clearance checklist not found
         </div>
-        <Link href="/dashboard/hr-manager/offboarding" className="text-blue-600 hover:underline mt-4 inline-block">
+        <Link href="/dashboard/hr-manager/offboarding" className="text-primary hover:underline mt-4 inline-block">
           Back to Offboarding Dashboard
         </Link>
       </div>
@@ -148,60 +148,60 @@ export default function ExitClearancePage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-8 space-y-6 bg-background min-h-screen">
       <div className="flex justify-between items-start">
         <div>
           <div className="flex items-center gap-2">
-            <Link href="/dashboard/hr-manager/offboarding" className="text-gray-500 hover:text-gray-700">
+            <Link href="/dashboard/hr-manager/offboarding" className="text-muted-foreground hover:text-foreground">
               Offboarding
             </Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-900">Exit Clearance</span>
+            <span className="text-muted-foreground/50">/</span>
+            <span className="text-foreground">Exit Clearance</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mt-2">Exit Clearance Checklist</h1>
-          <p className="text-gray-600 mt-1">Phase 5: Multi-department sign-off process (OFF-006, OFF-010)</p>
+          <h1 className="text-2xl font-bold text-foreground mt-2">Exit Clearance Checklist</h1>
+          <p className="text-muted-foreground mt-1">Phase 5: Multi-department sign-off process (OFF-006, OFF-010)</p>
         </div>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
           {error}
         </div>
       )}
 
       {/* Completion Status */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Clearance Status</h2>
+      <div className="bg-card rounded-lg border border-border p-6">
+        <h2 className="text-lg font-semibold mb-4 text-foreground">Clearance Status</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <p className={`text-2xl font-bold ${completionStatus?.allDepartmentsCleared ? 'text-green-600' : 'text-yellow-600'}`}>
+          <div className="text-center p-4 bg-muted/30 rounded-lg">
+            <p className={`text-2xl font-bold ${completionStatus?.allDepartmentsCleared ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
               {completionStatus?.allDepartmentsCleared ? 'Yes' : 'No'}
             </p>
-            <p className="text-sm text-gray-500 mt-1">All Departments Cleared</p>
+            <p className="text-sm text-muted-foreground mt-1">All Departments Cleared</p>
           </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <p className={`text-2xl font-bold ${completionStatus?.allEquipmentReturned ? 'text-green-600' : 'text-yellow-600'}`}>
+          <div className="text-center p-4 bg-muted/30 rounded-lg">
+            <p className={`text-2xl font-bold ${completionStatus?.allEquipmentReturned ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
               {completionStatus?.allEquipmentReturned ? 'Yes' : 'No'}
             </p>
-            <p className="text-sm text-gray-500 mt-1">All Equipment Returned</p>
+            <p className="text-sm text-muted-foreground mt-1">All Equipment Returned</p>
           </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <p className={`text-2xl font-bold ${completionStatus?.cardReturned ? 'text-green-600' : 'text-yellow-600'}`}>
+          <div className="text-center p-4 bg-muted/30 rounded-lg">
+            <p className={`text-2xl font-bold ${completionStatus?.cardReturned ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
               {completionStatus?.cardReturned ? 'Yes' : 'No'}
             </p>
-            <p className="text-sm text-gray-500 mt-1">Access Card Returned</p>
+            <p className="text-sm text-muted-foreground mt-1">Access Card Returned</p>
           </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <p className={`text-2xl font-bold ${completionStatus?.fullyCleared ? 'text-green-600' : 'text-red-600'}`}>
+          <div className="text-center p-4 bg-muted/30 rounded-lg">
+            <p className={`text-2xl font-bold ${completionStatus?.fullyCleared ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {completionStatus?.fullyCleared ? 'Yes' : 'No'}
             </p>
-            <p className="text-sm text-gray-500 mt-1">Fully Cleared</p>
+            <p className="text-sm text-muted-foreground mt-1">Fully Cleared</p>
           </div>
         </div>
 
         {completionStatus?.pendingDepartments && completionStatus.pendingDepartments.length > 0 && (
-          <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
-            <p className="text-sm text-yellow-800">
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-900/30 rounded-lg">
+            <p className="text-sm text-yellow-800 dark:text-yellow-300">
               <strong>Pending Departments:</strong> {completionStatus.pendingDepartments.join(', ')}
             </p>
           </div>
@@ -220,26 +220,26 @@ export default function ExitClearancePage() {
       </div>
 
       {/* Department Sign-offs */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold">Department Sign-offs</h2>
+      <div className="bg-card rounded-lg border border-border">
+        <div className="p-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">Department Sign-offs</h2>
         </div>
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-border">
           {checklist.items.map((item) => (
             <div key={item.department} className="p-4">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
-                    <h3 className="font-medium text-gray-900">{item.department}</h3>
+                    <h3 className="font-medium text-foreground">{item.department}</h3>
                     <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${getStatusBadge(item.status)}`}>
                       {item.status.toUpperCase()}
                     </span>
                   </div>
                   {item.comments && (
-                    <p className="text-sm text-gray-500 mt-1">Comments: {item.comments}</p>
+                    <p className="text-sm text-muted-foreground mt-1">Comments: {item.comments}</p>
                   )}
                   {item.updatedAt && (
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-muted-foreground/70 mt-1">
                       Updated: {new Date(item.updatedAt).toLocaleString()}
                     </p>
                   )}
@@ -253,7 +253,7 @@ export default function ExitClearancePage() {
                     disabled={updating === item.department || item.status === ApprovalStatus.APPROVED}
                     className={`px-3 py-1.5 text-sm rounded-md ${
                       item.status === ApprovalStatus.APPROVED
-                        ? 'bg-green-100 text-green-800 cursor-not-allowed'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 cursor-not-allowed'
                         : 'bg-green-600 text-white hover:bg-green-700'
                     } disabled:opacity-50`}
                   >
@@ -267,8 +267,8 @@ export default function ExitClearancePage() {
                     disabled={updating === item.department || item.status === ApprovalStatus.REJECTED}
                     className={`px-3 py-1.5 text-sm rounded-md ${
                       item.status === ApprovalStatus.REJECTED
-                        ? 'bg-red-100 text-red-800 cursor-not-allowed'
-                        : 'border border-red-300 text-red-700 hover:bg-red-50'
+                        ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300 cursor-not-allowed'
+                        : 'border border-destructive/30 text-destructive hover:bg-destructive/10'
                     } disabled:opacity-50`}
                   >
                     Reject
@@ -281,20 +281,20 @@ export default function ExitClearancePage() {
       </div>
 
       {/* Equipment Return */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold">Equipment Return</h2>
+      <div className="bg-card rounded-lg border border-border">
+        <div className="p-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">Equipment Return</h2>
         </div>
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-border">
           {checklist.equipmentList.length === 0 ? (
-            <div className="p-4 text-gray-500 text-center">No equipment to return</div>
+            <div className="p-4 text-muted-foreground text-center">No equipment to return</div>
           ) : (
             checklist.equipmentList.map((equipment) => (
               <div key={equipment.name} className="p-4 flex justify-between items-center">
                 <div>
-                  <h3 className="font-medium text-gray-900">{equipment.name}</h3>
+                  <h3 className="font-medium text-foreground">{equipment.name}</h3>
                   {equipment.condition && (
-                    <p className="text-sm text-gray-500">Condition: {equipment.condition}</p>
+                    <p className="text-sm text-muted-foreground">Condition: {equipment.condition}</p>
                   )}
                 </div>
                 <label className="flex items-center gap-2">
@@ -303,9 +303,9 @@ export default function ExitClearancePage() {
                     checked={equipment.returned}
                     onChange={(e) => handleUpdateEquipment(equipment.name, e.target.checked)}
                     disabled={updating === equipment.name}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-primary border-input rounded focus:ring-ring"
                   />
-                  <span className={equipment.returned ? 'text-green-600' : 'text-gray-500'}>
+                  <span className={equipment.returned ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}>
                     {equipment.returned ? 'Returned' : 'Not Returned'}
                   </span>
                 </label>
@@ -316,11 +316,11 @@ export default function ExitClearancePage() {
       </div>
 
       {/* Access Card */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-card rounded-lg border border-border p-4">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-semibold">Access Card</h2>
-            <p className="text-sm text-gray-500 mt-1">Has the employee returned their access card?</p>
+            <h2 className="text-lg font-semibold text-foreground">Access Card</h2>
+            <p className="text-sm text-muted-foreground mt-1">Has the employee returned their access card?</p>
           </div>
           <label className="flex items-center gap-2">
             <input
@@ -328,9 +328,9 @@ export default function ExitClearancePage() {
               checked={checklist.cardReturned}
               onChange={(e) => handleUpdateCardReturn(e.target.checked)}
               disabled={updating === 'card'}
-              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="w-5 h-5 text-primary border-input rounded focus:ring-ring"
             />
-            <span className={checklist.cardReturned ? 'text-green-600 font-medium' : 'text-gray-500'}>
+            <span className={checklist.cardReturned ? 'text-green-600 dark:text-green-400 font-medium' : 'text-muted-foreground'}>
               {checklist.cardReturned ? 'Returned' : 'Not Returned'}
             </span>
           </label>
