@@ -41,6 +41,11 @@ const SELF_SERVICE_SECTION: NavSection = {
       href: '/portal/my-attendance',
       icon: 'clock',
     },
+      {
+          label: 'Punches',
+          href: '/portal/punch',
+          icon: 'log-out',
+      },
     {
       label: 'My Leaves',
       href: '/portal/my-leaves',
@@ -86,6 +91,7 @@ const SELF_SERVICE_SECTION: NavSection = {
       href: '/portal/my-resignation',
       icon: 'log-out',
     },
+
   ],
 };
 
