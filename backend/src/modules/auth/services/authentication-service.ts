@@ -13,8 +13,8 @@ import { EmployeeAuthService } from './employee-auth.service';
 
 import { BlacklistedToken, BlackListedTokenDocument } from '../token/blacklisted-token.schema';
 import { SystemRole } from '../../employee/enums/employee-profile.enums';
-import {RegisterEmployeeDto} from "../dto/register-employee-dto";
-import {RegisterCandidateDto} from "../dto/register-candidate-dto";
+import { RegisterEmployeeDto } from "../dto/register-employee-dto";
+import { RegisterCandidateDto } from "../dto/register-candidate-dto";
 
 type SafeEmployee = {
     _id: string;
@@ -91,7 +91,7 @@ export class AuthService {
     async login(email: string, plainPassword: string) {
         // Try to login as employee first (using workEmail)
         try {
-            const {employee, roles} = await this.employeeAuthService.validateEmployeeCredentials(email, plainPassword);
+            const { employee, roles } = await this.employeeAuthService.validateEmployeeCredentials(email, plainPassword);
 
             const payload = {
                 sub: String(employee._id),
@@ -99,7 +99,7 @@ export class AuthService {
                 roles,
                 userType: 'employee' as const
             };
-            const access_token = await this.jwtService.signAsync(payload, {expiresIn: '7d'});
+            const access_token = await this.jwtService.signAsync(payload, { expiresIn: '7d' });
 
             return {
                 access_token,
@@ -107,6 +107,7 @@ export class AuthService {
                 userType: 'employee'
             };
         } catch (employeeError) {
+            console.error('Employee Login Failed:', employeeError);
             // If employee login fails, try candidate login (using personalEmail)
             try {
                 const candidate = await this.employeeAuthService.validateCandidateCredentials(email, plainPassword);
@@ -117,7 +118,7 @@ export class AuthService {
                     roles: [SystemRole.JOB_CANDIDATE],
                     userType: 'candidate' as const
                 };
-                const access_token = await this.jwtService.signAsync(payload, {expiresIn: '7d'});
+                const access_token = await this.jwtService.signAsync(payload, { expiresIn: '7d' });
 
                 return {
                     access_token,
@@ -125,6 +126,7 @@ export class AuthService {
                     userType: 'candidate'
                 };
             } catch (candidateError) {
+                console.error('Candidate Login Failed:', candidateError);
                 throw new UnauthorizedException('Invalid credentials');
             }
         }
@@ -147,7 +149,7 @@ export class AuthService {
             decoded = await this.jwtService.verifyAsync(token);
         } catch {
             // invalid or already expired -> no-op (logout success)
-            return {message: 'Logout successful'};
+            return { message: 'Logout successful' };
         }
 
         try {
@@ -159,11 +161,11 @@ export class AuthService {
             if (err.code !== 11000) throw err; // ignore duplicate-key
         }
 
-        return {message: 'Logout successful'};
+        return { message: 'Logout successful' };
     }
 
     async isAccessTokenBlacklisted(token: string) {
-        const hit = await this.blacklistModel.findOne({token}).select('_id').lean();
+        const hit = await this.blacklistModel.findOne({ token }).select('_id').lean();
         return !!hit;
     }
 

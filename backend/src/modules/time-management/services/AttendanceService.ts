@@ -482,81 +482,155 @@ export class AttendanceService {
         };
     }
 
+    // private async findOrCreateRecord(employeeId: string, date: Date) {
+    //     // canonical day-range for the provided date
+    //     const start = new Date(date);
+    //     start.setHours(0, 0, 0, 0);
+    //     const end = new Date(date);
+    //     end.setHours(23, 59, 59, 999);
+    //
+    //     const empOid = new Types.ObjectId(employeeId);
+    //
+    //     this.logger.debug(`findOrCreateRecord: looking for record on ${start.toISOString()} to ${end.toISOString()}`);
+    //
+    //     // 1) Find ALL records for this employee that have at least one punch in the target day
+    //     const candidates = await this.attendanceModel.find({
+    //         employeeId: empOid,
+    //         'punches.time': { $gte: start, $lte: end },
+    //     });
+    //
+    //     this.logger.debug(`findOrCreateRecord: found ${candidates.length} candidate record(s) with punches in date range`);
+    //
+    //     // 2) Check each candidate to ensure ALL punches are within the target day
+    //     for (const candidate of candidates) {
+    //         if (!candidate.punches || candidate.punches.length === 0) {
+    //             // Empty record - can use it
+    //             this.logger.debug(`findOrCreateRecord: using empty record ${candidate._id}`);
+    //             return candidate;
+    //         }
+    //
+    //         // Verify that ALL punches are within the target day
+    //         const allPunchesInDay = candidate.punches.every(p => {
+    //             const punchTime = new Date(p.time);
+    //             const isInRange = punchTime >= start && punchTime <= end;
+    //             if (!isInRange) {
+    //                 this.logger.debug(`findOrCreateRecord: record ${candidate._id} has punch outside range: ${punchTime.toISOString()}`);
+    //             }
+    //             return isInRange;
+    //         });
+    //
+    //         if (allPunchesInDay) {
+    //             this.logger.debug(`findOrCreateRecord: matched record ${candidate._id} - all ${candidate.punches.length} punches are within target day`);
+    //             return candidate;
+    //         } else {
+    //             this.logger.warn(`findOrCreateRecord: record ${candidate._id} spans multiple days - this should not happen! Skipping it.`);
+    //         }
+    //     }
+    //
+    //     // 3) Try to find an empty record created on this day
+    //     const emptyRecords = await this.attendanceModel.find({
+    //         employeeId: empOid,
+    //         $or: [
+    //             { punches: { $exists: false } },
+    //             { punches: { $size: 0 } }
+    //         ],
+    //         createdAt: { $gte: start, $lte: end } as any,
+    //     });
+    //
+    //     if (emptyRecords.length > 0) {
+    //         this.logger.debug(`findOrCreateRecord: found empty record by createdAt ${emptyRecords[0]._id}`);
+    //         return emptyRecords[0];
+    //     }
+    //
+    //     // 4) Nothing found: create a fresh attendance record for that employee/day
+    //     const doc = new this.attendanceModel({
+    //         employeeId: empOid,
+    //         punches: [],
+    //         totalWorkMinutes: 0,
+    //         hasMissedPunch: false,
+    //         exceptionIds: [],
+    //         finalisedForPayroll: true,
+    //     });
+    //
+    //     const saved = await doc.save();
+    //     this.logger.debug(`findOrCreateRecord: created new attendance record for ${employeeId} on ${start.toISOString()} -> ${saved._id}`);
+    //     return saved;
+    // }
     private async findOrCreateRecord(employeeId: string, date: Date) {
-        // canonical day-range for the provided date
         const start = new Date(date);
         start.setHours(0, 0, 0, 0);
+
         const end = new Date(date);
         end.setHours(23, 59, 59, 999);
 
         const empOid = new Types.ObjectId(employeeId);
 
-        this.logger.debug(`findOrCreateRecord: looking for record on ${start.toISOString()} to ${end.toISOString()}`);
+        this.logger.debug(`[findOrCreateRecord] Looking for record for employee ${employeeId} on ${start.toISOString()} to ${end.toISOString()}`);
 
-        // 1) Find ALL records for this employee that have at least one punch in the target day
-        const candidates = await this.attendanceModel.find({
+        // Step 1: Try to find an existing record with punches in the date range
+        const existingWithPunches = await this.attendanceModel.findOne({
             employeeId: empOid,
             'punches.time': { $gte: start, $lte: end },
-        });
+        }).sort({ createdAt: 1 });
 
-        this.logger.debug(`findOrCreateRecord: found ${candidates.length} candidate record(s) with punches in date range`);
-
-        // 2) Check each candidate to ensure ALL punches are within the target day
-        for (const candidate of candidates) {
-            if (!candidate.punches || candidate.punches.length === 0) {
-                // Empty record - can use it
-                this.logger.debug(`findOrCreateRecord: using empty record ${candidate._id}`);
-                return candidate;
-            }
-
-            // Verify that ALL punches are within the target day
-            const allPunchesInDay = candidate.punches.every(p => {
-                const punchTime = new Date(p.time);
-                const isInRange = punchTime >= start && punchTime <= end;
-                if (!isInRange) {
-                    this.logger.debug(`findOrCreateRecord: record ${candidate._id} has punch outside range: ${punchTime.toISOString()}`);
-                }
-                return isInRange;
-            });
-
-            if (allPunchesInDay) {
-                this.logger.debug(`findOrCreateRecord: matched record ${candidate._id} - all ${candidate.punches.length} punches are within target day`);
-                return candidate;
-            } else {
-                this.logger.warn(`findOrCreateRecord: record ${candidate._id} spans multiple days - this should not happen! Skipping it.`);
-            }
+        if (existingWithPunches) {
+            this.logger.debug(`[findOrCreateRecord] Found existing record with punches: ${existingWithPunches._id}`);
+            return existingWithPunches;
         }
 
-        // 3) Try to find an empty record created on this day
-        const emptyRecords = await this.attendanceModel.find({
+        // Step 2: Try to find an empty record created on this day
+        const existingEmpty = await this.attendanceModel.findOne({
             employeeId: empOid,
             $or: [
                 { punches: { $exists: false } },
-                { punches: { $size: 0 } }
+                { punches: { $size: 0 } },
             ],
-            createdAt: { $gte: start, $lte: end } as any,
-        });
+            createdAt: { $gte: start, $lte: end },
+        }).sort({ createdAt: 1 });
 
-        if (emptyRecords.length > 0) {
-            this.logger.debug(`findOrCreateRecord: found empty record by createdAt ${emptyRecords[0]._id}`);
-            return emptyRecords[0];
+        if (existingEmpty) {
+            this.logger.debug(`[findOrCreateRecord] Found existing empty record: ${existingEmpty._id}`);
+            return existingEmpty;
         }
 
-        // 4) Nothing found: create a fresh attendance record for that employee/day
-        const doc = new this.attendanceModel({
-            employeeId: empOid,
-            punches: [],
-            totalWorkMinutes: 0,
-            hasMissedPunch: false,
-            exceptionIds: [],
-            finalisedForPayroll: true,
-        });
+        // Step 3: No record found - create a new one atomically
+        // Use findOneAndUpdate with a very specific match to prevent race conditions
+        this.logger.debug(`[findOrCreateRecord] No existing record found, creating new one for employee ${employeeId}`);
 
-        const saved = await doc.save();
-        this.logger.debug(`findOrCreateRecord: created new attendance record for ${employeeId} on ${start.toISOString()} -> ${saved._id}`);
-        return saved;
+        const newRecord = await this.attendanceModel.findOneAndUpdate(
+            {
+                employeeId: empOid,
+                // Match a record that was created today and has no punches
+                // This is a fallback in case another request just created one
+                $or: [
+                    { 'punches.time': { $gte: start, $lte: end } },
+                    {
+                        $and: [
+                            { $or: [{ punches: { $exists: false } }, { punches: { $size: 0 } }] },
+                            { createdAt: { $gte: start, $lte: end } },
+                        ],
+                    },
+                ],
+            },
+            {
+                $setOnInsert: {
+                    employeeId: empOid,
+                    punches: [],
+                    totalWorkMinutes: 0,
+                    hasMissedPunch: false,
+                    exceptionIds: [],
+                    finalisedForPayroll: false,
+                },
+            },
+            {
+                new: true,
+                upsert: true,
+            }
+        );
+
+        this.logger.debug(`[findOrCreateRecord] Returned record: ${newRecord?._id} (upserted: ${!existingWithPunches && !existingEmpty})`);
+        return newRecord;
     }
-
     // ============================================================
     // PUNCH LOGIC
     // ============================================================
@@ -1445,11 +1519,27 @@ export class AttendanceService {
     // ------------------------------------------------------------------
     // Public API methods expected by AttendanceController
     // ------------------------------------------------------------------
+    // async getTodayRecord(employeeId: string) {
+    //     const date = new Date();
+    //     const rec = await this.findOrCreateRecord(employeeId, date);
+    //     const doc = await this.attendanceModel.findById(rec._id).lean();
+    //     return doc;
+    // }
     async getTodayRecord(employeeId: string) {
-        const date = new Date();
-        const rec = await this.findOrCreateRecord(employeeId, date);
-        const doc = await this.attendanceModel.findById(rec._id).lean();
-        return doc;
+        const now = new Date();
+
+        const start = new Date(now);
+        start.setHours(0, 0, 0, 0);
+
+        const end = new Date(now);
+        end.setHours(23, 59, 59, 999);
+
+        return this.attendanceModel
+            .findOne({
+                employeeId: new Types.ObjectId(employeeId),
+                'punches.time': { $gte: start, $lte: end },
+            })
+            .lean();
     }
 
     async getMonthlyAttendance(employeeId: string, month: number, year: number) {

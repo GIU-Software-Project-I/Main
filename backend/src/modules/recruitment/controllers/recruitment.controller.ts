@@ -70,7 +70,7 @@ export class RecruitmentController {
     // ============================================================
 
     @Post('job-templates')
-    @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
+    //@Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
     @ApiOperation({ summary: 'REC-003: Create a standardized job description template' })
     @ApiResponse({ status: 201, description: 'Job template created successfully' })
     async createJobTemplate(@Body() dto: CreateJobTemplateDto) {

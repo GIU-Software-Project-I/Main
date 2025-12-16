@@ -41,6 +41,11 @@ const SELF_SERVICE_SECTION: NavSection = {
       href: '/portal/my-attendance',
       icon: 'clock',
     },
+      {
+          label: 'Punches',
+          href: '/portal/punch',
+          icon: 'log-out',
+      },
     {
       label: 'My Leaves',
       href: '/portal/my-leaves',
@@ -86,6 +91,7 @@ const SELF_SERVICE_SECTION: NavSection = {
       href: '/portal/my-resignation',
       icon: 'log-out',
     },
+
   ],
 };
 
@@ -138,6 +144,14 @@ const DEPARTMENT_HEAD_SECTIONS: NavSection[] = [
         href: '/dashboard/department-head/performance',
         icon: 'bar-chart',
       },
+        {
+            label: 'Time Management',
+            href: '/dashboard/hr-manager/time-management',
+            icon: 'clock',
+            children: [
+                { label: 'Attendance Records', href: '/dashboard/department-head/time-management/attendance-records', icon: 'clipboard-list' },
+            ],
+        },
       {
         label: 'Leave Approvals',
         href: '/dashboard/department-head/leaves',
@@ -175,6 +189,15 @@ const HR_MANAGER_SECTIONS: NavSection[] = [
         href: '/dashboard/hr-manager/organization',
         icon: 'building',
       },
+        {
+            label: 'Time Management',
+            href: '/dashboard/hr-manager/time-management',
+            icon: 'clock',
+            children: [
+                { label: 'Shift Types', href: '/dashboard/hr-manager/time-management/ShiftType', icon: 'clock' },
+                { label: 'Schedule Rules', href: '/dashboard/hr-manager/time-management/schedule-rules', icon: 'calendar' },
+            ],
+        },
       {
         label: 'Recruitment',
         href: '/dashboard/hr-manager/recruitment',
@@ -232,6 +255,11 @@ const HR_EMPLOYEE_SECTIONS: NavSection[] = [
         href: '/dashboard/hr-manager/onboarding',
         icon: 'clipboard-check',
       },
+        {
+            label: 'Time Management',
+            href: '/dashboard/hr-employee/time-management',
+            icon: 'clock',
+        },
       {
         label: 'Equipment Reservation',
         href: '/portal/equipment-reservation',
@@ -372,6 +400,14 @@ const SYSTEM_ADMIN_SECTIONS: NavSection[] = [
           { label: 'Positions', href: '/dashboard/system-admin/positions', icon: 'briefcase' },
         ],
       },
+        {
+            label: 'Time Management',
+            href: '/dashboard/hr-manager/time-management',
+            icon: 'clock',
+            children: [
+                { label: 'Shift Types', href: '/dashboard/system-admin/time-management/ShiftType', icon: 'clock' },
+            ],
+        },
       {
         label: 'User Management',
         href: '/dashboard/system-admin/users',

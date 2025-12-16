@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import {forwardRef, Module} from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ScheduleModule } from '@nestjs/schedule';
 
@@ -29,7 +29,7 @@ import { AuthModule } from '../../auth/auth-module';
     ScheduleModule.forRoot(),
     EmployeeModule,
     OrganizationStructureModule,
-    RecruitmentModule,
+    forwardRef(()=>RecruitmentModule),
     AuthModule,
     MongooseModule.forFeature([
       { name: allowance.name, schema: allowanceSchema },

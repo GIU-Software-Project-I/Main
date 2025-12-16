@@ -138,7 +138,174 @@ export interface CancelOnboardingDto {
   reason: string;
 }
 
+// New interfaces for enhanced endpoints
+export interface RequiredDocument {
+  documentType: string;
+  name: string;
+  description: string;
+  required: boolean;
+  uploaded: boolean;
+  documentId?: string;
+  uploadedAt?: string;
+}
+
+export interface RequiredDocumentsResponse {
+  candidateId: string;
+  candidateName: string;
+  offerStatus: string;
+  requiredDocuments: RequiredDocument[];
+  uploadedCount: number;
+  totalRequired: number;
+  allRequiredUploaded: boolean;
+}
+
+export interface DocumentUploadResult {
+  document: Document;
+  message: string;
+  uploadProgress: {
+    uploadedCount: number;
+    totalRequired: number;
+    allRequiredUploaded: boolean;
+    remainingRequired: string[];
+  };
+  readyForOnboarding: boolean;
+}
+
+export interface OnboardingEligibility {
+  candidateId: string;
+  candidateName: string;
+  isEligible: boolean;
+  reasons: string[];
+  checklist: {
+    hasAcceptedOffer: boolean;
+    hasSignedContract: boolean;
+    allRequiredDocumentsUploaded: boolean;
+    documentsUploaded: number;
+    documentsRequired: number;
+  };
+  nextSteps: string[];
+}
+
+export interface OnboardingTracker {
+  employeeId: string;
+  employeeName: string;
+  onboardingId: string;
+  started: string;
+  progress: {
+    totalTasks: number;
+    completedTasks: number;
+    inProgressTasks: number;
+    pendingTasks: number;
+    progressPercentage: number;
+    isComplete: boolean;
+  };
+  tasksByStatus: {
+    pending: OnboardingTask[];
+    inProgress: OnboardingTask[];
+    completed: OnboardingTask[];
+  };
+  tasksByDepartment: Record<string, OnboardingTask[]>;
+  nextTask?: OnboardingTask;
+  overdueTasks: OnboardingTask[];
+  upcomingDeadlines: OnboardingTask[];
+}
+
+export interface PendingProvisioning {
+  employeeId: string;
+  employeeName: string;
+  employeeNumber: string;
+  department?: string;
+  position?: string;
+  startDate?: string;
+  daysUntilStart: number;
+  isUrgent: boolean;
+  onboardingId: string;
+  itTasksStatus: {
+    total: number;
+    completed: number;
+    pending: string[];
+  };
+}
+
+export interface PendingEquipment {
+  employeeId: string;
+  employeeName: string;
+  employeeNumber: string;
+  department?: string;
+  position?: string;
+  startDate?: string;
+  daysUntilStart: number;
+  isUrgent: boolean;
+  onboardingId: string;
+  adminTasksStatus: {
+    total: number;
+    completed: number;
+    pending: string[];
+  };
+}
+
 class OnboardingService {
+  // ============================================================
+  // Candidate Document Upload - Initiate Onboarding Process
+  // ============================================================
+
+  // Get required document templates for candidate
+  async getRequiredDocumentTemplates(candidateId: string): Promise<RequiredDocumentsResponse> {
+    const response = await apiService.get<RequiredDocumentsResponse>(
+      `/onboarding/candidate/${candidateId}/required-documents`
+    );
+    if (response.error) throw new Error(response.error);
+    return response.data as RequiredDocumentsResponse;
+  }
+
+  // Candidate upload document
+  async uploadCandidateDocument(candidateId: string, dto: UploadDocumentDto): Promise<DocumentUploadResult> {
+    const response = await apiService.post<DocumentUploadResult>(
+      `/onboarding/candidate/${candidateId}/upload-document`,
+      dto
+    );
+    if (response.error) throw new Error(response.error);
+    return response.data as DocumentUploadResult;
+  }
+
+  // Get candidate document progress
+  async getCandidateDocumentProgress(candidateId: string): Promise<{
+    candidateId: string;
+    totalRequired: number;
+    uploadedCount: number;
+    progressPercentage: number;
+    missingDocuments: string[];
+    uploadedDocuments: { type: string; documentId: string; uploadedAt: string }[];
+  }> {
+    const response = await apiService.get<any>(
+      `/onboarding/candidate/${candidateId}/document-progress`
+    );
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  }
+
+  // Check onboarding eligibility
+  async validateOnboardingEligibility(candidateId: string): Promise<OnboardingEligibility> {
+    const response = await apiService.get<OnboardingEligibility>(
+      `/onboarding/candidate/${candidateId}/eligibility`
+    );
+    if (response.error) throw new Error(response.error);
+    return response.data as OnboardingEligibility;
+  }
+
+  // Delete candidate document
+  async deleteCandidateDocument(candidateId: string, documentId: string): Promise<{ message: string }> {
+    const response = await apiService.delete<{ message: string }>(
+      `/onboarding/candidate/${candidateId}/documents/${documentId}`
+    );
+    if (response.error) throw new Error(response.error);
+    return response.data as { message: string };
+  }
+
+  // ============================================================
+  // ONB-001: Create Onboarding Task Checklists
+  // ============================================================
+
   // ONB-001: Create onboarding checklist
   async createOnboarding(dto: CreateOnboardingDto): Promise<Onboarding> {
     const response = await apiService.post<Onboarding>('/onboarding', dto);
@@ -163,6 +330,33 @@ class OnboardingService {
   // ONB-004: Get onboarding by employee ID (New Hire tracker view)
   async getOnboardingByEmployeeId(employeeId: string): Promise<Onboarding> {
     const response = await apiService.get<Onboarding>(`/onboarding/employee/${employeeId}`);
+    if (response.error) throw new Error(response.error);
+    return response.data as Onboarding;
+  }
+
+  // ONB-004: Get detailed onboarding tracker
+  async getOnboardingTracker(employeeId: string): Promise<OnboardingTracker> {
+    const response = await apiService.get<OnboardingTracker>(`/onboarding/employee/${employeeId}/tracker`);
+    if (response.error) throw new Error(response.error);
+    return response.data as OnboardingTracker;
+  }
+
+  // ONB-004: Start a task
+  async startTask(employeeId: string, taskName: string): Promise<Onboarding> {
+    const response = await apiService.post<Onboarding>(
+      `/onboarding/employee/${employeeId}/tasks/${encodeURIComponent(taskName)}/start`,
+      {}
+    );
+    if (response.error) throw new Error(response.error);
+    return response.data as Onboarding;
+  }
+
+  // ONB-004: Complete a task
+  async completeTask(employeeId: string, taskName: string, documentId?: string): Promise<Onboarding> {
+    const response = await apiService.post<Onboarding>(
+      `/onboarding/employee/${employeeId}/tasks/${encodeURIComponent(taskName)}/complete`,
+      { documentId }
+    );
     if (response.error) throw new Error(response.error);
     return response.data as Onboarding;
   }
@@ -220,6 +414,27 @@ class OnboardingService {
     return response.data as PendingTasksResponse;
   }
 
+  // ONB-005: Get pending tasks without sending reminders
+  async getPendingTasksQuiet(employeeId: string): Promise<PendingTasksResponse & { upcomingDeadlines: OnboardingTask[] }> {
+    const response = await apiService.get<any>(`/onboarding/employee/${employeeId}/pending-tasks/quiet`);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  }
+
+  // ONB-005: Send task reminders
+  async sendTaskReminders(employeeId: string): Promise<{ success: boolean; remindersSent: number; message: string }> {
+    const response = await apiService.post<any>(`/onboarding/employee/${employeeId}/send-reminders`, {});
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  }
+
+  // ONB-005: Send batch reminders to all employees
+  async sendBatchReminders(): Promise<{ success: boolean; employeesNotified: number; totalReminders: number; message: string }> {
+    const response = await apiService.post<any>('/onboarding/send-batch-reminders', {});
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  }
+
   // ONB-007: Upload compliance document
   async uploadDocument(dto: UploadDocumentDto): Promise<Document> {
     const response = await apiService.post<Document>('/onboarding/documents', dto);
@@ -244,6 +459,13 @@ class OnboardingService {
     return response.data as Onboarding;
   }
 
+  // ONB-009: Get employees pending access provisioning
+  async getEmployeesPendingProvisioning(): Promise<PendingProvisioning[]> {
+    const response = await apiService.get<PendingProvisioning[]>('/onboarding/pending-provisioning');
+    if (response.error) throw new Error(response.error);
+    return response.data || [];
+  }
+
   // ONB-009: Provision system access (System Admin)
   async provisionSystemAccess(dto: ProvisionAccessDto): Promise<{
     success: boolean;
@@ -259,6 +481,13 @@ class OnboardingService {
     }>('/onboarding/provision-access', dto);
     if (response.error) throw new Error(response.error);
     return response.data as { success: boolean; employeeId: string; message: string; provisionedAt: string };
+  }
+
+  // ONB-012: Get employees pending equipment reservation
+  async getEmployeesPendingEquipment(): Promise<PendingEquipment[]> {
+    const response = await apiService.get<PendingEquipment[]>('/onboarding/pending-equipment');
+    if (response.error) throw new Error(response.error);
+    return response.data || [];
   }
 
   // ONB-012: Reserve equipment and resources (HR Employee)

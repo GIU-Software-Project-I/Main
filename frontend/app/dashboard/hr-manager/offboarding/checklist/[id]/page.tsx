@@ -44,12 +44,12 @@ export default function OffboardingChecklistPage() {
   const getStatusBadge = (status: ApprovalStatus) => {
     switch (status) {
       case ApprovalStatus.APPROVED:
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
       case ApprovalStatus.REJECTED:
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
       case ApprovalStatus.PENDING:
       default:
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
     }
   };
 
@@ -57,8 +57,8 @@ export default function OffboardingChecklistPage() {
     return (
       <div className="p-8">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-muted rounded w-1/3"></div>
+          <div className="h-64 bg-muted rounded"></div>
         </div>
       </div>
     );
@@ -67,10 +67,10 @@ export default function OffboardingChecklistPage() {
   if (!checklist) {
     return (
       <div className="p-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
           Checklist not found
         </div>
-        <Link href="/dashboard/hr-manager/offboarding" className="text-blue-600 hover:underline mt-4 inline-block">
+        <Link href="/dashboard/hr-manager/offboarding" className="text-primary hover:underline mt-4 inline-block">
           Back to Offboarding Dashboard
         </Link>
       </div>
@@ -82,18 +82,18 @@ export default function OffboardingChecklistPage() {
   const completionPercentage = totalDepartments > 0 ? Math.round((completedDepartments / totalDepartments) * 100) : 0;
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-8 space-y-6 bg-background min-h-screen">
       <div className="flex justify-between items-start">
         <div>
           <div className="flex items-center gap-2">
-            <Link href="/dashboard/hr-manager/offboarding" className="text-gray-500 hover:text-gray-700">
+            <Link href="/dashboard/hr-manager/offboarding" className="text-muted-foreground hover:text-foreground">
               Offboarding
             </Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-900">Exit Checklist</span>
+            <span className="text-muted-foreground/50">/</span>
+            <span className="text-foreground">Exit Checklist</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mt-2">Exit Checklist</h1>
-          <p className="text-gray-600 mt-1">Track asset return and department clearance sign-offs</p>
+          <h1 className="text-2xl font-bold text-foreground mt-2">Exit Checklist</h1>
+          <p className="text-muted-foreground mt-1">Track asset return and department clearance sign-offs</p>
         </div>
         {completionStatus?.fullyCleared && (
           <Link
@@ -106,65 +106,65 @@ export default function OffboardingChecklistPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
           {error}
         </div>
       )}
 
       {/* Progress Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-lg border border-gray-200">
-          <p className="text-sm font-medium text-gray-500">Department Clearance</p>
-          <p className="text-2xl font-semibold mt-1">{completedDepartments} / {totalDepartments}</p>
+        <div className="bg-card p-5 rounded-lg border border-border">
+          <p className="text-sm font-medium text-muted-foreground">Department Clearance</p>
+          <p className="text-2xl font-semibold mt-1 text-foreground">{completedDepartments} / {totalDepartments}</p>
         </div>
-        <div className="bg-white p-5 rounded-lg border border-gray-200">
-          <p className="text-sm font-medium text-gray-500">Equipment Returned</p>
-          <p className="text-2xl font-semibold mt-1">
+        <div className="bg-card p-5 rounded-lg border border-border">
+          <p className="text-sm font-medium text-muted-foreground">Equipment Returned</p>
+          <p className="text-2xl font-semibold mt-1 text-foreground">
             {checklist.equipmentList.filter((e) => e.returned).length} / {checklist.equipmentList.length}
           </p>
         </div>
-        <div className="bg-white p-5 rounded-lg border border-gray-200">
-          <p className="text-sm font-medium text-gray-500">Access Card</p>
-          <p className={`text-2xl font-semibold mt-1 ${checklist.cardReturned ? 'text-green-600' : 'text-yellow-600'}`}>
+        <div className="bg-card p-5 rounded-lg border border-border">
+          <p className="text-sm font-medium text-muted-foreground">Access Card</p>
+          <p className={`text-2xl font-semibold mt-1 ${checklist.cardReturned ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
             {checklist.cardReturned ? 'Returned' : 'Pending'}
           </p>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200">
+      <div className="bg-card p-6 rounded-lg border border-border">
         <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-semibold">Overall Progress</h2>
+          <h2 className="text-lg font-semibold text-foreground">Overall Progress</h2>
           <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-            completionStatus?.fullyCleared ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+            completionStatus?.fullyCleared ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
           }`}>
             {completionStatus?.fullyCleared ? 'Fully Cleared' : 'In Progress'}
           </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-3">
+        <div className="w-full bg-muted rounded-full h-3">
           <div
             className={`h-3 rounded-full transition-all ${completionStatus?.fullyCleared ? 'bg-green-500' : 'bg-blue-500'}`}
             style={{ width: `${completionPercentage}%` }}
           ></div>
         </div>
-        <p className="text-sm text-gray-500 mt-2">{completionPercentage}% complete</p>
+        <p className="text-sm text-muted-foreground mt-2">{completionPercentage}% complete</p>
       </div>
 
       {/* Department Sign-offs */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold">Department Sign-offs</h2>
+      <div className="bg-card rounded-lg border border-border">
+        <div className="p-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">Department Sign-offs</h2>
         </div>
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-border">
           {checklist.items.map((item) => (
             <div key={item.department} className="p-4 flex justify-between items-center">
               <div>
-                <h3 className="font-medium text-gray-900">{item.department}</h3>
+                <h3 className="font-medium text-foreground">{item.department}</h3>
                 {item.comments && (
-                  <p className="text-sm text-gray-500 mt-1">{item.comments}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{item.comments}</p>
                 )}
                 {item.updatedAt && (
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground/70 mt-1">
                     Updated: {new Date(item.updatedAt).toLocaleString()}
                   </p>
                 )}
@@ -178,24 +178,24 @@ export default function OffboardingChecklistPage() {
       </div>
 
       {/* Equipment List */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold">Equipment Return</h2>
+      <div className="bg-card rounded-lg border border-border">
+        <div className="p-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">Equipment Return</h2>
         </div>
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-border">
           {checklist.equipmentList.length === 0 ? (
-            <div className="p-4 text-gray-500 text-center">No equipment to return</div>
+            <div className="p-4 text-muted-foreground text-center">No equipment to return</div>
           ) : (
             checklist.equipmentList.map((equipment) => (
               <div key={equipment.name} className="p-4 flex justify-between items-center">
                 <div>
-                  <h3 className="font-medium text-gray-900">{equipment.name}</h3>
+                  <h3 className="font-medium text-foreground">{equipment.name}</h3>
                   {equipment.condition && (
-                    <p className="text-sm text-gray-500">Condition: {equipment.condition}</p>
+                    <p className="text-sm text-muted-foreground">Condition: {equipment.condition}</p>
                   )}
                 </div>
                 <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                  equipment.returned ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                  equipment.returned ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
                 }`}>
                   {equipment.returned ? 'Returned' : 'Pending'}
                 </span>
@@ -206,14 +206,14 @@ export default function OffboardingChecklistPage() {
       </div>
 
       {/* Access Card Status */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-card rounded-lg border border-border p-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-semibold">Access Card</h2>
-            <p className="text-sm text-gray-500 mt-1">Employee access card return status</p>
+            <h2 className="text-lg font-semibold text-foreground">Access Card</h2>
+            <p className="text-sm text-muted-foreground mt-1">Employee access card return status</p>
           </div>
           <span className={`px-4 py-2 text-sm font-medium rounded-full ${
-            checklist.cardReturned ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+            checklist.cardReturned ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
           }`}>
             {checklist.cardReturned ? 'Returned' : 'Not Returned'}
           </span>
@@ -222,20 +222,20 @@ export default function OffboardingChecklistPage() {
 
       {/* Pending Items Warning */}
       {completionStatus && !completionStatus.fullyCleared && (
-        <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-          <h3 className="font-medium text-yellow-900">Pending Items</h3>
+        <div className="bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-900/30 p-4 rounded-lg">
+          <h3 className="font-medium text-yellow-900 dark:text-yellow-300">Pending Items</h3>
           {completionStatus.pendingDepartments.length > 0 && (
-            <p className="text-sm text-yellow-800 mt-1">
+            <p className="text-sm text-yellow-800 dark:text-yellow-400 mt-1">
               Pending Departments: {completionStatus.pendingDepartments.join(', ')}
             </p>
           )}
           {completionStatus.pendingEquipment.length > 0 && (
-            <p className="text-sm text-yellow-800 mt-1">
+            <p className="text-sm text-yellow-800 dark:text-yellow-400 mt-1">
               Pending Equipment: {completionStatus.pendingEquipment.join(', ')}
             </p>
           )}
           {!completionStatus.cardReturned && (
-            <p className="text-sm text-yellow-800 mt-1">Access card has not been returned</p>
+            <p className="text-sm text-yellow-800 dark:text-yellow-400 mt-1">Access card has not been returned</p>
           )}
         </div>
       )}

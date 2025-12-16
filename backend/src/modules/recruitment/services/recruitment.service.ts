@@ -49,6 +49,9 @@ export class RecruitmentService {
     }
 
     async createJobTemplate(dto: CreateJobTemplateDto): Promise<JobTemplate> {
+
+
+
         const template = new this.jobTemplateModel(dto);
         return template.save();
     }

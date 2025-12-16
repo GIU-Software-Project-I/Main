@@ -20,6 +20,9 @@ async function bootstrap() {
 
     app.use(cookieParser());
 
+    app.use(express.json({ limit: '50mb' }));
+    app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
     app.useGlobalPipes(new ValidationPipe({ whitelist: false, transform: true }));
 
     // app.enableCors({
@@ -47,7 +50,8 @@ app.enableCors({
             'http://localhost:500',
             'http://localhost:8000',
             'http://172.24.0.1:8000',
-            'http://172.30.64.1:8000'
+            'http://172.30.64.1:8000',
+            'http://192.168.21.1:8000'
         ],
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

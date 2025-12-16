@@ -85,6 +85,83 @@ export class OffboardingService {
         [TerminationStatus.REJECTED]: [],
     };
 
+    // ============================================================
+    // OFF-001: Get Employee Performance Summary for Termination Review
+    // HR Manager reviews performance data before initiating termination
+    // ============================================================
+
+    /**
+     * OFF-001: Get employee performance summary for termination review
+     * Returns performance data from Performance Management module
+     * Helps HR Manager make informed decision about termination
+     */
+    async getEmployeePerformanceForTermination(employeeId: string): Promise<{
+        employeeId: string;
+        employeeName: string;
+        employeeStatus: string;
+        performanceData: {
+            hasPublishedAppraisals: boolean;
+            totalAppraisals: number;
+            averageScore: number | null;
+            lowScoreCount: number;
+            latestAppraisal?: {
+                cycleId?: any;
+                totalScore?: number;
+                publishedAt?: Date;
+            };
+        };
+        terminationJustification: {
+            isJustified: boolean;
+            warnings: string[];
+        };
+        recommendation: string;
+    }> {
+        this.validateObjectId(employeeId, 'employeeId');
+
+        const employee = await this.sharedRecruitmentService.validateEmployeeExists(employeeId);
+        const employeeName = employee.fullName || `${employee.firstName} ${employee.lastName}`;
+
+        // Get performance data from Performance Management
+        const justification = await this.sharedRecruitmentService.validateTerminationJustification(
+            employeeId,
+            'hr' // Check as if HR initiated
+        );
+
+        // Determine recommendation based on performance data
+        let recommendation: string;
+        if (justification.performanceData.lowScoreAppraisals?.length > 0) {
+            recommendation = 'Termination may be justified based on documented low performance scores.';
+        } else if (!justification.performanceData.hasPublishedAppraisals) {
+            recommendation = 'No performance data available. Document performance issues before proceeding with termination.';
+        } else if (justification.performanceData.averageScore !== null && justification.performanceData.averageScore >= 70) {
+            recommendation = 'Employee has satisfactory performance. Ensure termination reason is clearly documented and follows due process.';
+        } else {
+            recommendation = 'Review performance data carefully before proceeding with termination.';
+        }
+
+        return {
+            employeeId,
+            employeeName,
+            employeeStatus: employee.status,
+            performanceData: {
+                hasPublishedAppraisals: justification.performanceData.hasPublishedAppraisals,
+                totalAppraisals: justification.performanceData.totalAppraisals,
+                averageScore: justification.performanceData.averageScore,
+                lowScoreCount: justification.performanceData.lowScoreAppraisals?.length || 0,
+                latestAppraisal: justification.performanceData.latestAppraisal ? {
+                    cycleId: justification.performanceData.latestAppraisal.cycleId,
+                    totalScore: justification.performanceData.latestAppraisal.totalScore,
+                    publishedAt: justification.performanceData.latestAppraisal.hrPublishedAt,
+                } : undefined,
+            },
+            terminationJustification: {
+                isJustified: justification.isJustified,
+                warnings: justification.warnings,
+            },
+            recommendation,
+        };
+    }
+
     async createTerminationRequest(dto: CreateTerminationRequestDto): Promise<TerminationRequest & { performanceWarnings?: string[] }> {
         this.validateObjectId(dto.employeeId, 'employeeId');
         this.validateObjectId(dto.contractId, 'contractId');
@@ -144,6 +221,22 @@ export class OffboardingService {
         });
 
         const savedRequest = await terminationRequest.save();
+
+        // Notify HR about new termination request
+        const employeeName = employee.fullName || `${employee.firstName} ${employee.lastName}`;
+        await this.sharedRecruitmentService.notifyHRUsers(
+            'TERMINATION_REQUEST_CREATED',
+            `New termination request created for ${employeeName}. Initiator: ${dto.initiator}. Reason: ${dto.reason}. Status: Pending review.`,
+        );
+
+        // If HR/Manager initiated, notify the employee
+        if (dto.initiator === TerminationInitiation.HR || dto.initiator === TerminationInitiation.MANAGER) {
+            await this.sharedRecruitmentService.createNotification(
+                dto.employeeId,
+                'TERMINATION_NOTICE',
+                `A termination review has been initiated for your employment. Reason: ${dto.reason}. Please contact HR for more information.`,
+            );
+        }
 
         const result: any = savedRequest.toObject();
         if (justification.warnings.length > 0) {
@@ -227,6 +320,10 @@ export class OffboardingService {
         return request;
     }
 
+    /**
+     * Update termination/resignation request status
+     * Sends appropriate notifications at each step
+     */
     async updateTerminationStatus(id: string, dto: UpdateTerminationStatusDto): Promise<TerminationRequest> {
         this.validateObjectId(id, 'id');
 
@@ -255,26 +352,83 @@ export class OffboardingService {
 
         const savedRequest = await request.save();
 
-        if (dto.status === TerminationStatus.APPROVED) {
-            const employee = await this.sharedRecruitmentService.validateEmployeeExists(request.employeeId.toString());
+        // Get employee details for notifications
+        const employee = await this.sharedRecruitmentService.validateEmployeeExists(request.employeeId.toString());
+        const employeeName = employee.fullName || `${employee.firstName} ${employee.lastName}`;
+        const isResignation = request.initiator === TerminationInitiation.EMPLOYEE;
+
+        // Notifications based on status transition
+        if (newStatus === TerminationStatus.UNDER_REVIEW) {
+            // Notify employee
+            await this.sharedRecruitmentService.createNotification(
+                request.employeeId.toString(),
+                'REQUEST_UNDER_REVIEW',
+                `Your ${isResignation ? 'resignation' : 'termination'} request is now under review.`,
+            );
+
+            // Notify HR
+            await this.sharedRecruitmentService.notifyHRUsers(
+                'REQUEST_UNDER_REVIEW',
+                `${isResignation ? 'Resignation' : 'Termination'} request for ${employeeName} is now under review.`,
+            );
+
+            this.logger.log(`${isResignation ? 'Resignation' : 'Termination'} request ${id} moved to UNDER_REVIEW`);
+        } else if (newStatus === TerminationStatus.APPROVED) {
+            // Notify employee
+            await this.sharedRecruitmentService.createNotification(
+                request.employeeId.toString(),
+                'REQUEST_APPROVED',
+                `Your ${isResignation ? 'resignation' : 'termination'} request has been approved. ${request.terminationDate ? `Your last working day is ${request.terminationDate.toLocaleDateString()}.` : 'HR will contact you regarding next steps.'}`,
+            );
+
+            // Notify HR to create clearance checklist
+            await this.sharedRecruitmentService.notifyHRUsers(
+                'REQUEST_APPROVED',
+                `${isResignation ? 'Resignation' : 'Termination'} APPROVED for ${employeeName}. ${request.terminationDate ? `Last day: ${request.terminationDate.toLocaleDateString()}.` : ''} Please create clearance checklist.`,
+            );
+
+            // General notification for termination approved
             await this.sharedRecruitmentService.notifyTerminationApproved({
                 employeeId: request.employeeId.toString(),
-                employeeName: employee.fullName || `${employee.firstName} ${employee.lastName}`,
+                employeeName,
                 terminationDate: request.terminationDate,
                 initiator: request.initiator,
             });
+
+            this.logger.log(`${isResignation ? 'Resignation' : 'Termination'} request ${id} APPROVED`);
+        } else if (newStatus === TerminationStatus.REJECTED) {
+            // Notify employee
+            await this.sharedRecruitmentService.createNotification(
+                request.employeeId.toString(),
+                'REQUEST_REJECTED',
+                `Your ${isResignation ? 'resignation' : 'termination'} request has been rejected. ${dto.hrComments ? `Reason: ${dto.hrComments}` : 'Please contact HR for more information.'}`,
+            );
+
+            // Notify HR
+            await this.sharedRecruitmentService.notifyHRUsers(
+                'REQUEST_REJECTED',
+                `${isResignation ? 'Resignation' : 'Termination'} request for ${employeeName} has been REJECTED. ${dto.hrComments ? `Comments: ${dto.hrComments}` : ''}`,
+            );
+
+            this.logger.log(`${isResignation ? 'Resignation' : 'Termination'} request ${id} REJECTED`);
         }
 
         return savedRequest;
     }
+
+    // ============================================================
+    // OFF-018: Employee Resignation Request
+    // BR 6: Employee separation triggered by resignation
+    // ============================================================
 
     async createResignationRequest(dto: CreateResignationRequestDto): Promise<TerminationRequest> {
         this.validateObjectId(dto.employeeId, 'employeeId');
         this.validateObjectId(dto.contractId, 'contractId');
 
         const employee = await this.sharedRecruitmentService.validateEmployeeExists(dto.employeeId);
+        const employeeName = employee.fullName || `${employee.firstName} ${employee.lastName}`;
 
-        if (employee.status === 'TERMINATED') {
+        if (employee.status === EmployeeStatus.TERMINATED) {
             throw new BadRequestException('Cannot create resignation request for already terminated employee');
         }
 
@@ -306,7 +460,7 @@ export class OffboardingService {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             if (terminationDate < today) {
-                throw new BadRequestException('Termination date cannot be in the past');
+                throw new BadRequestException('Resignation date cannot be in the past');
             }
         }
 
@@ -320,16 +474,107 @@ export class OffboardingService {
             contractId: new Types.ObjectId(dto.contractId),
         });
 
-        return resignationRequest.save();
+        const savedRequest = await resignationRequest.save();
+
+        // Notify the employee (confirmation)
+        await this.sharedRecruitmentService.createNotification(
+            dto.employeeId,
+            'RESIGNATION_SUBMITTED',
+            `Your resignation request has been submitted successfully. Reason: ${dto.reason}. ${dto.terminationDate ? `Proposed last working day: ${new Date(dto.terminationDate).toLocaleDateString()}` : 'Please wait for HR to set your last working day.'}`,
+        );
+
+        // Notify HR about new resignation
+        await this.sharedRecruitmentService.notifyHRUsers(
+            'RESIGNATION_REQUEST_SUBMITTED',
+            `New resignation request from ${employeeName}. Reason: ${dto.reason}. ${dto.terminationDate ? `Proposed date: ${new Date(dto.terminationDate).toLocaleDateString()}` : ''} Status: Pending review.`,
+        );
+
+        this.logger.log(`Resignation request created for ${employeeName} (${dto.employeeId})`);
+
+        return savedRequest;
     }
+
+    // ============================================================
+    // OFF-019: Track Resignation Request Status
+    // ============================================================
 
     async getResignationRequestByEmployeeId(employeeId: string): Promise<TerminationRequest[]> {
         this.validateObjectId(employeeId, 'employeeId');
 
-        return this.terminationRequestModel.find({employeeId: new Types.ObjectId(employeeId), initiator: TerminationInitiation.EMPLOYEE}).sort({ createdAt: -1 }).exec();
+        return this.terminationRequestModel
+            .find({ employeeId: new Types.ObjectId(employeeId), initiator: TerminationInitiation.EMPLOYEE })
+            .populate('contractId')
+            .sort({ createdAt: -1 })
+            .exec();
     }
 
-    async createClearanceChecklist(dto: CreateClearanceChecklistDto): Promise<ClearanceChecklist> {
+    /**
+     * OFF-019: Get resignation status for tracking
+     */
+    async getResignationStatusWithWorkflow(employeeId: string): Promise<{
+        employeeId: string;
+        hasActiveRequest: boolean;
+        activeRequest?: {
+            requestId: string;
+            reason: string;
+            submittedAt: Date;
+            proposedLastDay?: Date;
+            status: TerminationStatus;
+            hrComments?: string;
+        };
+        history: {
+            requestId: string;
+            reason: string;
+            status: TerminationStatus;
+            submittedAt: Date;
+            resolvedAt?: Date;
+        }[];
+    }> {
+        this.validateObjectId(employeeId, 'employeeId');
+
+        await this.sharedRecruitmentService.validateEmployeeExists(employeeId);
+
+        const allRequests = await this.terminationRequestModel
+            .find({ employeeId: new Types.ObjectId(employeeId), initiator: TerminationInitiation.EMPLOYEE })
+            .sort({ createdAt: -1 })
+            .exec();
+
+        const activeRequest = allRequests.find(
+            r => r.status === TerminationStatus.PENDING || r.status === TerminationStatus.UNDER_REVIEW
+        );
+
+        // Build history from past requests
+        const history = allRequests
+            .filter(r => r.status === TerminationStatus.APPROVED || r.status === TerminationStatus.REJECTED)
+            .map(r => ({
+                requestId: r._id.toString(),
+                reason: r.reason,
+                status: r.status,
+                submittedAt: (r as any).createdAt,
+                resolvedAt: (r as any).updatedAt,
+            }));
+
+        return {
+            employeeId,
+            hasActiveRequest: !!activeRequest,
+            activeRequest: activeRequest ? {
+                requestId: activeRequest._id.toString(),
+                reason: activeRequest.reason,
+                submittedAt: (activeRequest as any).createdAt,
+                proposedLastDay: activeRequest.terminationDate,
+                status: activeRequest.status,
+                hrComments: activeRequest.hrComments,
+            } : undefined,
+            history,
+        };
+    }
+
+    // ============================================================
+    // OFF-006: Create Offboarding Checklist
+    // BR 13(a): Clearance checklist required for IT assets, ID cards, equipment
+    // ============================================================
+
+    async createClearanceChecklist(dto: CreateClearanceChecklistDto): Promise<ClearanceChecklist & { employeeName?: string }> {
         this.validateObjectId(dto.terminationId, 'terminationId');
 
         const termination = await this.terminationRequestModel.findById(dto.terminationId).exec();
@@ -349,6 +594,11 @@ export class OffboardingService {
             throw new ConflictException('Clearance checklist already exists for this termination request');
         }
 
+        // Get employee details for notifications
+        const employee = await this.sharedRecruitmentService.validateEmployeeExists(termination.employeeId.toString());
+        const employeeName = employee.fullName || `${employee.firstName} ${employee.lastName}`;
+
+        // BR 13(b,c): Default departments for clearance - IT, Finance, Facilities, HR, Admin
         const defaultDepartments = ['IT', 'Finance', 'Facilities', 'HR', 'Admin'];
         const items = dto.items && dto.items.length > 0
             ? dto.items.map(item => ({
@@ -368,7 +618,7 @@ export class OffboardingService {
         const equipmentList = dto.equipmentList?.map(equip => ({
             equipmentId: equip.equipmentId ? new Types.ObjectId(equip.equipmentId) : undefined,
             name: equip.name,
-            returned: equip.returned,
+            returned: equip.returned ?? false,
             condition: equip.condition || '',
         })) || [];
 
@@ -379,7 +629,32 @@ export class OffboardingService {
             cardReturned: dto.cardReturned || false,
         });
 
-        return checklist.save();
+        const savedChecklist = await checklist.save();
+
+        // Notify employee about clearance checklist
+        await this.sharedRecruitmentService.createNotification(
+            termination.employeeId.toString(),
+            'CLEARANCE_CHECKLIST_CREATED',
+            `Your offboarding clearance checklist has been created. Please coordinate with IT, Finance, Facilities, HR, and Admin departments to complete all clearance requirements and return company property.`,
+        );
+
+        // Notify HR about new clearance checklist
+        await this.sharedRecruitmentService.notifyHRUsers(
+            'CLEARANCE_CHECKLIST_CREATED',
+            `Clearance checklist created for ${employeeName}. Departments to clear: ${items.map(i => i.department).join(', ')}. Equipment items: ${equipmentList.length}.`,
+        );
+
+        // Notify IT department specifically for access revocation preparation
+        await this.sharedRecruitmentService.notifyITAdmins(
+            'CLEARANCE_PENDING_IT',
+            `IT clearance pending for ${employeeName}. Please prepare for system access revocation and collect IT equipment.`,
+        );
+
+        this.logger.log(`Clearance checklist created for termination ${dto.terminationId}`);
+
+        const result: any = savedChecklist.toObject();
+        result.employeeName = employeeName;
+        return result;
     }
 
     async getClearanceChecklistByTerminationId(terminationId: string): Promise<ClearanceChecklist> {
@@ -408,7 +683,20 @@ export class OffboardingService {
         return checklist;
     }
 
-    async updateClearanceItem(checklistId: string, dto: UpdateClearanceItemDto): Promise<ClearanceChecklist> {
+    // ============================================================
+    // OFF-010: Multi-department Exit Clearance Sign-offs
+    // BR 13(b,c): Clearance across IT, Finance, Facilities, HR, Admin
+    // BR 14: Final approvals filed to HR
+    // ============================================================
+
+    async updateClearanceItem(checklistId: string, dto: UpdateClearanceItemDto): Promise<{
+        checklist: ClearanceChecklist;
+        departmentCleared: boolean;
+        allDepartmentsCleared: boolean;
+        fullyCleared: boolean;
+        pendingDepartments: string[];
+        filedToHR: boolean;
+    }> {
         this.validateObjectId(checklistId, 'checklistId');
 
         const checklist = await this.clearanceChecklistModel.findById(checklistId).populate('terminationId').exec();
@@ -428,6 +716,8 @@ export class OffboardingService {
             throw new NotFoundException(`Department ${dto.department} not found in clearance checklist`);
         }
 
+        const previousStatus = checklist.items[itemIndex].status;
+
         checklist.items[itemIndex] = {
             department: dto.department,
             status: dto.status,
@@ -438,19 +728,79 @@ export class OffboardingService {
 
         const updated = await checklist.save();
 
-        const allApproved = checklist.items.every(item => item.status === ApprovalStatus.APPROVED);
-        const allEquipmentReturned = checklist.equipmentList.every(item => item.returned);
+        // Get employee details for notifications
+        const employee = await this.sharedRecruitmentService.validateEmployeeExists(termination.employeeId.toString());
+        const employeeName = employee.fullName || `${employee.firstName} ${employee.lastName}`;
 
-        if (allApproved && allEquipmentReturned && checklist.cardReturned) {
-            const employee = await this.sharedRecruitmentService.validateEmployeeExists(termination.employeeId.toString());
-            await this.sharedRecruitmentService.notifyClearanceComplete({
-                employeeId: termination.employeeId.toString(),
-                employeeName: employee.fullName || `${employee.firstName} ${employee.lastName}`,
-                terminationId: termination._id.toString(),
-            });
+        // Check clearance status
+        const allDepartmentsCleared = checklist.items.every(item => item.status === ApprovalStatus.APPROVED);
+        const allEquipmentReturned = checklist.equipmentList.length === 0 || checklist.equipmentList.every(item => item.returned);
+        const fullyCleared = allDepartmentsCleared && allEquipmentReturned && checklist.cardReturned;
+
+        const pendingDepartments = checklist.items
+            .filter(item => item.status !== ApprovalStatus.APPROVED)
+            .map(item => item.department);
+
+        // Notify when department signs off (status changed)
+        if (previousStatus !== dto.status) {
+            if (dto.status === ApprovalStatus.APPROVED) {
+                // Notify HR about department approval
+                await this.sharedRecruitmentService.notifyHRUsers(
+                    'DEPARTMENT_CLEARANCE_APPROVED',
+                    `${dto.department} department has approved clearance for ${employeeName}. ${pendingDepartments.length > 0 ? `Pending: ${pendingDepartments.join(', ')}` : 'All departments cleared!'}`,
+                );
+
+                // Notify employee
+                await this.sharedRecruitmentService.createNotification(
+                    termination.employeeId.toString(),
+                    'DEPARTMENT_CLEARANCE_APPROVED',
+                    `${dto.department} department has approved your clearance. ${pendingDepartments.length > 0 ? `Still pending: ${pendingDepartments.join(', ')}` : 'All departments have cleared you!'}`,
+                );
+
+                this.logger.log(`${dto.department} cleared for ${employeeName} (termination: ${termination._id})`);
+            } else if (dto.status === ApprovalStatus.REJECTED) {
+                // Notify HR about rejection
+                await this.sharedRecruitmentService.notifyHRUsers(
+                    'DEPARTMENT_CLEARANCE_REJECTED',
+                    `${dto.department} department has REJECTED clearance for ${employeeName}. Comments: ${dto.comments || 'None'}`,
+                );
+
+                // Notify employee
+                await this.sharedRecruitmentService.createNotification(
+                    termination.employeeId.toString(),
+                    'DEPARTMENT_CLEARANCE_REJECTED',
+                    `${dto.department} department has flagged an issue with your clearance. Please contact them to resolve. Comments: ${dto.comments || 'None'}`,
+                );
+            }
         }
 
-        return updated;
+        // BR 14: File final approvals to HR when fully cleared
+        let filedToHR = false;
+        if (fullyCleared) {
+            await this.sharedRecruitmentService.notifyClearanceComplete({
+                employeeId: termination.employeeId.toString(),
+                employeeName,
+                terminationId: termination._id.toString(),
+            });
+
+            // BR 14: Final approvals filed to HR
+            await this.sharedRecruitmentService.notifyHRUsers(
+                'CLEARANCE_COMPLETE_FILED',
+                `🎉 CLEARANCE COMPLETE: ${employeeName} has been fully cleared by all departments. All equipment returned. Access card returned. Final settlement can now proceed. This record has been filed to HR.`,
+            );
+
+            filedToHR = true;
+            this.logger.log(`Full clearance complete for ${employeeName} - filed to HR`);
+        }
+
+        return {
+            checklist: updated,
+            departmentCleared: dto.status === ApprovalStatus.APPROVED,
+            allDepartmentsCleared,
+            fullyCleared,
+            pendingDepartments,
+            filedToHR,
+        };
     }
 
     async updateEquipmentItem(checklistId: string, equipmentName: string, dto: UpdateEquipmentItemDto): Promise<ClearanceChecklist> {
@@ -537,6 +887,82 @@ export class OffboardingService {
         return {checklistId, allDepartmentsCleared, allEquipmentReturned, cardReturned, fullyCleared, pendingDepartments, pendingEquipment,};
     }
 
+    // ============================================================
+    // OFF-007: System and Account Access Revocation
+    // BR 3(c), 19: Access revocation for security
+    // ============================================================
+
+    /**
+     * OFF-007: Get employees pending access revocation
+     * Returns employees with approved termination who still have active status
+     */
+    async getEmployeesPendingAccessRevocation(): Promise<{
+        employeeId: string;
+        employeeName: string;
+        employeeNumber: string;
+        workEmail?: string;
+        terminationDate?: Date;
+        terminationReason: string;
+        approvedAt: Date;
+        daysSinceApproval: number;
+        isUrgent: boolean;
+    }[]> {
+        // Find all approved terminations
+        const approvedTerminations = await this.terminationRequestModel
+            .find({ status: TerminationStatus.APPROVED })
+            .sort({ updatedAt: -1 })
+            .exec();
+
+        const pendingRevocations: {
+            employeeId: string;
+            employeeName: string;
+            employeeNumber: string;
+            workEmail?: string;
+            terminationDate?: Date;
+            terminationReason: string;
+            approvedAt: Date;
+            daysSinceApproval: number;
+            isUrgent: boolean;
+        }[] = [];
+
+        for (const termination of approvedTerminations) {
+            const employee = await this.employeeProfileModel.findById(termination.employeeId).exec();
+
+            // Only include if employee still has ACTIVE status (access not yet revoked)
+            if (employee && employee.status !== EmployeeStatus.TERMINATED) {
+                const approvedAt = (termination as any).updatedAt || (termination as any).createdAt;
+                const daysSinceApproval = Math.floor((Date.now() - new Date(approvedAt).getTime()) / (1000 * 60 * 60 * 24));
+
+                // Urgent if termination date has passed or approval > 3 days old
+                const isUrgent = (termination.terminationDate && new Date(termination.terminationDate) <= new Date())
+                    || daysSinceApproval > 3;
+
+                pendingRevocations.push({
+                    employeeId: employee._id.toString(),
+                    employeeName: employee.fullName || `${employee.firstName} ${employee.lastName}`,
+                    employeeNumber: employee.employeeNumber,
+                    workEmail: employee.workEmail,
+                    terminationDate: termination.terminationDate,
+                    terminationReason: termination.reason,
+                    approvedAt,
+                    daysSinceApproval,
+                    isUrgent,
+                });
+            }
+        }
+
+        // Sort by urgency and days since approval
+        return pendingRevocations.sort((a, b) => {
+            if (a.isUrgent && !b.isUrgent) return -1;
+            if (!a.isUrgent && b.isUrgent) return 1;
+            return b.daysSinceApproval - a.daysSinceApproval;
+        });
+    }
+
+    /**
+     * OFF-007: Revoke system and account access
+     * BR 3(c), 19: Security - revoke access upon termination
+     */
     async revokeSystemAccess(dto: RevokeAccessDto): Promise<{
         success: boolean;
         employeeId: string;
@@ -619,6 +1045,129 @@ export class OffboardingService {
         };
     }
 
+    // ============================================================
+    // OFF-013: Final Settlement and Benefits Termination
+    // BR 9, 11: Unused annuals encashed, benefits auto-terminated
+    // ============================================================
+
+    /**
+     * OFF-013: Preview final settlement before triggering
+     * Shows leave encashment and benefit calculations without creating records
+     */
+    async previewFinalSettlement(terminationId: string): Promise<{
+        terminationId: string;
+        employeeId: string;
+        employeeName: string;
+        terminationDate?: Date;
+        clearanceStatus: {
+            hasChecklist: boolean;
+            isComplete: boolean;
+            pendingItems?: string[];
+        };
+        leaveEncashment: {
+            unusedDays: number;
+            dailyRate: number;
+            encashmentAmount: number;
+            leaveDetails: {
+                leaveType: string;
+                entitled: number;
+                taken: number;
+                remaining: number;
+            }[];
+        };
+        terminationBenefit: {
+            hasConfig: boolean;
+            configName?: string;
+            baseAmount: number;
+            totalAmount: number;
+        };
+        canTrigger: boolean;
+        blockers: string[];
+    }> {
+        this.validateObjectId(terminationId, 'terminationId');
+
+        const terminationRequest = await this.terminationRequestModel.findById(terminationId).exec();
+        if (!terminationRequest) {
+            throw new NotFoundException(`Termination request with ID ${terminationId} not found`);
+        }
+
+        const employee = await this.sharedRecruitmentService.validateEmployeeExists(terminationRequest.employeeId.toString());
+        const employeeName = employee.fullName || `${employee.firstName} ${employee.lastName}`;
+        const employeeId = terminationRequest.employeeId.toString();
+
+        const blockers: string[] = [];
+
+        // Check termination status
+        if (terminationRequest.status !== TerminationStatus.APPROVED) {
+            blockers.push(`Termination request is not approved (current: ${terminationRequest.status})`);
+        }
+
+        // Check clearance status
+        const clearanceChecklist = await this.clearanceChecklistModel
+            .findOne({ terminationId: new Types.ObjectId(terminationId) })
+            .exec();
+
+        let clearanceStatus: { hasChecklist: boolean; isComplete: boolean; pendingItems?: string[] };
+        if (clearanceChecklist) {
+            const completionStatus = await this.getClearanceCompletionStatus(clearanceChecklist._id.toString());
+            clearanceStatus = {
+                hasChecklist: true,
+                isComplete: completionStatus.fullyCleared,
+                pendingItems: [...completionStatus.pendingDepartments, ...completionStatus.pendingEquipment],
+            };
+            if (!completionStatus.fullyCleared) {
+                blockers.push(`Clearance incomplete: ${clearanceStatus.pendingItems?.join(', ')}`);
+            }
+        } else {
+            clearanceStatus = { hasChecklist: false, isComplete: false };
+            blockers.push('No clearance checklist created');
+        }
+
+        // Calculate leave encashment preview
+        const leaveEncashment = await this.calculateLeaveEncashmentDetailed(employeeId);
+
+        // Get termination benefit config
+        const benefitConfig = await this.terminationBenefitsModel.findOne({
+            status: 'approved',
+        }).exec();
+
+        const baseAmount = (benefitConfig as any)?.amount || 0;
+        const totalAmount = baseAmount + leaveEncashment.encashmentAmount;
+
+        const terminationBenefit = {
+            hasConfig: !!benefitConfig,
+            configName: benefitConfig?.name,
+            baseAmount,
+            totalAmount,
+        };
+
+        // Check if already triggered
+        const existingBenefit = await this.employeeTerminationResignationModel.findOne({
+            employeeId: new Types.ObjectId(employeeId),
+            terminationId: new Types.ObjectId(terminationId),
+        }).exec();
+
+        if (existingBenefit) {
+            blockers.push('Final settlement already triggered');
+        }
+
+        return {
+            terminationId,
+            employeeId,
+            employeeName,
+            terminationDate: terminationRequest.terminationDate,
+            clearanceStatus,
+            leaveEncashment,
+            terminationBenefit,
+            canTrigger: blockers.length === 0,
+            blockers,
+        };
+    }
+
+    /**
+     * OFF-013: Trigger final settlement
+     * BR 9, 11: Encash unused leave, terminate benefits
+     */
     async triggerFinalSettlement(dto: TriggerFinalSettlementDto): Promise<{
         success: boolean;
         terminationId: string;
@@ -794,6 +1343,112 @@ export class OffboardingService {
         return {
             unusedDays: totalUnusedDays,
             encashmentAmount,
+        };
+    }
+
+    /**
+     * Detailed leave encashment calculation for preview
+     * Returns breakdown by leave type
+     */
+    private async calculateLeaveEncashmentDetailed(employeeId: string): Promise<{
+        unusedDays: number;
+        dailyRate: number;
+        encashmentAmount: number;
+        leaveDetails: {
+            leaveType: string;
+            entitled: number;
+            taken: number;
+            remaining: number;
+        }[];
+    }> {
+        const leaveDetails: { leaveType: string; entitled: number; taken: number; remaining: number }[] = [];
+
+        // Fetch employee entitlements
+        const entitlements = await this.leaveEntitlementModel.find({
+            employeeId: new Types.ObjectId(employeeId),
+        }).exec();
+
+        if (!entitlements || entitlements.length === 0) {
+            return { unusedDays: 0, dailyRate: 0, encashmentAmount: 0, leaveDetails: [] };
+        }
+
+        // Fetch leave types
+        const leaveTypeIds = entitlements.map(e => e.leaveTypeId);
+        const leaveTypes = await this.leaveTypeModel.find({
+            _id: { $in: leaveTypeIds },
+        }).exec();
+
+        // Calculate total unused days for encashable leave types
+        let totalUnusedDays = 0;
+        for (const entitlement of entitlements) {
+            const leaveType = leaveTypes.find(lt => lt._id.toString() === entitlement.leaveTypeId?.toString());
+
+            const isEncashable = (leaveType as any)?.isEncashable !== false &&
+                                 ((leaveType as any)?.code === 'ANNUAL' ||
+                                  leaveType?.name?.toLowerCase().includes('annual') ||
+                                  (leaveType as any)?.category === 'annual');
+
+            if (isEncashable) {
+                const takenAgg = await this.leaveRequestModel.aggregate([
+                    {
+                        $match: {
+                            employeeId: new Types.ObjectId(employeeId),
+                            leaveTypeId: entitlement.leaveTypeId,
+                            status: LeaveStatus.APPROVED,
+                        },
+                    },
+                    { $group: { _id: null, takenDays: { $sum: '$durationDays' } } },
+                ]);
+
+                const takenDays = takenAgg[0]?.takenDays ?? 0;
+                const accrued = (entitlement as any).accruedRounded ?? (entitlement as any).accruedActual ?? entitlement.yearlyEntitlement ?? 0;
+                const carryForward = (entitlement as any).carryForward ?? 0;
+                const taken = (entitlement as any).taken ?? takenDays;
+                const entitled = accrued + carryForward;
+                const remaining = Math.max(0, entitled - taken);
+
+                totalUnusedDays += remaining;
+
+                leaveDetails.push({
+                    leaveType: leaveType?.name || 'Unknown',
+                    entitled,
+                    taken,
+                    remaining,
+                });
+            }
+        }
+
+        // Calculate daily rate
+        let dailyRate = 0;
+        try {
+            const employeeProfile = await this.employeeProfileModel.findById(employeeId).exec();
+
+            if (employeeProfile?.payGradeId) {
+                const payGradeDoc = await this.payGradeModel.findById(employeeProfile.payGradeId).exec();
+                if (payGradeDoc?.baseSalary) {
+                    dailyRate = payGradeDoc.baseSalary / 22;
+                }
+            }
+
+            if (dailyRate === 0) {
+                const contract = await this.contractModel.findOne({
+                    offerId: { $exists: true },
+                }).sort({ createdAt: -1 }).exec();
+                if (contract?.grossSalary) {
+                    dailyRate = contract.grossSalary / 22;
+                }
+            }
+        } catch (err) {
+            this.logger.warn(`Failed to fetch daily rate for employee ${employeeId}: ${err.message}`);
+        }
+
+        const encashmentAmount = Math.round(totalUnusedDays * dailyRate * 100) / 100;
+
+        return {
+            unusedDays: totalUnusedDays,
+            dailyRate: Math.round(dailyRate * 100) / 100,
+            encashmentAmount,
+            leaveDetails,
         };
     }
 

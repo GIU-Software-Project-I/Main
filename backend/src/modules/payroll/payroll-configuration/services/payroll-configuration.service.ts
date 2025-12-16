@@ -51,9 +51,6 @@ export class PayrollConfigurationService {
         @InjectModel(terminationAndResignationBenefits.name) private terminationBenefitsModel: Model<terminationAndResignationBenefitsDocument>,
         @InjectModel(CompanyWideSettings.name) private companySettingsModel: Model<CompanyWideSettings>,
         @InjectModel(EmployeeProfile.name) private employeeModel: Model<EmployeeProfile>,
-        // private readonly orgStructureService: OrganizationStructureService,
-        // private readonly contractService: OnBoardingService,
-        // private readonly offboardingService: OffBoardingService,
     ) {}
 
     // ========== HELPER METHODS ==========
@@ -1308,4 +1305,7 @@ export class PayrollConfigurationService {
         payGrade.approvedAt = new Date();
         return await payGrade.save();
     }
+
+
 }
+

@@ -1,11 +1,20 @@
 'use client';
 
+import Link from 'next/link';
+
 export default function LegalPolicyAdminPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Legal & Policy Admin Dashboard</h1>
-        <p className="text-slate-600 mt-2">Legal rules and compliance management</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Legal & Policy Admin Dashboard</h1>
+          <p className="text-slate-600 mt-2">Legal rules and compliance management</p>
+        </div>
+        <Link href="/dashboard/department-employee/employee-profile">
+          <button className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            My Profile
+          </button>
+        </Link>
       </div>
 
       {/* Quick Stats */}

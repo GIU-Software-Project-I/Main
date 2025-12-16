@@ -115,68 +115,68 @@ export default function OnboardingChecklistsPage() {
     return (
       <div className="p-8">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-muted rounded w-1/4"></div>
+          <div className="h-64 bg-muted rounded"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-8 space-y-6 bg-background min-h-screen">
       <div className="flex justify-between items-center">
         <div>
           <div className="flex items-center gap-2">
-            <Link href="/dashboard/hr-manager/onboarding" className="text-gray-500 hover:text-gray-700">
+            <Link href="/dashboard/hr-manager/onboarding" className="text-muted-foreground hover:text-foreground">
               Onboarding
             </Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-900">Checklists</span>
+            <span className="text-muted-foreground/50">/</span>
+            <span className="text-foreground">Checklists</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mt-2">Onboarding Checklists</h1>
-          <p className="text-gray-600 mt-1">Create and manage onboarding task checklists (ONB-001)</p>
+          <h1 className="text-2xl font-bold text-foreground mt-2">Onboarding Checklists</h1>
+          <p className="text-muted-foreground mt-1">Create and manage onboarding task checklists (ONB-001)</p>
         </div>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
         >
           {showCreateForm ? 'Cancel' : 'Create Onboarding'}
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
           {error}
         </div>
       )}
 
       {showCreateForm && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Create New Onboarding Checklist</h2>
+        <div className="bg-card rounded-lg border border-border p-6">
+          <h2 className="text-lg font-semibold mb-4 text-foreground">Create New Onboarding Checklist</h2>
           <form onSubmit={handleCreateOnboarding} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Employee ID <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Employee ID <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.employeeId}
                   onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md focus:ring-ring focus:border-ring text-foreground"
                   placeholder="Enter employee ID"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contract ID <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Contract ID <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.contractId}
                   onChange={(e) => setFormData({ ...formData, contractId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md focus:ring-ring focus:border-ring text-foreground"
                   placeholder="Enter contract ID"
                   required
                 />
@@ -184,16 +184,16 @@ export default function OnboardingChecklistsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tasks</label>
+              <label className="block text-sm font-medium text-foreground mb-2">Tasks</label>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {formData.tasks.map((task, index) => (
-                  <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                    <span className="flex-1 text-sm">{task.name}</span>
-                    <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded">{task.department}</span>
+                  <div key={index} className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                    <span className="flex-1 text-sm text-foreground">{task.name}</span>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">{task.department}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveTask(index)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-destructive hover:text-destructive/80"
                     >
                       Remove
                     </button>
@@ -206,13 +206,13 @@ export default function OnboardingChecklistsPage() {
                   type="text"
                   value={newTask.name}
                   onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="flex-1 px-3 py-2 bg-background border border-input rounded-md text-sm text-foreground"
                   placeholder="Task name"
                 />
                 <select
                   value={newTask.department}
                   onChange={(e) => setNewTask({ ...newTask, department: e.target.value })}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="px-3 py-2 bg-background border border-input rounded-md text-sm text-foreground"
                 >
                   <option value="">Department</option>
                   <option value="HR">HR</option>
@@ -224,7 +224,7 @@ export default function OnboardingChecklistsPage() {
                 <button
                   type="button"
                   onClick={handleAddTask}
-                  className="px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
+                  className="px-3 py-2 bg-muted text-foreground rounded-md hover:bg-muted/80 text-sm"
                 >
                   Add Task
                 </button>
@@ -235,14 +235,14 @@ export default function OnboardingChecklistsPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
               >
                 {submitting ? 'Creating...' : 'Create Onboarding'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowCreateForm(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 border border-input text-foreground rounded-md hover:bg-accent"
               >
                 Cancel
               </button>
@@ -251,13 +251,13 @@ export default function OnboardingChecklistsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold">All Onboarding Checklists</h2>
+      <div className="bg-card rounded-lg border border-border">
+        <div className="p-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">All Onboarding Checklists</h2>
         </div>
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-border">
           {onboardings.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-muted-foreground">
               <p>No onboarding checklists found.</p>
               <p className="text-sm mt-1">Create one by clicking the button above.</p>
             </div>
@@ -275,26 +275,28 @@ export default function OnboardingChecklistsPage() {
                 <Link
                   key={onboarding._id}
                   href={`/dashboard/hr-manager/onboarding/employee/${onboarding._id}`}
-                  className="block p-4 hover:bg-gray-50 transition-colors"
+                  className="block p-4 hover:bg-accent transition-colors"
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <h3 className="font-medium text-gray-900">Employee: {employeeIdDisplay}</h3>
+                        <h3 className="font-medium text-foreground">Employee: {employeeIdDisplay}</h3>
                         <span
                           className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                            onboarding.completed ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                            onboarding.completed 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
                           }`}
                         >
                           {onboarding.completed ? 'Completed' : 'In Progress'}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">Contract: {contractIdDisplay}</p>
-                      <p className="text-sm text-gray-500">Tasks: {onboarding.tasks?.length || 0}</p>
+                      <p className="text-sm text-muted-foreground mt-1">Contract: {contractIdDisplay}</p>
+                      <p className="text-sm text-muted-foreground">Tasks: {onboarding.tasks?.length || 0}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">{progress}%</p>
-                      <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
+                      <p className="text-sm font-medium text-foreground">{progress}%</p>
+                      <div className="w-24 bg-muted rounded-full h-2 mt-1">
                         <div
                           className={`h-2 rounded-full ${onboarding.completed ? 'bg-green-500' : 'bg-blue-500'}`}
                           style={{ width: `${progress}%` }}
@@ -310,9 +312,9 @@ export default function OnboardingChecklistsPage() {
       </div>
 
       {/* Business Rules Reference */}
-      <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Business Rules Reference</h2>
-        <ul className="space-y-2 text-sm text-gray-600">
+      <div className="bg-muted/40 rounded-lg border border-border p-6">
+        <h2 className="text-lg font-semibold mb-4 text-foreground">Business Rules Reference</h2>
+        <ul className="space-y-2 text-sm text-muted-foreground">
           <li><strong>BR 8, BR 11:</strong> Onboarding checklists should be customizable with department-specific tasks</li>
           <li><strong>BR 9(a):</strong> Auto tasks for HR - payroll and benefits creation</li>
           <li><strong>BR 9(b):</strong> Auto tasks for IT - email, laptop, system access allocation</li>

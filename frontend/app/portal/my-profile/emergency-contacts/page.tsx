@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/app/context/AuthContext';
 import { employeeProfileService } from '@/app/services/employee-profile';
-import Button from '@/app/components/ui/Button';
-import Input from '@/app/components/ui/Input';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
 
 export default function EmergencyContactsPage() {
     const { user } = useAuth();
@@ -129,7 +129,7 @@ export default function EmergencyContactsPage() {
                             + Add Emergency Contact
                         </Button>
                     )}
-                    <Link href="/dashboard/department-employee/employee-profile">
+                    <Link href="/shadcn-dashboard-landing-template/nextjs-version/employee-profile">
                         <Button variant="outline">
                             Back to Profile
                         </Button>
