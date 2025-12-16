@@ -1,235 +1,406 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { employeeProfileService } from '@/app/services/employee-profile';
+import { timeManagementService, AttendanceCorrectionRequest, AttendanceRecord } from '@/app/services/time-management';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { Textarea } from '@/app/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/app/components/ui/dialog';
+import { Badge } from '@/app/components/ui/badge';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
 import Link from 'next/link';
 import { useAuth } from '@/app/context/AuthContext';
-import { employeeProfileService } from '@/app/services/employee-profile';
 
-export default function ProfileCorrectionsPage() {
+export default function CorrectionRequestsPage() {
   const { user } = useAuth();
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [requests, setRequests] = useState<AttendanceCorrectionRequest[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [viewRequest, setViewRequest] = useState<AttendanceCorrectionRequest | null>(null);
 
-  const [formData, setFormData] = useState({
-    field: '',
-    currentValue: '',
-    requestedValue: '',
-    reason: '',
-    supportingDocument: null as File | null,
-  });
+  // Dialog State
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Form State
+  const [selectedRecordId, setSelectedRecordId] = useState<string>('');
+  const [reason, setReason] = useState('');
+  const [correctedDate, setCorrectedDate] = useState('');
+  const [correctedTime, setCorrectedTime] = useState('');
+
+  const [activeTab, setActiveTab] = useState("profile");
+  const [profileRequests, setProfileRequests] = useState<any[]>([]);
+
+  useEffect(() => {
+    const init = async () => {
+      if (!user?.id) return;
+      try {
+        setLoading(true);
+        // Use the user ID from auth context directly for better reliability in portal
+        const empId = user.id;
+        setEmployeeId(empId);
+
+        // Fetch Attendance Corrections
+        const attendanceRes = await timeManagementService.getEmployeeCorrections(empId);
+        setRequests(attendanceRes.data || []);
+
+        // Fetch Profile Corrections
+        const profileReqRes = await employeeProfileService.getMyCorrectionRequests(empId);
+        if (profileReqRes.error || !profileReqRes.data) {
+          throw new Error(profileReqRes.error || "Failed to fetch profile correction requests");
+        }
+        const profileData = profileReqRes.data;
+        if (Array.isArray(profileData)) {
+          setProfileRequests(profileData);
+        } else if (profileData && typeof profileData === 'object') {
+          // Handle paginated response { data: [...] } or { items: [...] }
+          if (Array.isArray((profileData as any).data)) {
+            setProfileRequests((profileData as any).data);
+          } else if (Array.isArray((profileData as any).items)) {
+            setProfileRequests((profileData as any).items);
+          } else {
+            setProfileRequests([]);
+          }
+        } else {
+          setProfileRequests([]);
+        }
+
+        // Fetch Attendance Records for dropdown
+        const now = new Date();
+        const recordsRes = await timeManagementService.getMonthlyAttendance(empId, now.getMonth() + 1, now.getFullYear());
+        setAttendanceRecords(recordsRes.data || []);
+
+      } catch (error) {
+        console.error("Failed to load data", error);
+        toast.error("Failed to load requests");
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    if (!user?.id) {
-      setError('Unable to determine user identity');
-      return;
-    }
-
-    if (!formData.field || !formData.requestedValue || !formData.reason) {
-      setError('Please fill in all required fields');
+    if (!employeeId || !selectedRecordId || !reason || !correctedDate || !correctedTime) {
+      toast.error("Please fill all fields");
       return;
     }
 
     try {
-      setLoading(true);
-      const response = await employeeProfileService.submitCorrectionRequest(user.id, {
-        field: formData.field,
-        currentValue: formData.currentValue,
-        requestedValue: formData.requestedValue,
-        reason: formData.reason,
+      setSubmitting(true);
+      // Format date to dd/MM/yyyy as required by backend
+      const dateObj = new Date(correctedDate);
+      const formattedDate = format(dateObj, 'dd/MM/yyyy');
+
+      await timeManagementService.requestAttendanceCorrection({
+        employeeId,
+        attendanceRecordId: selectedRecordId,
+        reason,
+        correctedPunchDate: formattedDate,
+        correctedPunchLocalTime: correctedTime
       });
 
-      if (response.error) {
-        throw new Error(response.error);
-      }
+      toast.success("Correction request submitted successfully");
 
-      setSuccess(true);
-      setTimeout(() => {
-        router.push('/portal/my-profile');
-      }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit correction request');
+      // Refresh requests
+      const requestsRes = await timeManagementService.getEmployeeCorrections(employeeId);
+      setRequests(requestsRes.data || []);
+
+      setIsDialogOpen(false);
+      // Reset form
+      setSelectedRecordId('');
+      setReason('');
+      setCorrectedDate('');
+      setCorrectedTime('');
+
+    } catch (error: any) {
+      console.error("Failed to submit request", error);
+      toast.error(error.response?.data?.message || "Failed to submit request");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  if (success) {
-    return (
-      <div className="p-6 lg:p-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-semibold text-green-800">Request Submitted</h2>
-            <p className="text-green-600 mt-2">Your correction request has been submitted for review.</p>
-            <p className="text-sm text-green-500 mt-4">Redirecting to My Profile...</p>
-          </div>
-        </div>
-      </div>
-    );
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'APPROVED': return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Approved</Badge>;
+      case 'REJECTED': return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Rejected</Badge>;
+      case 'SUBMITTED': return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Submitted</Badge>;
+      case 'IN_REVIEW': return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">In Review</Badge>;
+      default: return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  if (loading) {
+    return <div className="p-8 flex justify-center">Loading...</div>;
   }
 
-  const fieldOptions = [
-    { value: 'firstName', label: 'First Name' },
-    { value: 'lastName', label: 'Last Name' },
-    { value: 'dateOfBirth', label: 'Date of Birth' },
-    { value: 'nationalId', label: 'National ID' },
-    { value: 'jobTitle', label: 'Job Title' },
-    { value: 'department', label: 'Department' },
-    { value: 'hireDate', label: 'Hire Date' },
-    { value: 'employmentType', label: 'Employment Type' },
-    { value: 'other', label: 'Other (specify in reason)' },
-  ];
-
   return (
-    <div className="p-6 lg:p-8">
-      <div className="max-w-2xl mx-auto space-y-6">
-        {/* Header */}
+    <div className="space-y-6 max-w-6xl mx-auto p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <Link
-            href="/portal/my-profile"
-            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to My Profile
-          </Link>
-          <h1 className="text-2xl lg:text-3xl font-semibold text-gray-900">Request Profile Correction</h1>
-          <p className="text-gray-500 mt-1">Submit a request to correct information on your profile</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Correction Requests</h1>
+          <p className="text-slate-500 mt-2">Manage your profile and attendance correction requests.</p>
         </div>
+        {activeTab === 'attendance' && (
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-slate-900 text-white hover:bg-slate-800 shadow-sm">
+                + New Attendance Request
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Submit Correction Request</DialogTitle>
+                <DialogDescription>
+                  Request a correction for an incorrect or missing punch.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="record">Attendance Record</Label>
+                  <Select value={selectedRecordId} onValueChange={setSelectedRecordId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a date" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {attendanceRecords.map((record) => {
+                        const dateStr = record.createdAt ? new Date(record.createdAt).toLocaleDateString() : 'Unknown Date';
+                        const punches = record.punches || [];
+                        const punchesStr = punches.map(p => `${p.type} ${new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`).join(', ');
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error}
-          </div>
+                        return (
+                          <SelectItem key={record._id} value={record._id}>
+                            {dateStr} - {punchesStr || 'No Punches'}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Corrected Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={correctedDate}
+                      onChange={(e) => setCorrectedDate(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="time">Corrected Time</Label>
+                    <Input
+                      id="time"
+                      type="time"
+                      value={correctedTime}
+                      onChange={(e) => setCorrectedTime(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="reason">Reason</Label>
+                  <Textarea
+                    id="reason"
+                    placeholder="Explain why this correction is needed..."
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? 'Submitting...' : 'Submit Request'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         )}
-
-        {/* Info Notice */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex gap-3">
-            <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-blue-800">About Correction Requests</p>
-              <p className="text-sm text-blue-700 mt-1">
-                Correction requests are reviewed by HR. You may be asked to provide supporting documentation.
-                Simple contact info changes can be made directly from the Edit Profile page.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
-          {/* Field Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Field to Correct *</label>
-            <select
-              value={formData.field}
-              onChange={(e) => setFormData({ ...formData, field: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            >
-              <option value="">Select a field</option>
-              {fieldOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Current Value */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Current Value</label>
-            <input
-              type="text"
-              value={formData.currentValue}
-              onChange={(e) => setFormData({ ...formData, currentValue: e.target.value })}
-              placeholder="What is currently shown on your profile"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {/* Requested Value */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Correct Value *</label>
-            <input
-              type="text"
-              value={formData.requestedValue}
-              onChange={(e) => setFormData({ ...formData, requestedValue: e.target.value })}
-              placeholder="What the value should be"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
-          </div>
-
-          {/* Reason */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Reason for Correction *</label>
-            <textarea
-              value={formData.reason}
-              onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-              placeholder="Please explain why this correction is needed..."
-              rows={4}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-              required
-            />
-          </div>
-
-          {/* File Upload */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Supporting Document (Optional)</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-              <input
-                type="file"
-                onChange={(e) => setFormData({ ...formData, supportingDocument: e.target.files?.[0] || null })}
-                className="hidden"
-                id="file-upload"
-                accept=".pdf,.jpg,.jpeg,.png"
-              />
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <svg className="w-10 h-10 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <p className="text-sm text-gray-600">
-                  {formData.supportingDocument
-                    ? formData.supportingDocument.name
-                    : 'Click to upload or drag and drop'}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">PDF, JPG, PNG up to 10MB</p>
-              </label>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-            <Link
-              href="/portal/my-profile"
-              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </Link>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Submitting...' : 'Submit Request'}
-            </button>
-          </div>
-        </form>
+        {activeTab === 'profile' && (
+          <Link href="/portal/my-profile/edit">
+            <Button className="bg-slate-900 text-white hover:bg-slate-800 shadow-sm">
+              + New Profile Correction
+            </Button>
+          </Link>
+        )}
       </div>
+
+      <Tabs defaultValue="profile" className="w-full" onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+          <TabsTrigger value="profile">Profile Data</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile" className="mt-6">
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle>Profile Data Corrections</CardTitle>
+              <CardDescription>Requests to change your personal or employment details.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {profileRequests.length === 0 ? (
+                <div className="text-center py-10 text-slate-500">
+                  No profile correction requests found.
+                </div>
+              ) : (
+                <div className="rounded-md border border-slate-200 overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-slate-50">
+                      <TableRow>
+                        <TableHead>Date Requested</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {profileRequests.map((req) => (
+                        <TableRow key={req._id}>
+                          <TableCell>
+                            {req.createdAt ? new Date(req.createdAt).toLocaleDateString() : '-'}
+                          </TableCell>
+                          <TableCell className="max-w-[300px] truncate" title={req.requestDescription}>
+                            {req.requestDescription || "No description"}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(req.status)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="attendance" className="mt-6">
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle>Attendance Correction History</CardTitle>
+              <CardDescription>View the status of your submitted attendance requests.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {requests.length === 0 ? (
+                <div className="text-center py-10 text-slate-500">
+                  No attendance correction requests found.
+                </div>
+              ) : (
+                <div className="rounded-md border border-slate-200 overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-slate-50">
+                      <TableRow>
+                        <TableHead>Date Created</TableHead>
+                        <TableHead>Attendance Date</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {requests.map((req) => (
+                        <TableRow key={req._id}>
+                          <TableCell>
+                            {req.createdAt ? new Date(req.createdAt).toLocaleDateString() : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {typeof req.attendanceRecord === 'string'
+                              ? <span className="text-slate-400 text-xs">{req.attendanceRecord.substring(0, 8)}...</span>
+                              : (req.attendanceRecord as any)?.createdAt ? new Date((req.attendanceRecord as any).createdAt).toLocaleDateString() : 'N/A'
+                            }
+                          </TableCell>
+                          <TableCell className="max-w-[200px] truncate" title={req.reason}>
+                            {req.reason}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(req.status)}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" onClick={() => setViewRequest(req)}>
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* View Request Details Dialog */}
+      <Dialog open={!!viewRequest} onOpenChange={(open) => !open && setViewRequest(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Request Details</DialogTitle>
+            <DialogDescription>
+              Review the details of your correction request.
+            </DialogDescription>
+          </DialogHeader>
+          {viewRequest && (
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-slate-500 uppercase">Status</Label>
+                  <div className="mt-1">{getStatusBadge(viewRequest.status)}</div>
+                </div>
+                <div>
+                  <Label className="text-xs text-slate-500 uppercase">Created At</Label>
+                  <div className="text-sm font-medium mt-1">
+                    {viewRequest.createdAt ? new Date(viewRequest.createdAt).toLocaleString() : '-'}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs text-slate-500 uppercase">Attendance Record</Label>
+                <div className="text-sm font-medium mt-1 p-2 bg-slate-50 rounded border border-slate-100">
+                  {typeof viewRequest.attendanceRecord === 'string'
+                    ? viewRequest.attendanceRecord
+                    : (viewRequest.attendanceRecord as any)?.createdAt
+                      ? new Date((viewRequest.attendanceRecord as any).createdAt).toLocaleDateString()
+                      : 'ID: ' + (viewRequest.attendanceRecord as any)?._id
+                  }
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs text-slate-500 uppercase">Reason</Label>
+                <div className="text-sm mt-1 p-3 bg-slate-50 rounded border border-slate-100 whitespace-pre-wrap">
+                  {viewRequest.reason}
+                </div>
+              </div>
+
+              {(viewRequest as any).reviewerId && (
+                <div className="border-t pt-4 mt-4">
+                  <Label className="text-xs text-slate-500 uppercase">Reviewer Note</Label>
+                  <div className="text-sm mt-1">
+                    {(viewRequest as any).reviewNote || <span className="text-slate-400 italic">No notes provided.</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setViewRequest(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-

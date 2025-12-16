@@ -55,11 +55,18 @@ export default function EmployeeProfilePage() {
                     <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
                     <p className="text-slate-600">View and manage your personal information</p>
                 </div>
-                <Link href="/dashboard/department-employee/employee-profile/edit">
-                    <Button>
-                        ✏️ Update Profile
-                    </Button>
-                </Link>
+                <div className="flex gap-3">
+                    <Link href="/dashboard/department-employee/employee-profile/correction-requests">
+                        <Button variant="outline">
+                            Correction Requests
+                        </Button>
+                    </Link>
+                    <Link href="/dashboard/department-employee/employee-profile/edit">
+                        <Button>
+                            ✏️ Update Profile
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             {/* Main Profile Card */}
