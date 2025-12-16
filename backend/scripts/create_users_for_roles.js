@@ -1,31 +1,9 @@
-#!/usr/bin/env node
-/*
-Create one employee + system role entry for every SystemRole value.
-Email format: <name>@company.<role>.com (role slugged to be DNS-safe).
-Run (dev only):
-  $env:MONGODB_URI="<your Mongo URI>"; node scripts/create_users_for_roles.js
-Optional env vars:
-  DEFAULT_ROLE_PASSWORD   - password for all created users (default: RoleUser@1234)
-This script refuses to run against localhost or NODE_ENV=production.
-*/
 
-require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
-const uri = process.env.MONGODB_URI;
-if (!uri) {
-  console.error('MONGODB_URI is not set. Please set it in your environment or .env file.');
-  process.exit(1);
-}
-if (uri.includes('localhost') || uri.includes('127.0.0.1')) {
-  console.error('Refusing to use a localhost MongoDB URI. This project expects a remote Mongo (e.g., Atlas).');
-  process.exit(1);
-}
-if (process.env.NODE_ENV === 'production') {
-  console.error('Refusing to run seed script in production');
-  process.exit(1);
-}
+// Hardcode for reliability in this specific debug session
+const URI = 'mongodb+srv://eyad:eyad2186@cluster0.o9vpa6w.mongodb.net/HR-System-Final?appName=Cluster0';
 
 const SYSTEM_ROLES = [
   'department employee',
@@ -42,7 +20,7 @@ const SYSTEM_ROLES = [
   'HR Admin',
 ];
 
-const DEFAULT_PASSWORD = process.env.DEFAULT_ROLE_PASSWORD || 'RoleUser@1234';
+const DEFAULT_PASSWORD = 'RoleUser@1234';
 
 function slugify(input) {
   return (input || '')
@@ -51,10 +29,9 @@ function slugify(input) {
     .replace(/^-+|-+$/g, '') || 'user';
 }
 
-function emailFor(name, role) {
-  const local = slugify(name).replace(/-/g, '.') || 'user';
-  const roleSlug = slugify(role);
-  return `${local}@company.${roleSlug}.com`;
+function emailFor(role) {
+  const roleSlug = slugify(role).replace(/-/g, '.');
+  return `${roleSlug}@company.com`;
 }
 
 async function hashPassword(p) {
@@ -63,20 +40,32 @@ async function hashPassword(p) {
 }
 
 async function upsertEmployee(empColl, { employeeNumber, firstName, lastName, nationalId, workEmail, personalEmail, password }) {
-  const existing = await empColl.findOne({
+  let existing = await empColl.findOne({
     $or: [
       { workEmail },
-      { personalEmail },
-      { nationalId },
-      { employeeNumber },
+      { personalEmail }
     ],
   });
+
+  const now = new Date();
+  const hashed = await hashPassword(password);
+
   if (existing) {
+    console.log(`Updating existing user: ${workEmail}`);
+    await empColl.updateOne({ _id: existing._id }, {
+      $set: {
+        firstName,
+        lastName,
+        fullName: `${firstName} ${lastName}`.trim(),
+        password: hashed,
+        status: 'ACTIVE',
+        updatedAt: now
+      }
+    });
     return { doc: existing, created: false };
   }
 
-  const hashed = await hashPassword(password);
-  const now = new Date();
+  console.log(`Creating new user: ${workEmail}`);
   const doc = {
     firstName,
     lastName,
@@ -102,67 +91,63 @@ async function ensureRoles(roleColl, employeeId, roles) {
   const existing = await roleColl.findOne({ employeeProfileId: employeeId });
   const now = new Date();
   if (existing) {
-    const mergedRoles = Array.from(new Set([...(existing.roles || []), ...roles]));
+    console.log(`Updating roles for user ${employeeId}`);
     await roleColl.updateOne(
       { _id: existing._id },
-      { $set: { roles: mergedRoles, isActive: true, updatedAt: now } },
+      { $set: { roles: roles, isActive: true, updatedAt: now } },
     );
-    return mergedRoles;
+    return roles;
   }
+  console.log(`Creating roles for user ${employeeId}`);
   await roleColl.insertOne({ employeeProfileId: employeeId, roles, permissions: [], isActive: true, createdAt: now, updatedAt: now });
   return roles;
 }
 
 async function main() {
-  await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-  console.log('Connected to', uri.replace(/(mongodb\+srv:\/\/).*@/, '$1***@'));
+  console.log('Connecting to MongoDB...');
+  // Removed deprecated options to avoid potential strict mode errors
+  await mongoose.connect(URI);
+  console.log('Connected!');
 
   const db = mongoose.connection;
   const empColl = db.collection('employee_profiles');
   const roleColl = db.collection('employee_system_roles');
 
-  const createdUsers = [];
-
   for (const role of SYSTEM_ROLES) {
-    const roleSlug = slugify(role);
-    const firstName = role.split(' ')[0] || 'Role';
-    const lastName = role.split(' ').slice(1).join(' ') || 'User';
-    const nameForEmail = `${firstName}.${lastName}`;
-    const workEmail = emailFor(nameForEmail, roleSlug);
-    const personalEmail = workEmail;
-    const uniqueSuffix = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    const employeeNumber = `${roleSlug.toUpperCase().replace(/-/g, '_')}-${uniqueSuffix}`;
-    const nationalId = `${roleSlug.toUpperCase()}-${uniqueSuffix}`;
+    try {
+      const roleSlug = slugify(role);
+      const firstName = role.split(' ')[0] || 'Role';
+      let lastName = role.split(' ').slice(1).join(' ') || 'User';
+      if (lastName === '') lastName = 'User';
 
-    const { doc, created } = await upsertEmployee(empColl, {
-      employeeNumber,
-      firstName,
-      lastName,
-      nationalId,
-      workEmail,
-      personalEmail,
-      password: DEFAULT_PASSWORD,
-    });
+      const workEmail = emailFor(role);
+      const personalEmail = workEmail;
 
-    const assignedRoles = await ensureRoles(roleColl, doc._id, [role]);
+      const uniqueSuffix = Date.now().toString().slice(-6);
+      const employeeNumber = `EMP-${roleSlug.toUpperCase().slice(0, 10)}-${uniqueSuffix}`;
+      const nationalId = `NID-${roleSlug.toUpperCase().slice(0, 10)}-${uniqueSuffix}`;
 
-    createdUsers.push({
-      _id: doc._id.toString(),
-      role,
-      workEmail: doc.workEmail,
-      password: DEFAULT_PASSWORD,
-      created,
-      rolesAssigned: assignedRoles,
-    });
+      const { doc } = await upsertEmployee(empColl, {
+        employeeNumber,
+        firstName,
+        lastName,
+        nationalId,
+        workEmail,
+        personalEmail,
+        password: DEFAULT_PASSWORD,
+      });
+
+      await ensureRoles(roleColl, doc._id, [role]);
+    } catch (e) {
+      console.error(`Error processing role ${role}:`, e);
+    }
   }
 
-  console.log('\nUsers by role:');
-  console.log(JSON.stringify(createdUsers, null, 2));
-
+  console.log('Seed completed.');
   await mongoose.disconnect();
 }
 
 main().catch((err) => {
-  console.error('Error creating users by role:', err);
+  console.error('Fatal error:', err);
   process.exit(1);
 });

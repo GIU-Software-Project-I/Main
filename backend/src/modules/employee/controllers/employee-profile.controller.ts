@@ -8,6 +8,7 @@ import { AdminAssignRoleDto } from '../dto/employee-profile/admin-assign-role.dt
 import { SearchEmployeesDto, PaginationQueryDto } from '../dto/employee-profile/search-employees.dto';
 import { ProcessChangeRequestDto } from '../dto/employee-profile/process-change-request.dto';
 import { ProfileChangeStatus, SystemRole } from '../enums/employee-profile.enums';
+import { AddEmergencyContactDto, UpdateEmergencyContactDto } from '../dto/employee-profile/emergency-contact.dto';
 import { EmployeeProfileService } from '../services/employee-profile.service';
 
 import { AuthenticationGuard } from '../../auth/guards/authentication-guard';
@@ -22,7 +23,7 @@ export class EmployeeProfileController {
     constructor(
         private readonly employeeProfileService: EmployeeProfileService,
 
-    ) {}
+    ) { }
 
     // ==========================================
     // EMPLOYEE SELF-SERVICE ROUTES
@@ -69,7 +70,7 @@ export class EmployeeProfileController {
     }
 
     @Post('me/emergency-contacts')
-    async addEmergencyContact(@CurrentUser() user: JwtPayload, @Body() dto: any) {
+    async addEmergencyContact(@CurrentUser() user: JwtPayload, @Body() dto: AddEmergencyContactDto) {
         return this.employeeProfileService.addEmergencyContact(user.sub, dto);
     }
 
@@ -77,7 +78,7 @@ export class EmployeeProfileController {
     async updateEmergencyContact(
         @CurrentUser() user: JwtPayload,
         @Param('index') index: number,
-        @Body() dto: any
+        @Body() dto: UpdateEmergencyContactDto
     ) {
         return this.employeeProfileService.updateEmergencyContact(user.sub, index, dto);
     }
