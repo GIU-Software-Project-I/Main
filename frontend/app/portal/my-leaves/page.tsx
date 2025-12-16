@@ -3,22 +3,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { leavesService } from '@/app/services/leaves';
+import { useAuth } from '@/app/context/AuthContext';
+import type { LeaveBalanceSummary } from '@/app/types/leaves';
 
-interface LeaveBalance {
-  annual: number;
-  sick: number;
-  personal: number;
-  used: {
-    annual: number;
-    sick: number;
-    personal: number;
-  };
-  pending: {
-    annual: number;
-    sick: number;
-    personal: number;
-  };
-}
+type LeaveBalance = LeaveBalanceSummary[];
 
 interface LeaveRequest {
   _id: string;
@@ -33,35 +21,154 @@ interface LeaveRequest {
   rejectionReason?: string;
 }
 
+// Backend leave request structure
+interface BackendLeaveRequest {
+  _id: string;
+  leaveTypeId?: string;
+  leaveTypeName?: string;
+  dates: {
+    from: string | Date;
+    to: string | Date;
+  };
+  durationDays: number;
+  justification?: string;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export default function MyLeavesPage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [balance, setBalance] = useState<LeaveBalance | null>(null);
+  const [balance, setBalance] = useState<LeaveBalance>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!user) return;
+    fetchData(user.id);
+  }, [user]);
 
-  const fetchData = async () => {
+  const fetchData = async (employeeId: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      const [balanceRes, requestsRes] = await Promise.all([
-        leavesService.getBalance(),
-        leavesService.getMyRequests(),
+      const [balanceRes, requestsRes, leaveTypesRes] = await Promise.all([
+        leavesService.getBalance(employeeId),
+        leavesService.getMyRequests(employeeId),
+        leavesService.getLeaveTypes(),
       ]);
 
-      if (balanceRes.data) {
-        setBalance(balanceRes.data as LeaveBalance);
+      // Get leave types to enrich balance data
+      interface BackendLeaveType {
+        _id?: string;
+        id?: string;
+        name?: string;
+        code?: string;
       }
-      if (requestsRes.data) {
-        setRequests(Array.isArray(requestsRes.data) ? requestsRes.data : []);
+      
+      const leaveTypes: BackendLeaveType[] = Array.isArray(leaveTypesRes.data) ? leaveTypesRes.data : [];
+      
+      // Backend balance response structure
+      interface BackendBalance {
+        leaveTypeId: string;
+        yearlyEntitlement?: number;
+        entitled?: number;
+        accrued?: number;
+        taken?: number;
+        pending?: number;
+        remaining?: number;
+        carryForward?: number;
+        leaveTypeName?: string;
+        leaveTypeCode?: string;
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load leave data');
+      
+      // Enrich balance data with leave type names and codes
+      let enrichedBalances: LeaveBalanceSummary[] = [];
+      if (Array.isArray(balanceRes.data)) {
+        enrichedBalances = (balanceRes.data as BackendBalance[]).map((bal) => {
+          const leaveType = leaveTypes.find((lt) => 
+            (lt._id && lt._id === bal.leaveTypeId) || (lt.id && lt.id === bal.leaveTypeId)
+          );
+          return {
+            leaveTypeId: bal.leaveTypeId,
+            leaveTypeName: leaveType?.name || bal.leaveTypeName || '',
+            leaveTypeCode: leaveType?.code || bal.leaveTypeCode || '',
+            entitled: bal.yearlyEntitlement ?? bal.entitled ?? 0,
+            accrued: bal.accrued ?? 0,
+            taken: bal.taken ?? 0,
+            pending: bal.pending ?? 0,
+            remaining: bal.remaining ?? 0,
+            carryForward: bal.carryForward ?? 0,
+          };
+        });
+      }
+
+      // If no balances exist, create default entries for common leave types
+      if (enrichedBalances.length === 0 && leaveTypes.length > 0) {
+        const commonTypes = ['annual', 'sick', 'personal'];
+        commonTypes.forEach((typeName) => {
+          const type = leaveTypes.find((lt) => 
+            lt.name?.toLowerCase().includes(typeName) || lt.code?.toLowerCase().includes(typeName)
+          );
+          if (type) {
+            enrichedBalances.push({
+              leaveTypeId: type._id || type.id || '',
+              leaveTypeName: type.name || '',
+              leaveTypeCode: type.code || '',
+              entitled: 0,
+              accrued: 0,
+              taken: 0,
+              pending: 0,
+              remaining: 0,
+              carryForward: 0,
+            });
+          }
+        });
+      }
+
+      setBalance(enrichedBalances);
+      
+      // Transform backend leave requests to frontend format
+      let backendRequests: BackendLeaveRequest[] = [];
+      if (requestsRes.data && Array.isArray((requestsRes.data as { data?: unknown }).data)) {
+        const typed = requestsRes.data as { data?: BackendLeaveRequest[] };
+        backendRequests = typed.data ?? [];
+      } else if (Array.isArray(requestsRes.data)) {
+        backendRequests = requestsRes.data as BackendLeaveRequest[];
+      }
+
+      // Map backend structure to frontend structure
+      const mappedRequests: LeaveRequest[] = backendRequests.map((req) => {
+        const formatDate = (date: string | Date | undefined): string => {
+          if (!date) return '';
+          if (typeof date === 'string') {
+            // If it's already a date string, try to format it
+            const d = new Date(date);
+            return isNaN(d.getTime()) ? date : d.toISOString().split('T')[0];
+          }
+          // It's a Date object
+          return date.toISOString().split('T')[0];
+        };
+
+        return {
+          _id: req._id,
+          type: req.leaveTypeName || 'Unknown',
+          startDate: formatDate(req.dates?.from),
+          endDate: formatDate(req.dates?.to),
+          days: req.durationDays || 0,
+          reason: req.justification || '',
+          status: req.status as LeaveRequest['status'],
+          createdAt: req.createdAt || new Date().toISOString(),
+        };
+      });
+
+      setRequests(mappedRequests);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load leave data';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -70,11 +177,17 @@ export default function MyLeavesPage() {
   const handleCancel = async (id: string) => {
     if (!confirm('Are you sure you want to cancel this leave request?')) return;
 
+    if (!user) {
+      setError('You must be logged in to cancel a leave request.');
+      return;
+    }
+
     try {
-      await leavesService.cancelRequest(id);
-      await fetchData();
-    } catch (err: any) {
-      setError(err.message || 'Failed to cancel request');
+      await leavesService.cancelRequest(id, user.id);
+      await fetchData(user.id);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to cancel request';
+      setError(message);
     }
   };
 
@@ -93,13 +206,17 @@ export default function MyLeavesPage() {
     }
   };
 
-  const getLeaveTypeColor = (type: string) => {
+  const getLeaveTypeColor = (type: string | undefined) => {
+    if (!type) return 'bg-gray-500';
     switch (type.toLowerCase()) {
       case 'annual':
+      case 'annual leave':
         return 'bg-blue-500';
       case 'sick':
+      case 'sick leave':
         return 'bg-red-500';
       case 'personal':
+      case 'personal leave':
         return 'bg-purple-500';
       default:
         return 'bg-gray-500';
@@ -111,7 +228,42 @@ export default function MyLeavesPage() {
     return req.status === filterStatus;
   });
 
-  if (loading) {
+  const getBalanceSummary = (kind: 'annual' | 'sick' | 'personal') => {
+    const match = balance.find((item) => {
+      const name = (item.leaveTypeName || '').toLowerCase();
+      const code = (item.leaveTypeCode || '').toLowerCase();
+
+      if (kind === 'annual') {
+        return name.includes('annual') || code.includes('annual');
+      }
+      if (kind === 'sick') {
+        return name.includes('sick') || code.includes('sick');
+      }
+      if (kind === 'personal') {
+        return name.includes('personal') || code.includes('personal');
+      }
+      return false;
+    });
+
+    // If no match found, return default values so cards still show
+    if (!match) {
+      return {
+        entitled: 0,
+        taken: 0,
+        pending: 0,
+        remaining: 0,
+      };
+    }
+
+    return {
+      entitled: match.entitled ?? 0,
+      taken: match.taken ?? 0,
+      pending: match.pending ?? 0,
+      remaining: match.remaining ?? 0,
+    };
+  };
+
+  if (!user || loading) {
     return (
       <div className="p-6 lg:p-8">
         <div className="max-w-5xl mx-auto">
@@ -155,29 +307,42 @@ export default function MyLeavesPage() {
           </div>
         )}
 
-        {/* Balance Cards */}
+        {/* Balance Cards - original 3-card layout using real balances */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <BalanceCard
-            title="Annual Leave"
-            total={balance?.annual || 0}
-            used={balance?.used?.annual || 0}
-            pending={balance?.pending?.annual || 0}
-            color="blue"
-          />
-          <BalanceCard
-            title="Sick Leave"
-            total={balance?.sick || 0}
-            used={balance?.used?.sick || 0}
-            pending={balance?.pending?.sick || 0}
-            color="red"
-          />
-          <BalanceCard
-            title="Personal Leave"
-            total={balance?.personal || 0}
-            used={balance?.used?.personal || 0}
-            pending={balance?.pending?.personal || 0}
-            color="purple"
-          />
+          {(() => {
+            const annual = getBalanceSummary('annual');
+            const sick = getBalanceSummary('sick');
+            const personal = getBalanceSummary('personal');
+
+            return (
+              <>
+                <BalanceCard
+                  title="Annual Leave"
+                  entitled={annual.entitled}
+                  taken={annual.taken}
+                  pending={annual.pending}
+                  remaining={annual.remaining}
+                  color="blue"
+                />
+                <BalanceCard
+                  title="Sick Leave"
+                  entitled={sick.entitled}
+                  taken={sick.taken}
+                  pending={sick.pending}
+                  remaining={sick.remaining}
+                  color="red"
+                />
+                <BalanceCard
+                  title="Personal Leave"
+                  entitled={personal.entitled}
+                  taken={personal.taken}
+                  pending={personal.pending}
+                  remaining={personal.remaining}
+                  color="purple"
+                />
+              </>
+            );
+          })()}
         </div>
 
         {/* Quick Stats */}
@@ -266,7 +431,7 @@ export default function MyLeavesPage() {
                         <div className={`w-1 h-12 rounded-full ${getLeaveTypeColor(request.type)}`}></div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-medium text-gray-900 capitalize">{request.type} Leave</h3>
+                            <h3 className="font-medium text-gray-900 capitalize">{request.type || 'Unknown'} Leave</h3>
                             <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
                               {statusConfig.label}
                             </span>
@@ -336,19 +501,21 @@ export default function MyLeavesPage() {
 
 function BalanceCard({
   title,
-  total,
-  used,
+  entitled,
+  taken,
   pending,
+  remaining,
   color,
 }: {
   title: string;
-  total: number;
-  used: number;
+  entitled: number;
+  taken: number;
   pending: number;
+  remaining: number;
   color: 'blue' | 'red' | 'purple';
 }) {
-  const available = total - used - pending;
-  const percentage = total > 0 ? ((used / total) * 100) : 0;
+  const available = remaining;
+  const percentage = entitled > 0 ? ((taken / entitled) * 100) : 0;
 
   const colorClasses = {
     blue: { bg: 'bg-blue-500', light: 'bg-blue-100', text: 'text-blue-600' },
@@ -371,7 +538,7 @@ function BalanceCard({
 
       <div className="mb-3">
         <span className="text-3xl font-bold text-gray-900">{available}</span>
-        <span className="text-gray-500 ml-1">/ {total} days</span>
+        <span className="text-gray-500 ml-1">/ {entitled} days</span>
       </div>
 
       <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
@@ -382,7 +549,7 @@ function BalanceCard({
       </div>
 
       <div className="flex justify-between text-sm">
-        <span className="text-gray-500">Used: {used}</span>
+        <span className="text-gray-500">Used: {taken}</span>
         {pending > 0 && <span className="text-amber-600">Pending: {pending}</span>}
       </div>
     </div>

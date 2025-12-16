@@ -73,6 +73,11 @@ export default function HRAdminPage() {
       href: '/dashboard/hr-admin/role-assignment',
     },
     {
+      title: 'Leave Configuration',
+      description: 'Configure leave policies, types, and settings',
+      href: '/dashboard/hr-admin/leaves-config',
+    },
+    {
       title: 'Reports',
       description: 'View HR analytics and reports',
       href: '/dashboard/hr-admin/reports',

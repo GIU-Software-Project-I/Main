@@ -41,6 +41,11 @@ const SELF_SERVICE_SECTION: NavSection = {
       href: '/portal/my-attendance',
       icon: 'clock',
     },
+      {
+          label: 'Punches',
+          href: '/portal/punch',
+          icon: 'log-out',
+      },
     {
       label: 'My Leaves',
       href: '/portal/my-leaves',
@@ -86,6 +91,7 @@ const SELF_SERVICE_SECTION: NavSection = {
       href: '/portal/my-resignation',
       icon: 'log-out',
     },
+
   ],
 };
 
@@ -232,6 +238,11 @@ const HR_EMPLOYEE_SECTIONS: NavSection[] = [
         href: '/dashboard/hr-manager/onboarding',
         icon: 'clipboard-check',
       },
+        {
+            label: 'Time Management',
+            href: '/dashboard/hr-employee/time-management',
+            icon: 'clock',
+        },
       {
         label: 'Equipment Reservation',
         href: '/portal/equipment-reservation',
