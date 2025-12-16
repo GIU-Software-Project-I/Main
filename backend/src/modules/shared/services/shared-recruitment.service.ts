@@ -90,6 +90,29 @@ export class SharedRecruitmentService {
         );
     }
 
+    async notifyDepartmentHeads(type: string, message: string): Promise<NotificationLog[]> {
+        const departmentHeads = await this.findUsersByRoles([SystemRole.DEPARTMENT_HEAD]);
+
+        return this.notifyMultipleUsers(
+            departmentHeads.map(u => u.employeeProfileId),
+            type,
+            message,
+        );
+    }
+
+    async notifyFinanceStaff(type: string, message: string): Promise<NotificationLog[]> {
+        const financeStaff = await this.findUsersByRoles([
+            SystemRole.FINANCE_STAFF,
+            SystemRole.PAYROLL_MANAGER,
+        ]);
+
+        return this.notifyMultipleUsers(
+            financeStaff.map(u => u.employeeProfileId),
+            type,
+            message,
+        );
+    }
+
     private async findUsersByRoles(roles: SystemRole[]): Promise<any[]> {
         try {
             const systemRoles = await this.systemRoleModel.find({
@@ -203,7 +226,11 @@ export class SharedRecruitmentService {
         const warnings: string[] = [];
         const performanceData = await this.getEmployeePerformanceHistory(employeeId);
 
-        if (initiator === 'EMPLOYER') {
+        // Check if this is an employer-initiated termination (HR or Manager)
+        // For employer-initiated terminations, validate against performance data
+        const isEmployerInitiated = initiator === 'hr' || initiator === 'manager';
+
+        if (isEmployerInitiated) {
             if (!performanceData.hasPublishedAppraisals) {
                 warnings.push('No published performance appraisals found for this employee. Consider documenting performance issues before termination.');
             }
@@ -218,10 +245,26 @@ export class SharedRecruitmentService {
         }
 
         return {
-            isJustified: initiator === 'EMPLOYEE' || performanceData.lowScoreAppraisals.length > 0,
+            isJustified: initiator === 'employee' || performanceData.lowScoreAppraisals.length > 0,
             performanceData,
             warnings,
         };
+    }
+
+    private determineSystemRole(jobTitle: string): SystemRole {
+        const title = jobTitle.toLowerCase();
+        if (title.includes('hr manager')) return SystemRole.HR_MANAGER;
+        if (title.includes('hr admin')) return SystemRole.HR_ADMIN;
+        if (title.includes('hr employee') || title.includes('human resources')) return SystemRole.HR_EMPLOYEE;
+        if (title.includes('payroll manager')) return SystemRole.PAYROLL_MANAGER;
+        if (title.includes('payroll')) return SystemRole.PAYROLL_SPECIALIST;
+        if (title.includes('recruiter') || title.includes('talent acquisition')) return SystemRole.RECRUITER;
+        if (title.includes('system admin') || title.includes('it admin')) return SystemRole.SYSTEM_ADMIN;
+        if (title.includes('legal')) return SystemRole.LEGAL_POLICY_ADMIN;
+        if (title.includes('finance')) return SystemRole.FINANCE_STAFF;
+        if (title.includes('head') || title.includes('director')) return SystemRole.DEPARTMENT_HEAD;
+
+        return SystemRole.DEPARTMENT_EMPLOYEE;
     }
 
     async createEmployeeFromContract(contractData: {
@@ -298,9 +341,11 @@ export class SharedRecruitmentService {
 
         const savedEmployee = await employee.save();
 
+        const assignedRole = this.determineSystemRole(contractData.role);
+
         await this.systemRoleModel.create({
             employeeProfileId: savedEmployee._id,
-            roles: [SystemRole.DEPARTMENT_EMPLOYEE],
+            roles: [assignedRole],
             permissions: [],
             isActive: true,
         });

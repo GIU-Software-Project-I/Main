@@ -57,15 +57,15 @@ export default function OffboardingDashboard() {
   const getStatusBadge = (status: TerminationStatus) => {
     switch (status) {
       case TerminationStatus.PENDING:
-        return 'bg-amber-100 text-amber-800 border border-amber-200';
+        return 'bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800';
       case TerminationStatus.UNDER_REVIEW:
-        return 'bg-blue-100 text-blue-800 border border-blue-200';
+        return 'bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800';
       case TerminationStatus.APPROVED:
-        return 'bg-green-100 text-green-800 border border-green-200';
+        return 'bg-green-100 text-green-800 border border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800';
       case TerminationStatus.REJECTED:
-        return 'bg-red-100 text-red-800 border border-red-200';
+        return 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800';
       default:
-        return 'bg-gray-100 text-gray-800 border border-gray-200';
+        return 'bg-muted text-muted-foreground border border-border';
     }
   };
 
@@ -87,13 +87,13 @@ export default function OffboardingDashboard() {
       <div className="p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-8 bg-muted rounded w-1/4"></div>
             <div className="grid grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-28 bg-white rounded-xl shadow-sm"></div>
+                <div key={i} className="h-28 bg-card rounded-xl shadow-sm"></div>
               ))}
             </div>
-            <div className="h-96 bg-white rounded-xl shadow-sm"></div>
+            <div className="h-96 bg-card rounded-xl shadow-sm"></div>
           </div>
         </div>
       </div>
@@ -101,17 +101,17 @@ export default function OffboardingDashboard() {
   }
 
   return (
-    <div className="p-6 lg:p-8 bg-gray-50 min-h-screen">
+    <div className="p-6 lg:p-8 bg-background min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-semibold text-gray-900">Offboarding Management</h1>
-            <p className="text-gray-500 mt-1">Manage employee separations, resignations, and exit processes</p>
+            <h1 className="text-2xl lg:text-3xl font-semibold text-foreground">Offboarding Management</h1>
+            <p className="text-muted-foreground mt-1">Manage employee separations, resignations, and exit processes</p>
           </div>
           <Link
             href="/dashboard/hr-manager/offboarding/termination-reviews"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -121,14 +121,14 @@ export default function OffboardingDashboard() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg flex items-center justify-between">
             <div className="flex items-center gap-3">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {error}
             </div>
-            <button onClick={fetchData} className="text-red-800 hover:text-red-900 font-medium">
+            <button onClick={fetchData} className="text-destructive hover:text-destructive/80 font-medium">
               Retry
             </button>
           </div>
@@ -136,52 +136,52 @@ export default function OffboardingDashboard() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Total Requests</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.total}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Requests</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{stats.total}</p>
               </div>
-              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Pending Review</p>
+                <p className="text-sm font-medium text-muted-foreground">Pending Review</p>
                 <p className="text-3xl font-bold text-amber-600 mt-1">{stats.pending + stats.underReview}</p>
               </div>
-              <div className="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Resignations</p>
+                <p className="text-sm font-medium text-muted-foreground">Resignations</p>
                 <p className="text-3xl font-bold text-blue-600 mt-1">{stats.resignations}</p>
               </div>
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Terminations</p>
+                <p className="text-sm font-medium text-muted-foreground">Terminations</p>
                 <p className="text-3xl font-bold text-orange-600 mt-1">{stats.terminations}</p>
               </div>
-              <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-orange-50 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                 </svg>
@@ -191,15 +191,15 @@ export default function OffboardingDashboard() {
         </div>
 
         {/* Requests Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
+        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+          <div className="px-6 py-4 border-b border-border">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h2 className="text-lg font-semibold text-gray-900">Termination & Resignation Requests</h2>
+              <h2 className="text-lg font-semibold text-foreground">Termination & Resignation Requests</h2>
               <div className="flex gap-3">
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value as any)}
-                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-4 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
                 >
                   <option value="all">All Types</option>
                   <option value="resignations">Resignations</option>
@@ -208,7 +208,7 @@ export default function OffboardingDashboard() {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value as any)}
-                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-4 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
                 >
                   <option value="all">All Status</option>
                   <option value={TerminationStatus.PENDING}>Pending</option>
@@ -220,14 +220,14 @@ export default function OffboardingDashboard() {
             </div>
           </div>
 
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-border">
             {filteredRequests.length === 0 ? (
               <div className="p-12 text-center">
-                <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p className="text-gray-500 font-medium">No requests found</p>
-                <p className="text-gray-400 text-sm mt-1">Termination and resignation requests will appear here</p>
+                <p className="text-muted-foreground font-medium">No requests found</p>
+                <p className="text-muted-foreground/80 text-sm mt-1">Termination and resignation requests will appear here</p>
               </div>
             ) : (
               filteredRequests.map((request) => {
@@ -240,12 +240,12 @@ export default function OffboardingDashboard() {
                   <Link
                     key={request._id}
                     href={`/dashboard/hr-manager/offboarding/resignations/${request._id}`}
-                    className="block px-6 py-4 hover:bg-gray-50 transition-colors"
+                    className="block px-6 py-4 hover:bg-accent transition-colors"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          isResignation ? 'bg-blue-100' : 'bg-orange-100'
+                          isResignation ? 'bg-blue-100 dark:bg-blue-900/20' : 'bg-orange-100 dark:bg-orange-900/20'
                         }`}>
                           {isResignation ? (
                             <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,7 +259,7 @@ export default function OffboardingDashboard() {
                         </div>
                         <div>
                           <div className="flex items-center gap-3">
-                            <h3 className="font-medium text-gray-900">
+                            <h3 className="font-medium text-foreground">
                               {employeeName}
                             </h3>
                             <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full ${getStatusBadge(request.status)}`}>
@@ -267,21 +267,21 @@ export default function OffboardingDashboard() {
                             </span>
                           </div>
                           <div className="flex items-center gap-4 mt-1">
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-muted-foreground">
                               {getInitiatorLabel(request.initiator)}
                             </span>
-                            <span className="text-sm text-gray-400">
+                            <span className="text-sm text-muted-foreground/80">
                               {request.reason.length > 50 ? `${request.reason.slice(0, 50)}...` : request.reason}
                             </span>
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-muted-foreground">
                           {new Date(request.createdAt).toLocaleDateString()}
                         </p>
                         {request.terminationDate && (
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-muted-foreground/70 mt-1">
                             Effective: {new Date(request.terminationDate).toLocaleDateString()}
                           </p>
                         )}
@@ -295,52 +295,71 @@ export default function OffboardingDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
             href="/dashboard/hr-manager/offboarding/resignations"
-            className="group bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all"
+            className="group bg-card p-5 rounded-xl shadow-sm border border-border hover:border-primary/50 hover:shadow-md transition-all"
           >
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors flex-shrink-0">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Resignation Requests</h3>
-                <p className="text-sm text-gray-500 mt-1">Review and process employee resignation requests</p>
+                <h3 className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">Resignations</h3>
+                <p className="text-xs text-muted-foreground mt-1">Review employee resignations</p>
               </div>
             </div>
           </Link>
           <Link
             href="/dashboard/hr-manager/offboarding/termination-reviews"
-            className="group bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:border-orange-200 hover:shadow-md transition-all"
+            className="group bg-card p-5 rounded-xl shadow-sm border border-border hover:border-orange-200 hover:shadow-md transition-all"
           >
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center group-hover:bg-orange-100 transition-colors">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-orange-50 dark:bg-orange-900/20 rounded-lg flex items-center justify-center group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30 transition-colors flex-shrink-0">
+                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">Termination Reviews</h3>
-                <p className="text-sm text-gray-500 mt-1">Initiate and manage termination reviews</p>
+                <h3 className="font-semibold text-foreground text-sm group-hover:text-orange-600 transition-colors">Terminations</h3>
+                <p className="text-xs text-muted-foreground mt-1">Initiate termination reviews</p>
               </div>
             </div>
           </Link>
-          <div className="group bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <Link
+            href="/dashboard/hr-manager/offboarding/checklist"
+            className="group bg-card p-5 rounded-xl shadow-sm border border-border hover:border-green-200 hover:shadow-md transition-all"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center group-hover:bg-green-100 dark:group-hover:bg-green-900/30 transition-colors flex-shrink-0">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Exit Clearance</h3>
-                <p className="text-sm text-gray-500 mt-1">Multi-department sign-off for approved exits</p>
+                <h3 className="font-semibold text-foreground text-sm group-hover:text-green-600 transition-colors">Exit Clearance</h3>
+                <p className="text-xs text-muted-foreground mt-1">Department sign-offs</p>
               </div>
             </div>
-          </div>
+          </Link>
+          <Link
+            href="/dashboard/hr-manager/offboarding/final-settlement"
+            className="group bg-card p-5 rounded-xl shadow-sm border border-border hover:border-purple-200 hover:shadow-md transition-all"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-center group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30 transition-colors flex-shrink-0">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground text-sm group-hover:text-purple-600 transition-colors">Final Settlement</h3>
+                <p className="text-xs text-muted-foreground mt-1">Process final pay</p>
+              </div>
+            </div>
+          </Link>
         </div>
       </div>
     </div>

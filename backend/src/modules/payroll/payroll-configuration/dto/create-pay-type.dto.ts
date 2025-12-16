@@ -1,5 +1,5 @@
 // create-pay-type.dto.ts
-import { IsNotEmpty, IsString, IsNumber, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, Min, IsOptional } from 'class-validator';
 
 export class CreatePayTypeDto {
   @IsNotEmpty()
@@ -11,7 +11,7 @@ export class CreatePayTypeDto {
   @Min(6000)
   amount: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   createdByEmployeeId: string;
 

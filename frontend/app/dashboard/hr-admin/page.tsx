@@ -82,14 +82,14 @@ export default function HRAdminPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="border-b border-slate-200 pb-6">
+      <div className="border-b border-border pb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">HR Administration</h1>
-            <p className="text-sm text-slate-500 mt-1">Welcome back, {user?.firstName || 'Admin'}</p>
+            <h1 className="text-2xl font-semibold text-foreground">HR Administration</h1>
+            <p className="text-sm text-muted-foreground mt-1">Welcome back, {user?.firstName || 'Admin'}</p>
           </div>
           <Link href="/dashboard/hr-admin/employee-management">
-            <button className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors">
+            <button className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-lg hover:bg-primary/90 transition-colors">
               Manage Employees
             </button>
           </Link>
@@ -98,25 +98,25 @@ export default function HRAdminPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm font-medium text-red-800">Unable to load data</p>
-          <p className="text-sm text-red-600 mt-1">{error}</p>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <p className="text-sm font-medium text-destructive">Unable to load data</p>
+          <p className="text-sm text-destructive/80 mt-1">{error}</p>
         </div>
       )}
 
       {/* Key Metrics */}
       <div>
-        <h2 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">Overview</h2>
+        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Overview</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white border border-slate-200 rounded-lg p-5">
-            <p className="text-sm font-medium text-slate-500">Total Employees</p>
-            <p className="text-2xl font-semibold text-slate-900 mt-2">
+          <div className="bg-card border border-border rounded-lg p-5">
+            <p className="text-sm font-medium text-muted-foreground">Total Employees</p>
+            <p className="text-2xl font-semibold text-foreground mt-2">
               {loading ? '-' : employeeCount ?? '-'}
             </p>
           </div>
-          <div className="bg-white border border-slate-200 rounded-lg p-5">
-            <p className="text-sm font-medium text-slate-500">Pending Requests</p>
-            <p className="text-2xl font-semibold text-slate-900 mt-2">
+          <div className="bg-card border border-border rounded-lg p-5">
+            <p className="text-sm font-medium text-muted-foreground">Pending Requests</p>
+            <p className="text-2xl font-semibold text-foreground mt-2">
               {loading ? '-' : pendingCount ?? '-'}
             </p>
           </div>
@@ -125,20 +125,20 @@ export default function HRAdminPage() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">Quick Actions</h2>
+        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {modules.map((module, index) => (
             <Link key={index} href={module.href}>
-              <div className="bg-white border border-slate-200 rounded-lg p-5 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer h-full relative">
+              <div className="bg-card border border-border rounded-lg p-5 hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer h-full relative">
                 {module.hasBadge && (
-                  <span className="absolute top-4 right-4 w-2 h-2 bg-red-500 rounded-full"></span>
+                  <span className="absolute top-4 right-4 w-2 h-2 bg-destructive rounded-full"></span>
                 )}
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-slate-900">{module.title}</h3>
-                    <p className="text-sm text-slate-500 mt-1">{module.description}</p>
+                    <h3 className="text-sm font-semibold text-foreground">{module.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{module.description}</p>
                   </div>
-                  <svg className="w-5 h-5 text-slate-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-muted-foreground flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
