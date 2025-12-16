@@ -1,0 +1,175 @@
+{
+  "collection": "paygrades",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a80067e07119e5fd6a941"
+      },
+      "grade": "Junior Software Engineer",
+      "baseSalary": {
+        "$numberInt": "60000"
+      },
+      "grossSalary": {
+        "$numberInt": "70000"
+      },
+      "status": "approved",
+      "approvedBy": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "approvedAt": {
+        "$date": {
+          "$numberLong": "1761955200000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441542924"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441542924"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80067e07119e5fd6a942"
+      },
+      "grade": "Mid-Level Software Engineer",
+      "baseSalary": {
+        "$numberInt": "80000"
+      },
+      "grossSalary": {
+        "$numberInt": "95000"
+      },
+      "status": "approved",
+      "approvedBy": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "approvedAt": {
+        "$date": {
+          "$numberLong": "1761955200000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441542924"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441542924"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80067e07119e5fd6a943"
+      },
+      "grade": "Senior Software Engineer",
+      "baseSalary": {
+        "$numberInt": "100000"
+      },
+      "grossSalary": {
+        "$numberInt": "120000"
+      },
+      "status": "approved",
+      "approvedBy": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "approvedAt": {
+        "$date": {
+          "$numberLong": "1761955200000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441542924"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441542924"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80067e07119e5fd6a944"
+      },
+      "grade": "HR Specialist",
+      "baseSalary": {
+        "$numberInt": "55000"
+      },
+      "grossSalary": {
+        "$numberInt": "65000"
+      },
+      "status": "approved",
+      "approvedBy": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "approvedAt": {
+        "$date": {
+          "$numberLong": "1761955200000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441542924"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441542924"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80067e07119e5fd6a945"
+      },
+      "grade": "Senior Accountant",
+      "baseSalary": {
+        "$numberInt": "75000"
+      },
+      "grossSalary": {
+        "$numberInt": "90000"
+      },
+      "status": "approved",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441542924"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765748942355"
+        }
+      },
+      "approvedAt": {
+        "$date": {
+          "$numberLong": "1765748942354"
+        }
+      },
+      "approvedBy": {
+        "$oid": "693dc3e0ee07fbcd93854e28"
+      }
+    }
+  ]
+}

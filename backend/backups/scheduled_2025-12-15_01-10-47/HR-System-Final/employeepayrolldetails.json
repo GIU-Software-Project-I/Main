@@ -1,0 +1,3641 @@
+{
+  "collection": "employeepayrolldetails",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a80087e07119e5fd6a971"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "baseSalary": {
+        "$numberInt": "85000"
+      },
+      "allowances": {
+        "$numberInt": "1800"
+      },
+      "deductions": {
+        "$numberInt": "17360"
+      },
+      "netSalary": {
+        "$numberInt": "69440"
+      },
+      "netPay": {
+        "$numberInt": "69440"
+      },
+      "bankStatus": "valid",
+      "payrollRunId": {
+        "$oid": "693a80087e07119e5fd6a96b"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441544384"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441544384"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80087e07119e5fd6a972"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "baseSalary": {
+        "$numberInt": "75000"
+      },
+      "allowances": {
+        "$numberInt": "1500"
+      },
+      "deductions": {
+        "$numberInt": "15300"
+      },
+      "netSalary": {
+        "$numberInt": "61200"
+      },
+      "netPay": {
+        "$numberInt": "61200"
+      },
+      "bankStatus": "valid",
+      "payrollRunId": {
+        "$oid": "693a80087e07119e5fd6a96b"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441544384"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441544384"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80087e07119e5fd6a973"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "baseSalary": {
+        "$numberInt": "100000"
+      },
+      "allowances": {
+        "$numberInt": "2000"
+      },
+      "deductions": {
+        "$numberInt": "20400"
+      },
+      "netSalary": {
+        "$numberInt": "81600"
+      },
+      "netPay": {
+        "$numberInt": "81600"
+      },
+      "bankStatus": "valid",
+      "bonus": {
+        "$numberInt": "10000"
+      },
+      "payrollRunId": {
+        "$oid": "693a80087e07119e5fd6a96b"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441544384"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441544384"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80087e07119e5fd6a974"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "baseSalary": {
+        "$numberInt": "70000"
+      },
+      "allowances": {
+        "$numberInt": "1400"
+      },
+      "deductions": {
+        "$numberInt": "14280"
+      },
+      "netSalary": {
+        "$numberInt": "57120"
+      },
+      "netPay": {
+        "$numberInt": "57120"
+      },
+      "bankStatus": "missing",
+      "exceptions": "Bank details not provided",
+      "payrollRunId": {
+        "$oid": "693a80087e07119e5fd6a96b"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441544384"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441544384"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80087e07119e5fd6a975"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "baseSalary": {
+        "$numberInt": "85000"
+      },
+      "allowances": {
+        "$numberInt": "1800"
+      },
+      "deductions": {
+        "$numberInt": "17360"
+      },
+      "netSalary": {
+        "$numberInt": "69440"
+      },
+      "netPay": {
+        "$numberInt": "69440"
+      },
+      "bankStatus": "valid",
+      "payrollRunId": {
+        "$oid": "693a80087e07119e5fd6a96c"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441544384"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441544384"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cf768ba4f5be1612868"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "2000"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "2000"
+      },
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690615912"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690615912"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cf768ba4f5be1612878"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: earningsDetails.benefits.0.amount: Path `amount` is required., earningsDetails.benefits.0.name: Path `name` is required., deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690615971"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690615971"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cf868ba4f5be161287d"
+      },
+      "employeeId": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690616364"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690616364"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cf868ba4f5be161288c"
+      },
+      "employeeId": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690616416"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690616416"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cf868ba4f5be1612891"
+      },
+      "employeeId": {
+        "$oid": "693dc3deee07fbcd93854e0c"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690616808"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690616808"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cf868ba4f5be16128a0"
+      },
+      "employeeId": {
+        "$oid": "693dc3deee07fbcd93854e0c"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690616858"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690616858"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cf968ba4f5be16128a5"
+      },
+      "employeeId": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690617247"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690617247"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cf968ba4f5be16128b4"
+      },
+      "employeeId": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690617298"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690617298"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cf968ba4f5be16128b9"
+      },
+      "employeeId": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690617689"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690617689"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cf968ba4f5be16128c8"
+      },
+      "employeeId": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690617738"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690617738"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfa68ba4f5be16128cd"
+      },
+      "employeeId": {
+        "$oid": "693dc3dfee07fbcd93854e21"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690618131"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690618131"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfa68ba4f5be16128dc"
+      },
+      "employeeId": {
+        "$oid": "693dc3dfee07fbcd93854e21"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690618181"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690618181"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfa68ba4f5be16128e1"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e28"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690618572"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690618572"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfa68ba4f5be16128f0"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e28"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690618622"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690618622"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfb68ba4f5be16128f5"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e2f"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690619010"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690619010"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfb68ba4f5be1612904"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e2f"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690619060"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690619060"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfb68ba4f5be1612909"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e36"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690619452"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690619452"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfb68ba4f5be1612918"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e36"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690619534"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690619534"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfb68ba4f5be161291d"
+      },
+      "employeeId": {
+        "$oid": "693dc3e1ee07fbcd93854e3d"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690619943"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690619943"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfb68ba4f5be161292c"
+      },
+      "employeeId": {
+        "$oid": "693dc3e1ee07fbcd93854e3d"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690619997"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690619997"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfc68ba4f5be1612931"
+      },
+      "employeeId": {
+        "$oid": "693dc3e2ee07fbcd93854e44"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690620401"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690620401"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfc68ba4f5be1612940"
+      },
+      "employeeId": {
+        "$oid": "693dc3e2ee07fbcd93854e44"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690620450"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690620450"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfc68ba4f5be1612945"
+      },
+      "employeeId": {
+        "$oid": "693dc3e3ee07fbcd93854e4b"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690620845"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690620845"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfc68ba4f5be1612954"
+      },
+      "employeeId": {
+        "$oid": "693dc3e3ee07fbcd93854e4b"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690620894"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690620894"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfd68ba4f5be1612959"
+      },
+      "employeeId": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690621287"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690621287"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e4cfd68ba4f5be1612968"
+      },
+      "employeeId": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693e4cb668ba4f5be1612858"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765690621336"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690621336"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45123c80e178ffea7128"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "5000"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "5000"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754130548"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754130548"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45123c80e178ffea7139"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: earningsDetails.bonuses.0.amount: Path `amount` is required., earningsDetails.bonuses.0.positionName: Path `positionName` is required., deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754130614"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754130614"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45133c80e178ffea713e"
+      },
+      "employeeId": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754131012"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754131012"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45133c80e178ffea714e"
+      },
+      "employeeId": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754131064"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754131064"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45133c80e178ffea7153"
+      },
+      "employeeId": {
+        "$oid": "693dc3deee07fbcd93854e0c"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754131449"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754131449"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45133c80e178ffea7163"
+      },
+      "employeeId": {
+        "$oid": "693dc3deee07fbcd93854e0c"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754131502"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754131502"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45133c80e178ffea7168"
+      },
+      "employeeId": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754131889"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754131889"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45133c80e178ffea7178"
+      },
+      "employeeId": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754131942"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754131942"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45143c80e178ffea717d"
+      },
+      "employeeId": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754132386"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754132386"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45143c80e178ffea718d"
+      },
+      "employeeId": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754132437"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754132437"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45143c80e178ffea7192"
+      },
+      "employeeId": {
+        "$oid": "693dc3dfee07fbcd93854e21"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754132823"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754132823"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45143c80e178ffea71a2"
+      },
+      "employeeId": {
+        "$oid": "693dc3dfee07fbcd93854e21"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754132874"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754132874"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45153c80e178ffea71a7"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e28"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754133259"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754133259"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45153c80e178ffea71b7"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e28"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754133308"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754133308"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45153c80e178ffea71bc"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e2f"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754133710"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754133710"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45153c80e178ffea71cc"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e2f"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754133762"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754133762"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45163c80e178ffea71d1"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e36"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754134150"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754134150"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45163c80e178ffea71e1"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e36"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754134201"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754134201"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45163c80e178ffea71e6"
+      },
+      "employeeId": {
+        "$oid": "693dc3e1ee07fbcd93854e3d"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754134586"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754134586"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45163c80e178ffea71f6"
+      },
+      "employeeId": {
+        "$oid": "693dc3e1ee07fbcd93854e3d"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754134639"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754134639"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45173c80e178ffea71fb"
+      },
+      "employeeId": {
+        "$oid": "693dc3e2ee07fbcd93854e44"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754135025"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754135025"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45173c80e178ffea720b"
+      },
+      "employeeId": {
+        "$oid": "693dc3e2ee07fbcd93854e44"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754135075"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754135075"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45173c80e178ffea7210"
+      },
+      "employeeId": {
+        "$oid": "693dc3e3ee07fbcd93854e4b"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754135459"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754135459"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45173c80e178ffea7220"
+      },
+      "employeeId": {
+        "$oid": "693dc3e3ee07fbcd93854e4b"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754135509"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754135509"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45173c80e178ffea7225"
+      },
+      "employeeId": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754135892"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754135892"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f45173c80e178ffea7235"
+      },
+      "employeeId": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f43383fc06b0c75013dc0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765754135945"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754135945"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eaabf6e9a05567b8ab8"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760682203"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760682203"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eaabf6e9a05567b8ac8"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760682334"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760682334"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eabbf6e9a05567b8acd"
+      },
+      "employeeId": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760683375"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760683375"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eabbf6e9a05567b8add"
+      },
+      "employeeId": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760683498"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760683498"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eacbf6e9a05567b8ae2"
+      },
+      "employeeId": {
+        "$oid": "693dc3deee07fbcd93854e0c"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760684530"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760684530"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eacbf6e9a05567b8af2"
+      },
+      "employeeId": {
+        "$oid": "693dc3deee07fbcd93854e0c"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760684655"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760684655"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eadbf6e9a05567b8af7"
+      },
+      "employeeId": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760685689"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760685689"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eadbf6e9a05567b8b07"
+      },
+      "employeeId": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760685820"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760685820"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eaebf6e9a05567b8b0c"
+      },
+      "employeeId": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760686851"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760686851"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eaebf6e9a05567b8b1c"
+      },
+      "employeeId": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760686977"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760686977"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb0bf6e9a05567b8b21"
+      },
+      "employeeId": {
+        "$oid": "693dc3dfee07fbcd93854e21"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760688007"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760688007"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb0bf6e9a05567b8b31"
+      },
+      "employeeId": {
+        "$oid": "693dc3dfee07fbcd93854e21"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760688130"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760688130"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb1bf6e9a05567b8b36"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e28"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760689161"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760689161"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb1bf6e9a05567b8b46"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e28"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760689283"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760689283"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb2bf6e9a05567b8b4b"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e2f"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760690313"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760690313"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb2bf6e9a05567b8b5b"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e2f"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760690435"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760690435"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb3bf6e9a05567b8b60"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e36"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760691471"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760691471"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb3bf6e9a05567b8b70"
+      },
+      "employeeId": {
+        "$oid": "693dc3e0ee07fbcd93854e36"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760691592"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760691592"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb4bf6e9a05567b8b75"
+      },
+      "employeeId": {
+        "$oid": "693dc3e1ee07fbcd93854e3d"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760692629"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760692629"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb4bf6e9a05567b8b85"
+      },
+      "employeeId": {
+        "$oid": "693dc3e1ee07fbcd93854e3d"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760692750"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760692750"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb5bf6e9a05567b8b8a"
+      },
+      "employeeId": {
+        "$oid": "693dc3e2ee07fbcd93854e44"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760693784"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760693784"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb5bf6e9a05567b8b9a"
+      },
+      "employeeId": {
+        "$oid": "693dc3e2ee07fbcd93854e44"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760693905"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760693905"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb6bf6e9a05567b8b9f"
+      },
+      "employeeId": {
+        "$oid": "693dc3e3ee07fbcd93854e4b"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760694939"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760694939"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb7bf6e9a05567b8baf"
+      },
+      "employeeId": {
+        "$oid": "693dc3e3ee07fbcd93854e4b"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760695060"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760695060"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb8bf6e9a05567b8bb4"
+      },
+      "employeeId": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "valid",
+      "exceptions": null,
+      "bonus": {
+        "$numberInt": "0"
+      },
+      "benefit": {
+        "$numberInt": "0"
+      },
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760696098"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760696098"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f5eb8bf6e9a05567b8bc4"
+      },
+      "employeeId": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "baseSalary": {
+        "$numberInt": "0"
+      },
+      "allowances": {
+        "$numberInt": "0"
+      },
+      "deductions": {
+        "$numberInt": "0"
+      },
+      "netSalary": {
+        "$numberInt": "0"
+      },
+      "netPay": {
+        "$numberInt": "0"
+      },
+      "bankStatus": "missing",
+      "exceptions": "paySlip validation failed: deductionsDetails.penalties.employeeId: Path `employeeId` is required.",
+      "payrollRunId": {
+        "$oid": "693f5e93bf6e9a05567b8aac"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765760696222"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765760696222"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    }
+  ]
+}

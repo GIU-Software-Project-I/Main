@@ -1,0 +1,228 @@
+{
+  "collection": "offers",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a80047e07119e5fd6a8cd"
+      },
+      "applicationId": {
+        "$oid": "693a80037e07119e5fd6a8ab"
+      },
+      "candidateId": {
+        "$oid": "693a80037e07119e5fd6a898"
+      },
+      "grossSalary": {
+        "$numberInt": "85000"
+      },
+      "signingBonus": {
+        "$numberInt": "5000"
+      },
+      "benefits": [
+        "Health Insurance",
+        "401k Matching",
+        "Paid Time Off"
+      ],
+      "role": "Senior Accountant",
+      "deadline": {
+        "$date": {
+          "$numberLong": "1765756800000"
+        }
+      },
+      "applicantResponse": "accepted",
+      "finalStatus": "approved",
+      "candidateSignedAt": {
+        "$date": {
+          "$numberLong": "1764892800000"
+        }
+      },
+      "approvers": [],
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441540617"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441540617"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80047e07119e5fd6a8ce"
+      },
+      "applicationId": {
+        "$oid": "693a80037e07119e5fd6a8aa"
+      },
+      "candidateId": {
+        "$oid": "693a80037e07119e5fd6a897"
+      },
+      "grossSalary": {
+        "$numberInt": "75000"
+      },
+      "signingBonus": {
+        "$numberInt": "3000"
+      },
+      "benefits": [
+        "Health Insurance",
+        "Professional Development Budget"
+      ],
+      "role": "HR Manager",
+      "deadline": {
+        "$date": {
+          "$numberLong": "1765843200000"
+        }
+      },
+      "applicantResponse": "pending",
+      "finalStatus": "pending",
+      "approvers": [],
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441540618"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441540618"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80047e07119e5fd6a8cf"
+      },
+      "applicationId": {
+        "$oid": "693a80037e07119e5fd6a8a9"
+      },
+      "candidateId": {
+        "$oid": "693a80037e07119e5fd6a896"
+      },
+      "grossSalary": {
+        "$numberInt": "95000"
+      },
+      "signingBonus": {
+        "$numberInt": "10000"
+      },
+      "benefits": [
+        "Health Insurance",
+        "401k Matching",
+        "Stock Options",
+        "Remote Work"
+      ],
+      "role": "Senior Software Engineer",
+      "deadline": {
+        "$date": {
+          "$numberLong": "1765929600000"
+        }
+      },
+      "applicantResponse": "pending",
+      "finalStatus": "pending",
+      "approvers": [],
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441540618"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441540618"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80047e07119e5fd6a8d0"
+      },
+      "applicationId": {
+        "$oid": "693a80037e07119e5fd6a8ac"
+      },
+      "candidateId": {
+        "$oid": "693a80037e07119e5fd6a899"
+      },
+      "grossSalary": {
+        "$numberInt": "70000"
+      },
+      "signingBonus": {
+        "$numberInt": "2000"
+      },
+      "benefits": [
+        "Health Insurance",
+        "Flexible Schedule"
+      ],
+      "role": "Marketing Manager",
+      "deadline": {
+        "$date": {
+          "$numberLong": "1765497600000"
+        }
+      },
+      "applicantResponse": "rejected",
+      "finalStatus": "rejected",
+      "approvers": [],
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441540618"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441540618"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80047e07119e5fd6a8d1"
+      },
+      "applicationId": {
+        "$oid": "693a80037e07119e5fd6a8ab"
+      },
+      "candidateId": {
+        "$oid": "693a80037e07119e5fd6a898"
+      },
+      "grossSalary": {
+        "$numberInt": "80000"
+      },
+      "signingBonus": {
+        "$numberInt": "4000"
+      },
+      "benefits": [
+        "Health Insurance",
+        "Performance Bonuses"
+      ],
+      "role": "Accountant",
+      "deadline": {
+        "$date": {
+          "$numberLong": "1765238400000"
+        }
+      },
+      "applicantResponse": "pending",
+      "finalStatus": "pending",
+      "approvers": [],
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441540618"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441540618"
+        }
+      }
+    }
+  ]
+}

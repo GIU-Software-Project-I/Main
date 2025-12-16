@@ -1,0 +1,373 @@
+{
+  "collection": "employee_system_roles",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a800d7e07119e5fd6a9f7"
+      },
+      "employeeProfileId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "roles": [
+        "department employee"
+      ],
+      "permissions": [
+        "view_own_profile",
+        "submit_leave",
+        "view_payslip"
+      ],
+      "isActive": true,
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441549222"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441549222"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800d7e07119e5fd6a9f8"
+      },
+      "employeeProfileId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "roles": [
+        "HR Manager",
+        "department head"
+      ],
+      "permissions": [
+        "view_all_profiles",
+        "manage_leave",
+        "manage_payroll",
+        "approve_requests"
+      ],
+      "isActive": true,
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441549223"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441549223"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800d7e07119e5fd6a9f9"
+      },
+      "employeeProfileId": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "roles": [
+        "department employee"
+      ],
+      "permissions": [
+        "view_own_profile",
+        "submit_leave",
+        "view_payslip"
+      ],
+      "isActive": true,
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441549223"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441549223"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc3ddee07fbcd93854e09"
+      },
+      "employeeProfileId": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "roles": [
+        "department employee"
+      ],
+      "permissions": [],
+      "isActive": true,
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765655517932"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765655517932"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc3deee07fbcd93854e10"
+      },
+      "employeeProfileId": {
+        "$oid": "693dc3deee07fbcd93854e0c"
+      },
+      "roles": [
+        "department head"
+      ],
+      "permissions": [],
+      "isActive": true,
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765655518622"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765655518622"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc3dfee07fbcd93854e17"
+      },
+      "employeeProfileId": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "roles": [
+        "HR Manager"
+      ],
+      "permissions": [],
+      "isActive": true,
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765655519065"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765655519065"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc3dfee07fbcd93854e1e"
+      },
+      "employeeProfileId": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "roles": [
+        "HR Employee"
+      ],
+      "permissions": [],
+      "isActive": true,
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765655519488"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765655519488"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc3dfee07fbcd93854e25"
+      },
+      "employeeProfileId": {
+        "$oid": "693dc3dfee07fbcd93854e21"
+      },
+      "roles": [
+        "Payroll Specialist"
+      ],
+      "permissions": [],
+      "isActive": true,
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765655519920"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765655519920"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc3e0ee07fbcd93854e2c"
+      },
+      "employeeProfileId": {
+        "$oid": "693dc3e0ee07fbcd93854e28"
+      },
+      "roles": [
+        "Payroll Manager"
+      ],
+      "permissions": [],
+      "isActive": true,
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765655520369"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765655520369"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc3e0ee07fbcd93854e33"
+      },
+      "employeeProfileId": {
+        "$oid": "693dc3e0ee07fbcd93854e2f"
+      },
+      "roles": [
+        "System Admin"
+      ],
+      "permissions": [],
+      "isActive": true,
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765655520723"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765655520723"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc3e1ee07fbcd93854e3a"
+      },
+      "employeeProfileId": {
+        "$oid": "693dc3e0ee07fbcd93854e36"
+      },
+      "roles": [
+        "Legal & Policy Admin"
+      ],
+      "permissions": [],
+      "isActive": true,
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765655521409"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765655521409"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc3e2ee07fbcd93854e41"
+      },
+      "employeeProfileId": {
+        "$oid": "693dc3e1ee07fbcd93854e3d"
+      },
+      "roles": [
+        "Recruiter"
+      ],
+      "permissions": [],
+      "isActive": true,
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765655522197"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765655522197"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc3e2ee07fbcd93854e48"
+      },
+      "employeeProfileId": {
+        "$oid": "693dc3e2ee07fbcd93854e44"
+      },
+      "roles": [
+        "Finance Staff"
+      ],
+      "permissions": [],
+      "isActive": true,
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765655522919"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765655522919"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc3e3ee07fbcd93854e4f"
+      },
+      "employeeProfileId": {
+        "$oid": "693dc3e3ee07fbcd93854e4b"
+      },
+      "roles": [
+        "Job Candidate"
+      ],
+      "permissions": [],
+      "isActive": true,
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765655523359"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765655523359"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc3e3ee07fbcd93854e56"
+      },
+      "employeeProfileId": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "roles": [
+        "HR Admin"
+      ],
+      "permissions": [],
+      "isActive": true,
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765655523734"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765655523734"
+        }
+      }
+    }
+  ]
+}

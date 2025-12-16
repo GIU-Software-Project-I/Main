@@ -1,0 +1,1205 @@
+{
+  "collection": "timeexceptions",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693daddbd7b248bdd6d6646c"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693dadd8d7b248bdd6d66449"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 480 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dae29d7b248bdd6d66490"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dadd8d7b248bdd6d66449"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693db18205d448929e4a1a37"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693db18005d448929e4a1a1f"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693db18a05d448929e4a1a61"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693db18005d448929e4a1a1f"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dbf8953d335701147a8b8"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dbf8753d335701147a89d"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dbfd053d335701147a8e5"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dbf8753d335701147a89d"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dbfdd53d335701147a91b"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dbf8753d335701147a89d"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dbfdf53d335701147a92c"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693dbf8753d335701147a89d"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 60 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc05c53d335701147a95a"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dc05a53d335701147a93f"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc08853d335701147a987"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dc05a53d335701147a93f"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc09e53d335701147a9bd"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dc05a53d335701147a93f"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dc09f53d335701147a9ce"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693dc05a53d335701147a93f"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 60 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd01b2fb074e16b5211a2"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dd0142fb074e16b52118a"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd01d2fb074e16b5211aa"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693dd0142fb074e16b52118a"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 480 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd0bd2fb074e16b5211c7"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dd0142fb074e16b52118a"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd2dccaa3e447da98c18f"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dd2d7caa3e447da98c177"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd2ddcaa3e447da98c197"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693dd2d7caa3e447da98c177"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 480 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd307caa3e447da98c1b4"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dd2d7caa3e447da98c177"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd3c0caa3e447da98c1f5"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dd3bccaa3e447da98c1dd"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd3c1caa3e447da98c1fd"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693dd3bccaa3e447da98c1dd"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 480 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd3cfcaa3e447da98c21a"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dd3bccaa3e447da98c1dd"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd3edcaa3e447da98c256"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dd3e9caa3e447da98c23e"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd3eecaa3e447da98c25e"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693dd3e9caa3e447da98c23e"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 480 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd41ecaa3e447da98c27b"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693dd3e9caa3e447da98c23e"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df37b06f2a730e158fced"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693df37906f2a730e158fcd5"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 45 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df37b06f2a730e158fcf5"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693df37906f2a730e158fcd5"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 60 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df41c06f2a730e158fd27"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693df41a06f2a730e158fd0c"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "RESOLVED",
+      "reason": "Resolved via correction approval: Approved after confirming with employee",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df44306f2a730e158fd4a"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "EARLY_LEAVE",
+      "attendanceRecordId": {
+        "$oid": "693df41a06f2a730e158fd0c"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected early leave: 210 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df45506f2a730e158fd82"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "EARLY_LEAVE",
+      "attendanceRecordId": {
+        "$oid": "693df41a06f2a730e158fd0c"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected early leave: 210 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df46106f2a730e158fdaa"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "EARLY_LEAVE",
+      "attendanceRecordId": {
+        "$oid": "693df41a06f2a730e158fd0c"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected early leave: 30 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df47106f2a730e158fde2"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "EARLY_LEAVE",
+      "attendanceRecordId": {
+        "$oid": "693df41a06f2a730e158fd0c"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected early leave: 30 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df49406f2a730e158fe12"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "OVERTIME_REQUEST",
+      "attendanceRecordId": {
+        "$oid": "693df41a06f2a730e158fd0c"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Overtime requires approval",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df49406f2a730e158fe16"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "OVERTIME_REQUEST",
+      "attendanceRecordId": {
+        "$oid": "693df41a06f2a730e158fd0c"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected overtime: 30 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df50106f2a730e158fe45"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "OVERTIME_REQUEST",
+      "attendanceRecordId": {
+        "$oid": "693df41a06f2a730e158fd0c"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Overtime requires approval",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df50106f2a730e158fe49"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "OVERTIME_REQUEST",
+      "attendanceRecordId": {
+        "$oid": "693df41a06f2a730e158fd0c"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected overtime: 30 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e110fe4b4660205beb2d6"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e1109e4b4660205beb2b7"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 480 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e14bda8fbf589070b8abb"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "type": "MISSED_PUNCH",
+      "attendanceRecordId": {
+        "$oid": "693e14bca8fbf589070b8ab1"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "status": "OPEN",
+      "reason": "Unmatched IN",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e14bfa8fbf589070b8ac7"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693e14bca8fbf589070b8ab1"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 260 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e14c0a8fbf589070b8ad0"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e14bca8fbf589070b8ab1"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 480 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e14cfa8fbf589070b8aea"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693e1109e4b4660205beb2b7"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 260 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1c64e10645d16eb2b883"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e1c62e10645d16eb2b867"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 480 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1d0de10645d16eb2b8d7"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693a80067e07119e5fd6a926"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 150 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1d0de10645d16eb2b8e1"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "attendanceRecordId": {
+        "$oid": "693a80067e07119e5fd6a926"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Unmatched IN",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1d0ee10645d16eb2b8ea"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693a80067e07119e5fd6a926"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 480 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1d2fe10645d16eb2b913"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693e1d2ee10645d16eb2b8ff"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 150 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1d30e10645d16eb2b926"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e1d2ee10645d16eb2b8ff"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 480 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1ec7d2d409d4b6ca9e71"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693e1ec6d2d409d4b6ca9e5d"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 150 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1ec9d2d409d4b6ca9e84"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e1ec6d2d409d4b6ca9e5d"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 480 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1f07d2d409d4b6ca9ead"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693e1f04d2d409d4b6ca9e99"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 150 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1f08d2d409d4b6ca9ec0"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e1f04d2d409d4b6ca9e99"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 480 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e213f559ec8a04a9e1142"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "LATE",
+      "attendanceRecordId": {
+        "$oid": "693e213e559ec8a04a9e112e"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "ESCALATED",
+      "reason": "Auto-detected lateness: 30 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e2140559ec8a04a9e1155"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e213e559ec8a04a9e112e"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 120 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e28d63f5e4ec79a4fa057"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e1d2ee10645d16eb2b8ff"
+      },
+      "assignedTo": {
+        "$oid": "000000000000000000000000"
+      },
+      "status": "APPROVED",
+      "reason": "Break Permission: Lunch break",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e75278ac089fa161cc666"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e75248ac089fa161cc648"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 60 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e757f8ac089fa161cc692"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e75248ac089fa161cc648"
+      },
+      "assignedTo": {
+        "$oid": "000000000000000000000000"
+      },
+      "status": "APPROVED",
+      "reason": "Break Permission: Lunch break",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e766a8ac089fa161cc6a2"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e75248ac089fa161cc648"
+      },
+      "assignedTo": {
+        "$oid": "000000000000000000000000"
+      },
+      "status": "APPROVED",
+      "reason": "Break Permission: Lunch break",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e7d0648c2ee85bf0b9cb1"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e7cba48c2ee85bf0b9c66"
+      },
+      "assignedTo": {
+        "$oid": "000000000000000000000000"
+      },
+      "status": "APPROVED",
+      "reason": "Break Permission: Lunch break",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e7f7c7737d411ea54768f"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e7f277737d411ea547644"
+      },
+      "assignedTo": {
+        "$oid": "000000000000000000000000"
+      },
+      "status": "APPROVED",
+      "reason": "Break Permission: Lunch break",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8760a1e69ff3af8855ca"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e875ca1e69ff3af8855ac"
+      },
+      "assignedTo": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "status": "OPEN",
+      "reason": "Auto-detected short time: 60 minutes",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e87b2a1e69ff3af8855f6"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "SHORT_TIME",
+      "attendanceRecordId": {
+        "$oid": "693e875ca1e69ff3af8855ac"
+      },
+      "assignedTo": {
+        "$oid": "000000000000000000000000"
+      },
+      "status": "APPROVED",
+      "reason": "Break Permission: Lunch break",
+      "__v": {
+        "$numberInt": "0"
+      }
+    }
+  ]
+}

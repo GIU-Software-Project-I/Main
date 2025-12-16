@@ -1,0 +1,5226 @@
+{
+  "collection": "notificationlogs",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693c637dd08ca82c83782e8a"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"attendanceRecordId\":\"693a80067e07119e5fd6a923\",\"date\":\"2025-12-02\",\"workHours\":8.5,\"totalWorkMinutes\":510,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T18:48:29.920Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765565309920"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765565309920"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c637ed08ca82c83782e8d"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8da\",\"attendanceRecordId\":\"693a80067e07119e5fd6a924\",\"date\":\"2025-12-02\",\"workHours\":8.75,\"totalWorkMinutes\":525,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T18:48:30.413Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765565310413"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765565310413"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c637ed08ca82c83782e90"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8db\",\"attendanceRecordId\":\"693a80067e07119e5fd6a925\",\"date\":\"2025-12-02\",\"workHours\":9,\"totalWorkMinutes\":540,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T18:48:30.718Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765565310718"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765565310718"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c637ed08ca82c83782e93"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8dc\",\"attendanceRecordId\":\"693a80067e07119e5fd6a927\",\"date\":\"2025-12-02\",\"workHours\":8,\"totalWorkMinutes\":480,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T18:48:30.874Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765565310874"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765565310874"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c637fd08ca82c83782e97"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8dc\",\"attendanceRecordId\":\"693a80067e07119e5fd6a927\",\"date\":\"2025-12-03\",\"workHours\":8,\"totalWorkMinutes\":480,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T18:48:31.119Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765565311119"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765565311119"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c898fa89f7a0336ce3373"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"attendanceRecordId\":\"693a80067e07119e5fd6a923\",\"date\":\"2025-12-02\",\"workHours\":8.5,\"totalWorkMinutes\":510,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:30:55.908Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765575055908"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765575055908"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8990a89f7a0336ce3376"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8da\",\"attendanceRecordId\":\"693a80067e07119e5fd6a924\",\"date\":\"2025-12-02\",\"workHours\":8.75,\"totalWorkMinutes\":525,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:30:56.131Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765575056131"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765575056131"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8990a89f7a0336ce3379"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8db\",\"attendanceRecordId\":\"693a80067e07119e5fd6a925\",\"date\":\"2025-12-02\",\"workHours\":9,\"totalWorkMinutes\":540,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:30:56.375Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765575056375"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765575056375"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8990a89f7a0336ce337c"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8dc\",\"attendanceRecordId\":\"693a80067e07119e5fd6a927\",\"date\":\"2025-12-02\",\"workHours\":8,\"totalWorkMinutes\":480,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:30:56.628Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765575056628"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765575056628"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8990a89f7a0336ce3380"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8dc\",\"attendanceRecordId\":\"693a80067e07119e5fd6a927\",\"date\":\"2025-12-03\",\"workHours\":8,\"totalWorkMinutes\":480,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:30:56.904Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765575056904"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765575056904"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8c43c9753e4dffb6134c"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"attendanceRecordId\":\"693a80067e07119e5fd6a923\",\"date\":\"2025-12-02\",\"workHours\":8.5,\"totalWorkMinutes\":510,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:42:27.409Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765575747410"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765575747410"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8c43c9753e4dffb6134f"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8da\",\"attendanceRecordId\":\"693a80067e07119e5fd6a924\",\"date\":\"2025-12-02\",\"workHours\":8.75,\"totalWorkMinutes\":525,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:42:27.660Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765575747660"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765575747660"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8c43c9753e4dffb61352"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8db\",\"attendanceRecordId\":\"693a80067e07119e5fd6a925\",\"date\":\"2025-12-02\",\"workHours\":9,\"totalWorkMinutes\":540,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:42:27.831Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765575747832"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765575747832"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8c44c9753e4dffb61355"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8dc\",\"attendanceRecordId\":\"693a80067e07119e5fd6a927\",\"date\":\"2025-12-02\",\"workHours\":8,\"totalWorkMinutes\":480,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:42:28.054Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765575748055"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765575748055"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8c44c9753e4dffb61359"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8dc\",\"attendanceRecordId\":\"693a80067e07119e5fd6a927\",\"date\":\"2025-12-03\",\"workHours\":8,\"totalWorkMinutes\":480,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:42:28.364Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765575748365"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765575748365"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8fc0c9753e4dffb613cc"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"attendanceRecordId\":\"693a80067e07119e5fd6a923\",\"date\":\"2025-12-02\",\"workHours\":8.5,\"totalWorkMinutes\":510,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:57:20.350Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765576640350"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765576640350"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8fc0c9753e4dffb613cf"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8da\",\"attendanceRecordId\":\"693a80067e07119e5fd6a924\",\"date\":\"2025-12-02\",\"workHours\":8.75,\"totalWorkMinutes\":525,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:57:20.500Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765576640500"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765576640500"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8fc0c9753e4dffb613d2"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8db\",\"attendanceRecordId\":\"693a80067e07119e5fd6a925\",\"date\":\"2025-12-02\",\"workHours\":9,\"totalWorkMinutes\":540,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:57:20.669Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765576640669"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765576640669"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8fc0c9753e4dffb613d5"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8dc\",\"attendanceRecordId\":\"693a80067e07119e5fd6a927\",\"date\":\"2025-12-02\",\"workHours\":8,\"totalWorkMinutes\":480,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:57:20.829Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765576640829"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765576640829"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c8fc1c9753e4dffb613d9"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8dc\",\"attendanceRecordId\":\"693a80067e07119e5fd6a927\",\"date\":\"2025-12-03\",\"workHours\":8,\"totalWorkMinutes\":480,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-12T21:57:21.073Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765576641073"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765576641073"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693cc324406e03e93c448cce"
+      },
+      "to": {
+        "$oid": "000000000000000000000000"
+      },
+      "type": "BREAK_PERMISSION_REQUEST",
+      "message": "Employee 693a80047e07119e5fd6a8d9 has requested a break permission. Duration: 60 minutes. Reason: Lunch break",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765589796103"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765589796103"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693cc3a9406e03e93c448cd3"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "BREAK_PERMISSION_APPROVED",
+      "message": "Your break permission request has been approved. Duration: undefined minutes.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765589929961"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765589929961"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d366bcc9d509ca1057653"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765619307998"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765619307998"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d366ccc9d509ca1057657"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee Employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765619308577"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765619308577"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d3673cc9d509ca105765b"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765619315215"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765619315215"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d3673cc9d509ca105765f"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee Employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765619315626"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765619315626"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d4673cc9d509ca1057663"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623411540"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623411540"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d4673cc9d509ca1057667"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee Employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623411879"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623411879"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d467acc9d509ca105766b"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623418559"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623418559"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d467acc9d509ca105766f"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee Employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623418908"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623418908"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d46dfcc9d509ca1057689"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623519679"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623519679"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d46dfcc9d509ca105768d"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee Jane Marie Smith profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623519907"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623519907"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d46e5cc9d509ca1057691"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623525581"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623525581"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d46e5cc9d509ca1057695"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee Employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623525848"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623525848"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d46eacc9d509ca1057699"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623530549"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623530549"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d46eacc9d509ca105769d"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee Employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623530905"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623530905"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d46efcc9d509ca10576a4"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "PAYROLL_BLOCK_REQUIRED",
+      "message": "Employee Employee status changed to TERMINATED. Payroll processing should be blocked.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623535979"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623535979"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d46f0cc9d509ca10576a6"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8dd"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623536080"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623536080"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d46f0cc9d509ca10576aa"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee Employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623536356"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623536356"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d477fcc9d509ca10576c9"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "type": "N-040",
+      "message": "Your profile change request (REQ-1765623679776-QC27B) has been submitted and is pending review.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623679886"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623679886"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d4780cc9d509ca10576cd"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-040",
+      "message": "Employee Employee submitted a profile change request (REQ-1765623679776-QC27B).",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623680301"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623680301"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d47c4cc9d509ca10576da"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623748062"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623748062"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d47c4cc9d509ca10576de"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee Jane Marie Smith profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623748376"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623748376"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d47c4cc9d509ca10576e2"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "PAYROLL_BLOCK_REQUIRED",
+      "message": "Employee Jane Marie Smith status changed to SUSPENDED. Payroll processing should be blocked.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623748647"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623748647"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d47dfcc9d509ca10576e8"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623775372"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623775372"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d47dfcc9d509ca10576ec"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee Jane Marie Smith profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623775647"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623775647"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d49f4cc9d509ca10576fd"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765624308777"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765624308777"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d49f5cc9d509ca1057701"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee Jane Marie Smith profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765624309232"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765624309232"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d49facc9d509ca1057705"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765624314662"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765624314662"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d49facc9d509ca1057709"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee Jane Marie Smith profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765624314971"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765624314971"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d56ced9c57665cb37c46b"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "ORG_STRUCTURE_CHANGED",
+      "message": "Organization structure update: Position Updated - Lead Software Engineer",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627598885"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627598885"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d56cfd9c57665cb37c46d"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "type": "ORG_STRUCTURE_CHANGED",
+      "message": "Your organizational assignment has been updated: Position Updated",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627599012"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627599012"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d56d4d9c57665cb37c478"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "ORG_STRUCTURE_CHANGED",
+      "message": "Organization structure update: Position Deactivated - Marketing Manager",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627604748"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627604748"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d56e2d9c57665cb37c489"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "ORG_STRUCTURE_CHANGED",
+      "message": "Organization structure update: Position Assignment - HR Manager",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627618849"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627618849"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d56e3d9c57665cb37c48b"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "ORG_STRUCTURE_CHANGED",
+      "message": "Your organizational assignment has been updated: Position Assignment",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627619209"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627619209"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d5851d9c57665cb37c4e3"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "ORG_STRUCTURE_CHANGED",
+      "message": "Organization structure update: Position Updated - Lead Software Engineer",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627985198"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627985198"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d5851d9c57665cb37c4e5"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "type": "ORG_STRUCTURE_CHANGED",
+      "message": "Your organizational assignment has been updated: Position Updated",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627985293"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627985293"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d5865d9c57665cb37c4f0"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "ORG_STRUCTURE_CHANGED",
+      "message": "Organization structure update: Position Deactivated - Lead Software Engineer",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765628005598"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765628005598"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d5893d9c57665cb37c4fe"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "ORG_STRUCTURE_CHANGED",
+      "message": "Organization structure update: Position Assignment - Marketing Manager",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765628051341"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765628051341"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d5893d9c57665cb37c500"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "ORG_STRUCTURE_CHANGED",
+      "message": "Your organizational assignment has been updated: Position Assignment",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765628051440"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765628051440"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d906f6ccba248dbe110c7"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "SHIFT_ASSIGNED",
+      "message": "Shift assignment 693d906f6ccba248dbe110c4 created for employee undefined",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765642351770"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765642351770"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d92666ccba248dbe110d4"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "SHIFT_ASSIGNED",
+      "message": "Shift assignment 693d92666ccba248dbe110d1 created for employee undefined",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765642854450"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765642854450"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d933705e9b252e32db937"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-051",
+      "message": "Your Leave leave request from 2025-12-20 to 2025-12-22 has been cancelled.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765643063557"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765643063557"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d9cc7f846b4185fedabef"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "N-055",
+      "message": "6 day(s) have been added to your Leave balance. Reason: Compensation for overtime work",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765645511472"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765645511472"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d9cd1f846b4185fedabf5"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-055",
+      "message": "3 day(s) have been deducted from your Leave balance. Reason: Correction for unapproved absence",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765645521259"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765645521259"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd2dacaa3e447da98c186"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693dd2d7caa3e447da98c177. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765659354851"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765659354851"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd3becaa3e447da98c1ec"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693dd3bccaa3e447da98c1dd. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765659582868"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765659582868"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dd3eccaa3e447da98c24d"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693dd3e9caa3e447da98c23e. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765659628306"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765659628306"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693de8ec06f2a730e158fcc6"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "SHIFT_ASSIGNED",
+      "message": "Shift assignment 693de8ec06f2a730e158fcc4 created for employee 693a80047e07119e5fd6a8d9",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765665004411"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765665004411"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df37a06f2a730e158fce4"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693df37906f2a730e158fcd5. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765667706443"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765667706443"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df41b06f2a730e158fd1b"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693df41a06f2a730e158fd0c. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765667867874"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765667867874"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df45406f2a730e158fd73"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693df41a06f2a730e158fd0c. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765667924240"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765667924240"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df47006f2a730e158fdd3"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693df41a06f2a730e158fd0c. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765667952213"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765667952213"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df4ff06f2a730e158fe28"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "ATTENDANCE_CORRECTED",
+      "message": "Attendance corrected: Added missing punch OUT. . Reason: the correct punch out was ay 17:25 not 17:30. Corrected by: 674c1a1b2c3d4e5f6a7b8c8a",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765668095004"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765668095004"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df7cc06f2a730e158fee1"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "CORRECTION_REQUEST_SUBMITTED",
+      "message": "Correction request submitted for attendance 693df41a06f2a730e158fd0c",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765668812011"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765668812011"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df7cc06f2a730e158fee5"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "CORRECTION_DETAILS",
+      "message": "{\"correctionRequestId\":\"693df7cb06f2a730e158fedf\",\"details\":{\"type\":\"INCORRECT_PUNCH\",\"correctedIso\":\"2025-12-11T15:25:00.000Z\",\"correctedPunchDate\":\"11/12/2025\",\"correctedPunchLocalTime\":\"17:25\",\"recordedOut\":\"2025-12-11T15:30:00.000Z\"}}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765668812237"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765668812237"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dfb3a06f2a730e158feef"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "CORRECTION_APPROVED",
+      "message": "Your correction request was approved.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765669690304"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765669690304"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1044e4b4660205beb282"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e0c"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693e1042e4b4660205beb275. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765675076947"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765675076947"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e110ce4b4660205beb2c5"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693e1109e4b4660205beb2b7. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765675276769"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765675276769"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e14bea8fbf589070b8abf"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693e14bca8fbf589070b8ab1. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765676222228"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765676222228"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1c64e10645d16eb2b87e"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693e1c62e10645d16eb2b867. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765678180295"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765678180295"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1d0de10645d16eb2b8e5"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693a80067e07119e5fd6a926. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765678349955"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765678349955"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1d30e10645d16eb2b921"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693e1d2ee10645d16eb2b8ff. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765678384561"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765678384561"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1ec8d2d409d4b6ca9e7f"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693e1ec6d2d409d4b6ca9e5d. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765678792719"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765678792719"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e1f08d2d409d4b6ca9ebb"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693e1f04d2d409d4b6ca9e99. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765678856154"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765678856154"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e2140559ec8a04a9e1150"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693e213e559ec8a04a9e112e. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765679424646"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765679424646"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e28d63f5e4ec79a4fa05a"
+      },
+      "to": {
+        "$oid": "000000000000000000000000"
+      },
+      "type": "BREAK_PERMISSION_REQUEST",
+      "message": "Employee 693a80047e07119e5fd6a8d9 has requested a break permission. Duration: 120 minutes. Reason: Lunch break",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765681366490"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765681366490"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e29293f5e4ec79a4fa060"
+      },
+      "to": {
+        "$oid": "000000000000000000000000"
+      },
+      "type": "PAYROLL_REEVALUATE",
+      "message": "Attendance 693e1d2ee10645d16eb2b8ff requires re-evaluation due to approved break permission 693e28d63f5e4ec79a4fa057",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765681449469"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765681449469"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e29293f5e4ec79a4fa062"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "BREAK_PERMISSION_APPROVED",
+      "message": "Your break permission request has been approved. Duration: undefined minutes.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765681449568"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765681449568"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e75268ac089fa161cc660"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693e75248ac089fa161cc648. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765700902870"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765700902870"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e757f8ac089fa161cc695"
+      },
+      "to": {
+        "$oid": "000000000000000000000000"
+      },
+      "type": "BREAK_PERMISSION_REQUEST",
+      "message": "Employee 693a80047e07119e5fd6a8d9 has requested a break permission. Duration: 60 minutes. Reason: Lunch break",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765700991214"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765700991214"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e76088ac089fa161cc69c"
+      },
+      "to": {
+        "$oid": "000000000000000000000000"
+      },
+      "type": "PAYROLL_REEVALUATE",
+      "message": "Attendance 693e75248ac089fa161cc648 requires re-evaluation due to approved break permission 693e757f8ac089fa161cc692",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765701128507"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765701128507"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e76088ac089fa161cc69e"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "BREAK_PERMISSION_APPROVED",
+      "message": "Your break permission request has been approved. Duration: undefined minutes.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765701128587"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765701128587"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e766a8ac089fa161cc6a5"
+      },
+      "to": {
+        "$oid": "000000000000000000000000"
+      },
+      "type": "BREAK_PERMISSION_REQUEST",
+      "message": "Employee 693a80047e07119e5fd6a8d9 has requested a break permission. Duration: 60 minutes. Reason: Lunch break",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765701226401"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765701226401"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e76838ac089fa161cc6ac"
+      },
+      "to": {
+        "$oid": "000000000000000000000000"
+      },
+      "type": "PAYROLL_REEVALUATE",
+      "message": "Attendance 693e75248ac089fa161cc648 requires re-evaluation due to approved break permission 693e766a8ac089fa161cc6a2",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765701251603"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765701251603"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e76838ac089fa161cc6ae"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "BREAK_PERMISSION_APPROVED",
+      "message": "Your break permission request has been approved. Duration: undefined minutes.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765701251702"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765701251702"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e7cbb48c2ee85bf0b9c7e"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693e7cba48c2ee85bf0b9c66. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765702843971"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765702843971"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e7d0648c2ee85bf0b9cb4"
+      },
+      "to": {
+        "$oid": "000000000000000000000000"
+      },
+      "type": "BREAK_PERMISSION_REQUEST",
+      "message": "Employee 693a80047e07119e5fd6a8d9 has requested a break permission. Duration: 60 minutes. Reason: Lunch break",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765702918657"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765702918657"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e7d3048c2ee85bf0b9cbb"
+      },
+      "to": {
+        "$oid": "000000000000000000000000"
+      },
+      "type": "PAYROLL_REEVALUATE",
+      "message": "Attendance 693e7cba48c2ee85bf0b9c66 requires re-evaluation due to approved break permission 693e7d0648c2ee85bf0b9cb1",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765702960987"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765702960987"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e7d3148c2ee85bf0b9cbd"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "BREAK_PERMISSION_APPROVED",
+      "message": "Your break permission request has been approved. Duration: undefined minutes.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765702961071"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765702961071"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e7f297737d411ea54765c"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693e7f277737d411ea547644. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765703465470"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765703465470"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e7f7c7737d411ea547692"
+      },
+      "to": {
+        "$oid": "000000000000000000000000"
+      },
+      "type": "BREAK_PERMISSION_REQUEST",
+      "message": "Employee 693a80047e07119e5fd6a8d9 has requested a break permission. Duration: 60 minutes. Reason: Lunch break",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765703548419"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765703548419"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e7f977737d411ea547699"
+      },
+      "to": {
+        "$oid": "000000000000000000000000"
+      },
+      "type": "PAYROLL_REEVALUATE",
+      "message": "Attendance 693e7f277737d411ea547644 requires re-evaluation due to approved break permission 693e7f7c7737d411ea54768f",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765703575420"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765703575420"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e7f977737d411ea54769b"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "BREAK_PERMISSION_APPROVED",
+      "message": "Your break permission request has been approved. Duration: undefined minutes.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765703575508"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765703575508"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e875fa1e69ff3af8855c4"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693e875ca1e69ff3af8855ac. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705567557"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705567557"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e87b2a1e69ff3af8855f9"
+      },
+      "to": {
+        "$oid": "000000000000000000000000"
+      },
+      "type": "BREAK_PERMISSION_REQUEST",
+      "message": "Employee 693a80047e07119e5fd6a8d9 has requested a break permission. Duration: 60 minutes. Reason: Lunch break",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705650355"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705650355"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e87d0a1e69ff3af8855ff"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "type": "BREAK_PERMISSION_APPROVED",
+      "message": "Your break permission request has been approved. Duration: undefined minutes.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705680115"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705680115"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8891a1e69ff3af885603"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693dc3deee07fbcd93854e0c\",\"attendanceRecordId\":\"693e1042e4b4660205beb275\",\"date\":\"2025-12-01\",\"workHours\":6,\"totalWorkMinutes\":360,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:13.469Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705873470"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705873470"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8891a1e69ff3af885606"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8dc\",\"attendanceRecordId\":\"693e1109e4b4660205beb2b7\",\"date\":\"2025-12-01\",\"workHours\":3.5,\"totalWorkMinutes\":210,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:13.709Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705873709"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705873709"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8891a1e69ff3af885609"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"attendanceRecordId\":\"693e1c62e10645d16eb2b867\",\"date\":\"2025-12-01\",\"workHours\":7,\"totalWorkMinutes\":420,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:13.877Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705873877"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705873877"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8892a1e69ff3af88560d"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8da\",\"attendanceRecordId\":\"693a80067e07119e5fd6a924\",\"date\":\"2025-12-02\",\"workHours\":8.75,\"totalWorkMinutes\":525,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:14.113Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705874113"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705874113"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8892a1e69ff3af885610"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8db\",\"attendanceRecordId\":\"693a80067e07119e5fd6a925\",\"date\":\"2025-12-02\",\"workHours\":9,\"totalWorkMinutes\":540,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:14.269Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705874270"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705874270"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8892a1e69ff3af885613"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8dc\",\"attendanceRecordId\":\"693a80067e07119e5fd6a927\",\"date\":\"2025-12-02\",\"workHours\":8,\"totalWorkMinutes\":480,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:14.432Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705874432"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705874432"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8892a1e69ff3af885616"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8dc\",\"attendanceRecordId\":\"693e1109e4b4660205beb2b7\",\"date\":\"2025-12-02\",\"workHours\":3.5,\"totalWorkMinutes\":210,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:14.599Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705874599"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705874599"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8892a1e69ff3af88561a"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8dc\",\"attendanceRecordId\":\"693a80067e07119e5fd6a927\",\"date\":\"2025-12-03\",\"workHours\":8,\"totalWorkMinutes\":480,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:14.910Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705874911"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705874911"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8893a1e69ff3af885620"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"attendanceRecordId\":\"693e1ec6d2d409d4b6ca9e5d\",\"date\":\"2025-12-06\",\"workHours\":4,\"totalWorkMinutes\":240,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:15.500Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705875500"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705875500"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8893a1e69ff3af885624"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"attendanceRecordId\":\"693e1f04d2d409d4b6ca9e99\",\"date\":\"2025-12-07\",\"workHours\":4,\"totalWorkMinutes\":240,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:15.791Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705875791"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705875791"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8894a1e69ff3af885628"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"attendanceRecordId\":\"693e213e559ec8a04a9e112e\",\"date\":\"2025-12-08\",\"workHours\":6,\"totalWorkMinutes\":360,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:16.111Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705876111"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705876111"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8894a1e69ff3af88562d"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"attendanceRecordId\":\"693df37906f2a730e158fcd5\",\"date\":\"2025-12-10\",\"workHours\":7,\"totalWorkMinutes\":420,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:16.440Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705876441"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705876441"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8894a1e69ff3af885631"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"attendanceRecordId\":\"693df41a06f2a730e158fd0c\",\"date\":\"2025-12-11\",\"workHours\":6.42,\"totalWorkMinutes\":385,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:16.759Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705876760"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705876760"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8895a1e69ff3af885637"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"attendanceRecordId\":\"693dc05a53d335701147a93f\",\"date\":\"2025-12-14\",\"workHours\":7,\"totalWorkMinutes\":420,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:17.239Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705877240"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705877240"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e8895a1e69ff3af88563b"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "PAYROLL_SYNC_DATA",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"attendanceRecordId\":\"693db18005d448929e4a1a1f\",\"date\":\"2025-12-15\",\"workHours\":7,\"totalWorkMinutes\":420,\"status\":\"PRESENT\",\"syncedAt\":\"2025-12-14T09:51:17.559Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765705877559"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765705877559"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e96284702d92c44be7479"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "LEAVE_ENTITLEMENT_DEDUCTED",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"leaveTypeId\":\"693a800a7e07119e5fd6a9aa\",\"date\":\"2025-11-24\",\"daysDeducted\":1,\"action\":\"ENTITLEMENT_DEDUCTED\",\"syncedAt\":\"2025-12-14T10:49:12.978Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765709352979"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765709352979"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e96294702d92c44be747f"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "LEAVE_ENTITLEMENT_DEDUCTED",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"leaveTypeId\":\"693a800a7e07119e5fd6a9aa\",\"date\":\"2025-11-25\",\"daysDeducted\":1,\"action\":\"ENTITLEMENT_DEDUCTED\",\"syncedAt\":\"2025-12-14T10:49:13.957Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765709353958"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765709353958"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9bd25791b70c2b08579e"
+      },
+      "to": {
+        "$oid": "000000000000000000000001"
+      },
+      "type": "LEAVE_ENTITLEMENT_DEDUCTED",
+      "message": "{\"employeeId\":\"693a80047e07119e5fd6a8d9\",\"leaveTypeId\":\"693a800a7e07119e5fd6a9aa\",\"date\":\"2025-11-26\",\"daysDeducted\":1,\"action\":\"ENTITLEMENT_DEDUCTED\",\"syncedAt\":\"2025-12-14T11:13:22.970Z\"}",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765710802971"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765710802971"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fa2b1ed70fb7adcd85c"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711778995"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711778995"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fa3b1ed70fb7adcd860"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711779171"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711779171"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fa3b1ed70fb7adcd862"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711779226"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711779226"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fa3b1ed70fb7adcd864"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711779282"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711779282"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fa3b1ed70fb7adcd866"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711779338"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711779338"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fafb1ed70fb7adcd86a"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711791636"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711791636"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fafb1ed70fb7adcd86e"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711791803"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711791803"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fafb1ed70fb7adcd870"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711791859"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711791859"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fafb1ed70fb7adcd872"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711791917"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711791917"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fafb1ed70fb7adcd874"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711791971"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711791971"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fbbb1ed70fb7adcd878"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711803580"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711803580"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fbbb1ed70fb7adcd87c"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711803760"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711803760"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fbbb1ed70fb7adcd87e"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711803816"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711803816"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fbbb1ed70fb7adcd880"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711803870"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711803870"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693e9fbbb1ed70fb7adcd882"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711803925"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711803925"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea038b1ed70fb7adcd88e"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711928512"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711928512"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea038b1ed70fb7adcd892"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711928724"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711928724"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea038b1ed70fb7adcd894"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711928778"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711928778"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea038b1ed70fb7adcd896"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711928834"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711928834"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea038b1ed70fb7adcd898"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711928888"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711928888"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea03fb1ed70fb7adcd89c"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711935031"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711935031"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea03fb1ed70fb7adcd8a0"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711935198"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711935198"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea03fb1ed70fb7adcd8a2"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711935251"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711935251"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea03fb1ed70fb7adcd8a4"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711935305"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711935305"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea03fb1ed70fb7adcd8a6"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765711935360"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765711935360"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea213b1ed70fb7adcd8b5"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765712403721"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765712403721"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea213b1ed70fb7adcd8b9"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765712403885"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765712403885"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea213b1ed70fb7adcd8bb"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765712403941"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765712403941"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea213b1ed70fb7adcd8bd"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765712403996"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765712403996"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea214b1ed70fb7adcd8bf"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765712404049"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765712404049"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea220b1ed70fb7adcd8c3"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765712416400"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765712416400"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea220b1ed70fb7adcd8c7"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765712416559"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765712416559"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea220b1ed70fb7adcd8c9"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765712416614"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765712416614"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea220b1ed70fb7adcd8cb"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765712416668"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765712416668"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea220b1ed70fb7adcd8cd"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765712416725"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765712416725"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea5c09c78c93bf8fec5f9"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713344568"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713344568"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea5c09c78c93bf8fec5fd"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713344748"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713344748"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea5c09c78c93bf8fec5ff"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713344804"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713344804"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea5c09c78c93bf8fec601"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713344858"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713344858"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea5c09c78c93bf8fec603"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713344911"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713344911"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea5ce9c78c93bf8fec607"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713358984"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713358984"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea5cf9c78c93bf8fec60b"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713359142"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713359142"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea5cf9c78c93bf8fec60d"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713359197"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713359197"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea5cf9c78c93bf8fec60f"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713359251"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713359251"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea5cf9c78c93bf8fec611"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713359305"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713359305"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea6149c78c93bf8fec615"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713428853"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713428853"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea6159c78c93bf8fec619"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713429015"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713429015"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea6159c78c93bf8fec61b"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713429069"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713429069"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea6159c78c93bf8fec61d"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713429123"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713429123"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea6159c78c93bf8fec61f"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713429179"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713429179"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea6389c78c93bf8fec623"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713464066"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713464066"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea6389c78c93bf8fec627"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713464230"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713464230"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea6389c78c93bf8fec629"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713464285"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713464285"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea6389c78c93bf8fec62b"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713464341"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713464341"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea6389c78c93bf8fec62d"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713464396"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713464396"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea63b9c78c93bf8fec631"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713467180"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713467180"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea63b9c78c93bf8fec635"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713467394"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713467394"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea63b9c78c93bf8fec637"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713467449"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713467449"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea63b9c78c93bf8fec639"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713467505"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713467505"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ea63b9c78c93bf8fec63b"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765713467562"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765713467562"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ec9ebb714d45e8c0f3f50"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "ESCALATION_BATCH",
+      "message": "🚨 ESCALATION: 29 pending time requests require review before payroll period 12/15/2025. Request IDs: 693a80067e07119e5fd6a93b, 693daddbd7b248bdd6d6646c, 693dbfdf53d335701147a92c, 693dc09f53d335701147a9ce, 693dd01d2fb074e16b5211aa, 693dd2ddcaa3e447da98c197, 693dd3c1caa3e447da98c1fd, 693dd3eecaa3e447da98c25e, 693df37b06f2a730e158fcf5, 693df44306f2a730e158fd4a, 693df45506f2a730e158fd82, 693df46106f2a730e158fdaa, 693df47106f2a730e158fde2, 693df49406f2a730e158fe12, 693df49406f2a730e158fe16, 693df50106f2a730e158fe45, 693df50106f2a730e158fe49, 693e110fe4b4660205beb2d6, 693e14bda8fbf589070b8abb, 693e14c0a8fbf589070b8ad0, 693e1c64e10645d16eb2b883, 693e1d0de10645d16eb2b8e1, 693e1d0ee10645d16eb2b8ea, 693e1d30e10645d16eb2b926, 693e1ec9d2d409d4b6ca9e84, 693e1f08d2d409d4b6ca9ec0, 693e2140559ec8a04a9e1155, 693e75278ac089fa161cc666, 693e8760a1e69ff3af8855ca",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765722603493"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765722603493"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed018cae557e6fe634f2c"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724184602"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724184602"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed018cae557e6fe634f30"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724184787"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724184787"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed018cae557e6fe634f32"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724184841"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724184841"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed018cae557e6fe634f34"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724184897"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724184897"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed018cae557e6fe634f36"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724184954"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724184954"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed02ecae557e6fe634f3d"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724206042"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724206042"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed02ecae557e6fe634f41"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724206197"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724206197"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed02ecae557e6fe634f43"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724206249"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724206249"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed02ecae557e6fe634f45"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724206302"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724206302"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed02ecae557e6fe634f47"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724206355"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724206355"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed184cae557e6fe634f52"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724548220"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724548220"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed184cae557e6fe634f56"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724548374"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724548374"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed184cae557e6fe634f58"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724548425"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724548425"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed184cae557e6fe634f5a"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724548481"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724548481"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed184cae557e6fe634f5c"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724548535"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724548535"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed18fcae557e6fe634f61"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724559474"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724559474"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed18fcae557e6fe634f65"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724559631"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724559631"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed18fcae557e6fe634f67"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724559684"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724559684"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed18fcae557e6fe634f69"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724559739"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724559739"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed18fcae557e6fe634f6b"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724559825"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724559825"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed1e9cae557e6fe634f86"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724649081"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724649081"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed1e9cae557e6fe634f8a"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724649235"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724649235"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed1e9cae557e6fe634f8c"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724649287"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724649287"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed1e9cae557e6fe634f8e"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724649341"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724649341"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed1e9cae557e6fe634f90"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724649395"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724649395"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed2b0cae557e6fe634fa1"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-040",
+      "message": "Your profile change request (REQ-1765724848326-110KL) has been submitted and is pending review.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724848396"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724848396"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed2b0cae557e6fe634fa5"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-040",
+      "message": "Employee department employee submitted a profile change request (REQ-1765724848326-110KL).",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724848555"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724848555"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed2b0cae557e6fe634fa7"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-040",
+      "message": "Employee department employee submitted a profile change request (REQ-1765724848326-110KL).",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724848610"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724848610"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed2b0cae557e6fe634fa9"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-040",
+      "message": "Employee department employee submitted a profile change request (REQ-1765724848326-110KL).",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724848663"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724848663"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed2b0cae557e6fe634fab"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-040",
+      "message": "Employee department employee submitted a profile change request (REQ-1765724848326-110KL).",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724848744"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724848744"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f12b91cb264f9a73ba9a7"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765741241153"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765741241153"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f12b91cb264f9a73ba9ab"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765741241319"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765741241319"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f12b91cb264f9a73ba9ad"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765741241372"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765741241372"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f12b91cb264f9a73ba9af"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765741241437"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765741241437"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f12b91cb264f9a73ba9b1"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765741241490"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765741241490"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f13151cb264f9a73ba9d8"
+      },
+      "to": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "type": "N-037",
+      "message": "Your profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765741333062"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765741333062"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f13151cb264f9a73ba9dc"
+      },
+      "to": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765741333231"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765741333231"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f13151cb264f9a73ba9de"
+      },
+      "to": {
+        "$oid": "693dc3deee07fbcd93854e13"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765741333285"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765741333285"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f13151cb264f9a73ba9e0"
+      },
+      "to": {
+        "$oid": "693dc3dfee07fbcd93854e1a"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765741333337"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765741333337"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f13151cb264f9a73ba9e2"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "N-037",
+      "message": "Employee department employee profile has been updated.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765741333389"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765741333389"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f503299528d3844eb2a79"
+      },
+      "to": {
+        "$oid": "693dc3e3ee07fbcd93854e52"
+      },
+      "type": "MISSED_PUNCH",
+      "message": "A missed punch was detected for attendance 693f503199528d3844eb2a66. Please complete your punches or request an exception.",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765756978694"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765756978694"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    }
+  ]
+}

@@ -1,0 +1,276 @@
+{
+  "collection": "shiftassignments",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a80067e07119e5fd6a91d"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "shiftId": {
+        "$oid": "693a80057e07119e5fd6a911"
+      },
+      "startDate": {
+        "$date": {
+          "$numberLong": "1767225600000"
+        }
+      },
+      "endDate": {
+        "$date": {
+          "$numberLong": "1798675200000"
+        }
+      },
+      "status": "APPROVED",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80067e07119e5fd6a920"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "shiftId": {
+        "$oid": "693a80057e07119e5fd6a912"
+      },
+      "startDate": {
+        "$date": {
+          "$numberLong": "1764547200000"
+        }
+      },
+      "endDate": {
+        "$date": {
+          "$numberLong": "1780272000000"
+        }
+      },
+      "status": "APPROVED",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80067e07119e5fd6a921"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dd"
+      },
+      "shiftId": {
+        "$oid": "693a80057e07119e5fd6a913"
+      },
+      "startDate": {
+        "$date": {
+          "$numberLong": "1709251200000"
+        }
+      },
+      "endDate": {
+        "$date": {
+          "$numberLong": "1764460800000"
+        }
+      },
+      "status": "CANCELLED",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d86c043f2f93b380063ab"
+      },
+      "departmentId": {
+        "$oid": "693a80037e07119e5fd6a88a"
+      },
+      "shiftId": {
+        "$oid": "693a80057e07119e5fd6a911"
+      },
+      "scheduleRuleId": {
+        "$oid": "693a800b7e07119e5fd6a9d7"
+      },
+      "startDate": {
+        "$date": {
+          "$numberLong": "1764547200000"
+        }
+      },
+      "endDate": {
+        "$date": {
+          "$numberLong": "1798761599000"
+        }
+      },
+      "status": "APPROVED",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d8bc59a6289596ad8c0cc"
+      },
+      "departmentId": {
+        "$oid": "693a80037e07119e5fd6a889"
+      },
+      "shiftId": {
+        "$oid": "693a80057e07119e5fd6a911"
+      },
+      "scheduleRuleId": {
+        "$oid": "693a800b7e07119e5fd6a9d7"
+      },
+      "startDate": {
+        "$date": {
+          "$numberLong": "1764547200000"
+        }
+      },
+      "endDate": {
+        "$date": {
+          "$numberLong": "1798761599000"
+        }
+      },
+      "status": "APPROVED",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d8c5c9a6289596ad8c0d7"
+      },
+      "departmentId": {
+        "$oid": "693a80037e07119e5fd6a888"
+      },
+      "shiftId": {
+        "$oid": "693a80057e07119e5fd6a911"
+      },
+      "scheduleRuleId": {
+        "$oid": "693a800b7e07119e5fd6a9d7"
+      },
+      "startDate": {
+        "$date": {
+          "$numberLong": "1764547200000"
+        }
+      },
+      "endDate": {
+        "$date": {
+          "$numberLong": "1798761599000"
+        }
+      },
+      "status": "APPROVED",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d906f6ccba248dbe110c4"
+      },
+      "departmentId": {
+        "$oid": "693a80037e07119e5fd6a889"
+      },
+      "shiftId": {
+        "$oid": "693a80057e07119e5fd6a911"
+      },
+      "scheduleRuleId": {
+        "$oid": "693a800b7e07119e5fd6a9d7"
+      },
+      "startDate": {
+        "$date": {
+          "$numberLong": "1859241600000"
+        }
+      },
+      "endDate": {
+        "$date": {
+          "$numberLong": "1893455999000"
+        }
+      },
+      "status": "APPROVED",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d92666ccba248dbe110d1"
+      },
+      "positionId": {
+        "$oid": "693a80037e07119e5fd6a890"
+      },
+      "shiftId": {
+        "$oid": "693a80057e07119e5fd6a911"
+      },
+      "scheduleRuleId": {
+        "$oid": "693a800b7e07119e5fd6a9d7"
+      },
+      "startDate": {
+        "$date": {
+          "$numberLong": "1764547200000"
+        }
+      },
+      "endDate": {
+        "$date": {
+          "$numberLong": "1798761599000"
+        }
+      },
+      "status": "CANCELLED",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dcfe82fb074e16b52117d"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "shiftId": {
+        "$oid": "693a80057e07119e5fd6a911"
+      },
+      "scheduleRuleId": {
+        "$oid": "693d9d69628de2eac59886f9"
+      },
+      "startDate": {
+        "$date": {
+          "$numberLong": "1704067200000"
+        }
+      },
+      "endDate": {
+        "$date": {
+          "$numberLong": "1735689599000"
+        }
+      },
+      "status": "APPROVED",
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693de8ec06f2a730e158fcc4"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "shiftId": {
+        "$oid": "693a80057e07119e5fd6a914"
+      },
+      "scheduleRuleId": {
+        "$oid": "693a800b7e07119e5fd6a9d7"
+      },
+      "startDate": {
+        "$date": {
+          "$numberLong": "1735689600000"
+        }
+      },
+      "endDate": {
+        "$date": {
+          "$numberLong": "1767225599000"
+        }
+      },
+      "status": "APPROVED",
+      "__v": {
+        "$numberInt": "0"
+      }
+    }
+  ]
+}

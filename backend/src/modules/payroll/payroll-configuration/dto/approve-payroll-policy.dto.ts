@@ -9,6 +9,6 @@ import { IsMongoId, IsNotEmpty, IsString} from 'class-validator';
  */
 export class ApprovePayrollPolicyDto {
   @IsNotEmpty()
- @IsMongoId()
+  @IsString()
   approvedBy: string; // employee ID of the Payroll Manager approving/rejecting
 }

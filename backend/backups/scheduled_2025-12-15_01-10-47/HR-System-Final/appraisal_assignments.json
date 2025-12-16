@@ -1,0 +1,151 @@
+{
+  "collection": "appraisal_assignments",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a800c7e07119e5fd6a9ea"
+      },
+      "cycleId": {
+        "$oid": "693a800c7e07119e5fd6a9e7"
+      },
+      "templateId": {
+        "$oid": "693a800c7e07119e5fd6a9e4"
+      },
+      "employeeProfileId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "managerProfileId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "departmentId": {
+        "$oid": "693a80037e07119e5fd6a888"
+      },
+      "positionId": {
+        "$oid": "693a80037e07119e5fd6a88f"
+      },
+      "status": "IN_PROGRESS",
+      "assignedAt": {
+        "$date": {
+          "$numberLong": "1764547200000"
+        }
+      },
+      "dueDate": {
+        "$date": {
+          "$numberLong": "1766188800000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441548704"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441548704"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800c7e07119e5fd6a9eb"
+      },
+      "cycleId": {
+        "$oid": "693a800c7e07119e5fd6a9e7"
+      },
+      "templateId": {
+        "$oid": "693a800c7e07119e5fd6a9e4"
+      },
+      "employeeProfileId": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "managerProfileId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "departmentId": {
+        "$oid": "693a80037e07119e5fd6a88a"
+      },
+      "positionId": {
+        "$oid": "693a80037e07119e5fd6a891"
+      },
+      "status": "SUBMITTED",
+      "assignedAt": {
+        "$date": {
+          "$numberLong": "1764547200000"
+        }
+      },
+      "dueDate": {
+        "$date": {
+          "$numberLong": "1766188800000"
+        }
+      },
+      "submittedAt": {
+        "$date": {
+          "$numberLong": "1765756800000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441548704"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441548704"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800c7e07119e5fd6a9ec"
+      },
+      "cycleId": {
+        "$oid": "693a800c7e07119e5fd6a9e7"
+      },
+      "templateId": {
+        "$oid": "693a800c7e07119e5fd6a9e4"
+      },
+      "employeeProfileId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "managerProfileId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "departmentId": {
+        "$oid": "693a80037e07119e5fd6a88b"
+      },
+      "positionId": {
+        "$oid": "693a80037e07119e5fd6a892"
+      },
+      "status": "NOT_STARTED",
+      "assignedAt": {
+        "$date": {
+          "$numberLong": "1764547200000"
+        }
+      },
+      "dueDate": {
+        "$date": {
+          "$numberLong": "1766188800000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441548704"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441548704"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "collection": "attachments",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a800a7e07119e5fd6a9ba"
+      },
+      "originalName": "birth_certificate.pdf",
+      "filePath": "/uploads/attachments/birth_certificate_001.pdf",
+      "fileType": "application/pdf",
+      "size": {
+        "$numberInt": "204800"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441546777"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441546777"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800a7e07119e5fd6a9bb"
+      },
+      "originalName": "doctors_note.jpg",
+      "filePath": "/uploads/attachments/doctors_note_001.jpg",
+      "fileType": "image/jpeg",
+      "size": {
+        "$numberInt": "51200"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441546777"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441546777"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693b0f05139643e00eee8350"
+      },
+      "originalName": "medical_report_oct.pdf",
+      "filePath": "/uploads/medical/medical_report_oct.pdf",
+      "fileType": "application/pdf",
+      "size": {
+        "$numberInt": "123456"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765478149182"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765478149182"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d9f73f846b4185fedac72"
+      },
+      "originalName": "medical_certificate_new.pdf",
+      "filePath": "/uploads/attachments/medical_cert_20260315.pdf",
+      "fileType": "application/pdf",
+      "size": {
+        "$numberInt": "204800"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765646195785"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765646195785"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    }
+  ]
+}

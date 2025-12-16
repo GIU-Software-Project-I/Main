@@ -1,0 +1,334 @@
+{
+  "collection": "employee_profile_change_requests",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "6932dc2fbc9b3fa5d1b04a38"
+      },
+      "requestId": "REQ-1764940847774",
+      "employeeProfileId": {
+        "$oid": "693058221d883cb433e680fd"
+      },
+      "requestDescription": "Update job title from 'Software Engineer' to 'Senior Software Engineer'",
+      "reason": "Based on my recent promotion and expanded responsibilities",
+      "submittedAt": {
+        "$date": {
+          "$numberLong": "1764940847774"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1764940847776"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765310039404"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "processedAt": {
+        "$date": {
+          "$numberLong": "1765310039403"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "6932dc35bc9b3fa5d1b04a3b"
+      },
+      "requestId": "REQ-1764940853112",
+      "employeeProfileId": {
+        "$oid": "693058221d883cb433e680fd"
+      },
+      "requestDescription": "Update job title from 'Software Engineer' to 'Senior Software Engineer'",
+      "reason": "Based on my recent promotion and expanded responsibilities",
+      "status": "APPROVED",
+      "submittedAt": {
+        "$date": {
+          "$numberLong": "1764940853112"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1764940853113"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623576563"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "processedAt": {
+        "$date": {
+          "$numberLong": "1765623576562"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "6932dc69bc9b3fa5d1b04a3e"
+      },
+      "requestId": "REQ-1764940905501",
+      "employeeProfileId": {
+        "$oid": "693058221d883cb433e680fd"
+      },
+      "requestDescription": "Update legal name from 'John Smith' to 'John A. Smith'",
+      "reason": "Legal name updated after marriage certificate registration",
+      "status": "PENDING",
+      "submittedAt": {
+        "$date": {
+          "$numberLong": "1764940905501"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1764940905502"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1764940905502"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693875a7145e0d797d12e5ef"
+      },
+      "requestId": "REQ-1765307815016",
+      "employeeProfileId": {
+        "$oid": "693058221d883cb433e680fd"
+      },
+      "requestDescription": "Update job title from 'Software Engineer' to 'Senior Software Engineer'",
+      "reason": "Based on my recent promotion and expanded responsibilities",
+      "status": "REJECTED",
+      "submittedAt": {
+        "$date": {
+          "$numberLong": "1765307815016"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765307815022"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623581837"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "processedAt": {
+        "$date": {
+          "$numberLong": "1765623581837"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693879cf9844546117c9c0b5"
+      },
+      "requestId": "REQ-1765308879704",
+      "employeeProfileId": {
+        "$oid": "693058221d883cb433e680fd"
+      },
+      "requestDescription": "Update job title from 'Software Engineer' to 'Senior Software Engineer'",
+      "reason": "Based on my recent promotion and expanded responsibilities",
+      "status": "REJECTED",
+      "submittedAt": {
+        "$date": {
+          "$numberLong": "1765308879704"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765308879708"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765518414457"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "processedAt": {
+        "$date": {
+          "$numberLong": "1765518414456"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "69387b119844546117c9c0b9"
+      },
+      "requestId": "REQ-1765309201085",
+      "employeeProfileId": {
+        "$oid": "693058221d883cb433e680fd"
+      },
+      "requestDescription": "Update job title from 'Software Engineer' to 'Senior Software Engineer'",
+      "reason": "Based on my recent promotion and expanded responsibilities",
+      "status": "CANCELED",
+      "submittedAt": {
+        "$date": {
+          "$numberLong": "1765309201085"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765309201086"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765518318637"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "processedAt": {
+        "$date": {
+          "$numberLong": "1765518318636"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ba8b41643247778c56e04"
+      },
+      "requestId": "REQ-1765517492104-K6EVK",
+      "employeeProfileId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "requestDescription": "Please update my job title to Senior Developer",
+      "reason": "Promoted last month",
+      "status": "APPROVED",
+      "submittedAt": {
+        "$date": {
+          "$numberLong": "1765517492104"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765517492106"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765518198010"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "processedAt": {
+        "$date": {
+          "$numberLong": "1765518198009"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c02ecb08397bc6379c702"
+      },
+      "requestId": "REQ-1765540588597-J9C5Y",
+      "employeeProfileId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "requestDescription": "Update Title",
+      "reason": "Promotion",
+      "status": "PENDING",
+      "submittedAt": {
+        "$date": {
+          "$numberLong": "1765540588597"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765540588598"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765540588598"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d477fcc9d509ca10576c7"
+      },
+      "requestId": "REQ-1765623679776-QC27B",
+      "employeeProfileId": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "requestDescription": "First request - should succeed",
+      "reason": "Test",
+      "status": "PENDING",
+      "submittedAt": {
+        "$date": {
+          "$numberLong": "1765623679776"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765623679777"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765623679777"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed2b0cae557e6fe634f9f"
+      },
+      "requestId": "REQ-1765724848326-110KL",
+      "employeeProfileId": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "requestDescription": "My name is spelled incorrectly",
+      "reason": "Typo during onboarding",
+      "status": "PENDING",
+      "submittedAt": {
+        "$date": {
+          "$numberLong": "1765724848326"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765724848327"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765724848327"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    }
+  ]
+}

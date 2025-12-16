@@ -1,0 +1,108 @@
+{
+  "collection": "appraisal_records",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a800c7e07119e5fd6a9ee"
+      },
+      "assignmentId": {
+        "$oid": "693a800c7e07119e5fd6a9eb"
+      },
+      "cycleId": {
+        "$oid": "693a800c7e07119e5fd6a9e7"
+      },
+      "templateId": {
+        "$oid": "693a800c7e07119e5fd6a9e4"
+      },
+      "employeeProfileId": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "managerProfileId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "ratings": [
+        {
+          "key": "quality",
+          "title": "Quality of Work",
+          "ratingValue": {
+            "$numberInt": "4"
+          },
+          "ratingLabel": "Good",
+          "weightedScore": {
+            "$numberInt": "20"
+          }
+        },
+        {
+          "key": "productivity",
+          "title": "Productivity",
+          "ratingValue": {
+            "$numberInt": "5"
+          },
+          "ratingLabel": "Excellent",
+          "weightedScore": {
+            "$numberInt": "25"
+          }
+        },
+        {
+          "key": "teamwork",
+          "title": "Teamwork",
+          "ratingValue": {
+            "$numberInt": "4"
+          },
+          "ratingLabel": "Good",
+          "weightedScore": {
+            "$numberInt": "16"
+          }
+        },
+        {
+          "key": "communication",
+          "title": "Communication",
+          "ratingValue": {
+            "$numberInt": "4"
+          },
+          "ratingLabel": "Good",
+          "weightedScore": {
+            "$numberInt": "12"
+          }
+        },
+        {
+          "key": "initiative",
+          "title": "Initiative",
+          "ratingValue": {
+            "$numberInt": "3"
+          },
+          "ratingLabel": "Average",
+          "weightedScore": {
+            "$numberInt": "9"
+          }
+        }
+      ],
+      "totalScore": {
+        "$numberInt": "82"
+      },
+      "overallRatingLabel": "Good",
+      "managerSummary": "Strong performer with excellent productivity. Could improve on taking more initiative.",
+      "strengths": "High quality work, excellent productivity, good team player",
+      "improvementAreas": "Taking initiative, proposing new ideas",
+      "status": "MANAGER_SUBMITTED",
+      "managerSubmittedAt": {
+        "$date": {
+          "$numberLong": "1765756800000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441548798"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441548798"
+        }
+      }
+    }
+  ]
+}

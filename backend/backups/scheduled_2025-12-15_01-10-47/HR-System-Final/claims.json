@@ -1,0 +1,331 @@
+{
+  "collection": "claims",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a80097e07119e5fd6a98d"
+      },
+      "claimId": "CLAIM-0001",
+      "description": "Medical expenses - dental treatment",
+      "claimType": "medical",
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "financeStaffId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "amount": {
+        "$numberInt": "500"
+      },
+      "approvedAmount": {
+        "$numberInt": "500"
+      },
+      "status": "approved",
+      "resolutionComment": "Approved for full amount",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441545884"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441545884"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80097e07119e5fd6a98e"
+      },
+      "claimId": "CLAIM-0002",
+      "description": "Business travel to client site",
+      "claimType": "travel",
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "amount": {
+        "$numberInt": "300"
+      },
+      "status": "under review",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441545884"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441545884"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80097e07119e5fd6a98f"
+      },
+      "claimId": "CLAIM-0003",
+      "description": "Home office equipment - monitor and keyboard",
+      "claimType": "equipment",
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "financeStaffId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "amount": {
+        "$numberInt": "1200"
+      },
+      "approvedAmount": {
+        "$numberInt": "1000"
+      },
+      "status": "approved",
+      "resolutionComment": "Partial approval - keyboard not covered",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441545884"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441545884"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80097e07119e5fd6a990"
+      },
+      "claimId": "CLAIM-0004",
+      "description": "Online course certification",
+      "claimType": "training",
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "financeStaffId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "amount": {
+        "$numberInt": "800"
+      },
+      "status": "rejected",
+      "rejectionReason": "Not pre-approved by manager",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441545884"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441545884"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80097e07119e5fd6a991"
+      },
+      "claimId": "CLAIM-0005",
+      "description": "Prescription medication",
+      "claimType": "medical",
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "amount": {
+        "$numberInt": "200"
+      },
+      "status": "under review",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441545885"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441545885"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ebdc975038a8d9d805471"
+      },
+      "claimId": "CLAIM-0006",
+      "description": "Dining with coworker",
+      "claimType": "Client Entertainment",
+      "employeeId": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "amount": {
+        "$numberInt": "7000"
+      },
+      "status": "under review",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765719497639"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765719497639"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ebdeb75038a8d9d805476"
+      },
+      "claimId": "CLAIM-0007",
+      "description": "Getting a new fridge for office\n",
+      "claimType": "Equipment Purchase",
+      "employeeId": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "amount": {
+        "$numberInt": "50000"
+      },
+      "status": "approved",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765719531991"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765719531991"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ec354ddacfe386a6340ec"
+      },
+      "claimId": "CLAIM-0008",
+      "description": "Making my masters",
+      "claimType": "Training/Education",
+      "employeeId": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "amount": {
+        "$numberInt": "1000000"
+      },
+      "status": "under review",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765720916081"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765720916081"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693ed6a71823fc43e8b88ad5"
+      },
+      "claimId": "CLAIM-0009",
+      "description": "Testing",
+      "claimType": "Other",
+      "employeeId": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "amount": {
+        "$numberInt": "83749827"
+      },
+      "status": "under review",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765725863272"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765725863272"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693edc1f0a52f158c5c7349d"
+      },
+      "claimId": "CLAIM-0010",
+      "description": "Going clubbing",
+      "claimType": "Client Entertainment",
+      "employeeId": {
+        "$oid": "693dc3ddee07fbcd93854e05"
+      },
+      "amount": {
+        "$numberInt": "500000"
+      },
+      "status": "under review",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765727263478"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765727263478"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f03fcca0b97296ee8c834"
+      },
+      "claimId": "CLAIM-0011",
+      "description": "i cant",
+      "claimType": "Medical Expense",
+      "employeeId": {
+        "$oid": "693dc3dfee07fbcd93854e21"
+      },
+      "amount": {
+        "$numberInt": "3565"
+      },
+      "status": "under review",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765737468571"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765737468571"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 import { timeManagementService, PunchInRequest, PunchOutRequest } from '@/app/services/time-management';
 import { Button, Card } from "@/app/components";
@@ -16,42 +16,58 @@ export default function TimeManagementPage() {
     const [isClockedIn, setIsClockedIn] = useState(false);
     const [clockInTime, setClockInTime] = useState<string | null>(null);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
 
-    // Fetch today's attendance record on mount to check current status
-    useEffect(() => {
-        // Only run once when component mounts and user is available
-        if (!user?.id || isInitialized) return;
+    // Use ref to prevent duplicate API calls
+    const fetchingRef = useRef(false);
+    const punchingRef = useRef(false);
 
-        const fetchTodayRecord = async () => {
-            try {
-                const response = await timeManagementService.getTodayRecord(user.id);
-                if (response.data) {
-                    const record = response.data as AttendanceRecord;
-                    const punches = record.punches || [];
+    // Memoized fetch function
+    const fetchTodayRecord = useCallback(async () => {
+        if (!user?.id || fetchingRef.current) return;
 
-                    if (punches.length > 0) {
-                        const lastPunch = punches[punches.length - 1];
-                        // If last punch is IN, employee is clocked in
-                        setIsClockedIn(lastPunch.type === PunchType.IN);
-                        if (lastPunch.type === PunchType.IN) {
-                            setClockInTime(new Date(lastPunch.time).toLocaleTimeString());
-                        }
+        fetchingRef.current = true;
+        try {
+            const response = await timeManagementService.getTodayRecord(user.id);
+            if (response.data) {
+                const record = response.data as AttendanceRecord;
+                const punches = record.punches || [];
+
+                if (punches.length > 0) {
+                    const lastPunch = punches[punches.length - 1];
+                    setIsClockedIn(lastPunch.type === PunchType.IN);
+                    if (lastPunch.type === PunchType.IN) {
+                        setClockInTime(new Date(lastPunch.time).toLocaleTimeString());
+                    } else {
+                        setClockInTime(null);
                     }
+                } else {
+                    setIsClockedIn(false);
+                    setClockInTime(null);
                 }
-            } catch (err) {
-                console.log('No attendance record found for today');
-            } finally {
-                setIsInitialized(true);
             }
-        };
+        } catch (err) {
+            console.log('No attendance record found for today');
+            setIsClockedIn(false);
+            setClockInTime(null);
+        } finally {
+            fetchingRef.current = false;
+            setIsInitialized(true);
+            setInitialLoading(false);
+        }
+    }, [user?.id]);
 
+    // Fetch on mount - only once
+    useEffect(() => {
+        if (!user?.id || isInitialized) return;
         fetchTodayRecord();
-    }, [user?.id, isInitialized]);
+    }, [user?.id, isInitialized, fetchTodayRecord]);
 
     const handleClockIn = async () => {
-        // Simple state guards - don't proceed if already loading or clocked in
-        if (!user?.id || loading || isClockedIn) return;
+        // Prevent duplicate calls
+        if (!user?.id || loading || isClockedIn || punchingRef.current) return;
 
+        punchingRef.current = true;
         setLoading(true);
         setError(null);
         setSuccess(null);
@@ -69,7 +85,6 @@ export default function TimeManagementPage() {
                 return;
             }
 
-            // Update UI with response data
             if (response.data) {
                 const record = response.data as AttendanceRecord;
                 const lastPunch = record.punches?.[record.punches.length - 1];
@@ -85,13 +100,15 @@ export default function TimeManagementPage() {
             console.error('Clock-in error:', err);
         } finally {
             setLoading(false);
+            punchingRef.current = false;
         }
     };
 
     const handleClockOut = async () => {
-        // Simple state guards - don't proceed if already loading or not clocked in
-        if (!user?.id || loading || !isClockedIn) return;
+        // Prevent duplicate calls
+        if (!user?.id || loading || !isClockedIn || punchingRef.current) return;
 
+        punchingRef.current = true;
         setLoading(true);
         setError(null);
         setSuccess(null);
@@ -109,7 +126,6 @@ export default function TimeManagementPage() {
                 return;
             }
 
-            // Update UI on successful clock out
             if (response.data) {
                 setIsClockedIn(false);
                 setClockInTime(null);
@@ -120,8 +136,26 @@ export default function TimeManagementPage() {
             console.error('Clock-out error:', err);
         } finally {
             setLoading(false);
+            punchingRef.current = false;
         }
     };
+
+    if (initialLoading) {
+        return (
+            <div className="space-y-6">
+                <div>
+                    <h1 className="text-3xl font-bold">Time Management</h1>
+                    <p className="text-gray-600">Clock in and out to track your working hours</p>
+                </div>
+                <Card className="p-6">
+                    <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <span className="ml-3 text-gray-600">Loading attendance status...</span>
+                    </div>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -148,7 +182,7 @@ export default function TimeManagementPage() {
                             <div>
                                 <p className="text-gray-600 text-sm mb-2">Current Status</p>
                                 <p className="text-2xl font-bold">
-                                    {isClockedIn ? '✅ Clocked In' : '❌ Clocked Out'}
+                                    {isClockedIn ? 'Clocked In' : 'Clocked Out'}
                                 </p>
                                 {clockInTime && (
                                     <p className="text-gray-600 text-sm mt-2">
@@ -163,17 +197,17 @@ export default function TimeManagementPage() {
                         <Button
                             onClick={handleClockIn}
                             disabled={loading || isClockedIn}
-                            className="bg-green-600 hover:bg-green-700 text-white px-8 py-2"
+                            className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {loading ? 'Processing...' : '🕐 Clock In'}
+                            {loading && !isClockedIn ? 'Processing...' : 'Clock In'}
                         </Button>
 
                         <Button
                             onClick={handleClockOut}
                             disabled={loading || !isClockedIn}
-                            className="bg-red-600 hover:bg-red-700 text-white px-8 py-2"
+                            className="bg-red-600 hover:bg-red-700 text-white px-8 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {loading ? 'Processing...' : '🕐 Clock Out'}
+                            {loading && isClockedIn ? 'Processing...' : 'Clock Out'}
                         </Button>
                     </div>
                 </div>

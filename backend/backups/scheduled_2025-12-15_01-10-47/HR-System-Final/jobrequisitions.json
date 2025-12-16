@@ -1,0 +1,222 @@
+{
+  "collection": "jobrequisitions",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a80037e07119e5fd6a8a3"
+      },
+      "requisitionId": "REQ-2025-001",
+      "templateId": {
+        "$oid": "693a80037e07119e5fd6a89d"
+      },
+      "openings": {
+        "$numberInt": "3"
+      },
+      "location": "New York, NY",
+      "hiringManagerId": {
+        "$oid": "693a80037e07119e5fd6a896"
+      },
+      "publishStatus": "published",
+      "postingDate": {
+        "$date": {
+          "$numberLong": "1761955200000"
+        }
+      },
+      "expiryDate": {
+        "$date": {
+          "$numberLong": "1767225600000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441539730"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441539730"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80037e07119e5fd6a8a4"
+      },
+      "requisitionId": "REQ-2025-002",
+      "templateId": {
+        "$oid": "693a80037e07119e5fd6a89e"
+      },
+      "openings": {
+        "$numberInt": "1"
+      },
+      "location": "San Francisco, CA",
+      "hiringManagerId": {
+        "$oid": "693a80037e07119e5fd6a897"
+      },
+      "publishStatus": "draft",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441539730"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441539730"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80037e07119e5fd6a8a5"
+      },
+      "requisitionId": "REQ-2025-003",
+      "templateId": {
+        "$oid": "693a80037e07119e5fd6a89f"
+      },
+      "openings": {
+        "$numberInt": "2"
+      },
+      "location": "Chicago, IL",
+      "hiringManagerId": {
+        "$oid": "693a80037e07119e5fd6a898"
+      },
+      "publishStatus": "published",
+      "postingDate": {
+        "$date": {
+          "$numberLong": "1763164800000"
+        }
+      },
+      "expiryDate": {
+        "$date": {
+          "$numberLong": "1771113600000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441539730"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441539730"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80037e07119e5fd6a8a6"
+      },
+      "requisitionId": "REQ-2025-004",
+      "templateId": {
+        "$oid": "693a80037e07119e5fd6a8a0"
+      },
+      "openings": {
+        "$numberInt": "1"
+      },
+      "location": "Austin, TX",
+      "hiringManagerId": {
+        "$oid": "693a80037e07119e5fd6a899"
+      },
+      "publishStatus": "published",
+      "postingDate": {
+        "$date": {
+          "$numberLong": "1763424000000"
+        }
+      },
+      "expiryDate": {
+        "$date": {
+          "$numberLong": "1768694400000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441539730"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441539730"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80037e07119e5fd6a8a7"
+      },
+      "requisitionId": "REQ-2025-005",
+      "templateId": {
+        "$oid": "693a80037e07119e5fd6a8a1"
+      },
+      "openings": {
+        "$numberInt": "2"
+      },
+      "location": "Seattle, WA",
+      "hiringManagerId": {
+        "$oid": "693a80037e07119e5fd6a89a"
+      },
+      "publishStatus": "closed",
+      "postingDate": {
+        "$date": {
+          "$numberLong": "1761350400000"
+        }
+      },
+      "expiryDate": {
+        "$date": {
+          "$numberLong": "1764028800000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441539730"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441539730"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c15af02879b1a93ea040e"
+      },
+      "requisitionId": "REQ-2025-0006",
+      "openings": {
+        "$numberInt": "2"
+      },
+      "location": "New York, NY",
+      "hiringManagerId": {
+        "$oid": "693a80037e07119e5fd6a896"
+      },
+      "publishStatus": "draft",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765545391726"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765545391726"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    }
+  ]
+}

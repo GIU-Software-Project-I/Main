@@ -1,0 +1,157 @@
+{
+  "collection": "taxrules",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a80077e07119e5fd6a953"
+      },
+      "name": "Standard Tax - 0-50K",
+      "description": "Tax bracket for income 0-50K",
+      "rate": {
+        "$numberInt": "10"
+      },
+      "status": "approved",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441543563"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441543563"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80077e07119e5fd6a954"
+      },
+      "name": "Standard Tax - 50K-100K",
+      "description": "Tax bracket for income 50K-100K",
+      "rate": {
+        "$numberInt": "20"
+      },
+      "status": "approved",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441543563"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441543563"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80077e07119e5fd6a955"
+      },
+      "name": "Standard Tax - 100K-150K",
+      "description": "Tax bracket for income 100K-150K",
+      "rate": {
+        "$numberInt": "30"
+      },
+      "status": "approved",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441543563"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441543563"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80077e07119e5fd6a956"
+      },
+      "name": "Standard Tax - 150K-200K",
+      "description": "Tax bracket for income 150K-200K",
+      "rate": {
+        "$numberInt": "35"
+      },
+      "status": "approved",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441543564"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441543564"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80077e07119e5fd6a957"
+      },
+      "name": "Standard Tax - 200K+",
+      "description": "Tax bracket for income 200K+",
+      "rate": {
+        "$numberInt": "40"
+      },
+      "status": "approved",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441543564"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765748953979"
+        }
+      },
+      "approvedAt": {
+        "$date": {
+          "$numberLong": "1765748953979"
+        }
+      },
+      "approvedBy": {
+        "$oid": "693dc3e0ee07fbcd93854e28"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f52819220c3bfe40bba52"
+      },
+      "name": "non Tax - 0-50K",
+      "description": "Tax bracket for income 0-90K",
+      "rate": {
+        "$numberInt": "15"
+      },
+      "status": "draft",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441543563"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765757585389"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,170 @@
+{
+  "collection": "terminationrequests",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a8ef"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dd"
+      },
+      "initiator": "hr",
+      "reason": "Performance issues after multiple warnings",
+      "hrComments": "All progressive discipline steps completed",
+      "status": "approved",
+      "terminationDate": {
+        "$date": {
+          "$numberLong": "1764460800000"
+        }
+      },
+      "contractId": {
+        "$oid": "693a80047e07119e5fd6a8d3"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441541417"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441541417"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a8f0"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "initiator": "employee",
+      "reason": "Accepted position at another company",
+      "employeeComments": "Thank you for the opportunity",
+      "status": "approved",
+      "terminationDate": {
+        "$date": {
+          "$numberLong": "1767139200000"
+        }
+      },
+      "contractId": {
+        "$oid": "693a80047e07119e5fd6a8d4"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441541417"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441541417"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a8f1"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "initiator": "manager",
+      "reason": "Departmental restructuring",
+      "hrComments": "Redundancy due to department consolidation",
+      "status": "under_review",
+      "terminationDate": {
+        "$date": {
+          "$numberLong": "1774915200000"
+        }
+      },
+      "contractId": {
+        "$oid": "693a80047e07119e5fd6a8d5"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441541417"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441541417"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a8f2"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "initiator": "employee",
+      "reason": "Relocating to another city",
+      "employeeComments": "Family reasons",
+      "status": "pending",
+      "terminationDate": {
+        "$date": {
+          "$numberLong": "1777507200000"
+        }
+      },
+      "contractId": {
+        "$oid": "693a80047e07119e5fd6a8d4"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441541417"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441541417"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a8f3"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "initiator": "hr",
+      "reason": "Violation of company policy",
+      "hrComments": "Investigation completed, termination recommended",
+      "status": "rejected",
+      "terminationDate": {
+        "$date": {
+          "$numberLong": "1769817600000"
+        }
+      },
+      "contractId": {
+        "$oid": "693a80047e07119e5fd6a8d3"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441541417"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441541417"
+        }
+      }
+    }
+  ]
+}

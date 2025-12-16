@@ -1,0 +1,152 @@
+{
+  "collection": "leavepolicies",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a800a7e07119e5fd6a9af"
+      },
+      "leaveTypeId": {
+        "$oid": "693a800a7e07119e5fd6a9a9"
+      },
+      "accrualMethod": "monthly",
+      "monthlyRate": {
+        "$numberDouble": "1.67"
+      },
+      "yearlyRate": {
+        "$numberInt": "20"
+      },
+      "carryForwardAllowed": true,
+      "maxCarryForward": {
+        "$numberInt": "5"
+      },
+      "roundingRule": "round",
+      "minNoticeDays": {
+        "$numberInt": "7"
+      },
+      "maxConsecutiveDays": {
+        "$numberInt": "14"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441546524"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441546524"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800a7e07119e5fd6a9b0"
+      },
+      "leaveTypeId": {
+        "$oid": "693a800a7e07119e5fd6a9aa"
+      },
+      "accrualMethod": "yearly",
+      "monthlyRate": {
+        "$numberInt": "0"
+      },
+      "yearlyRate": {
+        "$numberInt": "10"
+      },
+      "carryForwardAllowed": false,
+      "maxCarryForward": {
+        "$numberInt": "0"
+      },
+      "roundingRule": "none",
+      "minNoticeDays": {
+        "$numberInt": "0"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441546524"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441546524"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800a7e07119e5fd6a9b1"
+      },
+      "leaveTypeId": {
+        "$oid": "693a800a7e07119e5fd6a9ab"
+      },
+      "accrualMethod": "yearly",
+      "monthlyRate": {
+        "$numberInt": "0"
+      },
+      "yearlyRate": {
+        "$numberInt": "90"
+      },
+      "carryForwardAllowed": false,
+      "maxCarryForward": {
+        "$numberInt": "30"
+      },
+      "roundingRule": "none",
+      "minNoticeDays": {
+        "$numberInt": "17"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441546524"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765643664136"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800a7e07119e5fd6a9b2"
+      },
+      "leaveTypeId": {
+        "$oid": "693a800a7e07119e5fd6a9ac"
+      },
+      "accrualMethod": "yearly",
+      "monthlyRate": {
+        "$numberInt": "0"
+      },
+      "yearlyRate": {
+        "$numberInt": "15"
+      },
+      "carryForwardAllowed": false,
+      "maxCarryForward": {
+        "$numberInt": "0"
+      },
+      "roundingRule": "none",
+      "minNoticeDays": {
+        "$numberInt": "14"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441546524"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441546524"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,144 @@
+{
+  "collection": "calendars",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a800b7e07119e5fd6a9cf"
+      },
+      "year": {
+        "$numberInt": "2026"
+      },
+      "holidays": [
+        {
+          "$date": {
+            "$numberLong": "1767225600000"
+          }
+        },
+        {
+          "$date": {
+            "$numberLong": "1798156800000"
+          }
+        }
+      ],
+      "blockedPeriods": [
+        {
+          "from": {
+            "$date": {
+              "$numberLong": "1798070400000"
+            }
+          },
+          "to": {
+            "$date": {
+              "$numberLong": "1798675200000"
+            }
+          },
+          "reason": "Year-end closure",
+          "_id": {
+            "$oid": "693d9ef0f846b4185fedac30"
+          }
+        }
+      ],
+      "__v": {
+        "$numberInt": "2"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441547285"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765646073701"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693aaaa696bde9437778c5d2"
+      },
+      "year": {
+        "$numberInt": "2025"
+      },
+      "holidays": [
+        {
+          "$date": {
+            "$numberLong": "1735689600000"
+          }
+        },
+        {
+          "$date": {
+            "$numberLong": "1766620800000"
+          }
+        },
+        {
+          "$date": {
+            "$numberLong": "1735689600000"
+          }
+        }
+      ],
+      "blockedPeriods": [
+        {
+          "from": {
+            "$date": {
+              "$numberLong": "1766188800000"
+            }
+          },
+          "to": {
+            "$date": {
+              "$numberLong": "1767139200000"
+            }
+          },
+          "reason": "Year-end closing - no annual leave",
+          "_id": {
+            "$oid": "693aaac796bde9437778c5d6"
+          }
+        },
+        {
+          "from": {
+            "$date": {
+              "$numberLong": "1766966400000"
+            }
+          },
+          "to": {
+            "$date": {
+              "$numberLong": "1767139200000"
+            }
+          },
+          "reason": "Year-end payroll closing",
+          "_id": {
+            "$oid": "693b0ceb139643e00eee832b"
+          }
+        },
+        {
+          "from": {
+            "$date": {
+              "$numberLong": "1766188800000"
+            }
+          },
+          "to": {
+            "$date": {
+              "$numberLong": "1767139200000"
+            }
+          },
+          "reason": "Year End Closing",
+          "_id": {
+            "$oid": "693c064802879b1a93ea0398"
+          }
+        }
+      ],
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765452454266"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765541448179"
+        }
+      },
+      "__v": {
+        "$numberInt": "6"
+      }
+    }
+  ]
+}

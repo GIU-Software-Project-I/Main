@@ -1,0 +1,30 @@
+{
+  "collection": "companywidesettings",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a800b7e07119e5fd6a9e2"
+      },
+      "payDate": {
+        "$date": {
+          "$numberLong": "1769299200000"
+        }
+      },
+      "timeZone": "Africa/Cairo",
+      "currency": "EGP",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441547970"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441547970"
+        }
+      }
+    }
+  ]
+}

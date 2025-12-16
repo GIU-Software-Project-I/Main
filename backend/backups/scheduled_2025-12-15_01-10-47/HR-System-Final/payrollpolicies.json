@@ -1,0 +1,350 @@
+{
+  "collection": "payrollpolicies",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a800b7e07119e5fd6a9db"
+      },
+      "policyName": "Standard Deduction Policy",
+      "policyType": "Deduction",
+      "description": "Standard deduction rules for all employees",
+      "effectiveDate": {
+        "$date": {
+          "$numberLong": "1735689600000"
+        }
+      },
+      "ruleDefinition": {
+        "percentage": {
+          "$numberInt": "10"
+        },
+        "fixedAmount": {
+          "$numberInt": "0"
+        },
+        "thresholdAmount": {
+          "$numberInt": "50000"
+        },
+        "_id": {
+          "$oid": "693a800b7e07119e5fd6a9dc"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441547836"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765441547836"
+          }
+        }
+      },
+      "applicability": "All Employees",
+      "status": "approved",
+      "createdBy": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "approvedBy": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "approvedAt": {
+        "$date": {
+          "$numberLong": "1734220800000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441547836"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441547836"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800b7e07119e5fd6a9dd"
+      },
+      "policyName": "Remote Work Allowance Policy",
+      "policyType": "Allowance",
+      "description": "Allowance for remote workers",
+      "effectiveDate": {
+        "$date": {
+          "$numberLong": "1735689600000"
+        }
+      },
+      "ruleDefinition": {
+        "percentage": {
+          "$numberInt": "0"
+        },
+        "fixedAmount": {
+          "$numberInt": "200"
+        },
+        "thresholdAmount": {
+          "$numberInt": "1"
+        },
+        "_id": {
+          "$oid": "693a800b7e07119e5fd6a9de"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441547836"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765441547836"
+          }
+        }
+      },
+      "applicability": "Full Time Employees",
+      "status": "approved",
+      "createdBy": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "approvedBy": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "approvedAt": {
+        "$date": {
+          "$numberLong": "1734220800000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441547836"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441547836"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800b7e07119e5fd6a9df"
+      },
+      "policyName": "Misconduct Penalty Policy",
+      "policyType": "Misconduct",
+      "description": "Penalty deductions for misconduct",
+      "effectiveDate": {
+        "$date": {
+          "$numberLong": "1735689600000"
+        }
+      },
+      "ruleDefinition": {
+        "percentage": {
+          "$numberInt": "5"
+        },
+        "fixedAmount": {
+          "$numberInt": "100"
+        },
+        "thresholdAmount": {
+          "$numberInt": "1"
+        },
+        "_id": {
+          "$oid": "693a800b7e07119e5fd6a9e0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441547836"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765441547836"
+          }
+        }
+      },
+      "applicability": "All Employees",
+      "status": "draft",
+      "createdBy": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441547836"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441547836"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693df591cdf013f5869099d0"
+      },
+      "policyName": "Leave",
+      "policyType": "Leave",
+      "description": "After 8",
+      "effectiveDate": {
+        "$date": {
+          "$numberLong": "1766707200000"
+        }
+      },
+      "ruleDefinition": {
+        "percentage": {
+          "$numberInt": "80"
+        },
+        "fixedAmount": {
+          "$numberInt": "500"
+        },
+        "thresholdAmount": {
+          "$numberInt": "5"
+        },
+        "_id": {
+          "$oid": "693df5a0cdf013f5869099d8"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765668256767"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765668256767"
+          }
+        }
+      },
+      "applicability": "Contractors",
+      "status": "draft",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765668241470"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765668256767"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693dfb48cdf013f586909a03"
+      },
+      "policyName": "Benifits",
+      "policyType": "Benefit",
+      "description": "Free food",
+      "effectiveDate": {
+        "$date": {
+          "$numberLong": "1766102400000"
+        }
+      },
+      "ruleDefinition": {
+        "percentage": {
+          "$numberInt": "100"
+        },
+        "fixedAmount": {
+          "$numberInt": "6000"
+        },
+        "thresholdAmount": {
+          "$numberInt": "50"
+        },
+        "_id": {
+          "$oid": "693dfb58cdf013f586909a0b"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765669720897"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765669720897"
+          }
+        }
+      },
+      "applicability": "Full Time Employees",
+      "status": "rejected",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765669704838"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765749007598"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "approvedAt": {
+        "$date": {
+          "$numberLong": "1765749007597"
+        }
+      },
+      "approvedBy": {
+        "$oid": "693dc3e0ee07fbcd93854e28"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693f0b7bf45311070fe9590d"
+      },
+      "policyName": "new ",
+      "policyType": "Benefit",
+      "description": "yes",
+      "effectiveDate": {
+        "$date": {
+          "$numberLong": "1764806400000"
+        }
+      },
+      "ruleDefinition": {
+        "percentage": {
+          "$numberInt": "66"
+        },
+        "fixedAmount": {
+          "$numberInt": "22"
+        },
+        "thresholdAmount": {
+          "$numberInt": "3"
+        },
+        "_id": {
+          "$oid": "693f450e5c34f6e8235da631"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765754126659"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765754126659"
+          }
+        }
+      },
+      "applicability": "All Employees",
+      "status": "draft",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765739387026"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754126659"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "collection": "documents",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a80047e07119e5fd6a8c7"
+      },
+      "ownerId": {
+        "$oid": "693a80037e07119e5fd6a896"
+      },
+      "type": "cv",
+      "filePath": "/documents/john-doe-cv.pdf",
+      "uploadedAt": {
+        "$date": {
+          "$numberLong": "1761955200000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441540514"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441540514"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80047e07119e5fd6a8c8"
+      },
+      "ownerId": {
+        "$oid": "693a80037e07119e5fd6a897"
+      },
+      "type": "cv",
+      "filePath": "/documents/jane-smith-cv.pdf",
+      "uploadedAt": {
+        "$date": {
+          "$numberLong": "1762300800000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441540514"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441540514"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80047e07119e5fd6a8c9"
+      },
+      "ownerId": {
+        "$oid": "693a80037e07119e5fd6a898"
+      },
+      "type": "id",
+      "filePath": "/documents/michael-johnson-id.pdf",
+      "uploadedAt": {
+        "$date": {
+          "$numberLong": "1762732800000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441540514"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441540514"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80047e07119e5fd6a8ca"
+      },
+      "ownerId": {
+        "$oid": "693a80037e07119e5fd6a899"
+      },
+      "type": "certificate",
+      "filePath": "/documents/emily-williams-cert.pdf",
+      "uploadedAt": {
+        "$date": {
+          "$numberLong": "1763164800000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441540514"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441540514"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80047e07119e5fd6a8cb"
+      },
+      "ownerId": {
+        "$oid": "693a80037e07119e5fd6a89a"
+      },
+      "type": "cv",
+      "filePath": "/documents/david-brown-cv.pdf",
+      "uploadedAt": {
+        "$date": {
+          "$numberLong": "1763596800000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441540514"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441540514"
+        }
+      }
+    }
+  ]
+}

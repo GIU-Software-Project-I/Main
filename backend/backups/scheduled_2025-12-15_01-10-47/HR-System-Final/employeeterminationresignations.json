@@ -1,0 +1,160 @@
+{
+  "collection": "employeeterminationresignations",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a80097e07119e5fd6a987"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dd"
+      },
+      "benefitId": {
+        "$oid": "693a80087e07119e5fd6a965"
+      },
+      "givenAmount": {
+        "$numberInt": "5000"
+      },
+      "terminationId": {
+        "$oid": "693a80057e07119e5fd6a8ef"
+      },
+      "status": "paid",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441545769"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441545769"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80097e07119e5fd6a988"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "benefitId": {
+        "$oid": "693a80087e07119e5fd6a968"
+      },
+      "givenAmount": {
+        "$numberInt": "2000"
+      },
+      "terminationId": {
+        "$oid": "693a80057e07119e5fd6a8f0"
+      },
+      "status": "paid",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441545769"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765690615864"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80097e07119e5fd6a989"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "benefitId": {
+        "$oid": "693a80087e07119e5fd6a966"
+      },
+      "givenAmount": {
+        "$numberInt": "10000"
+      },
+      "terminationId": {
+        "$oid": "693a80057e07119e5fd6a8f1"
+      },
+      "status": "approved",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441545769"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765754027245"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80097e07119e5fd6a98a"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "benefitId": {
+        "$oid": "693a80087e07119e5fd6a965"
+      },
+      "givenAmount": {
+        "$numberInt": "5500"
+      },
+      "terminationId": {
+        "$oid": "693a80057e07119e5fd6a8f2"
+      },
+      "status": "approved",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441545770"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765758650468"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80097e07119e5fd6a98b"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "benefitId": {
+        "$oid": "693a80087e07119e5fd6a966"
+      },
+      "givenAmount": {
+        "$numberInt": "10000"
+      },
+      "terminationId": {
+        "$oid": "693a80057e07119e5fd6a8f3"
+      },
+      "status": "rejected",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441545770"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441545770"
+        }
+      }
+    }
+  ]
+}

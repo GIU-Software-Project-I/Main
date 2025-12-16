@@ -1,0 +1,434 @@
+{
+  "filename": "scheduled_2025-12-15_01-10-47",
+  "timestamp": "2025-12-15T01:10:47.486Z",
+  "size": 629938,
+  "path": "D:\\WebstormProjects\\HR System\\Main\\backend\\backups\\scheduled_2025-12-15_01-10-47",
+  "options": {
+    "name": "scheduled",
+    "oplog": false,
+    "dumpDbUsersAndRoles": false
+  },
+  "totalCollections": 70,
+  "collections": [
+    {
+      "name": "allowances",
+      "documents": 5,
+      "size": 2295,
+      "file": ".\\HR-System-Final\\allowances.json"
+    },
+    {
+      "name": "applications",
+      "documents": 5,
+      "size": 2774,
+      "file": ".\\HR-System-Final\\applications.json"
+    },
+    {
+      "name": "applicationstatushistories",
+      "documents": 7,
+      "size": 4329,
+      "file": ".\\HR-System-Final\\applicationstatushistories.json"
+    },
+    {
+      "name": "appraisal_assignments",
+      "documents": 3,
+      "size": 3209,
+      "file": ".\\HR-System-Final\\appraisal_assignments.json"
+    },
+    {
+      "name": "appraisal_cycles",
+      "documents": 4,
+      "size": 4288,
+      "file": ".\\HR-System-Final\\appraisal_cycles.json"
+    },
+    {
+      "name": "appraisal_disputes",
+      "documents": 1,
+      "size": 964,
+      "file": ".\\HR-System-Final\\appraisal_disputes.json"
+    },
+    {
+      "name": "appraisal_records",
+      "documents": 1,
+      "size": 2617,
+      "file": ".\\HR-System-Final\\appraisal_records.json"
+    },
+    {
+      "name": "appraisal_templates",
+      "documents": 10,
+      "size": 12505,
+      "file": ".\\HR-System-Final\\appraisal_templates.json"
+    },
+    {
+      "name": "assessmentresults",
+      "documents": 5,
+      "size": 3003,
+      "file": ".\\HR-System-Final\\assessmentresults.json"
+    },
+    {
+      "name": "attachments",
+      "documents": 4,
+      "size": 2186,
+      "file": ".\\HR-System-Final\\attachments.json"
+    },
+    {
+      "name": "attendancecorrectionrequests",
+      "documents": 6,
+      "size": 2244,
+      "file": ".\\HR-System-Final\\attendancecorrectionrequests.json"
+    },
+    {
+      "name": "attendancerecords",
+      "documents": 28,
+      "size": 19486,
+      "file": ".\\HR-System-Final\\attendancerecords.json"
+    },
+    {
+      "name": "blacklistedtokens",
+      "documents": 25,
+      "size": 19095,
+      "file": ".\\HR-System-Final\\blacklistedtokens.json"
+    },
+    {
+      "name": "calendars",
+      "documents": 2,
+      "size": 2921,
+      "file": ".\\HR-System-Final\\calendars.json"
+    },
+    {
+      "name": "candidates",
+      "documents": 8,
+      "size": 6400,
+      "file": ".\\HR-System-Final\\candidates.json"
+    },
+    {
+      "name": "claims",
+      "documents": 11,
+      "size": 7240,
+      "file": ".\\HR-System-Final\\claims.json"
+    },
+    {
+      "name": "clearancechecklists",
+      "documents": 5,
+      "size": 7442,
+      "file": ".\\HR-System-Final\\clearancechecklists.json"
+    },
+    {
+      "name": "companywidesettings",
+      "documents": 1,
+      "size": 548,
+      "file": ".\\HR-System-Final\\companywidesettings.json"
+    },
+    {
+      "name": "contracts",
+      "documents": 5,
+      "size": 5085,
+      "file": ".\\HR-System-Final\\contracts.json"
+    },
+    {
+      "name": "departments",
+      "documents": 31,
+      "size": 15147,
+      "file": ".\\HR-System-Final\\departments.json"
+    },
+    {
+      "name": "disputes",
+      "documents": 5,
+      "size": 3467,
+      "file": ".\\HR-System-Final\\disputes.json"
+    },
+    {
+      "name": "documents",
+      "documents": 5,
+      "size": 2926,
+      "file": ".\\HR-System-Final\\documents.json"
+    },
+    {
+      "name": "employeedocuments",
+      "documents": 0,
+      "size": 58,
+      "file": ".\\HR-System-Final\\employeedocuments.json"
+    },
+    {
+      "name": "employeepayrolldetails",
+      "documents": 83,
+      "size": 75887,
+      "file": ".\\HR-System-Final\\employeepayrolldetails.json"
+    },
+    {
+      "name": "employeepenalties",
+      "documents": 0,
+      "size": 58,
+      "file": ".\\HR-System-Final\\employeepenalties.json"
+    },
+    {
+      "name": "employeesigningbonus",
+      "documents": 5,
+      "size": 3311,
+      "file": ".\\HR-System-Final\\employeesigningbonus.json"
+    },
+    {
+      "name": "employeeterminationresignations",
+      "documents": 5,
+      "size": 3278,
+      "file": ".\\HR-System-Final\\employeeterminationresignations.json"
+    },
+    {
+      "name": "employee_profiles",
+      "documents": 17,
+      "size": 56507,
+      "file": ".\\HR-System-Final\\employee_profiles.json"
+    },
+    {
+      "name": "employee_profile_change_requests",
+      "documents": 10,
+      "size": 7928,
+      "file": ".\\HR-System-Final\\employee_profile_change_requests.json"
+    },
+    {
+      "name": "employee_qualifications",
+      "documents": 4,
+      "size": 2029,
+      "file": ".\\HR-System-Final\\employee_qualifications.json"
+    },
+    {
+      "name": "employee_system_roles",
+      "documents": 15,
+      "size": 7419,
+      "file": ".\\HR-System-Final\\employee_system_roles.json"
+    },
+    {
+      "name": "holidays",
+      "documents": 5,
+      "size": 2603,
+      "file": ".\\HR-System-Final\\holidays.json"
+    },
+    {
+      "name": "insurancebrackets",
+      "documents": 5,
+      "size": 3476,
+      "file": ".\\HR-System-Final\\insurancebrackets.json"
+    },
+    {
+      "name": "interviews",
+      "documents": 5,
+      "size": 3819,
+      "file": ".\\HR-System-Final\\interviews.json"
+    },
+    {
+      "name": "jobrequisitions",
+      "documents": 6,
+      "size": 4663,
+      "file": ".\\HR-System-Final\\jobrequisitions.json"
+    },
+    {
+      "name": "jobtemplates",
+      "documents": 4,
+      "size": 2702,
+      "file": ".\\HR-System-Final\\jobtemplates.json"
+    },
+    {
+      "name": "latenessrules",
+      "documents": 5,
+      "size": 1650,
+      "file": ".\\HR-System-Final\\latenessrules.json"
+    },
+    {
+      "name": "leaveadjustments",
+      "documents": 7,
+      "size": 4842,
+      "file": ".\\HR-System-Final\\leaveadjustments.json"
+    },
+    {
+      "name": "leavecategories",
+      "documents": 5,
+      "size": 2125,
+      "file": ".\\HR-System-Final\\leavecategories.json"
+    },
+    {
+      "name": "leaveentitlements",
+      "documents": 11,
+      "size": 10883,
+      "file": ".\\HR-System-Final\\leaveentitlements.json"
+    },
+    {
+      "name": "leavepolicies",
+      "documents": 4,
+      "size": 3096,
+      "file": ".\\HR-System-Final\\leavepolicies.json"
+    },
+    {
+      "name": "leaverequests",
+      "documents": 12,
+      "size": 18856,
+      "file": ".\\HR-System-Final\\leaverequests.json"
+    },
+    {
+      "name": "leavetypes",
+      "documents": 7,
+      "size": 4797,
+      "file": ".\\HR-System-Final\\leavetypes.json"
+    },
+    {
+      "name": "leave_deductions",
+      "documents": 9,
+      "size": 3794,
+      "file": ".\\HR-System-Final\\leave_deductions.json"
+    },
+    {
+      "name": "notificationlogs",
+      "documents": 227,
+      "size": 122967,
+      "file": ".\\HR-System-Final\\notificationlogs.json"
+    },
+    {
+      "name": "offers",
+      "documents": 5,
+      "size": 4821,
+      "file": ".\\HR-System-Final\\offers.json"
+    },
+    {
+      "name": "onboardings",
+      "documents": 4,
+      "size": 4991,
+      "file": ".\\HR-System-Final\\onboardings.json"
+    },
+    {
+      "name": "overtimerules",
+      "documents": 5,
+      "size": 2113,
+      "file": ".\\HR-System-Final\\overtimerules.json"
+    },
+    {
+      "name": "paygrades",
+      "documents": 5,
+      "size": 3529,
+      "file": ".\\HR-System-Final\\paygrades.json"
+    },
+    {
+      "name": "payrollpolicies",
+      "documents": 6,
+      "size": 7663,
+      "file": ".\\HR-System-Final\\payrollpolicies.json"
+    },
+    {
+      "name": "payrollruns",
+      "documents": 10,
+      "size": 10595,
+      "file": ".\\HR-System-Final\\payrollruns.json"
+    },
+    {
+      "name": "payslips",
+      "documents": 1,
+      "size": 750,
+      "file": ".\\HR-System-Final\\payslips.json"
+    },
+    {
+      "name": "paytypes",
+      "documents": 4,
+      "size": 1816,
+      "file": ".\\HR-System-Final\\paytypes.json"
+    },
+    {
+      "name": "positions",
+      "documents": 9,
+      "size": 5029,
+      "file": ".\\HR-System-Final\\positions.json"
+    },
+    {
+      "name": "position_assignments",
+      "documents": 8,
+      "size": 6190,
+      "file": ".\\HR-System-Final\\position_assignments.json"
+    },
+    {
+      "name": "referrals",
+      "documents": 5,
+      "size": 2779,
+      "file": ".\\HR-System-Final\\referrals.json"
+    },
+    {
+      "name": "refunds",
+      "documents": 5,
+      "size": 5247,
+      "file": ".\\HR-System-Final\\refunds.json"
+    },
+    {
+      "name": "schedulerules",
+      "documents": 4,
+      "size": 930,
+      "file": ".\\HR-System-Final\\schedulerules.json"
+    },
+    {
+      "name": "shiftassignments",
+      "documents": 10,
+      "size": 5615,
+      "file": ".\\HR-System-Final\\shiftassignments.json"
+    },
+    {
+      "name": "shifts",
+      "documents": 5,
+      "size": 2606,
+      "file": ".\\HR-System-Final\\shifts.json"
+    },
+    {
+      "name": "shifttypes",
+      "documents": 6,
+      "size": 1143,
+      "file": ".\\HR-System-Final\\shifttypes.json"
+    },
+    {
+      "name": "signingbonus",
+      "documents": 5,
+      "size": 3409,
+      "file": ".\\HR-System-Final\\signingbonus.json"
+    },
+    {
+      "name": "structure_approvals",
+      "documents": 0,
+      "size": 60,
+      "file": ".\\HR-System-Final\\structure_approvals.json"
+    },
+    {
+      "name": "structure_change_logs",
+      "documents": 31,
+      "size": 43025,
+      "file": ".\\HR-System-Final\\structure_change_logs.json"
+    },
+    {
+      "name": "structure_change_requests",
+      "documents": 2,
+      "size": 1883,
+      "file": ".\\HR-System-Final\\structure_change_requests.json"
+    },
+    {
+      "name": "taxbrackets",
+      "documents": 0,
+      "size": 52,
+      "file": ".\\HR-System-Final\\taxbrackets.json"
+    },
+    {
+      "name": "taxrules",
+      "documents": 6,
+      "size": 3240,
+      "file": ".\\HR-System-Final\\taxrules.json"
+    },
+    {
+      "name": "terminationandresignationbenefits",
+      "documents": 5,
+      "size": 3697,
+      "file": ".\\HR-System-Final\\terminationandresignationbenefits.json"
+    },
+    {
+      "name": "terminationrequests",
+      "documents": 5,
+      "size": 3826,
+      "file": ".\\HR-System-Final\\terminationrequests.json"
+    },
+    {
+      "name": "timeexceptions",
+      "documents": 60,
+      "size": 28010,
+      "file": ".\\HR-System-Final\\timeexceptions.json"
+    }
+  ]
+}

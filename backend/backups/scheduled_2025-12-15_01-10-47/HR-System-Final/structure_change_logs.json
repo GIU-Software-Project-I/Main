@@ -1,0 +1,1825 @@
+{
+  "collection": "structure_change_logs",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a800d7e07119e5fd6aa03"
+      },
+      "action": "CREATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693a80037e07119e5fd6a888"
+      },
+      "performedByEmployeeId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "summary": "Created IT Department",
+      "afterSnapshot": {
+        "code": "IT",
+        "name": "Information Technology"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441549622"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441549622"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800d7e07119e5fd6aa04"
+      },
+      "action": "CREATED",
+      "entityType": "Position",
+      "entityId": {
+        "$oid": "693a80037e07119e5fd6a88f"
+      },
+      "performedByEmployeeId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "summary": "Created Senior Software Engineer position",
+      "afterSnapshot": {
+        "code": "SWE-001",
+        "title": "Senior Software Engineer"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441549622"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441549622"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800d7e07119e5fd6aa05"
+      },
+      "action": "UPDATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693a80037e07119e5fd6a889"
+      },
+      "performedByEmployeeId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "summary": "Updated HR Department description",
+      "beforeSnapshot": {
+        "description": "Old description"
+      },
+      "afterSnapshot": {
+        "description": "Handles recruitment, employee relations, and benefits"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441549622"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441549622"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c08555a25f35fa1923819"
+      },
+      "action": "UPDATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693c08555a25f35fa1923814"
+      },
+      "summary": "Updated department: Automation Test Dept UPDATED 1765541973219",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693c08555a25f35fa1923814"
+        },
+        "code": "TEST-DEPT-1765541973219",
+        "name": "Automation Test Dept 1765541973219",
+        "description": "Temporary department created by test script",
+        "isActive": true,
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765541973651"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765541973651"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693c08555a25f35fa1923814"
+        },
+        "code": "TEST-DEPT-1765541973219",
+        "name": "Automation Test Dept UPDATED 1765541973219",
+        "description": "Temporary department created by test script",
+        "isActive": true,
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765541973651"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765541973813"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765541973866"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765541973866"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c08565a25f35fa192381e"
+      },
+      "action": "DEACTIVATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693c08555a25f35fa1923814"
+      },
+      "summary": "Deactivated department: Automation Test Dept UPDATED 1765541973219",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693c08555a25f35fa1923814"
+        },
+        "code": "TEST-DEPT-1765541973219",
+        "name": "Automation Test Dept UPDATED 1765541973219",
+        "description": "Temporary department created by test script",
+        "isActive": true,
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765541973651"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765541973813"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693c08555a25f35fa1923814"
+        },
+        "code": "TEST-DEPT-1765541973219",
+        "name": "Automation Test Dept UPDATED 1765541973219",
+        "description": "Temporary department created by test script",
+        "isActive": false,
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765541973651"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765541974044"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765541974106"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765541974106"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c08ab5a25f35fa192382b"
+      },
+      "action": "UPDATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693c08aa5a25f35fa1923826"
+      },
+      "summary": "Updated department: Automation Test Dept UPDATED 1765542058618",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693c08aa5a25f35fa1923826"
+        },
+        "code": "TEST-DEPT-1765542058618",
+        "name": "Automation Test Dept 1765542058618",
+        "description": "Temporary department created by test script",
+        "isActive": true,
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542058993"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542058993"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693c08aa5a25f35fa1923826"
+        },
+        "code": "TEST-DEPT-1765542058618",
+        "name": "Automation Test Dept UPDATED 1765542058618",
+        "description": "Temporary department created by test script",
+        "isActive": true,
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542058993"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542059155"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765542059208"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765542059208"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c08ab5a25f35fa1923830"
+      },
+      "action": "DEACTIVATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693c08aa5a25f35fa1923826"
+      },
+      "summary": "Deactivated department: Automation Test Dept UPDATED 1765542058618",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693c08aa5a25f35fa1923826"
+        },
+        "code": "TEST-DEPT-1765542058618",
+        "name": "Automation Test Dept UPDATED 1765542058618",
+        "description": "Temporary department created by test script",
+        "isActive": true,
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542058993"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542059155"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693c08aa5a25f35fa1923826"
+        },
+        "code": "TEST-DEPT-1765542058618",
+        "name": "Automation Test Dept UPDATED 1765542058618",
+        "description": "Temporary department created by test script",
+        "isActive": false,
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542058993"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542059372"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765542059426"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765542059426"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c0b3462d77fe2ab8196a8"
+      },
+      "action": "CREATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693c0b3462d77fe2ab8196a6"
+      },
+      "summary": "Created department: Dept 1765542708210",
+      "afterSnapshot": {
+        "code": "DEP-1765542708210",
+        "name": "Dept 1765542708210",
+        "description": "Comp Test",
+        "isActive": true,
+        "_id": {
+          "$oid": "693c0b3462d77fe2ab8196a6"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542708514"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542708514"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765542708572"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765542708572"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c0b3462d77fe2ab8196ae"
+      },
+      "action": "CREATED",
+      "entityType": "Position",
+      "entityId": {
+        "$oid": "693c0b3462d77fe2ab8196ac"
+      },
+      "summary": "Created position: Position 1765542708210",
+      "afterSnapshot": {
+        "code": "POS-1765542708210",
+        "title": "Position 1765542708210",
+        "departmentId": {
+          "$oid": "693c0b3462d77fe2ab8196a6"
+        },
+        "isActive": true,
+        "_id": {
+          "$oid": "693c0b3462d77fe2ab8196ac"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542708750"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542708750"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765542708804"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765542708804"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c0b3562d77fe2ab8196b5"
+      },
+      "action": "REASSIGNED",
+      "entityType": "PositionAssignment",
+      "entityId": {
+        "$oid": "693c0b3562d77fe2ab8196b3"
+      },
+      "summary": "Assigned employee to position: Position 1765542708210",
+      "afterSnapshot": {
+        "employeeProfileId": {
+          "$oid": "693a80047e07119e5fd6a8da"
+        },
+        "positionId": {
+          "$oid": "693c0b3462d77fe2ab8196ac"
+        },
+        "departmentId": {
+          "$oid": "693c0b3462d77fe2ab8196a6"
+        },
+        "startDate": {
+          "$date": {
+            "$numberLong": "1765542708860"
+          }
+        },
+        "_id": {
+          "$oid": "693c0b3562d77fe2ab8196b3"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542709061"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542709061"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765542709118"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765542709118"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c0b3562d77fe2ab8196c1"
+      },
+      "action": "DEACTIVATED",
+      "entityType": "Position",
+      "entityId": {
+        "$oid": "693c0b3462d77fe2ab8196ac"
+      },
+      "summary": "End of test",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693c0b3462d77fe2ab8196ac"
+        },
+        "code": "POS-1765542708210",
+        "title": "Position 1765542708210",
+        "departmentId": {
+          "$oid": "693c0b3462d77fe2ab8196a6"
+        },
+        "isActive": true,
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542708750"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542708750"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693c0b3462d77fe2ab8196ac"
+        },
+        "code": "POS-1765542708210",
+        "title": "Position 1765542708210",
+        "departmentId": {
+          "$oid": "693c0b3462d77fe2ab8196a6"
+        },
+        "isActive": false,
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542708750"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542709608"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765542709671"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765542709671"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c0c0c62d77fe2ab8196cd"
+      },
+      "action": "CREATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693c0c0c62d77fe2ab8196cb"
+      },
+      "summary": "Created department: Engineering 1765542924057",
+      "afterSnapshot": {
+        "code": "DEPT-1765542924057",
+        "name": "Engineering 1765542924057",
+        "description": "Test Dept",
+        "isActive": true,
+        "_id": {
+          "$oid": "693c0c0c62d77fe2ab8196cb"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542924589"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542924589"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765542924642"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765542924642"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c0c0c62d77fe2ab8196d3"
+      },
+      "action": "CREATED",
+      "entityType": "Position",
+      "entityId": {
+        "$oid": "693c0c0c62d77fe2ab8196d1"
+      },
+      "summary": "Created position: Senior Engineer 1765542924057",
+      "afterSnapshot": {
+        "code": "POS-1765542924057",
+        "title": "Senior Engineer 1765542924057",
+        "departmentId": {
+          "$oid": "693c0c0c62d77fe2ab8196cb"
+        },
+        "isActive": true,
+        "_id": {
+          "$oid": "693c0c0c62d77fe2ab8196d1"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542924815"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542924815"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765542924869"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765542924869"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c0c0d62d77fe2ab8196dc"
+      },
+      "action": "REASSIGNED",
+      "entityType": "PositionAssignment",
+      "entityId": {
+        "$oid": "693c0c0d62d77fe2ab8196da"
+      },
+      "summary": "Assigned employee to position: Senior Engineer 1765542924057",
+      "afterSnapshot": {
+        "employeeProfileId": {
+          "$oid": "693a80047e07119e5fd6a8da"
+        },
+        "positionId": {
+          "$oid": "693c0c0c62d77fe2ab8196d1"
+        },
+        "departmentId": {
+          "$oid": "693c0c0c62d77fe2ab8196cb"
+        },
+        "startDate": {
+          "$date": {
+            "$numberLong": "1765542925033"
+          }
+        },
+        "_id": {
+          "$oid": "693c0c0d62d77fe2ab8196da"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542925201"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542925201"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765542925254"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765542925254"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c0c4d62d77fe2ab8196f7"
+      },
+      "action": "CREATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693c0c4d62d77fe2ab8196f5"
+      },
+      "summary": "Created department: Engineering 1765542988999",
+      "afterSnapshot": {
+        "code": "DEPT-1765542988999",
+        "name": "Engineering 1765542988999",
+        "description": "Test Dept",
+        "isActive": true,
+        "_id": {
+          "$oid": "693c0c4d62d77fe2ab8196f5"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542989484"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542989484"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765542989537"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765542989537"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c0c4d62d77fe2ab8196fd"
+      },
+      "action": "CREATED",
+      "entityType": "Position",
+      "entityId": {
+        "$oid": "693c0c4d62d77fe2ab8196fb"
+      },
+      "summary": "Created position: Senior Engineer 1765542988999",
+      "afterSnapshot": {
+        "code": "POS-1765542988999",
+        "title": "Senior Engineer 1765542988999",
+        "departmentId": {
+          "$oid": "693c0c4d62d77fe2ab8196f5"
+        },
+        "isActive": true,
+        "_id": {
+          "$oid": "693c0c4d62d77fe2ab8196fb"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542989699"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542989699"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765542989752"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765542989752"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c0c4e62d77fe2ab819706"
+      },
+      "action": "REASSIGNED",
+      "entityType": "PositionAssignment",
+      "entityId": {
+        "$oid": "693c0c4e62d77fe2ab819704"
+      },
+      "summary": "Assigned employee to position: Senior Engineer 1765542988999",
+      "afterSnapshot": {
+        "employeeProfileId": {
+          "$oid": "693a80047e07119e5fd6a8da"
+        },
+        "positionId": {
+          "$oid": "693c0c4d62d77fe2ab8196fb"
+        },
+        "departmentId": {
+          "$oid": "693c0c4d62d77fe2ab8196f5"
+        },
+        "startDate": {
+          "$date": {
+            "$numberLong": "1765542989909"
+          }
+        },
+        "_id": {
+          "$oid": "693c0c4e62d77fe2ab819704"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765542990067"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765542990067"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765542990119"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765542990119"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d55f6d9c57665cb37c431"
+      },
+      "action": "CREATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693d55f5d9c57665cb37c42f"
+      },
+      "summary": "Created department: Development",
+      "afterSnapshot": {
+        "code": "DEV",
+        "name": "Development",
+        "description": "Software development department",
+        "isActive": true,
+        "_id": {
+          "$oid": "693d55f5d9c57665cb37c42f"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765627381937"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627381937"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627382065"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627382065"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d569ad9c57665cb37c442"
+      },
+      "action": "UPDATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693a80037e07119e5fd6a888"
+      },
+      "summary": "Updated department: Engineering & IT",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a888"
+        },
+        "code": "IT",
+        "name": "Engineering & Development",
+        "description": "Updated description",
+        "isActive": true,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539099"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765522327342"
+          }
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a888"
+        },
+        "code": "IT",
+        "name": "Engineering & IT",
+        "description": "Engineering and Information Technology department",
+        "isActive": true,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539099"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627546497"
+          }
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627546641"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627546641"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d569ed9c57665cb37c447"
+      },
+      "action": "DEACTIVATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693a80037e07119e5fd6a88b"
+      },
+      "summary": "Deactivated department: Marketing",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a88b"
+        },
+        "code": "MKT",
+        "name": "Marketing",
+        "description": "Handles marketing strategies and campaigns",
+        "isActive": true,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539102"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765441539102"
+          }
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a88b"
+        },
+        "code": "MKT",
+        "name": "Marketing",
+        "description": "Handles marketing strategies and campaigns",
+        "isActive": false,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539102"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627550714"
+          }
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627550813"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627550813"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d56a3d9c57665cb37c44b"
+      },
+      "action": "UPDATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693a80037e07119e5fd6a88b"
+      },
+      "summary": "Reactivated department: Marketing",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a88b"
+        },
+        "code": "MKT",
+        "name": "Marketing",
+        "description": "Handles marketing strategies and campaigns",
+        "isActive": false,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539102"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627550714"
+          }
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a88b"
+        },
+        "code": "MKT",
+        "name": "Marketing",
+        "description": "Handles marketing strategies and campaigns",
+        "isActive": true,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539102"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627555489"
+          }
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627555581"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627555581"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d56aad9c57665cb37c452"
+      },
+      "action": "CREATED",
+      "entityType": "Position",
+      "entityId": {
+        "$oid": "693d56a9d9c57665cb37c450"
+      },
+      "summary": "Created position: Tech Lead",
+      "afterSnapshot": {
+        "code": "TL-001",
+        "title": "Tech Lead",
+        "description": "Technical team leader",
+        "departmentId": {
+          "$oid": "693a80037e07119e5fd6a888"
+        },
+        "reportsToPositionId": {
+          "$oid": "693a80037e07119e5fd6a88f"
+        },
+        "isActive": true,
+        "_id": {
+          "$oid": "693d56a9d9c57665cb37c450"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765627561968"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627561968"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627562055"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627562055"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d56ced9c57665cb37c466"
+      },
+      "action": "UPDATED",
+      "entityType": "Position",
+      "entityId": {
+        "$oid": "693a80037e07119e5fd6a88f"
+      },
+      "summary": "Updated position: Lead Software Engineer",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a88f"
+        },
+        "code": "SWE-001",
+        "title": "Senior Software Engineer",
+        "description": "Develops and maintains software applications",
+        "departmentId": {
+          "$oid": "693a80037e07119e5fd6a888"
+        },
+        "isActive": true,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539360"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765441539360"
+          }
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a88f"
+        },
+        "code": "SWE-001",
+        "title": "Lead Software Engineer",
+        "description": "Lead engineer with team leadership responsibilities",
+        "departmentId": {
+          "$oid": "693a80037e07119e5fd6a888"
+        },
+        "isActive": true,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539360"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627598324"
+          }
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627598426"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627598426"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d56d4d9c57665cb37c474"
+      },
+      "action": "DEACTIVATED",
+      "entityType": "Position",
+      "entityId": {
+        "$oid": "693a80037e07119e5fd6a892"
+      },
+      "summary": "Position no longer needed due to organizational restructure",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a892"
+        },
+        "code": "MKT-001",
+        "title": "Marketing Manager",
+        "description": "Leads marketing initiatives",
+        "departmentId": {
+          "$oid": "693a80037e07119e5fd6a88b"
+        },
+        "isActive": true,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539360"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765441539360"
+          }
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a892"
+        },
+        "code": "MKT-001",
+        "title": "Marketing Manager",
+        "description": "Leads marketing initiatives",
+        "departmentId": {
+          "$oid": "693a80037e07119e5fd6a88b"
+        },
+        "isActive": false,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539360"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627604290"
+          }
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627604404"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627604404"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d56d9d9c57665cb37c47d"
+      },
+      "action": "UPDATED",
+      "entityType": "Position",
+      "entityId": {
+        "$oid": "693a80037e07119e5fd6a892"
+      },
+      "summary": "Reactivated position: Marketing Manager",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a892"
+        },
+        "code": "MKT-001",
+        "title": "Marketing Manager",
+        "description": "Leads marketing initiatives",
+        "departmentId": {
+          "$oid": "693a80037e07119e5fd6a88b"
+        },
+        "isActive": false,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539360"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627604290"
+          }
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a892"
+        },
+        "code": "MKT-001",
+        "title": "Marketing Manager",
+        "description": "Leads marketing initiatives",
+        "departmentId": {
+          "$oid": "693a80037e07119e5fd6a88b"
+        },
+        "isActive": true,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539360"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627609663"
+          }
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627609766"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627609766"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d56e2d9c57665cb37c484"
+      },
+      "action": "REASSIGNED",
+      "entityType": "PositionAssignment",
+      "entityId": {
+        "$oid": "693d56e2d9c57665cb37c482"
+      },
+      "summary": "Assigned employee to position: HR Manager",
+      "afterSnapshot": {
+        "employeeProfileId": {
+          "$oid": "693a80047e07119e5fd6a8da"
+        },
+        "positionId": {
+          "$oid": "693a80037e07119e5fd6a890"
+        },
+        "departmentId": {
+          "$oid": "693a80037e07119e5fd6a889"
+        },
+        "startDate": {
+          "$date": {
+            "$numberLong": "1767225600000"
+          }
+        },
+        "reason": "Promotion to HR Manager",
+        "notes": "Effective from January 1st, 2026",
+        "_id": {
+          "$oid": "693d56e2d9c57665cb37c482"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765627618305"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627618305"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627618401"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627618401"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d57e5d9c57665cb37c4cc"
+      },
+      "action": "DEACTIVATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693a80037e07119e5fd6a888"
+      },
+      "summary": "Deactivated department: Engineering & IT",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a888"
+        },
+        "code": "IT",
+        "name": "Engineering & IT",
+        "description": "Engineering and Information Technology department",
+        "isActive": true,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539099"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627546497"
+          }
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a888"
+        },
+        "code": "IT",
+        "name": "Engineering & IT",
+        "description": "Engineering and Information Technology department",
+        "isActive": false,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539099"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627877023"
+          }
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627877112"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627877112"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d57f8d9c57665cb37c4d1"
+      },
+      "action": "DEACTIVATED",
+      "entityType": "Department",
+      "entityId": {
+        "$oid": "693a80037e07119e5fd6a88b"
+      },
+      "summary": "Deactivated department: Marketing",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a88b"
+        },
+        "code": "MKT",
+        "name": "Marketing",
+        "description": "Handles marketing strategies and campaigns",
+        "isActive": true,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539102"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627555489"
+          }
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a88b"
+        },
+        "code": "MKT",
+        "name": "Marketing",
+        "description": "Handles marketing strategies and campaigns",
+        "isActive": false,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539102"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627896739"
+          }
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627896911"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627896911"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d5850d9c57665cb37c4de"
+      },
+      "action": "UPDATED",
+      "entityType": "Position",
+      "entityId": {
+        "$oid": "693a80037e07119e5fd6a88f"
+      },
+      "summary": "Updated position: Lead Software Engineer",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a88f"
+        },
+        "code": "SWE-001",
+        "title": "Lead Software Engineer",
+        "description": "Lead engineer with team leadership responsibilities",
+        "departmentId": {
+          "$oid": "693a80037e07119e5fd6a888"
+        },
+        "isActive": true,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539360"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627598324"
+          }
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a88f"
+        },
+        "code": "SWE-001",
+        "title": "Lead Software Engineer",
+        "description": "Lead engineer with team leadership responsibilities",
+        "departmentId": {
+          "$oid": "693a80037e07119e5fd6a888"
+        },
+        "isActive": true,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539360"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627984699"
+          }
+        },
+        "reportsToPositionId": {
+          "$oid": "693a80037e07119e5fd6a891"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765627984787"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765627984787"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d5865d9c57665cb37c4ec"
+      },
+      "action": "DEACTIVATED",
+      "entityType": "Position",
+      "entityId": {
+        "$oid": "693a80037e07119e5fd6a88f"
+      },
+      "summary": "Test deactivation",
+      "beforeSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a88f"
+        },
+        "code": "SWE-001",
+        "title": "Lead Software Engineer",
+        "description": "Lead engineer with team leadership responsibilities",
+        "departmentId": {
+          "$oid": "693a80037e07119e5fd6a888"
+        },
+        "isActive": true,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539360"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765627984699"
+          }
+        },
+        "reportsToPositionId": {
+          "$oid": "693a80037e07119e5fd6a891"
+        }
+      },
+      "afterSnapshot": {
+        "_id": {
+          "$oid": "693a80037e07119e5fd6a88f"
+        },
+        "code": "SWE-001",
+        "title": "Lead Software Engineer",
+        "description": "Lead engineer with team leadership responsibilities",
+        "departmentId": {
+          "$oid": "693a80037e07119e5fd6a888"
+        },
+        "isActive": false,
+        "__v": {
+          "$numberInt": "0"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765441539360"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765628005174"
+          }
+        },
+        "reportsToPositionId": {
+          "$oid": "693a80037e07119e5fd6a891"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765628005279"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765628005279"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d5892d9c57665cb37c4f9"
+      },
+      "action": "REASSIGNED",
+      "entityType": "PositionAssignment",
+      "entityId": {
+        "$oid": "693d5892d9c57665cb37c4f7"
+      },
+      "summary": "Assigned employee to position: Marketing Manager",
+      "afterSnapshot": {
+        "employeeProfileId": {
+          "$oid": "693a80047e07119e5fd6a8da"
+        },
+        "positionId": {
+          "$oid": "693a80037e07119e5fd6a892"
+        },
+        "departmentId": {
+          "$oid": "693a80037e07119e5fd6a88b"
+        },
+        "startDate": {
+          "$date": {
+            "$numberLong": "1767225600000"
+          }
+        },
+        "_id": {
+          "$oid": "693d5892d9c57665cb37c4f7"
+        },
+        "createdAt": {
+          "$date": {
+            "$numberLong": "1765628050623"
+          }
+        },
+        "updatedAt": {
+          "$date": {
+            "$numberLong": "1765628050623"
+          }
+        },
+        "__v": {
+          "$numberInt": "0"
+        }
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765628050723"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765628050723"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    }
+  ]
+}

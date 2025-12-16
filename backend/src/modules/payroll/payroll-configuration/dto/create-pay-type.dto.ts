@@ -11,7 +11,7 @@ export class CreatePayTypeDto {
   @Min(6000)
   amount: number;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   createdByEmployeeId: string;
 

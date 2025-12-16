@@ -1,0 +1,105 @@
+{
+  "collection": "leavecategories",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a800a7e07119e5fd6a9a4"
+      },
+      "name": "Vacation",
+      "description": "Vacation and personal time off",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441546295"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441546295"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800a7e07119e5fd6a9a6"
+      },
+      "name": "Family",
+      "description": "Updated description for vacation category",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441546295"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765643502469"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800a7e07119e5fd6a9a7"
+      },
+      "name": "Other",
+      "description": "Other types of leave",
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441546295"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441546295"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693aa60096bde9437778c5bc"
+      },
+      "name": "Annual Leave Category 2",
+      "description": "Second annual leave type",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765451264516"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765451264516"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d94da05e9b252e32db95a"
+      },
+      "name": "Special Leaves",
+      "description": "Special leave types per national law",
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765643482073"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765643482073"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    }
+  ]
+}

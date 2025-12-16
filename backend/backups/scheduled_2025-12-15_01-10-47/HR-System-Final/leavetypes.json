@@ -1,0 +1,217 @@
+{
+  "collection": "leavetypes",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a800a7e07119e5fd6a9ab"
+      },
+      "code": "MATERNITY",
+      "name": "Maternity Leave",
+      "categoryId": {
+        "$oid": "693a800a7e07119e5fd6a9a6"
+      },
+      "description": "Maternity leave for new mothers",
+      "paid": true,
+      "deductible": false,
+      "requiresAttachment": true,
+      "minTenureMonths": null,
+      "maxDurationDays": {
+        "$numberInt": "90"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441546404"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765476522137"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800a7e07119e5fd6a9ac"
+      },
+      "code": "PATERNITY",
+      "name": "Sick Leave - Updated Name",
+      "categoryId": {
+        "$oid": "693a800a7e07119e5fd6a9a6"
+      },
+      "description": "Paternity leave for new fathers",
+      "paid": true,
+      "deductible": false,
+      "requiresAttachment": true,
+      "minTenureMonths": null,
+      "maxDurationDays": {
+        "$numberInt": "21"
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441546404"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765643442662"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a800a7e07119e5fd6a9ad"
+      },
+      "code": "UNPAID",
+      "name": "Unpaid Leave",
+      "categoryId": {
+        "$oid": "693a800a7e07119e5fd6a9a7"
+      },
+      "description": "Leave without pay",
+      "paid": false,
+      "deductible": false,
+      "requiresAttachment": false,
+      "minTenureMonths": null,
+      "maxDurationDays": null,
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441546404"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441546404"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a99748a0d23da404cdf92"
+      },
+      "code": "ANNUAL_STANDARD",
+      "name": "Annual Leave (Standard)",
+      "categoryId": "693a987b8a0d23da404cdf8f",
+      "description": "Standard annual leave",
+      "paid": true,
+      "deductible": true,
+      "requiresAttachment": false,
+      "minTenureMonths": {
+        "$numberInt": "3"
+      },
+      "maxDurationDays": {
+        "$numberInt": "15"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765448052369"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765448052369"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693b0833139643e00eee82cc"
+      },
+      "code": "BEREAVEMENT",
+      "name": "Bereavement Leave",
+      "categoryId": "693a800a7e07119e5fd6a9a7",
+      "description": "Leave due to death in the family",
+      "paid": true,
+      "deductible": true,
+      "requiresAttachment": false,
+      "minTenureMonths": {
+        "$numberInt": "0"
+      },
+      "maxDurationDays": {
+        "$numberInt": "5"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765476403943"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765476403943"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693c060002879b1a93ea0384"
+      },
+      "code": "SICK_TEST",
+      "name": "Sick Leave Test",
+      "categoryId": "693a800a7e07119e5fd6a9a5",
+      "paid": true,
+      "deductible": true,
+      "requiresAttachment": true,
+      "minTenureMonths": null,
+      "maxDurationDays": {
+        "$numberInt": "14"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765541376995"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765541376995"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693d94a005e9b252e32db954"
+      },
+      "code": "Sick",
+      "name": "Sick Leave",
+      "categoryId": "693a800a7e07119e5fd6a9a7",
+      "description": "Leave for family bereavement",
+      "paid": true,
+      "deductible": false,
+      "requiresAttachment": true,
+      "minTenureMonths": {
+        "$numberInt": "0"
+      },
+      "maxDurationDays": {
+        "$numberInt": "5"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765643424567"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765643424567"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      }
+    }
+  ]
+}

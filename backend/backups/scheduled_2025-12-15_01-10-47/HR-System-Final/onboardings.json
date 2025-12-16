@@ -1,0 +1,227 @@
+{
+  "collection": "onboardings",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a8e3"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8da"
+      },
+      "contractId": {
+        "$oid": "693a80047e07119e5fd6a8d4"
+      },
+      "tasks": [
+        {
+          "name": "Complete I-9 Form",
+          "department": "HR",
+          "status": "in_progress",
+          "deadline": {
+            "$date": {
+              "$numberLong": "1769817600000"
+            }
+          },
+          "notes": "In progress",
+          "_id": {
+            "$oid": "693a80057e07119e5fd6a8e4"
+          }
+        },
+        {
+          "name": "IT System Setup",
+          "department": "IT",
+          "status": "pending",
+          "deadline": {
+            "$date": {
+              "$numberLong": "1769904000000"
+            }
+          },
+          "notes": "Scheduled for Jan 30",
+          "_id": {
+            "$oid": "693a80057e07119e5fd6a8e5"
+          }
+        }
+      ],
+      "completed": false,
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441541207"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441541207"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a8e6"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8db"
+      },
+      "contractId": {
+        "$oid": "693a80047e07119e5fd6a8d5"
+      },
+      "tasks": [
+        {
+          "name": "Complete I-9 Form",
+          "department": "HR",
+          "status": "completed",
+          "deadline": {
+            "$date": {
+              "$numberLong": "1768780800000"
+            }
+          },
+          "completedAt": {
+            "$date": {
+              "$numberLong": "1768694400000"
+            }
+          },
+          "_id": {
+            "$oid": "693a80057e07119e5fd6a8e7"
+          }
+        },
+        {
+          "name": "IT System Setup",
+          "department": "IT",
+          "status": "completed",
+          "deadline": {
+            "$date": {
+              "$numberLong": "1768867200000"
+            }
+          },
+          "completedAt": {
+            "$date": {
+              "$numberLong": "1768780800000"
+            }
+          },
+          "_id": {
+            "$oid": "693a80057e07119e5fd6a8e8"
+          }
+        },
+        {
+          "name": "Benefits Enrollment",
+          "department": "HR",
+          "status": "completed",
+          "deadline": {
+            "$date": {
+              "$numberLong": "1769299200000"
+            }
+          },
+          "completedAt": {
+            "$date": {
+              "$numberLong": "1769040000000"
+            }
+          },
+          "_id": {
+            "$oid": "693a80057e07119e5fd6a8e9"
+          }
+        }
+      ],
+      "completed": true,
+      "completedAt": {
+        "$date": {
+          "$numberLong": "1769040000000"
+        }
+      },
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441541207"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441541207"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a8ea"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8dc"
+      },
+      "contractId": {
+        "$oid": "693a80047e07119e5fd6a8d3"
+      },
+      "tasks": [
+        {
+          "name": "Complete I-9 Form",
+          "department": "HR",
+          "status": "pending",
+          "deadline": {
+            "$date": {
+              "$numberLong": "1767139200000"
+            }
+          },
+          "_id": {
+            "$oid": "693a80057e07119e5fd6a8eb"
+          }
+        }
+      ],
+      "completed": false,
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441541208"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441541208"
+        }
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a8ec"
+      },
+      "employeeId": {
+        "$oid": "693a80047e07119e5fd6a8d9"
+      },
+      "contractId": {
+        "$oid": "693a80047e07119e5fd6a8d4"
+      },
+      "tasks": [
+        {
+          "name": "Department Orientation",
+          "department": "Manager",
+          "status": "pending",
+          "deadline": {
+            "$date": {
+              "$numberLong": "1768521600000"
+            }
+          },
+          "notes": "Meet with team",
+          "_id": {
+            "$oid": "693a80057e07119e5fd6a8ed"
+          }
+        }
+      ],
+      "completed": false,
+      "__v": {
+        "$numberInt": "0"
+      },
+      "createdAt": {
+        "$date": {
+          "$numberLong": "1765441541208"
+        }
+      },
+      "updatedAt": {
+        "$date": {
+          "$numberLong": "1765441541208"
+        }
+      }
+    }
+  ]
+}

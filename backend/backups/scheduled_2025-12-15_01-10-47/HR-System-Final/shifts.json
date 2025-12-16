@@ -1,0 +1,120 @@
+{
+  "collection": "shifts",
+  "documents": [
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a911"
+      },
+      "name": "Morning Shift",
+      "shiftType": {
+        "$oid": "693a80057e07119e5fd6a90b"
+      },
+      "startTime": "08:00",
+      "endTime": "16:00",
+      "punchPolicy": "FIRST_LAST",
+      "graceInMinutes": {
+        "$numberInt": "15"
+      },
+      "graceOutMinutes": {
+        "$numberInt": "15"
+      },
+      "requiresApprovalForOvertime": true,
+      "active": true,
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a912"
+      },
+      "name": "Evening Shift",
+      "shiftType": {
+        "$oid": "693a80057e07119e5fd6a90b"
+      },
+      "startTime": "16:00",
+      "endTime": "00:00",
+      "punchPolicy": "FIRST_LAST",
+      "graceInMinutes": {
+        "$numberInt": "10"
+      },
+      "graceOutMinutes": {
+        "$numberInt": "10"
+      },
+      "requiresApprovalForOvertime": true,
+      "active": true,
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a913"
+      },
+      "name": "Night Shift",
+      "shiftType": {
+        "$oid": "693a80057e07119e5fd6a90c"
+      },
+      "startTime": "00:00",
+      "endTime": "08:00",
+      "punchPolicy": "FIRST_LAST",
+      "graceInMinutes": {
+        "$numberInt": "20"
+      },
+      "graceOutMinutes": {
+        "$numberInt": "20"
+      },
+      "requiresApprovalForOvertime": false,
+      "active": true,
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a914"
+      },
+      "name": "Flexible Hours",
+      "shiftType": {
+        "$oid": "693a80057e07119e5fd6a90d"
+      },
+      "startTime": "09:00",
+      "endTime": "17:00",
+      "punchPolicy": "MULTIPLE",
+      "graceInMinutes": {
+        "$numberInt": "30"
+      },
+      "graceOutMinutes": {
+        "$numberInt": "30"
+      },
+      "requiresApprovalForOvertime": true,
+      "active": true,
+      "__v": {
+        "$numberInt": "0"
+      }
+    },
+    {
+      "_id": {
+        "$oid": "693a80057e07119e5fd6a915"
+      },
+      "name": "Weekend Day",
+      "shiftType": {
+        "$oid": "693a80057e07119e5fd6a90f"
+      },
+      "startTime": "10:00",
+      "endTime": "18:00",
+      "punchPolicy": "FIRST_LAST",
+      "graceInMinutes": {
+        "$numberInt": "15"
+      },
+      "graceOutMinutes": {
+        "$numberInt": "15"
+      },
+      "requiresApprovalForOvertime": false,
+      "active": true,
+      "__v": {
+        "$numberInt": "0"
+      }
+    }
+  ]
+}
