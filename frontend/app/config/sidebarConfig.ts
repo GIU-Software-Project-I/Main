@@ -144,6 +144,14 @@ const DEPARTMENT_HEAD_SECTIONS: NavSection[] = [
         href: '/dashboard/department-head/performance',
         icon: 'bar-chart',
       },
+        {
+            label: 'Time Management',
+            href: '/dashboard/hr-manager/time-management',
+            icon: 'clock',
+            children: [
+                { label: 'Attendance Records', href: '/dashboard/department-head/time-management/attendance-records', icon: 'clipboard-list' },
+            ],
+        },
       {
         label: 'Leave Approvals',
         href: '/dashboard/department-head/leaves',
@@ -385,6 +393,9 @@ const SYSTEM_ADMIN_SECTIONS: NavSection[] = [
             label: 'Time Management',
             href: '/dashboard/hr-manager/time-management',
             icon: 'clock',
+            children: [
+                { label: 'Shift Types', href: '/dashboard/system-admin/time-management/ShiftType', icon: 'clock' },
+            ],
         },
       {
         label: 'User Management',

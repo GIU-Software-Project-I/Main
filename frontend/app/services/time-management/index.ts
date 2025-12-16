@@ -13,7 +13,7 @@ export interface PunchOutRequest {
     source?: string; // Optional: source identifier (e.g., 'web-app')
 }
 
-// Shift Type interfaces
+// ShiftType interfaces
 export interface ShiftType {
     _id: string;
     name: string;
@@ -92,6 +92,79 @@ export interface UpdateScheduleRuleDto {
     name?: string;
     pattern?: string;
     active?: boolean;
+}
+
+// Attendance Record interfaces
+export enum PunchType {
+    IN = 'IN',
+    OUT = 'OUT',
+}
+
+export enum CorrectionRequestStatus {
+    SUBMITTED = 'SUBMITTED',
+    IN_REVIEW = 'IN_REVIEW',
+    APPROVED = 'APPROVED',
+    REJECTED = 'REJECTED',
+    ESCALATED = 'ESCALATED',
+}
+
+export interface Punch {
+    type: PunchType;
+    time: string;
+}
+
+export interface AttendanceRecord {
+    _id: string;
+    employeeId: string;
+    punches: Punch[];
+    totalWorkMinutes: number;
+    hasMissedPunch: boolean;
+    exceptionIds: string[];
+    finalisedForPayroll: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface AttendanceCorrectionRequest {
+    _id: string;
+    employeeId: string;
+    attendanceRecord: string | AttendanceRecord;
+    reason?: string;
+    status: CorrectionRequestStatus;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface CorrectAttendanceDto {
+    attendanceRecordId: string;
+    correctedPunches?: Array<{ type: PunchType; time: string }>;
+    addPunchIn?: string;
+    addPunchOut?: string;
+    removePunchIndex?: number;
+    correctionReason: string;
+    correctedBy?: string;
+}
+
+export interface RequestCorrectionDto {
+    employeeId: string;
+    attendanceRecordId: string;
+    reason: string;
+    correctedPunchDate?: string;
+    correctedPunchLocalTime?: string;
+}
+
+export interface ReviewCorrectionDto {
+    correctionRequestId: string;
+    reviewerId: string;
+    action: 'APPROVE' | 'REJECT';
+    note?: string;
+}
+
+export interface BulkReviewAttendanceDto {
+    employeeId: string;
+    startDate: string;
+    endDate: string;
+    filterByIssue?: 'ALL' | 'MISSING_PUNCH' | 'INVALID_SEQUENCE' | 'SHORT_TIME';
 }
 
 export const timeManagementService = {
@@ -204,6 +277,64 @@ export const timeManagementService = {
     // Deactivate schedule rule - DELETE /shift-management/schedule-rules/:id
     deactivateScheduleRule: async (id: string) => {
         return apiService.delete(`/shift-management/schedule-rules/${id}`);
+    },
+
+    // ============================================================
+    // ATTENDANCE RECORD OPERATIONS
+    // ============================================================
+
+    // Get monthly attendance - GET /attendance/month/:employeeId?month=X&year=Y
+    getMonthlyAttendance: async (employeeId: string, month: number, year: number) => {
+        return apiService.get<AttendanceRecord[]>(`/attendance/month/${employeeId}?month=${month}&year=${year}`);
+    },
+
+    // Get payroll-ready attendance - GET /attendance/payroll?month=X&year=Y
+    getPayrollAttendance: async (month: number, year: number) => {
+        return apiService.get<AttendanceRecord[]>(`/attendance/payroll?month=${month}&year=${year}`);
+    },
+
+    // Update attendance record - PUT /attendance/:id
+    updateAttendanceRecord: async (id: string, data: any) => {
+        return apiService.put(`/attendance/${id}`, data);
+    },
+
+    // Review attendance record - POST /attendance/review/:recordId
+    reviewAttendanceRecord: async (recordId: string) => {
+        return apiService.post(`/attendance/review/${recordId}`);
+    },
+
+    // Correct attendance record - POST /attendance/correct
+    correctAttendanceRecord: async (data: CorrectAttendanceDto) => {
+        return apiService.post('/attendance/correct', data);
+    },
+
+    // Bulk review attendance - POST /attendance/review/bulk
+    bulkReviewAttendance: async (data: BulkReviewAttendanceDto) => {
+        return apiService.post('/attendance/review/bulk', data);
+    },
+
+    // ============================================================
+    // ATTENDANCE CORRECTION REQUEST OPERATIONS
+    // ============================================================
+
+    // Request correction (employee) - POST /attendance-correction/request
+    requestAttendanceCorrection: async (data: RequestCorrectionDto) => {
+        return apiService.post<AttendanceCorrectionRequest>('/attendance-correction/request', data);
+    },
+
+    // Review correction (manager) - PUT /attendance-correction/review
+    reviewCorrectionRequest: async (data: ReviewCorrectionDto) => {
+        return apiService.put('/attendance-correction/review', data);
+    },
+
+    // Get employee corrections - GET /attendance-correction/:employeeId
+    getEmployeeCorrections: async (employeeId: string) => {
+        return apiService.get<AttendanceCorrectionRequest[]>(`/attendance-correction/${employeeId}`);
+    },
+
+    // Get all pending corrections - GET /attendance-correction
+    getPendingCorrections: async () => {
+        return apiService.get<AttendanceCorrectionRequest[]>('/attendance-correction');
     },
 };
 
