@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { employeeProfileService } from '@/app/services/employee-profile';
-import Button from '@/app/components/ui/Button';
+import { Button } from '@/app/components/ui/button';
 
 export default function EmployeeProfilePage() {
     const [profile, setProfile] = useState<any>(null);

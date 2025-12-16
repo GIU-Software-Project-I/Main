@@ -4,8 +4,50 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { employeeProfileService } from '@/app/services/employee-profile';
-import Button from '@/app/components/ui/Button';
-import Input from '@/app/components/ui/Input';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+
+// Custom Input component with label support
+interface InputWithLabelProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+}
+
+function InputWithLabel({ label, className, ...props }: InputWithLabelProps) {
+  return (
+    <div className="w-full">
+      {label && (
+        <Label className="block text-sm font-medium text-slate-700 mb-1.5">
+          {label}
+        </Label>
+      )}
+      <Input className={className} {...props} />
+    </div>
+  );
+}
+
+// Custom Button with loading state
+interface LoadingButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  isLoading?: boolean;
+  variant?: 'default' | 'outline' | 'destructive' | 'secondary' | 'ghost' | 'link';
+  size?: 'default' | 'sm' | 'lg' | 'icon';
+  children: React.ReactNode;
+}
+
+function LoadingButton({ isLoading, children, disabled, ...props }: LoadingButtonProps) {
+  return (
+    <Button disabled={disabled || isLoading} {...props}>
+      {isLoading ? (
+        <>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+          Loading...
+        </>
+      ) : (
+        children
+      )}
+    </Button>
+  );
+}
 
 /**
  * Employee Profile Edit Page - Department Employee
@@ -328,14 +370,14 @@ export default function EditProfilePage() {
 
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
+              <InputWithLabel
                 label="Mobile Phone"
                 type="tel"
                 value={contactInfo.mobilePhone}
                 onChange={(e) => setContactInfo({ ...contactInfo, mobilePhone: e.target.value })}
                 placeholder="+1 (555) 123-4567"
               />
-              <Input
+              <InputWithLabel
                 label="Home Phone"
                 type="tel"
                 value={contactInfo.homePhone}
@@ -344,7 +386,7 @@ export default function EditProfilePage() {
               />
             </div>
 
-            <Input
+            <InputWithLabel
               label="Personal Email"
               type="email"
               value={contactInfo.personalEmail}
@@ -354,7 +396,7 @@ export default function EditProfilePage() {
 
             <div className="space-y-6">
               <h4 className="font-semibold text-slate-900">Address</h4>
-              <Input
+              <InputWithLabel
                 label="Street Address"
                 value={contactInfo.address.streetAddress}
                 onChange={(e) => setContactInfo({
@@ -364,7 +406,7 @@ export default function EditProfilePage() {
                 placeholder="123 Main Street, Apt 4B"
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input
+                <InputWithLabel
                   label="City"
                   value={contactInfo.address.city}
                   onChange={(e) => setContactInfo({
@@ -373,7 +415,7 @@ export default function EditProfilePage() {
                   })}
                   placeholder="New York"
                 />
-                <Input
+                <InputWithLabel
                   label="Country"
                   value={contactInfo.address.country}
                   onChange={(e) => setContactInfo({
@@ -387,9 +429,9 @@ export default function EditProfilePage() {
           </div>
 
           <div className="flex gap-4 mt-8">
-            <Button type="submit" isLoading={saving}>
+            <LoadingButton type="submit" isLoading={saving}>
               💾 Save Contact Information
-            </Button>
+            </LoadingButton>
             <Link href="/dashboard/department-employee/employee-profile">
               <Button type="button" variant="outline">
                 Cancel
@@ -504,9 +546,9 @@ export default function EditProfilePage() {
           </div>
 
           <div className="flex gap-4 mt-8">
-            <Button type="submit" isLoading={saving}>
+            <LoadingButton type="submit" isLoading={saving}>
               💾 Save Biography
-            </Button>
+            </LoadingButton>
             <Link href="/dashboard/department-employee/employee-profile">
               <Button type="button" variant="outline">
                 Cancel
@@ -589,14 +631,14 @@ export default function EditProfilePage() {
 
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Input
+                  <InputWithLabel
                     label="Full Name"
                     value={contactForm.name}
                     onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                     required
                     placeholder="e.g. John Doe"
                   />
-                  <Input
+                  <InputWithLabel
                     label="Relationship"
                     value={contactForm.relationship}
                     onChange={(e) => setContactForm({ ...contactForm, relationship: e.target.value })}
@@ -606,7 +648,7 @@ export default function EditProfilePage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Input
+                  <InputWithLabel
                     label="Phone Number"
                     type="tel"
                     value={contactForm.phone}
@@ -614,7 +656,7 @@ export default function EditProfilePage() {
                     required
                     placeholder="+1 (555) 000-0000"
                   />
-                  <Input
+                  <InputWithLabel
                     label="Email (Optional)"
                     type="email"
                     value={contactForm.email}
@@ -638,9 +680,9 @@ export default function EditProfilePage() {
               </div>
 
               <div className="flex gap-4 mt-8">
-                <Button type="submit" isLoading={saving}>
+                <LoadingButton type="submit" isLoading={saving}>
                   {editingContactIndex !== null ? 'Update Contact' : 'Add Contact'}
-                </Button>
+                </LoadingButton>
                 <Button type="button" variant="outline" onClick={() => setShowContactForm(false)}>
                   Cancel
                 </Button>
@@ -697,9 +739,9 @@ export default function EditProfilePage() {
             </div>
 
             <div className="flex gap-4 mt-8">
-              <Button type="submit" isLoading={saving}>
+              <LoadingButton type="submit" isLoading={saving}>
                 📨 Submit Request
-              </Button>
+              </LoadingButton>
               <Button
                 type="button"
                 variant="outline"
