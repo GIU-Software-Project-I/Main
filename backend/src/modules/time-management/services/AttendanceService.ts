@@ -222,7 +222,17 @@ export class AttendanceService {
         isRestDay?: boolean;
         debugInfo?: any;
     }> {
-        const empOid = typeof employeeId === 'string' ? new Types.ObjectId(employeeId) : employeeId;
+        let empOid: Types.ObjectId;
+        try {
+            empOid = typeof employeeId === 'string' ? new Types.ObjectId(employeeId) : employeeId;
+        } catch (e) {
+            this.logger.error(`[DEBUG] Invalid employeeId format: ${employeeId}`);
+            return {
+                isValid: false,
+                error: `Invalid employee ID format: ${employeeId}`,
+                debugInfo: { invalidObjectId: true }
+            };
+        }
 
         this.logger.debug(`[DEBUG] validatePunchAgainstShift called for employee ${empOid} at ${punchTime.toISOString()}`);
 
@@ -262,6 +272,7 @@ export class AttendanceService {
         this.logger.debug(`[DEBUG] Looking for shift assignments between ${dayStart.toISOString()} and ${dayEnd.toISOString()}`);
 
         // Find active shift assignment for this employee
+        // Note: status may be stored as lowercase or uppercase depending on how it was created
         const assignment = await this.shiftAssignmentModel.findOne({
             employeeId: empOid,
             $or: [
@@ -282,7 +293,14 @@ export class AttendanceService {
                     ]
                 }
             ],
-            status: { $in: [ShiftAssignmentStatus.PENDING, ShiftAssignmentStatus.APPROVED] }
+            status: {
+                $in: [
+                    ShiftAssignmentStatus.PENDING,
+                    ShiftAssignmentStatus.APPROVED,
+                    'pending',
+                    'approved'
+                ]
+            }
         }).lean();
 
         this.logger.debug(`[DEBUG] Shift assignment found: ${assignment ? 'YES' : 'NO'}`);
@@ -297,11 +315,12 @@ export class AttendanceService {
             })}`);
         }
 
-        // If no assignment found, allow punch by default (business rule: only holidays block punches)
+        // If no assignment found, block punch and provide clear error message
         if (!assignment) {
-            this.logger.debug(`[DEBUG] No active shift assignment found for employee ${empOid} on ${dayStart.toISOString()} - allowing punch by default`);
+            this.logger.warn(`[DEBUG] No active shift assignment found for employee ${empOid} on ${dayStart.toISOString()} - blocking punch`);
             return {
-                isValid: true,
+                isValid: false,
+                error: 'No active shift assignment found. Please contact HR to assign you a shift before punching in.',
                 isRestDay: false,
                 debugInfo: { noAssignment: true }
             };
@@ -314,9 +333,21 @@ export class AttendanceService {
             this.logger.error(`[DEBUG] Shift not found for assignment ${assignment._id}, shiftId: ${assignment.shiftId}`);
             return {
                 isValid: false,
-                error: 'Shift details not found for your assignment.',
+                error: 'Shift configuration not found. Your shift assignment references a shift that no longer exists. Please contact HR.',
                 assignment: assignment as any,
                 debugInfo: { shiftNotFound: true }
+            };
+        }
+
+        // Validate that shift has required time fields
+        if (!shift.startTime || !shift.endTime) {
+            this.logger.error(`[DEBUG] Shift ${shift.name} is missing startTime or endTime`);
+            return {
+                isValid: false,
+                error: `Shift "${shift.name}" is not properly configured (missing start/end times). Please contact HR.`,
+                shift: shift as any,
+                assignment: assignment as any,
+                debugInfo: { missingShiftTimes: true, startTime: shift.startTime, endTime: shift.endTime }
             };
         }
 
@@ -401,8 +432,28 @@ export class AttendanceService {
         }
 
         // Parse shift times (format: "HH:mm")
-        const [shiftStartHour, shiftStartMin] = shift.startTime.split(':').map(Number);
-        const [shiftEndHour, shiftEndMin] = shift.endTime.split(':').map(Number);
+        let shiftStartHour: number, shiftStartMin: number, shiftEndHour: number, shiftEndMin: number;
+        try {
+            const startParts = shift.startTime.split(':');
+            const endParts = shift.endTime.split(':');
+            shiftStartHour = Number(startParts[0]);
+            shiftStartMin = Number(startParts[1] || 0);
+            shiftEndHour = Number(endParts[0]);
+            shiftEndMin = Number(endParts[1] || 0);
+
+            if (isNaN(shiftStartHour) || isNaN(shiftEndHour)) {
+                throw new Error('Invalid time format');
+            }
+        } catch (e) {
+            this.logger.error(`[DEBUG] Failed to parse shift times: startTime=${shift.startTime}, endTime=${shift.endTime}`, e);
+            return {
+                isValid: false,
+                error: `Shift "${shift.name}" has invalid time configuration. Please contact HR.`,
+                shift: shift as any,
+                assignment: assignment as any,
+                debugInfo: { parseError: true, startTime: shift.startTime, endTime: shift.endTime }
+            };
+        }
 
         // Helper to build effective start/end for a given anchor date (the day to which startTime/endTime are applied)
         const buildEffectiveWindow = (anchorDate: Date) => {
@@ -563,7 +614,13 @@ export class AttendanceService {
         const end = new Date(date);
         end.setHours(23, 59, 59, 999);
 
-        const empOid = new Types.ObjectId(employeeId);
+        let empOid: Types.ObjectId;
+        try {
+            empOid = new Types.ObjectId(employeeId);
+        } catch (e) {
+            this.logger.error(`[findOrCreateRecord] Invalid employeeId format: ${employeeId}`);
+            throw new BadRequestException(`Invalid employee ID format: ${employeeId}`);
+        }
 
         this.logger.debug(`[findOrCreateRecord] Looking for record for employee ${employeeId} on ${start.toISOString()} to ${end.toISOString()}`);
 
@@ -571,65 +628,42 @@ export class AttendanceService {
         const existingWithPunches = await this.attendanceModel.findOne({
             employeeId: empOid,
             'punches.time': { $gte: start, $lte: end },
-        }).sort({ createdAt: 1 });
+        });
 
         if (existingWithPunches) {
             this.logger.debug(`[findOrCreateRecord] Found existing record with punches: ${existingWithPunches._id}`);
             return existingWithPunches;
         }
 
-        // Step 2: Try to find an empty record created on this day
+        // Step 2: Try to find an empty record for this employee (no punches yet)
         const existingEmpty = await this.attendanceModel.findOne({
             employeeId: empOid,
             $or: [
                 { punches: { $exists: false } },
                 { punches: { $size: 0 } },
             ],
-            createdAt: { $gte: start, $lte: end },
-        }).sort({ createdAt: 1 });
+        });
 
         if (existingEmpty) {
             this.logger.debug(`[findOrCreateRecord] Found existing empty record: ${existingEmpty._id}`);
             return existingEmpty;
         }
 
-        // Step 3: No record found - create a new one atomically
-        // Use findOneAndUpdate with a very specific match to prevent race conditions
+        // Step 3: No record found - create a new one
         this.logger.debug(`[findOrCreateRecord] No existing record found, creating new one for employee ${employeeId}`);
 
-        const newRecord = await this.attendanceModel.findOneAndUpdate(
-            {
-                employeeId: empOid,
-                // Match a record that was created today and has no punches
-                // This is a fallback in case another request just created one
-                $or: [
-                    { 'punches.time': { $gte: start, $lte: end } },
-                    {
-                        $and: [
-                            { $or: [{ punches: { $exists: false } }, { punches: { $size: 0 } }] },
-                            { createdAt: { $gte: start, $lte: end } },
-                        ],
-                    },
-                ],
-            },
-            {
-                $setOnInsert: {
-                    employeeId: empOid,
-                    punches: [],
-                    totalWorkMinutes: 0,
-                    hasMissedPunch: false,
-                    exceptionIds: [],
-                    finalisedForPayroll: false,
-                },
-            },
-            {
-                new: true,
-                upsert: true,
-            }
-        );
+        const newRecord = new this.attendanceModel({
+            employeeId: empOid,
+            punches: [],
+            totalWorkMinutes: 0,
+            hasMissedPunch: false,
+            exceptionIds: [],
+            finalisedForPayroll: false,
+        });
 
-        this.logger.debug(`[findOrCreateRecord] Returned record: ${newRecord?._id} (upserted: ${!existingWithPunches && !existingEmpty})`);
-        return newRecord;
+        const saved = await newRecord.save();
+        this.logger.debug(`[findOrCreateRecord] Created new record: ${saved._id}`);
+        return saved;
     }
     // ============================================================
     // PUNCH LOGIC
@@ -640,27 +674,28 @@ export class AttendanceService {
 
         this.logger.log(`[PUNCH-IN START] Employee: ${dto.employeeId}`);
 
-        // 1) canonicalize timestamp - parse custom format if provided
-        let now: Date;
-        if (dto.time) {
-            const parsed = this.parseCustomDateFormat(dto.time as any);
-            if (!parsed) {
-                throw new BadRequestException('Invalid time format. Expected format: dd/mm/yyyy hh:mm (e.g., 01/12/2025 14:30)');
+        try {
+            // 1) canonicalize timestamp - parse custom format if provided
+            let now: Date;
+            if (dto.time) {
+                const parsed = this.parseCustomDateFormat(dto.time as any);
+                if (!parsed) {
+                    throw new BadRequestException('Invalid time format. Expected format: dd/mm/yyyy hh:mm (e.g., 01/12/2025 14:30)');
+                }
+                now = parsed;
+            } else {
+                now = new Date();
             }
-            now = parsed;
-        } else {
-            now = new Date();
-        }
 
-        this.logger.debug(`[PUNCH-IN] Punch time: ${now.toISOString()} (${now.toString()})`);
+            this.logger.debug(`[PUNCH-IN] Punch time: ${now.toISOString()} (${now.toString()})`);
 
-        // 1.5) VALIDATE PUNCH AGAINST SHIFT TIME RANGE
-        const validation = await this.validatePunchAgainstShift(dto.employeeId, now);
-        if (!validation.isValid) {
-            this.logger.error(`[PUNCH-IN DENIED] for employee ${dto.employeeId}: ${validation.error}`);
-            this.logger.debug(`[PUNCH-IN DEBUG] Validation details: ${JSON.stringify(validation.debugInfo)}`);
-            throw new BadRequestException(validation.error);
-        }
+            // 1.5) VALIDATE PUNCH AGAINST SHIFT TIME RANGE
+            const validation = await this.validatePunchAgainstShift(dto.employeeId, now);
+            if (!validation.isValid) {
+                this.logger.error(`[PUNCH-IN DENIED] for employee ${dto.employeeId}: ${validation.error}`);
+                this.logger.debug(`[PUNCH-IN DEBUG] Validation details: ${JSON.stringify(validation.debugInfo)}`);
+                throw new BadRequestException(validation.error);
+            }
 
         this.logger.debug(`[PUNCH-IN VALIDATED] for employee ${dto.employeeId} at ${now.toISOString()} - Shift: ${validation.shift?.name}`);
 
@@ -765,18 +800,43 @@ export class AttendanceService {
 
         // 10) Append IN punch
         if (shouldRecordPunch) {
-            await this.attendanceModel.updateOne(
+            const updateResult = await this.attendanceModel.updateOne(
                 { _id: attendance._id },
                 { $push: { punches: { type: PunchType.IN, time: new Date(now) } } },
             );
 
             this.logger.log(`[PUNCH-IN SUCCESS] Punch IN recorded: Employee ${dto.employeeId}, Time: ${now.toISOString()}, Policy: ${punchPolicy}`);
+            this.logger.debug(`[PUNCH-IN] Update result: matchedCount=${updateResult.matchedCount}, modifiedCount=${updateResult.modifiedCount}`);
+
+            // Verify the punch was actually saved
+            const verifyRecord = await this.attendanceModel.findById(attendance._id).lean();
+            if (verifyRecord) {
+                this.logger.debug(`[PUNCH-IN VERIFY] Record ${attendance._id} now has ${verifyRecord.punches?.length || 0} punches`);
+            } else {
+                this.logger.error(`[PUNCH-IN VERIFY] Record ${attendance._id} not found after update!`);
+            }
 
             // 11) Recompute totals / exceptions
             await this.recompute(attendance._id);
         }
 
-        return (await this.attendanceModel.findById(attendance._id))!.toObject();
+        const finalRecord = await this.attendanceModel.findById(attendance._id);
+        if (!finalRecord) {
+            this.logger.error(`[PUNCH-IN] Final record not found for ${attendance._id}`);
+            throw new NotFoundException('Attendance record not found after punch');
+        }
+
+        this.logger.debug(`[PUNCH-IN] Returning record with ${finalRecord.punches?.length || 0} punches`);
+        return finalRecord.toObject();
+        } catch (error) {
+            // Re-throw BadRequestException and NotFoundException as-is
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            // Log and wrap unexpected errors
+            this.logger.error(`[PUNCH-IN ERROR] Unexpected error for employee ${dto.employeeId}: ${error.message}`, error.stack);
+            throw new BadRequestException(`Failed to punch in: ${error.message || 'Unknown error occurred'}`);
+        }
     }
 
     async punchOut(dto: PunchOutDto) {
@@ -1534,12 +1594,52 @@ export class AttendanceService {
         const end = new Date(now);
         end.setHours(23, 59, 59, 999);
 
-        return this.attendanceModel
+        let empOid: Types.ObjectId;
+        try {
+            empOid = new Types.ObjectId(employeeId);
+        } catch (e) {
+            this.logger.error(`[getTodayRecord] Invalid employeeId format: ${employeeId}`);
+            throw new BadRequestException(`Invalid employee ID format: ${employeeId}`);
+        }
+
+        // First try to find a record with punches in today's date range
+        const recordWithPunches = await this.attendanceModel
             .findOne({
-                employeeId: new Types.ObjectId(employeeId),
+                employeeId: empOid,
                 'punches.time': { $gte: start, $lte: end },
             })
             .lean();
+
+        if (recordWithPunches) {
+            return recordWithPunches;
+        }
+
+        // Also try with UTC date boundaries (in case of timezone issues)
+        const utcStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+        const utcEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+
+        const recordWithUtcPunches = await this.attendanceModel
+            .findOne({
+                employeeId: empOid,
+                'punches.time': { $gte: utcStart, $lte: utcEnd },
+            })
+            .lean();
+
+        if (recordWithUtcPunches) {
+            return recordWithUtcPunches;
+        }
+
+        // Finally, check if there's any recent record (last 24 hours) as fallback
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const recentRecord = await this.attendanceModel
+            .findOne({
+                employeeId: empOid,
+                'punches.time': { $gte: yesterday },
+            })
+            .sort({ 'punches.time': -1 })
+            .lean();
+
+        return recentRecord;
     }
 
     async getMonthlyAttendance(employeeId: string, month: number, year: number) {
@@ -1548,7 +1648,13 @@ export class AttendanceService {
         const end = new Date(year, month, 0);
         end.setHours(23, 59, 59, 999);
 
-        const empOid = new Types.ObjectId(employeeId);
+        let empOid: Types.ObjectId;
+        try {
+            empOid = new Types.ObjectId(employeeId);
+        } catch (e) {
+            this.logger.error(`[getMonthlyAttendance] Invalid employeeId format: ${employeeId}`);
+            throw new BadRequestException(`Invalid employee ID format: ${employeeId}`);
+        }
 
         const records = await this.attendanceModel.find({
             employeeId: empOid,
@@ -1705,7 +1811,14 @@ export class AttendanceService {
         const end = new Date(dto.endDate);
         end.setHours(23, 59, 59, 999);
 
-        const empOid = new Types.ObjectId(dto.employeeId);
+        let empOid: Types.ObjectId;
+        try {
+            empOid = new Types.ObjectId(dto.employeeId);
+        } catch (e) {
+            this.logger.error(`[bulkReviewAttendance] Invalid employeeId format: ${dto.employeeId}`);
+            throw new BadRequestException(`Invalid employee ID format: ${dto.employeeId}`);
+        }
+
         const records = await this.attendanceModel.find({
             employeeId: empOid,
             $or: [
