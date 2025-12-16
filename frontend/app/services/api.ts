@@ -1,7 +1,7 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
 
-interface ApiResponse<T = unknown> {
+export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
   status: number;
@@ -126,6 +126,57 @@ class ApiService {
 
   async delete<T>(endpoint: string, headers?: HeadersInit): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: 'DELETE', headers });
+  }
+
+  async downloadFile(endpoint: string): Promise<{ blob?: Blob; filename?: string; error?: string; status: number }> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    const defaultHeaders: HeadersInit = {};
+
+    // Add authorization header if we have a token
+    const token = getAccessToken();
+    if (token) {
+      (defaultHeaders as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: defaultHeaders,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        return {
+          error: `HTTP error! status: ${response.status}`,
+          status: response.status,
+        };
+      }
+
+      // Extract filename from Content-Disposition header if available
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename: string | undefined;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, '');
+        }
+      }
+
+      const blob = await response.blob();
+      return {
+        blob,
+        filename,
+        status: response.status,
+      };
+    } catch (error) {
+      console.error('[API] Download failed:', url);
+      console.error('[API] Error:', error);
+      return {
+        error: error instanceof Error ? error.message : 'Network error - Is the backend running?',
+        status: 0,
+      };
+    }
   }
 }
 

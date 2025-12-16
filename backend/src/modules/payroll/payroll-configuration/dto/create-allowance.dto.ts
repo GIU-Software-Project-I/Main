@@ -1,4 +1,3 @@
-// create-allowance.dto.ts
 import { IsNotEmpty, IsString, IsNumber, Min } from 'class-validator';
 
 export class CreateAllowanceDto {

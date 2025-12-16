@@ -4,9 +4,12 @@ export enum ClaimStatus {
     REJECTED = 'rejected'
 }
 export enum DisputeStatus {
-    UNDER_REVIEW = 'under review',
+    PENDING_REVIEW = 'pending_review',
+    UNDER_REVIEW = 'under_review',
     APPROVED = 'approved',
-    REJECTED = 'rejected'
+    APPROVED_BY_SPECIALIST = 'approved_by_specialist',
+    REJECTED = 'rejected',
+    ESCALATED = 'escalated'
 }
 export enum RefundStatus {
     PENDING = 'pending',

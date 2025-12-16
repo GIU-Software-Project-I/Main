@@ -23,17 +23,28 @@ export class disputes {
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Employee.name })
     financeStaffId?: mongoose.Types.ObjectId;
 
-    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'paySlip', required: true })
-    payslipId: mongoose.Types.ObjectId;
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'paySlip' })
+    payslipId?: mongoose.Types.ObjectId;
 
-    @Prop({ required: true, type: String, enum: DisputeStatus, default: DisputeStatus.UNDER_REVIEW })
-    status: DisputeStatus;// under review, approved, rejected
+    @Prop({ 
+        required: true, 
+        type: String, 
+        enum: ['pending_review', 'under_review', 'approved', 'approved_by_specialist', 'rejected', 'escalated'],
+        default: 'pending_review' 
+    })
+    status: string;// pending_review, under_review, approved, approved_by_specialist, rejected, escalated
 
     @Prop()
     rejectionReason?: string;
 
     @Prop()
     resolutionComment?: string;
+
+    @Prop({ type: String, enum: ['pending', 'processed', 'paid'], default: 'pending' })
+    refundStatus?: string;
+
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'refunds' })
+    refundId?: mongoose.Types.ObjectId;
 }
 
 export const disputesSchema = SchemaFactory.createForClass(disputes);

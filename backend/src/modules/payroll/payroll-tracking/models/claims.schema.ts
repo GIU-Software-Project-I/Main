@@ -39,6 +39,12 @@ export class claims {
     @Prop()
     resolutionComment?: string;
 
+    @Prop({ type: String, enum: ['pending', 'processed', 'paid'], default: 'pending' })
+    refundStatus?: string;
+
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'refunds' })
+    refundId?: mongoose.Types.ObjectId;
+
 }
 
 export const claimsSchema = SchemaFactory.createForClass(claims);

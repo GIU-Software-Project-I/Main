@@ -9,6 +9,7 @@ import {
     CreateClaimDto,
     CreateDisputeDto,
     CreateRefundDto,
+    GenerateReportDto,
     UpdateClaimDto,
     UpdateDisputeDto,
     UpdateRefundDto
@@ -287,6 +288,19 @@ export class PayrollTrackingController {
     return this.payrollTrackingService.generateDepartmentPayrollReport(departmentId, start, end);
   }
 
+  @Post('reports/departmental/generate')
+  @HttpCode(HttpStatus.CREATED)
+  // @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER, SystemRole.FINANCE_STAFF)
+  async generateDepartmentalReport(@Body() generateReportDto: GenerateReportDto) {
+    const start = generateReportDto.startDate ? new Date(generateReportDto.startDate) : undefined;
+    const end = generateReportDto.endDate ? new Date(generateReportDto.endDate) : undefined;
+    return this.payrollTrackingService.generateDepartmentPayrollReport(
+      generateReportDto.departmentId,
+      start,
+      end
+    );
+  }
+
   @Get('reports/payroll-summary')
   // @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER, SystemRole.FINANCE_STAFF)
   async generatePayrollSummary(
@@ -382,8 +396,9 @@ export class PayrollTrackingController {
     return this.payrollTrackingService.generateDisputeRefund(
       disputeId,
       financeStaffId,
-      createRefundDto.amount,
-      createRefundDto.description
+      createRefundDto.refundDetails.amount,
+      createRefundDto.refundDetails.description,
+      createRefundDto.employeeId
     );
   }
 
@@ -398,8 +413,9 @@ export class PayrollTrackingController {
     return this.payrollTrackingService.generateClaimRefund(
       claimId,
       financeStaffId,
-      createRefundDto.amount,
-      createRefundDto.description
+      createRefundDto.refundDetails.amount,
+      createRefundDto.refundDetails.description,
+      createRefundDto.employeeId
     );
   }
 
@@ -424,9 +440,27 @@ export class PayrollTrackingController {
   // @Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER)
   async getAllClaims(
     @Query('status') status?: string,
-    @Query('employeeId') employeeId?: string
+    @Query('claimType') claimType?: string,
+    @Query('employeeId') employeeId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('minAmount') minAmount?: string,
+    @Query('maxAmount') maxAmount?: string
   ) {
-    return this.payrollTrackingService.getAllClaims(status, employeeId);
+    const claims = await this.payrollTrackingService.getAllClaims({
+      status,
+      claimType,
+      employeeId,
+      startDate,
+      endDate,
+      minAmount: minAmount ? parseFloat(minAmount) : undefined,
+      maxAmount: maxAmount ? parseFloat(maxAmount) : undefined
+    });
+    return {
+      success: true,
+      data: claims,
+      count: claims.length
+    };
   }
 
   @Get('claims/:id')

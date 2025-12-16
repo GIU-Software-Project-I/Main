@@ -1,4 +1,16 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsMongoId } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsMongoId, IsEnum, Min } from 'class-validator';
+import { RefundStatus } from '../enums/payroll-tracking-enum';
+
+export class RefundDetailsDto {
+    @IsNotEmpty()
+    @IsString()
+    description: string;
+
+    @IsNotEmpty()
+    @IsNumber()
+    @Min(0)
+    amount: number;
+}
 
 export class CreateRefundDto {
     @IsOptional()
@@ -10,10 +22,21 @@ export class CreateRefundDto {
     disputeId?: string;
 
     @IsNotEmpty()
-    @IsString()
-    description: string;
+    refundDetails: RefundDetailsDto;
 
     @IsNotEmpty()
-    @IsNumber()
-    amount: number;
+    @IsMongoId()
+    employeeId: string;
+
+    @IsOptional()
+    @IsMongoId()
+    financeStaffId?: string;
+
+    @IsOptional()
+    @IsEnum(RefundStatus)
+    status?: RefundStatus;
+
+    @IsOptional()
+    @IsMongoId()
+    paidInPayrollRunId?: string;
 }

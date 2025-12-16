@@ -46,6 +46,16 @@ class Deductions {
 
     @Prop({ type: employeePenaltiesSchema })
     penalties?: employeePenalties
+    
+    // Calculated amounts for easy display
+    @Prop({ default: 0 })
+    taxAmount?: number
+    
+    @Prop({ default: 0 })
+    insuranceAmount?: number
+    
+    @Prop({ default: 0 })
+    penaltiesAmount?: number
 
 }
 const DeductionsSchema = SchemaFactory.createForClass(Deductions)
