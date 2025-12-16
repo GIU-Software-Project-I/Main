@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { EmployeeProfile, EmployeeProfileDocument } from '../models/employee/employee-profile.schema';
 import { EmployeeProfileChangeRequest, EmployeeProfileChangeRequestDocument } from '../models/employee/ep-change-request.schema';
+import { EmployeeQualification, EmployeeQualificationDocument } from '../models/employee/qualification.schema';
 import { EmployeeSystemRole, EmployeeSystemRoleDocument } from '../models/employee/employee-system-role.schema';
 
 import { UpdateContactInfoDto } from '../dto/employee-profile/update-contact-info.dto';
@@ -12,6 +13,7 @@ import { AdminUpdateProfileDto } from '../dto/employee-profile/admin-update-prof
 import { AdminAssignRoleDto } from '../dto/employee-profile/admin-assign-role.dto';
 import { SearchEmployeesDto, PaginatedResult, PaginationQueryDto } from '../dto/employee-profile/search-employees.dto';
 import { EmployeeStatus, ProfileChangeStatus } from '../enums/employee-profile.enums';
+import { AddEmergencyContactDto, UpdateEmergencyContactDto } from '../dto/employee-profile/emergency-contact.dto';
 import { SharedEmployeeService } from '../../shared/services/shared-employee.service';
 
 @Injectable()
@@ -23,6 +25,8 @@ export class EmployeeProfileService {
         private changeRequestModel: Model<EmployeeProfileChangeRequestDocument>,
         @InjectModel(EmployeeSystemRole.name)
         private systemRoleModel: Model<EmployeeSystemRoleDocument>,
+        @InjectModel(EmployeeQualification.name)
+        private qualificationModel: Model<EmployeeQualificationDocument>,
         private readonly sharedEmployeeService: SharedEmployeeService,
     ) { }
 
@@ -67,7 +71,7 @@ export class EmployeeProfileService {
         return this.validStatusTransitions[currentStatus]?.includes(newStatus) ?? false;
     }
 
-    async getProfile(userId: string): Promise<EmployeeProfile> {
+    async getProfile(userId: string): Promise<any> {
         this.validateObjectId(userId, 'userId');
 
         const profile = await this.employeeProfileModel.findById(userId)
@@ -77,12 +81,16 @@ export class EmployeeProfileService {
             .populate('lastAppraisalRecordId')
             .populate('lastAppraisalCycleId')
             .populate('lastAppraisalTemplateId')
-            .populate('accessProfileId');
+            .populate('accessProfileId')
+            .lean();
 
         if (!profile) {
             throw new NotFoundException('Employee profile not found');
         }
-        return profile;
+
+        const qualifications = await this.qualificationModel.find({ employeeProfileId: new Types.ObjectId(userId) }).lean();
+
+        return { ...profile, education: qualifications };
     }
 
     async updateContactInfo(userId: string, dto: UpdateContactInfoDto): Promise<EmployeeProfile> {
@@ -688,7 +696,7 @@ export class EmployeeProfileService {
         return profile.emergencyContacts || [];
     }
 
-    async addEmergencyContact(userId: string, contactData: any): Promise<any> {
+    async addEmergencyContact(userId: string, contactData: AddEmergencyContactDto): Promise<any> {
         this.validateObjectId(userId, 'userId');
 
         const profile = await this.employeeProfileModel.findById(userId);
@@ -723,7 +731,7 @@ export class EmployeeProfileService {
         return profile.emergencyContacts;
     }
 
-    async updateEmergencyContact(userId: string, contactIndex: number, updateData: any): Promise<any> {
+    async updateEmergencyContact(userId: string, contactIndex: number, updateData: UpdateEmergencyContactDto): Promise<any> {
         this.validateObjectId(userId, 'userId');
 
         const profile = await this.employeeProfileModel.findById(userId);

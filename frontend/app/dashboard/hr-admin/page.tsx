@@ -88,11 +88,18 @@ export default function HRAdminPage() {
             <h1 className="text-2xl font-semibold text-slate-900">HR Administration</h1>
             <p className="text-sm text-slate-500 mt-1">Welcome back, {user?.firstName || 'Admin'}</p>
           </div>
-          <Link href="/dashboard/hr-admin/employee-management">
-            <button className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors">
-              Manage Employees
-            </button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/dashboard/department-employee/employee-profile">
+              <button className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                My Profile
+              </button>
+            </Link>
+            <Link href="/dashboard/hr-admin/employee-management">
+              <button className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors">
+                Manage Employees
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
 

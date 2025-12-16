@@ -20,7 +20,7 @@ export default function EditProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'contact' | 'bio' | 'correction'>('contact');
+  const [activeTab, setActiveTab] = useState<'contact' | 'bio' | 'emergency' | 'correction'>('contact');
 
   // Contact Info State
   const [contactInfo, setContactInfo] = useState({
@@ -45,6 +45,18 @@ export default function EditProfilePage() {
     requestDescription: '',
     reason: '',
   });
+
+  // Emergency Contact State
+  const [emergencyContacts, setEmergencyContacts] = useState<any[]>([]);
+  const [editingContactIndex, setEditingContactIndex] = useState<number | null>(null);
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    relationship: '',
+    phone: '',
+    email: '',
+    isPrimary: false,
+  });
+  const [showContactForm, setShowContactForm] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -71,6 +83,9 @@ export default function EditProfilePage() {
           biography: data?.biography || '',
           profilePictureUrl: data?.profilePictureUrl || '',
         });
+
+        // Initialize emergency contacts
+        setEmergencyContacts(data?.emergencyContacts || []);
       } catch (err: any) {
         setError(err.message || 'Failed to load profile');
       } finally {
@@ -86,7 +101,7 @@ export default function EditProfilePage() {
     try {
       setSaving(true);
       setError(null);
-      await employeeProfileService.updateContactInfo(contactInfo);
+      await employeeProfileService.updateContactInfo(profile._id, contactInfo);
       setSuccessMessage('Contact information updated successfully!');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
@@ -101,7 +116,7 @@ export default function EditProfilePage() {
     try {
       setSaving(true);
       setError(null);
-      await employeeProfileService.updateBio(bioInfo);
+      await employeeProfileService.updateBio(profile._id, bioInfo);
       setSuccessMessage('Biography updated successfully!');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
@@ -109,6 +124,72 @@ export default function EditProfilePage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSaveEmergencyContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSaving(true);
+      setError(null);
+
+      let updatedContacts;
+      if (editingContactIndex !== null) {
+        // Update existing
+        const response = await employeeProfileService.updateEmergencyContact(profile._id, editingContactIndex, contactForm);
+        updatedContacts = response.data;
+        setSuccessMessage('Emergency contact updated successfully!');
+      } else {
+        // Add new
+        const response = await employeeProfileService.addEmergencyContact(profile._id, contactForm);
+        updatedContacts = response.data;
+        setSuccessMessage('Emergency contact added successfully!');
+      }
+
+      setEmergencyContacts(updatedContacts as any[]);
+      setShowContactForm(false);
+      setEditingContactIndex(null);
+      setContactForm({
+        name: '',
+        relationship: '',
+        phone: '',
+        email: '',
+        isPrimary: false,
+      });
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save emergency contact');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteEmergencyContact = async (index: number) => {
+    if (!window.confirm('Are you sure you want to delete this emergency contact?')) return;
+
+    try {
+      setLoading(true);
+      const response = await employeeProfileService.deleteEmergencyContact(profile._id, index);
+      setEmergencyContacts(response.data as any[]);
+      setSuccessMessage('Emergency contact deleted successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete emergency contact');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startEditContact = (index: number) => {
+    const contact = emergencyContacts[index];
+    setContactForm({
+      name: contact.name,
+      relationship: contact.relationship,
+      phone: contact.phone,
+      email: contact.email || '',
+      isPrimary: contact.isPrimary || false,
+    });
+    setEditingContactIndex(index);
+    setShowContactForm(true);
   };
 
   const handleSubmitCorrectionRequest = async (e: React.FormEvent) => {
@@ -121,7 +202,7 @@ export default function EditProfilePage() {
     try {
       setSaving(true);
       setError(null);
-      await employeeProfileService.submitCorrectionRequest(correctionRequest);
+      await employeeProfileService.submitCorrectionRequest(profile._id, correctionRequest);
       setSuccessMessage('Correction request submitted successfully! HR will review it.');
       setCorrectionRequest({ requestDescription: '', reason: '' });
       setTimeout(() => {
@@ -216,6 +297,15 @@ export default function EditProfilePage() {
             }`}
         >
           ✍️ Biography & Photo
+        </button>
+        <button
+          onClick={() => setActiveTab('emergency')}
+          className={`px-4 py-3 font-medium transition-colors ${activeTab === 'emergency'
+            ? 'border-b-2 border-blue-600 text-blue-600'
+            : 'text-slate-600 hover:text-slate-900'
+            }`}
+        >
+          🚨 Emergency Contacts
         </button>
         <button
           onClick={() => setActiveTab('correction')}
@@ -424,6 +514,140 @@ export default function EditProfilePage() {
             </Link>
           </div>
         </form>
+      )}
+
+      {/* Emergency Contacts Tab */}
+      {activeTab === 'emergency' && (
+        <div className="space-y-6">
+          {!showContactForm ? (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold text-slate-900">Your Emergency Contacts</h3>
+                <Button onClick={() => {
+                  setContactForm({
+                    name: '',
+                    relationship: '',
+                    phone: '',
+                    email: '',
+                    isPrimary: false,
+                  });
+                  setEditingContactIndex(null);
+                  setShowContactForm(true);
+                }}>
+                  + Add New Contact
+                </Button>
+              </div>
+
+              {emergencyContacts.length === 0 ? (
+                <div className="text-center py-12 bg-slate-50 rounded-lg border border-slate-200 border-dashed">
+                  <div className="text-4xl mb-4">🚨</div>
+                  <h4 className="text-lg font-medium text-slate-900">No Emergency Contacts</h4>
+                  <p className="text-slate-600 mt-2 mb-6">You haven't added any emergency contacts yet.</p>
+                  <Button onClick={() => setShowContactForm(true)}>Add Your First Contact</Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {emergencyContacts.map((contact, index) => (
+                    <div key={index} className={`relative p-6 rounded-lg border ${contact.isPrimary ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white'}`}>
+                      {contact.isPrimary && (
+                        <span className="absolute top-4 right-4 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
+                          Primary
+                        </span>
+                      )}
+                      <div className="mb-4">
+                        <h4 className="font-bold text-lg text-slate-900">{contact.name}</h4>
+                        <p className="text-slate-600 font-medium">{contact.relationship}</p>
+                      </div>
+                      <div className="space-y-2 text-sm text-slate-700 mb-6">
+                        <div className="flex items-center gap-2">
+                          <span>📞</span> {contact.phone}
+                        </div>
+                        {contact.email && (
+                          <div className="flex items-center gap-2">
+                            <span>📧</span> {contact.email}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => startEditContact(index)}>
+                          Edit
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDeleteEmergencyContact(index)} className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <form onSubmit={handleSaveEmergencyContact} className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-6">
+                {editingContactIndex !== null ? 'Edit Emergency Contact' : 'Add Emergency Contact'}
+              </h3>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="Full Name"
+                    value={contactForm.name}
+                    onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                    required
+                    placeholder="e.g. John Doe"
+                  />
+                  <Input
+                    label="Relationship"
+                    value={contactForm.relationship}
+                    onChange={(e) => setContactForm({ ...contactForm, relationship: e.target.value })}
+                    required
+                    placeholder="e.g. Spouse, Parent, Sibling"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="Phone Number"
+                    type="tel"
+                    value={contactForm.phone}
+                    onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                    required
+                    placeholder="+1 (555) 000-0000"
+                  />
+                  <Input
+                    label="Email (Optional)"
+                    type="email"
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                    placeholder="john@example.com"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isPrimary"
+                    checked={contactForm.isPrimary}
+                    onChange={(e) => setContactForm({ ...contactForm, isPrimary: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                  <label htmlFor="isPrimary" className="text-sm font-medium text-slate-700">
+                    Set as Primary Contact
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex gap-4 mt-8">
+                <Button type="submit" isLoading={saving}>
+                  {editingContactIndex !== null ? 'Update Contact' : 'Add Contact'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setShowContactForm(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
       )}
 
       {/* Correction Request Tab */}
