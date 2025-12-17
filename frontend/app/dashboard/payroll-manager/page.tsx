@@ -21,50 +21,60 @@ export default function PayrollManagerPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStats();
+    fetchStatsAndIrregularities();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchStatsAndIrregularities = async () => {
     setLoading(true);
     try {
+      // Fetch payroll runs stats
       const res = await payrollExecutionService.listRuns({ page: 1, limit: 100 });
-      
-      if (res?.error) {
-        console.error('Failed to fetch stats:', res.error);
-        setStats({
-          pendingApprovals: 0,
-          totalPayroll: 0,
-          exceptions: 0,
-          frozenRuns: 0,
-        });
-        return;
+      let pending = 0;
+      let totalPay = 0;
+      let frozen = 0;
+      if (!res?.error) {
+        const data = (res?.data || res) as any;
+        const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+        const normalizeStatus = (s: string) => (s || '').toLowerCase().replace(/\s+/g, '_');
+        pending = items.filter((r: any) => {
+          const status = normalizeStatus(r.status);
+          return status === 'under_review' || status === 'under review';
+        }).length;
+        totalPay = items.reduce((sum: number, r: any) => sum + (r.totalnetpay || r.totalNetPay || 0), 0);
+        frozen = items.filter((r: any) => {
+          const status = (r.status || '').toLowerCase();
+          return status === 'locked' || status === 'frozen' || r.frozen === true;
+        }).length;
       }
-      
-      const data = (res?.data || res) as any;
-      const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-      
-      // Normalize status for comparison
-      const normalizeStatus = (s: string) => (s || '').toLowerCase().replace(/\s+/g, '_');
-      
-      // Pending manager approval: status is 'under_review' (submitted by specialist for manager review)
-      const pending = items.filter((r: any) => {
-        const status = normalizeStatus(r.status);
-        return status === 'under_review' || status === 'under review';
-      }).length;
-      
-      const totalPay = items.reduce((sum: number, r: any) => sum + (r.totalnetpay || r.totalNetPay || 0), 0);
-      const totalExceptions = items.reduce((sum: number, r: any) => sum + (r.exceptions || 0), 0);
-      
-      // Frozen/Locked runs: status is 'locked' or 'frozen', or has frozen=true
-      const frozen = items.filter((r: any) => {
-        const status = (r.status || '').toLowerCase();
-        return status === 'locked' || status === 'frozen' || r.frozen === true;
-      }).length;
-      
+
+      // Fetch irregularities count for exceptions
+      let irregularitiesCount = 0;
+      if (payrollExecutionService.listIrregularities) {
+        try {
+          const irrRes = await payrollExecutionService.listIrregularities({ status: 'pending' });
+          if (
+            irrRes &&
+            typeof irrRes === 'object' &&
+            irrRes.data &&
+            typeof irrRes.data === 'object' &&
+            'data' in irrRes.data &&
+            Array.isArray((irrRes.data as any).data)
+          ) {
+            irregularitiesCount = (irrRes.data as any).data.length;
+          } else if (irrRes && Array.isArray(irrRes.data)) {
+            irregularitiesCount = irrRes.data.length;
+          } else {
+            irregularitiesCount = 0;
+          }
+        } catch (e) {
+          // ignore, fallback to 0
+        }
+      }
+
       setStats({
         pendingApprovals: pending,
         totalPayroll: totalPay,
-        exceptions: totalExceptions,
+        exceptions: irregularitiesCount,
         frozenRuns: frozen,
       });
     } catch (e: any) {

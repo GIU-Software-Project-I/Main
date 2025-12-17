@@ -1,5 +1,6 @@
 'use client';
 
+
 import { useAuth } from '@/app/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -10,27 +11,24 @@ export default function FinanceStaffLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { hasRole, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const router = useRouter();
 
+  const allowedRoles = [SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN];
+  const hasAccess = user && allowedRoles.includes(user.role);
+
   useEffect(() => {
-    // Redirect to login if not authenticated
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
-
-    // Check if user has required roles for Finance Staff access
-    const requiredRoles = [SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN];
-    if (!hasRole(requiredRoles)) {
-      // Redirect to unauthorized page or user's default dashboard
+    if (!hasAccess) {
       router.push('/unauthorized');
       return;
     }
-  }, [hasRole, isAuthenticated, router]);
+  }, [isAuthenticated, hasAccess, router]);
 
-  // Block rendering if not authenticated or not authorized
-  if (!isAuthenticated || !hasRole([SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN])) {
+  if (!isAuthenticated || !hasAccess) {
     return null;
   }
 

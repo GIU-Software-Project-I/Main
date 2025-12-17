@@ -842,6 +842,7 @@ async listIrregularities(
         if (Array.isArray(detail.irregularities)) {
             for (const irr of detail.irregularities) {
                 allIrregularities.push({
+                    _id: irr.irregularityId, // Add _id for frontend compatibility
                     ...irr,
                     employeeCode: detail.employeeId?.employeeCode || 'Unknown',
                     employeeName: detail.employeeId?.fullName || 'Unknown Employee',
@@ -857,8 +858,14 @@ async listIrregularities(
         }
     }
 
-    // Apply filters
-    let filtered = allIrregularities;
+    // Deduplicate by _id (irregularityId)
+    const uniqueIrregularitiesMap = new Map();
+    for (const irr of allIrregularities) {
+        if (!uniqueIrregularitiesMap.has(irr._id)) {
+            uniqueIrregularitiesMap.set(irr._id, irr);
+        }
+    }
+    let filtered = Array.from(uniqueIrregularitiesMap.values());
     if (filters.status && filters.status !== 'all') {
         filtered = filtered.filter(irr => irr.status === filters.status);
     }
@@ -1148,10 +1155,13 @@ async resolveIrregularity(
         resolvedBy: userId,
         resolvedAt: new Date()
     };
-    // Optionally update payroll detail fields if needed (as before)
     let updatedDocument = false;
-    // Optionally: update detail fields based on irregularity type and action
-    // ...existing logic for updating detail fields...
+    // If resolving a missing bank account irregularity, clear exceptions
+    if (irr.type === 'bank_account' && (data.action === 'approved' || data.action === 'adjusted' || data.action === 'excluded')) {
+        detail.exceptions = '';
+        updatedDocument = true;
+    }
+    // For other types, just flag them (no-op for now, can add logic later)
     await detail.save();
     return {
         success: true,
@@ -1161,6 +1171,7 @@ async resolveIrregularity(
             netSalary: detail.netSalary,
             deductions: detail.deductions,
             bankStatus: detail.bankStatus,
+            exceptions: detail.exceptions,
             updatedAt: detail.updatedAt
         } : undefined
     };
@@ -1423,7 +1434,6 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
     // REQ-PY-22: Manager approval
     async approvePayroll(id: string, approvedBy?: string) {
         await this.ensurePayrollManager(approvedBy);
-        
         const existing = await this.payrollRunsModel.findById(id).lean().exec();
         if (!existing) {
             throw new NotFoundException(`Payroll run ${id} not found`);
@@ -1441,9 +1451,33 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
             );
         }
 
+        // --- PATCH: Resolve all irregularities for this run ---
+        // Find all employee payroll details for this run
+        const details = await this.employeePayrollDetailsModel.find({ payrollRunId: id }).exec();
+        for (const detail of details) {
+            if (Array.isArray(detail.irregularities)) {
+                let updated = false;
+                for (const irr of detail.irregularities) {
+                    if (irr.status !== 'resolved') {
+                        irr.status = 'resolved';
+                        irr.resolution = {
+                            action: 'approved',
+                            notes: 'Auto-resolved on manager approval',
+                            resolvedBy: approvedBy,
+                            resolvedAt: new Date()
+                        };
+                        updated = true;
+                    }
+                }
+                if (updated) {
+                    await detail.save();
+                }
+            }
+        }
+        // --- END PATCH ---
+
         const now = new Date();
         const managerId = new mongoose.Types.ObjectId(approvedBy);
-        
         // REQ-PY-22: Manager approval transitions to PENDING_FINANCE_APPROVAL
         const updated = await this.payrollRunsModel.findByIdAndUpdate(
             id,
@@ -1457,7 +1491,6 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
             },
             { new: true }
         ).exec();
-        
         return updated;
     }
 
@@ -2007,7 +2040,9 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
                     totalGrossPay: totalGross,
                     totalDeductions: totalDeductionsSum,
                     totalTaxDeductions: totalTaxSum,
+                    totalTaxes: totalTaxSum,
                     totalInsuranceDeductions: totalInsuranceSum,
+                    totalInsurance: totalInsuranceSum,
                     totalPenalties: totalPenaltiesSum,
                     totalAllowances: totalAllowancesSum,
                     totalBaseSalary: totalBaseSalarySum,
