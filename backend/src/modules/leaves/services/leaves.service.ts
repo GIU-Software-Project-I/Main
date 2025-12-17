@@ -1555,40 +1555,361 @@ export class UnifiedLeaveService {
     };
   }
 
+  /**
+   * Year-End / Period Carry-Forward System
+   * REQ: Automated carry-forward with caps, expiry rules, and audit logging
+   *
+   * Default rules per leave type:
+   * - Annual Leave: Up to 10 days, expires after 6 months
+   * - Sick Leave: Cannot be carried forward (resets)
+   * - Personal/Paternity: Up to 5 days, expires after 3 months
+   * - Other: Up to 5 days, expires after 6 months
+   */
   async carryForward(
     referenceDate?: string,
-    capDays?: number,
-    expiryMonths?: number,
+    options?: {
+      capDays?: number;
+      expiryMonths?: number;
+      leaveTypeRules?: Record<string, { cap: number; expiryMonths: number; canCarryForward: boolean }>;
+      dryRun?: boolean; // Preview changes without saving
+    },
   ) {
     const ref = referenceDate ? new Date(referenceDate) : new Date();
-    const entitlements = await this.entitlementModel.find();
+    const dryRun = options?.dryRun ?? false;
 
-    const defaultCap = 45;
-    const defaultExpiryMonths = 12;
+    // Get all leave types for rule mapping
+    const leaveTypes = await this.leaveTypeModel.find().lean();
+    const leaveTypeMap = new Map(leaveTypes.map(lt => [lt._id.toString(), lt]));
+
+    // Define default carry-forward rules per leave type
+    const defaultRules: Record<string, { cap: number; expiryMonths: number; canCarryForward: boolean }> = {
+      annual: { cap: 10, expiryMonths: 6, canCarryForward: true },
+      sick: { cap: 0, expiryMonths: 0, canCarryForward: false },
+      personal: { cap: 5, expiryMonths: 3, canCarryForward: true },
+      paternity: { cap: 5, expiryMonths: 3, canCarryForward: true },
+      maternity: { cap: 0, expiryMonths: 0, canCarryForward: false },
+      unpaid: { cap: 0, expiryMonths: 0, canCarryForward: false },
+      default: { cap: 5, expiryMonths: 6, canCarryForward: true },
+    };
+
+    // Merge with custom rules if provided
+    const rules = { ...defaultRules, ...options?.leaveTypeRules };
+
+    // Get rule for a leave type
+    const getRuleForType = (leaveTypeId: string): { cap: number; expiryMonths: number; canCarryForward: boolean } => {
+      const leaveType = leaveTypeMap.get(leaveTypeId);
+      if (!leaveType) return rules.default;
+
+      const name = (leaveType.name || '').toLowerCase();
+      const code = (leaveType.code || '').toLowerCase();
+
+      if (name.includes('annual') || code.includes('annual')) return rules.annual;
+      if (name.includes('sick') || code.includes('sick')) return rules.sick;
+      if (name.includes('personal') || code.includes('personal')) return rules.personal;
+      if (name.includes('paternity') || code.includes('paternity')) return rules.paternity;
+      if (name.includes('maternity') || code.includes('maternity')) return rules.maternity;
+      if (name.includes('unpaid') || code.includes('unpaid')) return rules.unpaid;
+
+      // Use global override if provided
+      if (options?.capDays !== undefined) {
+        return {
+          cap: options.capDays,
+          expiryMonths: options.expiryMonths ?? 6,
+          canCarryForward: options.capDays > 0
+        };
+      }
+
+      return rules.default;
+    };
+
+    const entitlements = await this.entitlementModel.find();
+    const results: Array<{
+      employeeId: string;
+      leaveTypeId: string;
+      leaveTypeName: string;
+      previousRemaining: number;
+      eligibleToCarry: number;
+      cappedAmount: number;
+      carriedForward: number;
+      expired: number;
+      expiryDate: Date | null;
+      newBalance: number;
+      rule: { cap: number; expiryMonths: number; canCarryForward: boolean };
+    }> = [];
+
+    let processedCount = 0;
+    let totalCarriedForward = 0;
+    let totalExpired = 0;
 
     for (const e of entitlements) {
-      if (!e.carryForward || e.carryForward <= 0) continue;
+      const leaveType = leaveTypeMap.get(e.leaveTypeId?.toString());
+      const leaveTypeName = leaveType?.name || 'Unknown';
+      const rule = getRuleForType(e.leaveTypeId?.toString() || '');
 
-      const cap = capDays ?? defaultCap;
-      const monthsToAdd = expiryMonths ?? defaultExpiryMonths;
+      // Calculate current remaining balance (unused days from previous year)
+      const yearlyEntitlement = e.yearlyEntitlement || 0;
+      const taken = e.taken || 0;
+      const pending = e.pending || 0;
+      const previousCarryForward = e.carryForward || 0;
 
-      const toCarry = Math.min(e.carryForward, cap);
-      e.remaining = (e.remaining || 0) + toCarry;
-      e.carryForward = 0;
+      // Current remaining = what was entitled + carry forward - taken - pending
+      const currentRemaining = Math.max(0, yearlyEntitlement + previousCarryForward - taken - pending);
 
-      const expiryDate = new Date(ref);
-      expiryDate.setMonth(expiryDate.getMonth() + monthsToAdd);
-      (e as any).carryForwardExpiry = expiryDate;
+      // Calculate carry-forward amount
+      let eligibleToCarry = currentRemaining;
+      let carriedForward = 0;
+      let expired = 0;
+      let expiryDate: Date | null = null;
 
-      await e.save();
+      if (rule.canCarryForward && rule.cap > 0) {
+        // Apply cap
+        carriedForward = Math.min(eligibleToCarry, rule.cap);
+        expired = Math.max(0, eligibleToCarry - carriedForward);
+
+        // Calculate expiry date
+        if (carriedForward > 0 && rule.expiryMonths > 0) {
+          expiryDate = new Date(ref);
+          expiryDate.setMonth(expiryDate.getMonth() + rule.expiryMonths);
+        }
+      } else {
+        // Leave type cannot be carried forward - all unused expires
+        expired = eligibleToCarry;
+        carriedForward = 0;
+      }
+
+      // Calculate new balance for new year
+      // New year starts with: new yearly entitlement + carried forward amount
+      const newBalance = yearlyEntitlement + carriedForward;
+
+      // Store result
+      results.push({
+        employeeId: e.employeeId?.toString() || '',
+        leaveTypeId: e.leaveTypeId?.toString() || '',
+        leaveTypeName,
+        previousRemaining: currentRemaining,
+        eligibleToCarry,
+        cappedAmount: rule.cap,
+        carriedForward,
+        expired,
+        expiryDate,
+        newBalance,
+        rule,
+      });
+
+      totalCarriedForward += carriedForward;
+      totalExpired += expired;
+
+      // Update entitlement if not dry run
+      if (!dryRun) {
+        e.carryForward = carriedForward;
+        e.taken = 0; // Reset taken for new year
+        e.pending = 0; // Reset pending count (actual pending requests remain)
+        e.accruedActual = yearlyEntitlement;
+        e.accruedRounded = yearlyEntitlement;
+        e.remaining = newBalance;
+        e.lastAccrualDate = ref;
+
+        // Store expiry information
+        (e as any).carryForwardExpiry = expiryDate;
+        (e as any).carryForwardProcessedAt = ref;
+
+        await e.save();
+        processedCount++;
+
+        this.logger.log(
+          `Carry-forward for employee ${e.employeeId}, ${leaveTypeName}: ` +
+          `${currentRemaining} remaining -> ${carriedForward} carried (cap: ${rule.cap}), ` +
+          `${expired} expired, new balance: ${newBalance}`
+        );
+      }
+    }
+
+    // Group results by employee for reporting
+    const employeeSummaries = new Map<string, {
+      employeeId: string;
+      totalCarried: number;
+      totalExpired: number;
+      details: typeof results;
+    }>();
+
+    for (const result of results) {
+      const existing = employeeSummaries.get(result.employeeId);
+      if (existing) {
+        existing.totalCarried += result.carriedForward;
+        existing.totalExpired += result.expired;
+        existing.details.push(result);
+      } else {
+        employeeSummaries.set(result.employeeId, {
+          employeeId: result.employeeId,
+          totalCarried: result.carriedForward,
+          totalExpired: result.expired,
+          details: [result],
+        });
+      }
     }
 
     return {
       ok: true,
-      processed: entitlements.length,
+      dryRun,
       referenceDate: ref,
-      capDays: capDays ?? defaultCap,
-      expiryMonths: expiryMonths ?? defaultExpiryMonths,
+      processed: processedCount,
+      totalEntitlements: entitlements.length,
+      totalCarriedForward,
+      totalExpired,
+      rules: {
+        annual: rules.annual,
+        sick: rules.sick,
+        personal: rules.personal,
+        default: rules.default,
+      },
+      summary: {
+        employeesProcessed: employeeSummaries.size,
+        byLeaveType: leaveTypes.map(lt => {
+          const typeResults = results.filter(r => r.leaveTypeId === lt._id.toString());
+          return {
+            leaveTypeId: lt._id.toString(),
+            leaveTypeName: lt.name,
+            totalCarried: typeResults.reduce((sum, r) => sum + r.carriedForward, 0),
+            totalExpired: typeResults.reduce((sum, r) => sum + r.expired, 0),
+            employeesAffected: typeResults.length,
+          };
+        }),
+      },
+      details: dryRun ? results : undefined, // Only include details for dry run
+      auditLog: {
+        action: dryRun ? 'CARRY_FORWARD_PREVIEW' : 'CARRY_FORWARD_EXECUTED',
+        timestamp: new Date(),
+        referenceDate: ref,
+        totalProcessed: processedCount,
+        totalCarriedForward,
+        totalExpired,
+      },
+    };
+  }
+
+  /**
+   * Get carry-forward preview without making changes
+   */
+  async previewCarryForward(
+    referenceDate?: string,
+    options?: {
+      capDays?: number;
+      expiryMonths?: number;
+      leaveTypeRules?: Record<string, { cap: number; expiryMonths: number; canCarryForward: boolean }>;
+    },
+  ) {
+    return this.carryForward(referenceDate, { ...options, dryRun: true });
+  }
+
+  /**
+   * Override carry-forward for specific employee
+   */
+  async overrideCarryForward(
+    employeeId: string,
+    leaveTypeId: string,
+    carryForwardDays: number,
+    expiryDate?: string,
+    reason?: string,
+  ) {
+    const entitlement = await this.entitlementModel.findOne({
+      employeeId: new Types.ObjectId(employeeId),
+      leaveTypeId: new Types.ObjectId(leaveTypeId),
+    });
+
+    if (!entitlement) {
+      throw new NotFoundException('Entitlement not found');
+    }
+
+    const previousCarryForward = entitlement.carryForward || 0;
+    const previousRemaining = entitlement.remaining || 0;
+
+    // Update carry forward
+    entitlement.carryForward = carryForwardDays;
+    entitlement.remaining = (entitlement.yearlyEntitlement || 0) + carryForwardDays - (entitlement.taken || 0) - (entitlement.pending || 0);
+
+    if (expiryDate) {
+      (entitlement as any).carryForwardExpiry = new Date(expiryDate);
+    }
+    (entitlement as any).carryForwardOverrideReason = reason;
+    (entitlement as any).carryForwardOverrideAt = new Date();
+
+    await entitlement.save();
+
+    this.logger.log(
+      `Carry-forward override for employee ${employeeId}, type ${leaveTypeId}: ` +
+      `${previousCarryForward} -> ${carryForwardDays} days. Reason: ${reason}`
+    );
+
+    return {
+      ok: true,
+      employeeId,
+      leaveTypeId,
+      previousCarryForward,
+      newCarryForward: carryForwardDays,
+      previousRemaining,
+      newRemaining: entitlement.remaining,
+      expiryDate: (entitlement as any).carryForwardExpiry,
+      reason,
+    };
+  }
+
+  /**
+   * Get carry-forward report for all employees
+   */
+  async getCarryForwardReport(options?: {
+    employeeId?: string;
+    leaveTypeId?: string;
+    year?: number;
+  }) {
+    const query: any = {};
+
+    if (options?.employeeId) {
+      query.employeeId = new Types.ObjectId(options.employeeId);
+    }
+    if (options?.leaveTypeId) {
+      query.leaveTypeId = new Types.ObjectId(options.leaveTypeId);
+    }
+
+    const entitlements = await this.entitlementModel.find(query).lean();
+    const leaveTypes = await this.leaveTypeModel.find().lean();
+    const leaveTypeMap = new Map(leaveTypes.map(lt => [lt._id.toString(), lt]));
+
+    const report = entitlements.map(e => {
+      const leaveType = leaveTypeMap.get(e.leaveTypeId?.toString() || '');
+      return {
+        employeeId: e.employeeId?.toString(),
+        leaveTypeId: e.leaveTypeId?.toString(),
+        leaveTypeName: leaveType?.name || 'Unknown',
+        yearlyEntitlement: e.yearlyEntitlement || 0,
+        carryForward: e.carryForward || 0,
+        carryForwardExpiry: (e as any).carryForwardExpiry,
+        taken: e.taken || 0,
+        pending: e.pending || 0,
+        remaining: e.remaining || 0,
+        lastAccrualDate: e.lastAccrualDate,
+        overrideReason: (e as any).carryForwardOverrideReason,
+      };
+    });
+
+    // Summary statistics
+    const summary = {
+      totalEmployees: new Set(report.map(r => r.employeeId)).size,
+      totalCarryForward: report.reduce((sum, r) => sum + r.carryForward, 0),
+      byLeaveType: leaveTypes.map(lt => {
+        const typeEntitlements = report.filter(r => r.leaveTypeId === lt._id.toString());
+        return {
+          leaveTypeId: lt._id.toString(),
+          leaveTypeName: lt.name,
+          totalCarryForward: typeEntitlements.reduce((sum, r) => sum + r.carryForward, 0),
+          employeesWithCarryForward: typeEntitlements.filter(r => r.carryForward > 0).length,
+        };
+      }),
+    };
+
+    return {
+      ok: true,
+      report,
+      summary,
     };
   }
 
