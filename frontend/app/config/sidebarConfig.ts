@@ -119,8 +119,7 @@ const DEPARTMENT_EMPLOYEE_SECTIONS: NavSection[] = [
         label: 'Organization',
         href: '/dashboard/department-employee/organization',
         icon: 'building',
-      },
-        {
+      },        {
     label: 'Payroll Tracking',
     href: '/dashboard/hr-manager/payroll-tracking',
     icon: 'dollar-sign',
@@ -150,6 +149,20 @@ const DEPARTMENT_HEAD_SECTIONS: NavSection[] = [
         href: '/dashboard/department-head',
         icon: 'home',
       },
+      {
+        label: 'Payroll Tracking',
+        href: '/dashboard/department-head/payroll-tracking',
+        icon: 'dollar-sign',
+        children: [
+          { label: 'My Payslips', href: '/dashboard/department-head/payroll-tracking/payslips', icon: 'file-text' },
+          { label: 'Salary History', href: '/dashboard/department-head/payroll-tracking/salary-history', icon: 'trending-up' },
+          { label: 'Deductions', href: '/dashboard/department-head/payroll-tracking/deductions', icon: 'credit-card' },
+          { label: 'Employer Contributions', href: '/dashboard/department-head/payroll-tracking/contributions', icon: 'briefcase' },
+          { label: 'Tax Documents', href: '/dashboard/department-head/payroll-tracking/tax-documents', icon: 'folder' },
+          { label: 'Claims & Disputes', href: '/dashboard/department-head/payroll-tracking/claims-disputes', icon: 'alert-circle' },
+        ],
+      },
+
     ],
   },
   {
@@ -301,6 +314,19 @@ const HR_EMPLOYEE_SECTIONS: NavSection[] = [
         icon: 'users',
       },
       {
+        label: 'Payroll Tracking',
+        href: '/dashboard/hr-employee/payroll-tracking',
+        icon: 'dollar-sign',
+        children: [
+          { label: 'My Payslips', href: '/dashboard/hr-employee/payroll-tracking/payslips', icon: 'file-text' },
+          { label: 'Salary History', href: '/dashboard/hr-employee/payroll-tracking/salary-history', icon: 'trending-up' },
+          { label: 'Deductions', href: '/dashboard/hr-employee/payroll-tracking/deductions', icon: 'credit-card' },
+          { label: 'Employer Contributions', href: '/dashboard/hr-employee/payroll-tracking/contributions', icon: 'briefcase' },
+          { label: 'Tax Documents', href: '/dashboard/hr-employee/payroll-tracking/tax-documents', icon: 'folder' },
+          { label: 'Claims & Disputes', href: '/dashboard/hr-employee/payroll-tracking/claims-disputes', icon: 'alert-circle' },
+        ],
+      },
+      {
         label: 'Onboarding',
         href: '/dashboard/hr-manager/onboarding',
         icon: 'clipboard-check',
@@ -393,6 +419,19 @@ const HR_ADMIN_SECTIONS: NavSection[] = [
         label: 'Payroll',
         href: '/dashboard/payroll-manager/overview',
         icon: 'dollar-sign',
+      },
+      {
+        label: 'Payroll Tracking',
+        href: '/dashboard/hr-admin/payroll-tracking',
+        icon: 'dollar-sign',
+        children: [
+          { label: 'My Payslips', href: '/dashboard/hr-admin/payroll-tracking/payslips', icon: 'file-text' },
+          { label: 'Salary History', href: '/dashboard/hr-admin/payroll-tracking/salary-history', icon: 'trending-up' },
+          { label: 'Deductions', href: '/dashboard/hr-admin/payroll-tracking/deductions', icon: 'credit-card' },
+          { label: 'Employer Contributions', href: '/dashboard/hr-admin/payroll-tracking/contributions', icon: 'briefcase' },
+          { label: 'Tax Documents', href: '/dashboard/hr-admin/payroll-tracking/tax-documents', icon: 'folder' },
+          { label: 'Claims & Disputes', href: '/dashboard/hr-admin/payroll-tracking/claims-disputes', icon: 'alert-circle' },
+        ],
       },
       {
         label: 'Leaves',
