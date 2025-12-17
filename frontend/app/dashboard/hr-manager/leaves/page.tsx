@@ -7,6 +7,7 @@ import type { LeaveBalanceSummary } from '@/app/types/leaves';
 
 interface LeaveRequest {
   _id: string;
+  id?: string;
   employeeId: string;
   leaveTypeId: string;
   dates: {
@@ -181,6 +182,35 @@ export default function HRManagerLeavesPage() {
   }>>([]);
   const [payrollSyncLoading, setPayrollSyncLoading] = useState(false);
 
+  // Finalization Modal state
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [finalizeRequest, setFinalizeRequest] = useState<LeaveRequest | null>(null);
+  const [finalizeDecision, setFinalizeDecision] = useState<'approve' | 'reject'>('approve');
+  const [finalizeLoading, setFinalizeLoading] = useState(false);
+  const [finalizeOptions, setFinalizeOptions] = useState({
+    syncPayroll: true,
+    baseSalary: 5000,
+    workDaysInMonth: 22,
+    rejectReason: '',
+  });
+  const [finalizeResult, setFinalizeResult] = useState<{
+    ok: boolean;
+    message: string;
+    payrollImpact?: {
+      isUnpaidLeave: boolean;
+      deductionAmount: number;
+      dailyRate: number;
+      daysDeducted: number;
+      formula: string;
+    };
+    balanceUpdate?: {
+      leaveTypeName: string;
+      previousBalance: number;
+      newBalance: number;
+      daysDeducted: number;
+    };
+  } | null>(null);
+
   const fetchLeaveTypes = async () => {
     try {
       const response = await leavesService.getLeaveTypes();
@@ -282,20 +312,140 @@ export default function HRManagerLeavesPage() {
     }
   };
 
-  const handleHRFinalize = async (id: string, decision: 'approve' | 'reject') => {
-    if (!user) return;
-    if (decision === 'approve' && !confirm('Final approval - approve this leave request?')) return;
-    if (decision === 'reject') {
-      const reason = prompt('Please provide a reason for rejection:');
-      if (!reason) return;
+  // Open finalization modal
+  const openFinalizeModal = (request: LeaveRequest, decision: 'approve' | 'reject') => {
+    setFinalizeRequest(request);
+    setFinalizeDecision(decision);
+    setFinalizeResult(null);
+    setFinalizeOptions({
+      syncPayroll: true,
+      baseSalary: 5000,
+      workDaysInMonth: 22,
+      rejectReason: '',
+    });
+    setShowFinalizeModal(true);
+  };
+
+  // Handle HR Finalization with payroll sync
+  const handleHRFinalizeWithSync = async () => {
+    if (!user || !finalizeRequest) return;
+
+    if (finalizeDecision === 'reject' && !finalizeOptions.rejectReason.trim()) {
+      setError('Please provide a reason for rejection');
+      return;
     }
 
     try {
-      await leavesService.hrFinalize(id, user.id, decision);
+      setFinalizeLoading(true);
+      setError(null);
+
+      // Validate request has required data
+      const requestId = finalizeRequest._id || finalizeRequest.id;
+      if (!requestId) {
+        setError('Invalid request ID');
+        setFinalizeLoading(false);
+        return;
+      }
+
+      console.log('[HR Finalize] Request ID:', requestId, 'User ID:', user.id, 'Decision:', finalizeDecision);
+
+      // Use the simple hrFinalize API with allowNegative=true to bypass balance checks
+      const response = await leavesService.hrFinalize(
+        requestId,
+        user.id,
+        finalizeDecision,
+        true, // allowNegative
+        finalizeDecision === 'reject' ? finalizeOptions.rejectReason : undefined
+      );
+
+      console.log('[HR Finalize] Response:', response);
+
+      if (response.error) {
+        const errorMessage = typeof response.error === 'string'
+          ? response.error
+          : response.error?.message || 'Failed to finalize request';
+        console.error('[HR Finalize] Error:', errorMessage);
+        setError(errorMessage);
+        setFinalizeLoading(false);
+        return;
+      }
+
+      if (!response.data) {
+        console.error('[HR Finalize] No response data');
+        setError('No response data from server');
+        setFinalizeLoading(false);
+        return;
+      }
+
+      // Calculate payroll impact for display
+      const durationDays = finalizeRequest.durationDays || 0;
+      const leaveTypeName = finalizeRequest.leaveTypeName || 'Leave';
+      const isUnpaidLeave = leaveTypeName.toLowerCase().includes('unpaid');
+
+      let payrollImpact = null;
+      if (finalizeDecision === 'approve' && isUnpaidLeave && finalizeOptions.syncPayroll && durationDays > 0) {
+        const dailyRate = finalizeOptions.baseSalary / finalizeOptions.workDaysInMonth;
+        const deductionAmount = dailyRate * durationDays;
+        payrollImpact = {
+          deductionAmount: Math.round(deductionAmount * 100) / 100,
+          dailyRate: Math.round(dailyRate * 100) / 100,
+          daysDeducted: durationDays,
+        };
+      }
+
+      setFinalizeResult({
+        ok: true,
+        message: finalizeDecision === 'approve'
+          ? `Leave request approved successfully! ${durationDays} day(s) of ${leaveTypeName} deducted from balance.`
+          : 'Leave request rejected.',
+        payrollImpact: payrollImpact ? {
+          isUnpaidLeave: true,
+          ...payrollImpact,
+          formula: `(${finalizeOptions.baseSalary} / ${finalizeOptions.workDaysInMonth}) × ${durationDays}`,
+        } : undefined,
+        balanceUpdate: finalizeDecision === 'approve' ? {
+          leaveTypeName,
+          previousBalance: 0,
+          newBalance: 0,
+          daysDeducted: durationDays,
+        } : undefined,
+      });
+
+      setSuccessMessage(finalizeDecision === 'approve'
+        ? 'Leave request approved successfully!'
+        : 'Leave request rejected.');
+      setTimeout(() => setSuccessMessage(null), 5000);
+
+      // Close modal after success
+      setTimeout(() => {
+        setShowFinalizeModal(false);
+        setFinalizeRequest(null);
+        setFinalizeResult(null);
+      }, 2000);
+
       await fetchRequests();
     } catch (err) {
-      const message = err instanceof Error ? err.message : `Failed to ${decision} request`;
+      console.error('[HR Finalize] Caught error:', err);
+      const message = err instanceof Error ? err.message : 'Failed to finalize request';
       setError(message);
+      setFinalizeLoading(false);
+    } finally {
+      setFinalizeLoading(false);
+    }
+  };
+
+  const handleHRFinalize = async (id: string, decision: 'approve' | 'reject') => {
+    if (!user) return;
+
+    // Find the request and open modal - check both _id and id
+    const request = requests.find(r => r._id === id || r.id === id);
+    console.log('handleHRFinalize called with id:', id, 'found request:', request);
+
+    if (request) {
+      openFinalizeModal(request, decision);
+    } else {
+      console.error('Request not found for id:', id);
+      setError('Request not found');
     }
   };
 
@@ -908,7 +1058,8 @@ export default function HRManagerLeavesPage() {
 
 
   const getStatusConfig = (status: string) => {
-    switch (status) {
+    const upperStatus = (status || '').toUpperCase();
+    switch (upperStatus) {
       case 'PENDING':
         return { bg: 'bg-amber-100', text: 'text-amber-800', label: 'Pending' };
       case 'APPROVED':
@@ -1055,37 +1206,32 @@ export default function HRManagerLeavesPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 sm:ml-auto">
-                            {request.status === 'PENDING' && !managerApproved && (
+                            {(request.status === 'PENDING' || request.status === 'pending') && (
                               <>
+                                {/* HR Final approval buttons */}
                                 <button
-                                  onClick={() => handleManagerApprove(request._id)}
-                                  className="px-3 py-1.5 text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                  onClick={() => handleHRFinalize(request._id || request.id || '', 'approve')}
+                                  className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
                                 >
-                                  Approve (Manager)
+                                  ✓ Approve
                                 </button>
                                 <button
-                                  onClick={() => handleManagerReject(request._id)}
-                                  className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  onClick={() => handleHRFinalize(request._id || request.id || '', 'reject')}
+                                  className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
                                 >
-                                  Reject (Manager)
+                                  ✗ Reject
                                 </button>
                               </>
                             )}
-                            {request.status === 'PENDING' && managerApproved && !hrApproved && (
-                              <>
-                                <button
-                                  onClick={() => handleHRFinalize(request._id, 'approve')}
-                                  className="px-3 py-1.5 text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                >
-                                  Final Approve (HR)
-                                </button>
-                                <button
-                                  onClick={() => handleHRFinalize(request._id, 'reject')}
-                                  className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                >
-                                  Final Reject (HR)
-                                </button>
-                              </>
+                            {(request.status === 'APPROVED' || request.status === 'approved') && (
+                              <span className="px-3 py-1.5 text-sm font-medium text-green-600">
+                                ✓ Approved
+                              </span>
+                            )}
+                            {(request.status === 'REJECTED' || request.status === 'rejected') && (
+                              <span className="px-3 py-1.5 text-sm font-medium text-red-600">
+                                ✗ Rejected
+                              </span>
                             )}
                           </div>
                         </div>
@@ -2627,6 +2773,209 @@ export default function HRManagerLeavesPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HR Finalization Modal */}
+      {showFinalizeModal && finalizeRequest && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => !finalizeLoading && setShowFinalizeModal(false)}></div>
+            <div className="relative inline-block bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full">
+              <div className="bg-white px-6 pt-6 pb-4">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    finalizeDecision === 'approve' ? 'bg-green-100' : 'bg-red-100'
+                  }`}>
+                    {finalizeDecision === 'approve' ? (
+                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {finalizeDecision === 'approve' ? 'Approve Leave Request' : 'Reject Leave Request'}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {finalizeDecision === 'approve'
+                        ? 'Finalize approval and update employee records'
+                        : 'Reject this leave request'}
+                    </p>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+
+                {/* Request Details */}
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Request Details</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Employee:</span>
+                      <span className="font-medium">{finalizeRequest.employeeName || finalizeRequest.employeeId || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Leave Type:</span>
+                      <span className="font-medium">{finalizeRequest.leaveTypeName || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Duration:</span>
+                      <span className="font-medium">{finalizeRequest.durationDays || 0} day(s)</span>
+                    </div>
+                    {finalizeRequest.dates && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Dates:</span>
+                        <span className="font-medium">
+                          {finalizeRequest.dates.from ? new Date(finalizeRequest.dates.from).toLocaleDateString() : 'N/A'} - {finalizeRequest.dates.to ? new Date(finalizeRequest.dates.to).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    )}
+                    {finalizeRequest.justification && (
+                      <div className="pt-2 border-t border-gray-200">
+                        <span className="text-gray-500">Reason:</span>
+                        <p className="mt-1 text-gray-700">{finalizeRequest.justification}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Approval Options */}
+                {finalizeDecision === 'approve' && (
+                  <div className="space-y-4">
+                    {/* Payroll Sync Option */}
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">Sync with Payroll</p>
+                        <p className="text-xs text-blue-700">Calculate salary deduction for unpaid leave</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={finalizeOptions.syncPayroll}
+                          onChange={(e) => setFinalizeOptions({ ...finalizeOptions, syncPayroll: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+
+                    {/* Salary Details (shown if sync is enabled) */}
+                    {finalizeOptions.syncPayroll && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Base Salary ($)</label>
+                          <input
+                            type="number"
+                            value={finalizeOptions.baseSalary}
+                            onChange={(e) => setFinalizeOptions({ ...finalizeOptions, baseSalary: parseFloat(e.target.value) || 0 })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Work Days/Month</label>
+                          <input
+                            type="number"
+                            value={finalizeOptions.workDaysInMonth}
+                            onChange={(e) => setFinalizeOptions({ ...finalizeOptions, workDaysInMonth: parseInt(e.target.value) || 22 })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Impact Preview */}
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-sm font-medium text-amber-800 mb-1">Impact Preview</p>
+                      <ul className="text-xs text-amber-700 space-y-1">
+                        <li>• Employee balance will be reduced by {finalizeRequest.durationDays || 0} day(s)</li>
+                        {finalizeOptions.syncPayroll && (finalizeRequest.leaveTypeName || '').toLowerCase().includes('unpaid') && finalizeRequest.durationDays > 0 && (
+                          <li>• Payroll deduction: ${((finalizeOptions.baseSalary / finalizeOptions.workDaysInMonth) * (finalizeRequest.durationDays || 0)).toFixed(2)}</li>
+                        )}
+                        <li>• Employee will be notified of approval</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {/* Rejection Reason */}
+                {finalizeDecision === 'reject' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Rejection *</label>
+                    <textarea
+                      value={finalizeOptions.rejectReason}
+                      onChange={(e) => setFinalizeOptions({ ...finalizeOptions, rejectReason: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm resize-none"
+                      rows={3}
+                      placeholder="Please provide a reason for rejecting this request..."
+                      required
+                    />
+                  </div>
+                )}
+
+                {/* Finalization Result */}
+                {finalizeResult && (
+                  <div className={`mt-4 p-4 rounded-lg ${finalizeResult.ok ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                    <p className={`text-sm font-medium ${finalizeResult.ok ? 'text-green-800' : 'text-red-800'}`}>
+                      {finalizeResult.message}
+                    </p>
+                    {finalizeResult.balanceUpdate && (
+                      <div className="mt-2 text-xs text-green-700">
+                        <p>Balance Updated: {finalizeResult.balanceUpdate.previousBalance} → {finalizeResult.balanceUpdate.newBalance} days</p>
+                      </div>
+                    )}
+                    {finalizeResult.payrollImpact && finalizeResult.payrollImpact.isUnpaidLeave && (
+                      <div className="mt-2 text-xs text-green-700">
+                        <p>Payroll Deduction: ${finalizeResult.payrollImpact.deductionAmount}</p>
+                        <p>Formula: {finalizeResult.payrollImpact.formula}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowFinalizeModal(false);
+                    setFinalizeRequest(null);
+                    setFinalizeResult(null);
+                    setError(null);
+                  }}
+                  disabled={finalizeLoading}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {finalizeResult ? 'Close' : 'Cancel'}
+                </button>
+                {!finalizeResult && (
+                  <button
+                    onClick={handleHRFinalizeWithSync}
+                    disabled={finalizeLoading || (finalizeDecision === 'reject' && !finalizeOptions.rejectReason.trim())}
+                    className={`px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 ${
+                      finalizeDecision === 'approve'
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : 'bg-red-600 hover:bg-red-700'
+                    }`}
+                  >
+                    {finalizeLoading
+                      ? 'Processing...'
+                      : finalizeDecision === 'approve'
+                        ? 'Approve & Update Records'
+                        : 'Reject Request'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

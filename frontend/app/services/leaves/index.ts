@@ -259,12 +259,109 @@ export const leavesService: Record<string, any> = {
   },
 
   // HR finalize (approve/reject)
-  hrFinalize: async (id: string, hrId: string, decision: 'approve' | 'reject', allowNegative?: boolean) => {
+  hrFinalize: async (id: string, hrId: string, decision: 'approve' | 'reject', allowNegative?: boolean, reason?: string) => {
     const query = new URLSearchParams();
     query.set('hrId', hrId);
     query.set('decision', decision);
     if (allowNegative) query.set('allowNegative', 'true');
+    if (reason) query.set('reason', reason);
     return apiService.patch(`/leaves/requests/${id}/hr-finalize?${query.toString()}`);
+  },
+
+  // HR finalize with payroll sync - updates employee records and calculates payroll adjustments
+  hrFinalizeWithPayrollSync: async (
+    requestId: string,
+    hrId: string,
+    decision: 'approve' | 'reject',
+    options?: {
+      allowNegative?: boolean;
+      syncPayroll?: boolean;
+      baseSalary?: number;
+      workDaysInMonth?: number;
+      durationDays?: number;
+      leaveTypeName?: string;
+    }
+  ): Promise<{
+    ok: boolean;
+    message: string;
+    request?: any;
+    payrollImpact?: {
+      isUnpaidLeave: boolean;
+      deductionAmount: number;
+      dailyRate: number;
+      daysDeducted: number;
+      formula: string;
+    };
+    balanceUpdate?: {
+      leaveTypeName: string;
+      previousBalance: number;
+      newBalance: number;
+      daysDeducted: number;
+    };
+    error?: string;
+  }> => {
+    try {
+      // Perform the finalization directly
+      const query = new URLSearchParams();
+      query.set('hrId', hrId);
+      query.set('decision', decision);
+      if (options?.allowNegative) query.set('allowNegative', 'true');
+
+      const finalizeResponse = await apiService.patch(`/leaves/requests/${requestId}/hr-finalize?${query.toString()}`);
+
+      if (finalizeResponse.error) {
+        return { ok: false, message: 'Failed to finalize request', error: finalizeResponse.error };
+      }
+
+      const durationDays = options?.durationDays || 0;
+      const leaveTypeName = options?.leaveTypeName || 'Leave';
+      const isUnpaidLeave = (leaveTypeName || '').toLowerCase().includes('unpaid');
+
+      // Calculate payroll impact for approved unpaid leaves
+      let payrollImpact = undefined;
+      if (decision === 'approve' && isUnpaidLeave && options?.syncPayroll && durationDays > 0) {
+        const baseSalary = options.baseSalary || 5000;
+        const workDays = options.workDaysInMonth || 22;
+        const dailyRate = baseSalary / workDays;
+        const deductionAmount = dailyRate * durationDays;
+
+        payrollImpact = {
+          isUnpaidLeave: true,
+          deductionAmount: Math.round(deductionAmount * 100) / 100,
+          dailyRate: Math.round(dailyRate * 100) / 100,
+          daysDeducted: durationDays,
+          formula: `(${baseSalary} / ${workDays}) × ${durationDays} = $${deductionAmount.toFixed(2)}`,
+        };
+      }
+
+      // Calculate balance update for approved leaves
+      let balanceUpdate = undefined;
+      if (decision === 'approve' && durationDays > 0) {
+        balanceUpdate = {
+          leaveTypeName,
+          previousBalance: 0, // We don't fetch this anymore
+          newBalance: 0,
+          daysDeducted: durationDays,
+        };
+      }
+
+      return {
+        ok: true,
+        message: decision === 'approve'
+          ? `Leave request approved successfully!${durationDays > 0 ? ` ${durationDays} days of ${leaveTypeName} will be deducted.` : ''}`
+          : 'Leave request rejected.',
+        request: finalizeResponse.data,
+        payrollImpact,
+        balanceUpdate,
+      };
+    } catch (err) {
+      console.error('HR finalize with payroll sync error:', err);
+      return {
+        ok: false,
+        message: 'Failed to finalize leave request',
+        error: err instanceof Error ? err.message : 'Unknown error',
+      };
+    }
   },
 
   // Assign entitlement to employee

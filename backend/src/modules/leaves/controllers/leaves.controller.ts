@@ -249,9 +249,10 @@ export class UnifiedLeaveController {
     @Query('hrId') hrId: string,
     @Query('decision') decision: 'approve' | 'reject',
     @Query('allowNegative') allowNegative?: string,
+    @Query('reason') reason?: string,
   ) {
     const allow = allowNegative === 'true';
-    return this.service.hrFinalize(id, hrId, decision, allow);
+    return this.service.hrFinalize(id, hrId, decision, allow, reason);
   }
 
   // -------------------------

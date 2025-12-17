@@ -882,9 +882,10 @@ export class UnifiedLeaveService {
     hrId: string,
     decision: 'approve' | 'reject',
     allowNegative: boolean = false,
+    reason?: string,
   ) {
     const leave = await this.leaveRequestModel.findById(id);
-    if (!leave) throw new NotFoundException('Not found');
+    if (!leave) throw new NotFoundException('Leave request not found');
 
     // Allow override of REJECTED status if decision is approve
     // Also allow PENDING
@@ -924,13 +925,18 @@ export class UnifiedLeaveService {
 
     if (decision === 'reject') {
       await leave.save();
-      const leaveTypeForReject = await this.leaveTypeModel.findById(leave.leaveTypeId);
-      await this.sharedLeavesService.sendLeaveRequestRejectedNotification(
-        leave.employeeId.toString(),
-        leaveTypeForReject?.name || 'Leave',
-        leave.dates.from,
-        leave.dates.to
-      );
+      try {
+        const leaveTypeForReject = await this.leaveTypeModel.findById(leave.leaveTypeId);
+        await this.sharedLeavesService.sendLeaveRequestRejectedNotification(
+          leave.employeeId.toString(),
+          leaveTypeForReject?.name || 'Leave',
+          leave.dates.from,
+          leave.dates.to,
+          reason
+        );
+      } catch (notifError) {
+        this.logger.warn('Failed to send rejection notification:', notifError);
+      }
       return leave;
     }
 
@@ -952,7 +958,7 @@ export class UnifiedLeaveService {
         }
 
         ent.taken = (ent.taken || 0) + (leave.durationDays || 0);
-        ent.remaining = (ent.remaining || 0) - (leave.durationDays || 0); // Allow going negative if allowNegative is true (or if logic passed above)
+        ent.remaining = (ent.remaining || 0) - (leave.durationDays || 0);
         await ent.save();
       } else {
         // No entitlement exists
@@ -978,21 +984,25 @@ export class UnifiedLeaveService {
     await this.payrollNotifyAfterApproval(leave);
     await leave.save();
 
-    const leaveTypeForNotify = await this.leaveTypeModel.findById(leave.leaveTypeId);
-    await this.sharedLeavesService.sendLeaveRequestApprovedNotification(
-      leave.employeeId.toString(),
-      leaveTypeForNotify?.name || 'Leave',
-      leave.dates.from,
-      leave.dates.to
-    );
+    try {
+      const leaveTypeForNotify = await this.leaveTypeModel.findById(leave.leaveTypeId);
+      await this.sharedLeavesService.sendLeaveRequestApprovedNotification(
+        leave.employeeId.toString(),
+        leaveTypeForNotify?.name || 'Leave',
+        leave.dates.from,
+        leave.dates.to
+      );
 
-    await this.sharedLeavesService.syncLeaveWithTimeManagement(
-      leave.employeeId.toString(),
-      leave.dates.from,
-      leave.dates.to,
-      leaveTypeForNotify?.name || 'Leave',
-      'approved'
-    );
+      await this.sharedLeavesService.syncLeaveWithTimeManagement(
+        leave.employeeId.toString(),
+        leave.dates.from,
+        leave.dates.to,
+        leaveTypeForNotify?.name || 'Leave',
+        'approved'
+      );
+    } catch (notifError) {
+      this.logger.warn('Failed to send approval notification or sync:', notifError);
+    }
 
     return leave;
   }
