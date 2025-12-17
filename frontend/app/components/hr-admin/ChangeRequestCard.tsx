@@ -1,115 +1,262 @@
-import Link from 'next/link';
+'use client';
+
+import { useState, useEffect } from 'react';
 
 export interface ChangeRequest {
+  _id: string;
+  employeeId: string | {
     _id: string;
-    requestId: string;
-    employeeProfileId: string | { _id: string; personalInfo?: { firstName?: string; lastName?: string; }; employeeId?: string }; // Populate logic might differ
-    requestDescription: string;
-    reason?: string;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
-    submittedAt: string;
-    processedAt?: string;
-    rejectionReason?: string;
-    changeType?: string; // Optional field if not in schema but useful for UI
+    firstName: string;
+    lastName: string;
+    fullName?: string;
+    employeeNumber: string;
+    workEmail: string;
+  };
+  fieldName: string;
+  oldValue: any;
+  newValue: any;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELED';
+  reason?: string;
+  rejectionReason?: string;
+  processedBy?: string;
+  processedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface ChangeRequestCardProps {
-    request: ChangeRequest;
-    onApprove: (id: string) => void;
-    onReject: (id: string, reason: string) => void;
-    processing: boolean;
+  request: ChangeRequest;
+  onApprove: (requestId: string) => Promise<void>;
+  onReject: (requestId: string, reason: string) => Promise<void>;
+  processing?: boolean;
 }
 
-export function ChangeRequestCard({ request, onApprove, onReject, processing }: ChangeRequestCardProps) {
-    // Helper to safely get employee name
-    const getEmployeeName = () => {
-        if (typeof request.employeeProfileId === 'object' && request.employeeProfileId !== null) {
-            if ('personalInfo' in request.employeeProfileId) {
-                const { firstName, lastName } = (request.employeeProfileId as any).personalInfo || {};
-                return `${firstName || ''} ${lastName || ''}`.trim() || 'Unknown Employee';
-            }
-            return 'Unknown Employee';
-        }
-        return `Employee ${request.employeeProfileId}`; // Fallback if not populated
-    };
+const STATUS_CONFIG: Record<string, { bg: string; text: string; icon: string }> = {
+  PENDING: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-400', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+  APPROVED: { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-700 dark:text-green-400', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+  REJECTED: { bg: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-700 dark:text-red-400', icon: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z' },
+  CANCELED: { bg: 'bg-gray-50 dark:bg-gray-900/20', text: 'text-gray-700 dark:text-gray-400', icon: 'M6 18L18 6M6 6l12 12' },
+};
 
-    const employeeName = getEmployeeName();
+const FIELD_LABELS: Record<string, string> = {
+  firstName: 'First Name',
+  lastName: 'Last Name',
+  middleName: 'Middle Name',
+  workEmail: 'Work Email',
+  mobilePhone: 'Mobile Phone',
+  personalEmail: 'Personal Email',
+  homeAddress: 'Home Address',
+  city: 'City',
+  country: 'Country',
+  biography: 'Biography',
+  profilePictureUrl: 'Profile Picture',
+  dateOfBirth: 'Date of Birth',
+  maritalStatus: 'Marital Status',
+};
 
-    const handleRejectClick = () => {
-        const reason = window.prompt("Enter rejection reason:");
-        if (reason) {
-            onReject(request._id, reason);
-        }
-    };
+export default function ChangeRequestCard({ request, onApprove, onReject, processing }: ChangeRequestCardProps) {
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [expanded, setExpanded] = useState(false);
 
-    return (
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
-            <div className="flex flex-col md:flex-row md:items-start gap-4">
-                {/* Avatar / Icon */}
-                <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-lg">
-                        {employeeName.charAt(0)}
-                    </div>
-                </div>
+  const statusConfig = STATUS_CONFIG[request.status] || STATUS_CONFIG.PENDING;
+  const isPending = request.status === 'PENDING';
 
-                {/* Content */}
-                <div className="flex-1 space-y-3">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <h3 className="font-semibold text-foreground text-lg">{employeeName}</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Request ID: {request.requestId || request._id} • {new Date(request.submittedAt).toLocaleDateString()}
-                            </p>
-                        </div>
-                        <div className={`
-              px-3 py-1 rounded-full text-xs font-medium border
-              ${request.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800' : ''}
-              ${request.status === 'APPROVED' ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' : ''}
-              ${request.status === 'REJECTED' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' : ''}
-            `}>
-                            {request.status}
-                        </div>
-                    </div>
+  const getEmployeeInfo = () => {
+    if (typeof request.employeeId === 'object') {
+      return {
+        name: request.employeeId.fullName || `${request.employeeId.firstName} ${request.employeeId.lastName}`,
+        number: request.employeeId.employeeNumber,
+        email: request.employeeId.workEmail,
+        initials: `${request.employeeId.firstName?.[0] || ''}${request.employeeId.lastName?.[0] || ''}`.toUpperCase(),
+      };
+    }
+    return { name: 'Unknown', number: request.employeeId, email: '', initials: '??' };
+  };
 
-                    <div className="bg-muted/50 p-3 rounded-lg text-sm space-y-2">
-                        <div>
-                            <span className="font-medium text-foreground">Change: </span>
-                            <span className="text-muted-foreground">{request.requestDescription}</span>
-                        </div>
-                        {request.reason && (
-                            <div>
-                                <span className="font-medium text-foreground">Reason: </span>
-                                <span className="text-muted-foreground">{request.reason}</span>
-                            </div>
-                        )}
-                        {request.rejectionReason && (
-                            <div className="text-destructive">
-                                <span className="font-medium">Rejection Reason: </span>
-                                <span>{request.rejectionReason}</span>
-                            </div>
-                        )}
-                    </div>
+  const employee = getEmployeeInfo();
 
-                    {request.status === 'PENDING' && (
-                        <div className="flex flex-wrap gap-2 pt-2">
-                            <button
-                                onClick={() => onApprove(request._id)}
-                                disabled={processing}
-                                className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2"
-                            >
-                                {processing ? 'Processing...' : 'Approve Request'}
-                            </button>
-                            <button
-                                onClick={handleRejectClick}
-                                disabled={processing}
-                                className="px-4 py-2 bg-destructive/10 text-destructive text-sm font-medium rounded-lg hover:bg-destructive/20 disabled:opacity-50 transition-colors"
-                            >
-                                Reject
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatValue = (value: any) => {
+    if (value === null || value === undefined || value === '') return <span className="text-muted-foreground italic">Empty</span>;
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!rejectReason.trim()) return;
+    await onReject(request._id, rejectReason);
+    setShowRejectModal(false);
+    setRejectReason('');
+  };
+
+  return (
+    <div className={`bg-card border rounded-xl overflow-hidden transition-all ${isPending ? 'border-amber-200 dark:border-amber-800' : 'border-border'}`}>
+      {/* Header */}
+      <div className="px-5 py-4 flex items-center justify-between bg-muted/30">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-primary-foreground font-medium text-sm">
+            {employee.initials}
+          </div>
+          <div>
+            <p className="font-medium text-foreground">{employee.name}</p>
+            <p className="text-xs text-muted-foreground">{employee.number} • {employee.email}</p>
+          </div>
         </div>
-    );
+        <div className="flex items-center gap-3">
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={statusConfig.icon} />
+            </svg>
+            {request.status}
+          </span>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+          >
+            <svg className={`w-5 h-5 text-muted-foreground transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-5 py-4 border-t border-border">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-sm font-medium text-foreground">
+            {FIELD_LABELS[request.fieldName] || request.fieldName}
+          </span>
+          <span className="text-xs text-muted-foreground">• Requested {formatDate(request.createdAt)}</span>
+        </div>
+
+        {/* Change Comparison */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-lg">
+            <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">Previous Value</p>
+            <p className="text-sm text-foreground break-words">{formatValue(request.oldValue)}</p>
+          </div>
+          <div className="p-3 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-900/30 rounded-lg">
+            <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">New Value</p>
+            <p className="text-sm text-foreground break-words">{formatValue(request.newValue)}</p>
+          </div>
+        </div>
+
+        {/* Reason if provided */}
+        {request.reason && (
+          <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+            <p className="text-xs font-medium text-muted-foreground mb-1">Employee's Reason</p>
+            <p className="text-sm text-foreground">{request.reason}</p>
+          </div>
+        )}
+
+        {/* Rejection reason if rejected */}
+        {request.status === 'REJECTED' && request.rejectionReason && (
+          <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">Rejection Reason</p>
+            <p className="text-sm text-red-800 dark:text-red-300">{request.rejectionReason}</p>
+          </div>
+        )}
+
+        {/* Expanded Details */}
+        {expanded && (
+          <div className="mt-4 pt-4 border-t border-border space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Request ID</span>
+              <span className="font-mono text-foreground">{request._id}</span>
+            </div>
+            {request.processedAt && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Processed At</span>
+                <span className="text-foreground">{formatDate(request.processedAt)}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Actions for Pending */}
+      {isPending && (
+        <div className="px-5 py-3 bg-muted/30 border-t border-border flex items-center justify-end gap-3">
+          <button
+            onClick={() => setShowRejectModal(true)}
+            disabled={processing}
+            className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50 transition-colors"
+          >
+            Reject
+          </button>
+          <button
+            onClick={() => onApprove(request._id)}
+            disabled={processing}
+            className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+          >
+            {processing ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Processing...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Approve
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowRejectModal(false)} />
+          <div className="relative w-full max-w-md bg-card border border-border rounded-xl shadow-2xl p-6 animate-in fade-in zoom-in-95">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Reject Change Request</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Rejection Reason <span className="text-destructive">*</span>
+              </label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                className="w-full px-3 py-2.5 bg-background border border-input rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                rows={3}
+                placeholder="Please provide a reason for rejection..."
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowRejectModal(false)}
+                className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-input rounded-lg hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectSubmit}
+                disabled={!rejectReason.trim() || processing}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                Reject Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
+

@@ -207,6 +207,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const renderNavItem = (item: NavItem, depth: number = 0) => {
+    // Skip items with empty href
+    if (!item.href) return null;
+
     const hasChildren = item.children && item.children.length > 0;
     const isExpanded = expandedItems.has(item.label);
     const active = isActive(item.href);
