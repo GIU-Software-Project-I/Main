@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/app/context/AuthContext';
 import { payrollTrackingService } from '@/app/services/payroll-tracking';
-import { payrollExecutionService } from '@/app/services';
+
 /**
  * Deductions Page - Department Employee
  * REQ-PY-8: View detailed tax deductions with law/rule applied
@@ -85,92 +85,76 @@ export default function DeductionsPage() {
       try {
         setLoading(true);
         
-        // Fetch payslips for the current employee from payroll execution service
-        const payslipsRes = await payrollTrackingService.getEmployeePayslips(user.id).catch(() => ({ data: [] }));
-        const payslips: any[] = Array.isArray(payslipsRes?.data) ? payslipsRes.data : [];
-
-        // Extract deduction data directly from payslip schema
-        const taxList: TaxDeduction[] = [];
-        const insuranceList: InsuranceDeduction[] = [];
-        const misconductList: MisconductDeduction[] = [];
-
-        payslips.forEach((payslip: any) => {
-          const payslipId = payslip._id || payslip.id;
-          const baseSalary = payslip.earningsDetails?.baseSalary || 0;
-          const payrollPeriod = payslip.payrollPeriod || payslip.createdAt || new Date().toISOString();
-
-          // Process tax deductions from payslip.deductionsDetails.taxes (array of taxRules)
-          if (payslip.deductionsDetails?.taxes && Array.isArray(payslip.deductionsDetails.taxes)) {
-            payslip.deductionsDetails.taxes.forEach((tax: any, idx: number) => {
-              // Calculate amount from rate × baseSalary (taxRules schema has rate, not amount)
-              const taxRate = tax.rate || 0;
-              const calculatedAmount = (baseSalary * taxRate) / 100;
-              
-              taxList.push({
-                id: `${payslipId}-tax-${idx}`,
-                type: tax.name || 'Tax',
-                amount: Math.round(calculatedAmount * 100) / 100,
-                percentage: taxRate,
-                taxBracket: tax.minSalary && tax.maxSalary 
-                  ? `${tax.minSalary} - ${tax.maxSalary}` 
-                  : undefined,
-                lawReference: tax.lawReference,
-                description: tax.description,
-              });
-            });
-          }
-
-          // Process insurance deductions from payslip.deductionsDetails.insurances (array of insuranceBrackets)
-          if (payslip.deductionsDetails?.insurances && Array.isArray(payslip.deductionsDetails.insurances)) {
-            payslip.deductionsDetails.insurances.forEach((insurance: any, idx: number) => {
-              // Calculate amount from employeeRate × baseSalary (insuranceBrackets schema has employeeRate, not amount)
-              const employeeRate = insurance.employeeRate || 0;
-              const calculatedAmount = (baseSalary * employeeRate) / 100;
-              
-              insuranceList.push({
-                id: `${payslipId}-insurance-${idx}`,
-                type: insurance.name || 'Insurance',
-                amount: Math.round(calculatedAmount * 100) / 100,
-                percentage: employeeRate,
-                provider: insurance.provider,
-                description: insurance.description,
-              });
-            });
-          }
-
-          // Process misconduct deductions from payslip.deductionsDetails.penalties (employeePenalties object)
-          if (payslip.deductionsDetails?.penalties) {
-            const penaltiesObj = payslip.deductionsDetails.penalties;
-            // employeePenalties schema has a penalties array with {reason, amount}
-            if (penaltiesObj.penalties && Array.isArray(penaltiesObj.penalties)) {
-              let totalPenalties = 0;
-              penaltiesObj.penalties.forEach((penalty: any) => {
-                totalPenalties += penalty.amount || 0;
-              });
-              
-              if (totalPenalties > 0) {
-                misconductList.push({
-                  id: `${payslipId}-misconduct`,
-                  type: 'Misconduct/Absenteeism',
-                  amount: totalPenalties,
-                  date: payrollPeriod,
-                  reason: penaltiesObj.penalties.map((p: any) => p.reason).join(', ') || 'Deduction from payslip',
-                  description: `Misconduct deduction from payslip ${payslipId}`,
-                });
-              }
-            }
-          }
-        });
-
-        setTaxDeductions(taxList);
-        setInsuranceDeductions(insuranceList);
-        setMisconductDeductions(misconductList);
-
-        // Fetch unpaid leave and attendance deductions from tracking service (these come from leaves module)
-        const [unpaidRes, attendanceRes] = await Promise.all([
+        // Fetch all types of deductions in parallel
+        const [taxRes, insuranceRes, misconductRes, unpaidRes, attendanceRes] = await Promise.all([
+          payrollTrackingService.getTaxDeductions(user.id).catch(() => ({ data: [] })),
+          payrollTrackingService.getInsuranceDeductions(user.id).catch(() => ({ data: [] })),
+          payrollTrackingService.getMisconductDeductions(user.id).catch(() => ({ data: [] })),
           payrollTrackingService.getUnpaidLeaveDeductions(user.id).catch(() => ({ data: null })),
           payrollTrackingService.getAttendanceBasedDeductions(user.id).catch(() => ({ data: null })),
         ]);
+
+        // Process tax deductions - response is array of payslip tax data
+        const taxData = taxRes?.data || [];
+        const taxList: TaxDeduction[] = [];
+        if (Array.isArray(taxData)) {
+          taxData.forEach((payslipTax: any) => {
+            if (payslipTax.taxDetails && Array.isArray(payslipTax.taxDetails)) {
+              payslipTax.taxDetails.forEach((tax: any, idx: number) => {
+                taxList.push({
+                  id: `${payslipTax.payslipId}-tax-${idx}`,
+                  type: tax.ruleName || 'Tax',
+                  amount: tax.calculatedAmount || 0,
+                  percentage: tax.effectiveRatePct || tax.configuredRatePct,
+                  taxBracket: tax.taxBracket,
+                  lawReference: tax.lawReference,
+                  description: tax.description,
+                });
+              });
+            }
+          });
+        }
+        setTaxDeductions(taxList);
+
+        // Process insurance deductions - response is array of payslip insurance data
+        const insuranceData = insuranceRes?.data || [];
+        const insuranceList: InsuranceDeduction[] = [];
+        if (Array.isArray(insuranceData)) {
+          insuranceData.forEach((payslipInsurance: any) => {
+            if (payslipInsurance.insuranceDeductions && Array.isArray(payslipInsurance.insuranceDeductions)) {
+              payslipInsurance.insuranceDeductions.forEach((insurance: any, idx: number) => {
+                insuranceList.push({
+                  id: `${payslipInsurance.payslipId}-insurance-${idx}`,
+                  type: insurance.name || insurance.type || 'Insurance',
+                  amount: insurance.amount || 0,
+                  percentage: insurance.rate,
+                  provider: insurance.provider,
+                  description: insurance.description,
+                });
+              });
+            }
+          });
+        }
+        setInsuranceDeductions(insuranceList);
+
+        // Process misconduct deductions - response is array of payslip misconduct data
+        const misconductData = misconductRes?.data || [];
+        const misconductList: MisconductDeduction[] = [];
+        if (Array.isArray(misconductData)) {
+          misconductData.forEach((payslipMisconduct: any, idx: number) => {
+            if (payslipMisconduct.totalPenalties > 0) {
+              misconductList.push({
+                id: `${payslipMisconduct.payslipId}-misconduct-${idx}`,
+                type: 'Misconduct/Absenteeism',
+                amount: payslipMisconduct.totalPenalties || 0,
+                date: payslipMisconduct.payslipPeriod || new Date().toISOString(),
+                reason: 'Deduction from payslip',
+                description: `Misconduct deduction from ${payslipMisconduct.payslipPeriod || 'payslip'}`,
+              });
+            }
+          });
+        }
+        setMisconductDeductions(misconductList);
 
         // Process unpaid leave deductions - response is an object with unpaidLeaveRequests and payslipDeductions
         const unpaidData: any = unpaidRes?.data;
