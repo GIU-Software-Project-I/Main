@@ -1,15 +1,14 @@
 export enum ClaimStatus {
     UNDER_REVIEW = 'under review',
-    APPROVED = 'approved',
+    PENDING_MANAGER_APPROVAL = 'pending payroll Manager approval',
+    APPROVED = 'approved',// when manager approves
     REJECTED = 'rejected'
 }
 export enum DisputeStatus {
-    PENDING_REVIEW = 'pending_review',
-    UNDER_REVIEW = 'under_review',
-    APPROVED = 'approved',
-    APPROVED_BY_SPECIALIST = 'approved_by_specialist',
-    REJECTED = 'rejected',
-    ESCALATED = 'escalated'
+    UNDER_REVIEW = 'under review',
+    PENDING_MANAGER_APPROVAL = 'pending payroll Manager approval',
+    APPROVED = 'approved',// when manager approves
+    REJECTED = 'rejected'
 }
 export enum RefundStatus {
     PENDING = 'pending',

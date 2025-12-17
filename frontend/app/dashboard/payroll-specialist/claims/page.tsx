@@ -14,7 +14,6 @@ export default function ClaimsPage() {
   const [reviewAction, setReviewAction] = useState<'approve' | 'reject'>('approve');
   const [reviewNotes, setReviewNotes] = useState('');
   const [rejectionRemarks, setRejectionRemarks] = useState('');
-  const [escalateToManager, setEscalateToManager] = useState(false);
   const [filters, setFilters] = useState<ClaimFilters>({
     status: 'all',
     claimType: 'all'
@@ -88,12 +87,11 @@ export default function ClaimsPage() {
           c._id === selectedClaim._id ? updatedClaim : c
         ));
         
-        setSuccessMessage(`Claim ${reviewAction === 'approve' ? 'approved' : 'rejected'} successfully`);
+        setSuccessMessage(`Claim ${reviewAction === 'approve' ? 'approved and escalated to payroll manager' : 'rejected'} successfully`);
         setShowReviewModal(false);
         setSelectedClaim(null);
         setReviewNotes('');
         setRejectionRemarks('');
-        setEscalateToManager(false);
         
         // Reload claims to get fresh data
         await loadClaims();
@@ -110,7 +108,6 @@ export default function ClaimsPage() {
     setSelectedClaim(claim);
     setReviewAction(action);
     setReviewNotes('');
-    setEscalateToManager(false);
     setShowReviewModal(true);
   };
 
@@ -119,6 +116,7 @@ export default function ClaimsPage() {
   const getStatusColor = (status: ClaimStatus) => {
     switch (status) {
       case ClaimStatus.UNDER_REVIEW: return 'bg-yellow-100 text-yellow-800';
+      case 'pending payroll Manager approval' as any: return 'bg-orange-100 text-orange-800';
       case ClaimStatus.APPROVED: return 'bg-green-100 text-green-800';
       case ClaimStatus.REJECTED: return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -242,11 +240,9 @@ export default function ClaimsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Claim ID</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Employee</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Claim Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Description</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Approved Amount</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Submitted</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -268,11 +264,6 @@ export default function ClaimsPage() {
                         {claim.claimType}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-slate-600 max-w-xs truncate">
-                        {claim.description}
-                      </div>
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                       ${claim.amount.toLocaleString()}
                     </td>
@@ -283,9 +274,6 @@ export default function ClaimsPage() {
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(claim.status)}`}>
                         {claim.status}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                      {new Date(claim.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex space-x-2">
@@ -432,20 +420,6 @@ export default function ClaimsPage() {
                   onChange={(e) => reviewAction === 'approve' ? setReviewNotes(e.target.value) : setRejectionRemarks(e.target.value)}
                 />
               </div>
-              {reviewAction === 'approve' && (
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="escalate"
-                    className="mr-2"
-                    checked={escalateToManager}
-                    onChange={(e) => setEscalateToManager(e.target.checked)}
-                  />
-                  <label htmlFor="escalate" className="text-sm text-slate-700">
-                    Escalate to Payroll Manager
-                  </label>
-                </div>
-              )}
             </div>
             <div className="flex justify-end space-x-3 mt-6">
               <button
