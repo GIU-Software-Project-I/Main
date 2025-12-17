@@ -189,44 +189,31 @@ async createInsuranceBracket(dto: CreateInsuranceDto) {
         );
     }
 
-    // SAME overlap logic as update
-    const overlapping = await this.insuranceModel.findOne({
-        name: dto.name, // only same insurance type
-        status: { $in: [ConfigStatus.DRAFT, ConfigStatus.APPROVED] },
-        $or: [
-            { minSalary: { $lte: dto.minSalary }, maxSalary: { $gte: dto.minSalary } },
-            { minSalary: { $lte: dto.maxSalary }, maxSalary: { $gte: dto.maxSalary } },
-            { minSalary: { $gte: dto.minSalary }, maxSalary: { $lte: dto.maxSalary } }
-        ]
-    }).exec();
-
-    if (overlapping) {
+    // Validate salary range
+    if (dto.minSalary >= dto.maxSalary) {
         throw new BadRequestException(
-            `Insurance bracket overlaps with existing bracket '${overlapping.name}' ` +
-            `(${overlapping.minSalary} - ${overlapping.maxSalary}).`
+            'minSalary must be less than maxSalary'
         );
     }
 
-    // Create a new object without createdByEmployeeId, but with createdBy
-    const bracketData = {
+    // Create bracket data
+    const bracketData: any = {
         name: dto.name,
-        amount: dto.amount,
         minSalary: dto.minSalary,
         maxSalary: dto.maxSalary,
         employeeRate: dto.employeeRate,
         employerRate: dto.employerRate,
         status: ConfigStatus.DRAFT,
-        // Only add createdBy if createdByEmployeeId is provided
-        ...(dto.createdByEmployeeId && {
-            createdBy: new mongoose.Types.ObjectId(dto.createdByEmployeeId)
-        })
     };
 
-    const bracket = new this.insuranceModel(bracketData);
+    // Add createdBy if provided
+    if (dto.createdByEmployeeId) {
+        bracketData.createdBy = new mongoose.Types.ObjectId(dto.createdByEmployeeId);
+    }
 
+    const bracket = new this.insuranceModel(bracketData);
     return await bracket.save();
 }
-
     async getInsuranceBrackets() {
         return await this.insuranceModel.find().sort({ createdAt: -1 }).exec();
     }
@@ -237,44 +224,31 @@ async createInsuranceBracket(dto: CreateInsuranceDto) {
         return bracket;
     }
 
-    async updateInsuranceBracket(id: string, dto: UpdateInsuranceDto) {
+async updateInsuranceBracket(id: string, dto: UpdateInsuranceDto) {
     const bracket = await this.insuranceModel.findById(id).exec();
     if (!bracket) throw new NotFoundException('Insurance bracket not found');
+    
     if (bracket.status !== ConfigStatus.DRAFT)
         throw new ForbiddenException('Only DRAFT brackets can be edited');
 
-    const newMinSalary = dto.minSalary !== undefined ? Number(dto.minSalary) : bracket.minSalary;
-    const newMaxSalary = dto.maxSalary !== undefined ? Number(dto.maxSalary) : bracket.maxSalary;
-
-    // Run overlap check ONLY if range actually changed
-    if (newMinSalary !== bracket.minSalary || newMaxSalary !== bracket.maxSalary) {
-        const overlapping = await this.insuranceModel.findOne({
-            _id: { $ne: id }, // exclude current bracket
-            name: bracket.name, // check only brackets of the same insurance type
-            status: { $in: [ConfigStatus.DRAFT, ConfigStatus.APPROVED] },
-            $or: [
-                { minSalary: { $lte: newMinSalary }, maxSalary: { $gte: newMinSalary } },
-                { minSalary: { $lte: newMaxSalary }, maxSalary: { $gte: newMaxSalary } },
-                { minSalary: { $gte: newMinSalary }, maxSalary: { $lte: newMaxSalary } }
-            ]
-        }).exec();
-
-        if (overlapping) {
-            throw new BadRequestException(
-                `Updated salary range overlaps with bracket '${overlapping.name}' ` +
-                `(${overlapping.minSalary} - ${overlapping.maxSalary})`
-            );
+    // Validate salary range if both are being updated
+    if (dto.minSalary !== undefined && dto.maxSalary !== undefined) {
+        if (dto.minSalary >= dto.maxSalary) {
+            throw new BadRequestException('minSalary must be less than maxSalary');
         }
+    } else if (dto.minSalary !== undefined && dto.minSalary >= bracket.maxSalary) {
+        throw new BadRequestException('minSalary must be less than current maxSalary');
+    } else if (dto.maxSalary !== undefined && dto.maxSalary <= bracket.minSalary) {
+        throw new BadRequestException('maxSalary must be greater than current minSalary');
     }
 
     // Update the bracket
     return await this.insuranceModel.findByIdAndUpdate(
         id,
         { $set: dto },
-        { new: true, runValidators: true }, // runValidators true is safer
+        { new: true, runValidators: true }
     );
 }
-
 
     async approveInsuranceBracket(id: string, dto: ApproveInsuranceDto) {
         const bracket = await this.insuranceModel.findById(id).exec();
