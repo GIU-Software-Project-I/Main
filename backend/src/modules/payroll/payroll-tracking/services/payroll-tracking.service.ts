@@ -559,7 +559,7 @@ async getLeaveCompensation(employeeId: string) {
     return payslips.map(payslip => ({
       payslipId: payslip._id,
       insuranceDeductions: payslip.deductionsDetails?.insurances || [],
-      totalInsurance: payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + (i.amount || 0), 0) || 0,
+      totalInsurance: payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + ((i as any).amount || 0), 0) || 0,
       // Additional insurance details
     }));
   }
@@ -1755,7 +1755,7 @@ async getLeaveCompensation(employeeId: string) {
         };
       }
       
-      const totalInsurance = payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + (i.amount || 0), 0) || 0;
+      const totalInsurance = payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + ((i as any).amount || 0), 0) || 0;
       acc[employeeId].employeeContribution += totalInsurance;
       acc[employeeId].payslipsCount++;
       

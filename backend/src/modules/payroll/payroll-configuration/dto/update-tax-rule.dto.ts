@@ -1,6 +1,4 @@
-import { IsOptional, IsString, IsArray, IsNumber, Min, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { TaxComponentDto } from './tax-component.dto'; // Make sure to import this
+import { IsOptional, IsString, IsNumber, Min, Max } from 'class-validator';
 
 export class UpdateTaxRuleDto {
   @IsOptional()
@@ -8,8 +6,8 @@ export class UpdateTaxRuleDto {
   description?: string;
 
   @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => TaxComponentDto) // THIS IS CRITICAL!
-  taxComponents?: TaxComponentDto[]; // Add this field
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  rate?: number;
 }

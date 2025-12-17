@@ -1,6 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsArray, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { TaxComponentDto } from './tax-component.dto';
+import { IsNotEmpty, IsString, IsOptional, IsNumber, Min, Max } from 'class-validator';
 
 export class CreateTaxRuleDto {
   @IsNotEmpty()
@@ -12,10 +10,10 @@ export class CreateTaxRuleDto {
   description?: string;
 
   @IsNotEmpty()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => TaxComponentDto)
-  taxComponents: TaxComponentDto[];
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  rate: number;
 
   @IsNotEmpty()
   @IsString()
