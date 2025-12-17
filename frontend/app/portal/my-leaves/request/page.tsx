@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { leavesService } from '@/app/services/leaves';
 import { useAuth } from '@/app/context/AuthContext';
-import type { LeaveBalanceSummary, LeaveType } from '@/app/types/leaves';
+import type { LeaveBalanceSummary } from '@/app/types/leaves';
 
 type BalanceList = LeaveBalanceSummary[];
 type LeaveTypeKey = 'annual' | 'sick' | 'personal';
@@ -27,10 +27,16 @@ export default function LeaveRequestPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [success, setSuccess] = useState(false);
   const [balance, setBalance] = useState<BalanceList>([]);
   const [leaveTypeMap, setLeaveTypeMap] = useState<LeaveTypeMap>({});
+  const [attachmentRequired, setAttachmentRequired] = useState<{ required: boolean; reason: string | null }>({ required: false, reason: null });
+
+  // Post-leave configuration from backend
+  const postLeaveConfig = leavesService.getPostLeaveConfig();
 
   const [formData, setFormData] = useState<{
     type: LeaveTypeKey;
@@ -53,6 +59,38 @@ export default function LeaveRequestPage() {
     void fetchInitialData(user.id);
   }, [user]);
 
+  // Check attachment requirements when leave type or dates change
+  useEffect(() => {
+    const checkAttachment = async () => {
+      const leaveTypeId = leaveTypeMap[formData.type];
+      if (!leaveTypeId || !formData.startDate || !formData.endDate) {
+        setAttachmentRequired({ required: false, reason: null });
+        return;
+      }
+
+      const days = calculateDays();
+      if (days <= 0) return;
+
+      const result = await leavesService.checkAttachmentRequirement(leaveTypeId, days);
+      setAttachmentRequired({ required: result.required, reason: result.reason || null });
+    };
+
+    void checkAttachment();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.type, formData.startDate, formData.endDate, leaveTypeMap]);
+
+  // Validate post-leave dates when toggled
+  useEffect(() => {
+    if (formData.postLeave && formData.endDate) {
+      const validation = leavesService.validatePostLeaveRequest(formData.endDate);
+      if (!validation.valid) {
+        setError(validation.error);
+      } else {
+        setError(null);
+      }
+    }
+  }, [formData.postLeave, formData.endDate]);
+
   const fetchInitialData = async (employeeId: string) => {
     try {
       setLoading(true);
@@ -64,23 +102,57 @@ export default function LeaveRequestPage() {
       ]);
 
       if (Array.isArray(balanceRes.data)) {
-        setBalance(balanceRes.data as BalanceList);
+        // Map backend response to expected format
+        interface BackendBalance {
+          leaveTypeId: string;
+          yearlyEntitlement?: number;
+          entitled?: number;
+          accrued?: number;
+          taken?: number;
+          pending?: number;
+          remaining?: number;
+          carryForward?: number;
+          leaveTypeName?: string;
+          leaveTypeCode?: string;
+        }
+        const mappedBalance = (balanceRes.data as BackendBalance[]).map((bal) => ({
+          leaveTypeId: bal.leaveTypeId,
+          leaveTypeName: bal.leaveTypeName || '',
+          leaveTypeCode: bal.leaveTypeCode || '',
+          entitled: bal.yearlyEntitlement ?? bal.entitled ?? 0,
+          accrued: bal.accrued ?? 0,
+          taken: bal.taken ?? 0,
+          pending: bal.pending ?? 0,
+          remaining: bal.remaining ?? 0,
+          carryForward: bal.carryForward ?? 0,
+        }));
+        setBalance(mappedBalance as BalanceList);
       }
 
       if (Array.isArray(typesRes.data)) {
-        const types = typesRes.data as LeaveType[];
+        // Backend returns _id, but type interface uses id
+        interface BackendLeaveType {
+          _id?: string;
+          id?: string;
+          name?: string;
+          code?: string;
+        }
+        const types = typesRes.data as BackendLeaveType[];
         const map: LeaveTypeMap = {};
 
         for (const t of types) {
           const name = (t.name || '').toLowerCase();
           const code = (t.code || '').toLowerCase();
+          const typeId = t._id || t.id;
+
+          if (!typeId) continue;
 
           if (!map.annual && (name.includes('annual') || code.includes('annual'))) {
-            map.annual = t.id;
+            map.annual = typeId;
           } else if (!map.sick && (name.includes('sick') || code.includes('sick'))) {
-            map.sick = t.id;
+            map.sick = typeId;
           } else if (!map.personal && (name.includes('personal') || code.includes('personal'))) {
-            map.personal = t.id;
+            map.personal = typeId;
           }
         }
 
@@ -99,8 +171,7 @@ export default function LeaveRequestPage() {
     const start = new Date(formData.startDate);
     const end = new Date(formData.endDate);
     const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   };
 
   const getTypeBalance = (key: LeaveTypeKey): TypeBalance => {
@@ -136,6 +207,7 @@ export default function LeaveRequestPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setValidationErrors([]);
 
     if (!user) {
       setError('You must be logged in to submit a leave request.');
@@ -150,12 +222,6 @@ export default function LeaveRequestPage() {
       return;
     }
 
-    // Allow post-leave requests even with 0 balance, otherwise check balance
-    if (!formData.postLeave && days > available) {
-      setError(`Insufficient leave balance. You have ${available} days available. You can submit a post-leave request for emergencies.`);
-      return;
-    }
-
     const leaveTypeId = leaveTypeMap[formData.type];
     if (!leaveTypeId) {
       setError('Configured leave type not found. Please contact HR.');
@@ -163,8 +229,30 @@ export default function LeaveRequestPage() {
     }
 
     try {
+      setValidating(true);
+
+      // Run full validation matching backend createLeaveRequest logic
+      const validation = await leavesService.validateLeaveRequest({
+        employeeId: user.id,
+        leaveTypeId,
+        from: formData.startDate,
+        to: formData.endDate,
+        durationDays: days,
+        postLeave: formData.postLeave,
+        hasAttachment: !!formData.attachment,
+        availableBalance: available,
+      });
+
+      if (!validation.valid) {
+        setValidationErrors(validation.errors);
+        setValidating(false);
+        return;
+      }
+
+      setValidating(false);
       setLoading(true);
 
+      // Handle attachment upload if present
       let attachmentId: string | undefined;
       if (formData.attachment) {
         const file = formData.attachment;
@@ -181,6 +269,7 @@ export default function LeaveRequestPage() {
         }
       }
 
+      // Submit the leave request
       const response = await leavesService.submitRequest({
         employeeId: user.id,
         leaveTypeId,
@@ -193,7 +282,8 @@ export default function LeaveRequestPage() {
       });
 
       if (response.error) {
-        throw new Error(response.error);
+        setError(response.error);
+        return;
       }
 
       setSuccess(true);
@@ -205,6 +295,7 @@ export default function LeaveRequestPage() {
       setError(message);
     } finally {
       setLoading(false);
+      setValidating(false);
     }
   };
 
@@ -250,6 +341,17 @@ export default function LeaveRequestPage() {
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             {error}
+          </div>
+        )}
+
+        {validationErrors.length > 0 && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <p className="font-medium mb-2">Please fix the following issues:</p>
+            <ul className="list-disc list-inside space-y-1">
+              {validationErrors.map((err, idx) => (
+                <li key={idx}>{err}</li>
+              ))}
+            </ul>
           </div>
         )}
 
@@ -358,7 +460,7 @@ export default function LeaveRequestPage() {
           {/* Attachment */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Attachment (optional)
+              Attachment {attachmentRequired.required ? <span className="text-red-500">*</span> : '(optional)'}
             </label>
             <input
               type="file"
@@ -370,28 +472,50 @@ export default function LeaveRequestPage() {
               }
               className="w-full text-sm text-gray-700 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
-            <p className="mt-1 text-xs text-gray-500">
-              Upload supporting documents (e.g. medical certificate for sick leave).
-            </p>
+            {attachmentRequired.required ? (
+              <p className="mt-1 text-xs text-amber-600 font-medium">
+                ⚠️ {attachmentRequired.reason}
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-gray-500">
+                Upload supporting documents (e.g. medical certificate for sick leave).
+              </p>
+            )}
+            {formData.attachment && (
+              <p className="mt-1 text-xs text-green-600">
+                ✓ Selected: {formData.attachment.name}
+              </p>
+            )}
           </div>
 
           {/* Post-leave flag */}
-          <div className="flex items-center gap-2">
-            <input
-              id="post-leave"
-              type="checkbox"
-              checked={formData.postLeave}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  postLeave: e.target.checked,
-                })
-              }
-              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-            />
-            <label htmlFor="post-leave" className="text-sm text-gray-700">
-              This is a post-leave request (submitted after the leave was taken)
-            </label>
+          <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+            <div className="flex items-center gap-2">
+              <input
+                id="post-leave"
+                type="checkbox"
+                checked={formData.postLeave}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    postLeave: e.target.checked,
+                  })
+                }
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+              />
+              <label htmlFor="post-leave" className="text-sm font-medium text-gray-700">
+                This is a post-leave request (submitted after the leave was taken)
+              </label>
+            </div>
+            {formData.postLeave && (
+              <div className="text-sm text-amber-700 bg-amber-50 p-3 rounded-lg">
+                <p className="font-medium">⚠️ Post-Leave Request Notice</p>
+                <p className="mt-1">
+                  Post-leave requests must be submitted within <strong>{postLeaveConfig.maxPostLeaveDays} days</strong> after the leave end date.
+                  This is for emergencies where leave could not be requested in advance.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}
@@ -404,10 +528,10 @@ export default function LeaveRequestPage() {
             </Link>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || validating}
               className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Submitting...' : 'Submit Request'}
+              {validating ? 'Validating...' : loading ? 'Submitting...' : 'Submit Request'}
             </button>
           </div>
         </form>

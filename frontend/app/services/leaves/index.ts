@@ -16,12 +16,25 @@ export const leavesService = {
     return apiService.post('/leaves/requests', data);
   },
 
-  // Get the current employee's leave history ("My Leaves")
-  getMyRequests: async (employeeId: string, params?: { status?: string }) => {
+  // Get the current employee's leave history ("My Leaves") with filtering and sorting
+  getMyRequests: async (employeeId: string, params?: {
+    status?: string;
+    leaveTypeId?: string;
+    from?: string;
+    to?: string;
+    sort?: string;
+    page?: number;
+    limit?: number;
+  }) => {
     const query = new URLSearchParams();
-    if (params?.status) {
-      query.set('status', params.status);
-    }
+    if (params?.status) query.set('status', params.status);
+    if (params?.leaveTypeId) query.set('leaveTypeId', params.leaveTypeId);
+    if (params?.from) query.set('from', params.from);
+    if (params?.to) query.set('to', params.to);
+    if (params?.sort) query.set('sort', params.sort);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+
     const qs = query.toString();
     const endpoint = qs
       ? `/leaves/employees/${employeeId}/history?${qs}`
@@ -108,6 +121,91 @@ export const leavesService = {
     query.set('managerId', managerId);
     if (reason) query.set('reason', reason);
     return apiService.patch(`/leaves/requests/${id}/manager-reject?${query.toString()}`);
+  },
+
+  // ============================================
+  // MANAGER TEAM VIEW METHODS
+  // ============================================
+
+  // Get team members' leave balances
+  getTeamBalances: async (managerId: string, params?: {
+    department?: string;
+    leaveTypeId?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.department) query.set('department', params.department);
+    if (params?.leaveTypeId) query.set('leaveTypeId', params.leaveTypeId);
+    const qs = query.toString();
+    return apiService.get(qs
+      ? `/leaves/manager/${managerId}/team-balances?${qs}`
+      : `/leaves/manager/${managerId}/team-balances`
+    );
+  },
+
+  // Get team members' leave requests (upcoming/history)
+  getTeamRequests: async (managerId: string, params?: {
+    leaveTypeId?: string;
+    status?: string;
+    department?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+    limit?: number;
+    sort?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.leaveTypeId) query.set('leaveTypeId', params.leaveTypeId);
+    if (params?.status) query.set('status', params.status);
+    if (params?.department) query.set('department', params.department);
+    if (params?.from) query.set('from', params.from);
+    if (params?.to) query.set('to', params.to);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.sort) query.set('sort', params.sort);
+    const qs = query.toString();
+    return apiService.get(qs
+      ? `/leaves/manager/${managerId}/team-requests?${qs}`
+      : `/leaves/manager/${managerId}/team-requests`
+    );
+  },
+
+  // Get irregular leave patterns for team
+  getIrregularPatterns: async (managerId: string, params?: {
+    department?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.department) query.set('department', params.department);
+    const qs = query.toString();
+    return apiService.get(qs
+      ? `/leaves/manager/${managerId}/irregular-patterns?${qs}`
+      : `/leaves/manager/${managerId}/irregular-patterns`
+    );
+  },
+
+  // Flag a leave request as irregular
+  flagIrregular: async (requestId: string, flag: boolean, reason?: string) => {
+    return apiService.post(`/leaves/manager/flag-irregular/${requestId}`, {
+      flag,
+      reason,
+    });
+  },
+
+  // Return leave request for correction (manager/HR can return to employee for fixes)
+  returnForCorrection: async (id: string, reviewerId: string, reason: string) => {
+    const query = new URLSearchParams();
+    query.set('reviewerId', reviewerId);
+    query.set('reason', reason);
+    return apiService.patch(`/leaves/requests/${id}/return-for-correction?${query.toString()}`);
+  },
+
+  // Resubmit a corrected leave request (employee resubmits after corrections)
+  resubmitCorrectedRequest: async (id: string, employeeId: string, corrections: Partial<{
+    from: string;
+    to: string;
+    justification: string;
+    attachmentId: string;
+  }>) => {
+    return apiService.patch(`/leaves/requests/${id}/resubmit?employeeId=${employeeId}`, corrections);
   },
 
   // HR finalize (approve/reject)
@@ -321,6 +419,204 @@ export const leavesService = {
     referenceDate?: string;
   }) => {
     return apiService.post('/leaves/accruals/reset-year', data);
+  },
+
+  // ============================================
+  // LEAVE REQUEST VALIDATION HELPERS
+  // ============================================
+
+
+  // Check if employee has overlapping leave requests
+  checkOverlappingRequests: async (employeeId: string, from: string, to: string) => {
+    // Get employee's history and check for overlaps
+    const response = await apiService.get(`/leaves/employees/${employeeId}/history`);
+    if (response.error || !response.data) {
+      return { hasOverlap: false, overlappingRequest: null };
+    }
+
+    // Handle different response structures - could be array directly or object with data property
+    let requests: Array<{
+      _id?: string;
+      id?: string;
+      status: string;
+      dates: { from: string; to: string };
+    }> = [];
+
+    if (Array.isArray(response.data)) {
+      requests = response.data;
+    } else if (response.data && typeof response.data === 'object') {
+      // Check if it's an object with a data/requests/items array
+      const dataObj = response.data as Record<string, unknown>;
+      if (Array.isArray(dataObj.data)) {
+        requests = dataObj.data;
+      } else if (Array.isArray(dataObj.requests)) {
+        requests = dataObj.requests;
+      } else if (Array.isArray(dataObj.items)) {
+        requests = dataObj.items;
+      }
+    }
+
+    // If still not an array, return no overlap
+    if (!Array.isArray(requests)) {
+      return { hasOverlap: false, overlappingRequest: null };
+    }
+
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    // Check for overlaps with PENDING or APPROVED requests
+    const overlap = requests.find((req) => {
+      if (!req || !req.dates) return false;
+      if (req.status !== 'pending' && req.status !== 'approved') {
+        return false;
+      }
+      const reqFrom = new Date(req.dates.from);
+      const reqTo = new Date(req.dates.to);
+      // Overlap: fromDate <= reqTo AND toDate >= reqFrom
+      return fromDate <= reqTo && toDate >= reqFrom;
+    });
+
+    return {
+      hasOverlap: !!overlap,
+      overlappingRequest: overlap || null,
+    };
+  },
+
+  // Get post-leave configuration (maximum days after leave to submit)
+  getPostLeaveConfig: () => {
+    // This matches the backend MAX_POST_LEAVE_DAYS = 30
+    return {
+      maxPostLeaveDays: 30,
+      enabled: true,
+    };
+  },
+
+  // Validate post-leave request dates
+  validatePostLeaveRequest: (toDate: string) => {
+    const config = leavesService.getPostLeaveConfig();
+    const endDate = new Date(toDate);
+    const now = new Date();
+    const diffMs = now.getTime() - endDate.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays > config.maxPostLeaveDays) {
+      return {
+        valid: false,
+        error: `Post-leave requests must be submitted within ${config.maxPostLeaveDays} days after leave end. Your leave ended ${diffDays} days ago.`,
+        daysSinceLeaveEnd: diffDays,
+        maxAllowedDays: config.maxPostLeaveDays,
+      };
+    }
+
+    return {
+      valid: true,
+      error: null,
+      daysSinceLeaveEnd: diffDays,
+      maxAllowedDays: config.maxPostLeaveDays,
+    };
+  },
+
+  // Check if attachment is required for leave type
+  checkAttachmentRequirement: async (leaveTypeId: string, durationDays: number) => {
+    const response = await apiService.get(`/leaves/types/${leaveTypeId}`);
+    if (response.error || !response.data) {
+      return { required: false, reason: null };
+    }
+
+    const leaveType = response.data as {
+      _id?: string;
+      name?: string;
+      code?: string;
+      requiresAttachment?: boolean;
+      attachmentType?: string;
+    };
+
+    const typeName = (leaveType.name || '').toLowerCase();
+    const isSick = typeName.includes('sick');
+
+    // Attachment required if:
+    // 1. Leave type requires attachment, OR
+    // 2. Sick leave exceeding 1 day (REQ-028: Medical certificate required)
+    if (leaveType.requiresAttachment) {
+      return {
+        required: true,
+        reason: `Attachment is required for ${leaveType.name}`,
+        attachmentType: leaveType.attachmentType || 'document',
+      };
+    }
+
+    if (isSick && durationDays > 1) {
+      return {
+        required: true,
+        reason: 'Medical certificate is required for sick leave exceeding 1 day',
+        attachmentType: 'medical',
+      };
+    }
+
+    return { required: false, reason: null };
+  },
+
+  // Full validation before submitting leave request (mirrors backend logic)
+  validateLeaveRequest: async (data: {
+    employeeId: string;
+    leaveTypeId: string;
+    from: string;
+    to: string;
+    durationDays: number;
+    postLeave?: boolean;
+    hasAttachment?: boolean;
+    availableBalance: number;
+  }) => {
+    const errors: string[] = [];
+
+    // 1. Check required fields
+    if (!data.employeeId || !data.leaveTypeId || !data.from || !data.to) {
+      errors.push('Missing required fields');
+    }
+
+    // 2. Check duration
+    if (data.durationDays <= 0) {
+      errors.push('Invalid date range - duration must be at least 1 day');
+    }
+
+    // 3. Post-leave validation
+    if (data.postLeave) {
+      const postLeaveValidation = leavesService.validatePostLeaveRequest(data.to);
+      if (!postLeaveValidation.valid) {
+        errors.push(postLeaveValidation.error!);
+      }
+    }
+
+    // 4. Balance check (skip for post-leave)
+    if (!data.postLeave && data.durationDays > data.availableBalance) {
+      errors.push(
+        `Insufficient leave balance. You have ${data.availableBalance} days available but requested ${data.durationDays} days. You can submit a post-leave request for emergencies.`
+      );
+    }
+
+    // 5. Check for overlapping requests
+    const overlapCheck = await leavesService.checkOverlappingRequests(
+      data.employeeId,
+      data.from,
+      data.to
+    );
+    if (overlapCheck.hasOverlap) {
+      errors.push('You already have a pending or approved leave request for these dates');
+    }
+
+    // 6. Check attachment requirement
+    const attachmentCheck = await leavesService.checkAttachmentRequirement(
+      data.leaveTypeId,
+      data.durationDays
+    );
+    if (attachmentCheck.required && !data.hasAttachment) {
+      errors.push(attachmentCheck.reason!);
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
   },
 };
 

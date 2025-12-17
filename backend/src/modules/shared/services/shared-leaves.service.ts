@@ -74,6 +74,15 @@ export class SharedLeavesService {
         await this.createNotification(employeeId, 'N-051', `Your ${leaveType} leave request from ${fromDate.toISOString().slice(0, 10)} to ${toDate.toISOString().slice(0, 10)} has been cancelled.`);
     }
 
+    async sendLeaveRequestReturnedForCorrectionNotification(employeeId: string, leaveType: string, fromDate: Date, toDate: Date, reason?: string): Promise<void> {
+        const reasonStr = reason ? ` Reason: ${reason}` : '';
+        await this.createNotification(employeeId, 'N-051', `Your ${leaveType} leave request from ${fromDate.toISOString().slice(0, 10)} to ${toDate.toISOString().slice(0, 10)} has been returned for correction.${reasonStr}`);
+    }
+
+    async sendLeaveRequestModifiedNotification(employeeId: string, leaveType: string, fromDate: Date, toDate: Date, modifiedBy: string): Promise<void> {
+        await this.createNotification(employeeId, 'N-051', `Your ${leaveType} leave request from ${fromDate.toISOString().slice(0, 10)} to ${toDate.toISOString().slice(0, 10)} has been modified by ${modifiedBy}.`);
+    }
+
     async sendManagerLeaveRequestNotification(managerId: string, employeeName: string, leaveType: string, fromDate: Date, toDate: Date): Promise<void> {
         await this.createNotification(managerId, 'N-052', `${employeeName} has submitted a ${leaveType} leave request from ${fromDate.toISOString().slice(0, 10)} to ${toDate.toISOString().slice(0, 10)} for your review.`);
     }

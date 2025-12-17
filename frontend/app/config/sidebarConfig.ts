@@ -162,8 +162,12 @@ const DEPARTMENT_HEAD_SECTIONS: NavSection[] = [
         },
       {
         label: 'Leave Approvals',
-        href: '/dashboard/department-head/leaves',
+        href: '/dashboard/department-head',
         icon: 'calendar-check',
+        children: [
+          { label: 'Approvals', href: '/dashboard/department-head', icon: 'check-circle' },
+          { label: 'Team Balances', href: '/dashboard/department-head/team-balances', icon: 'users' },
+        ],
       },
       {
         label: 'Time Approvals',

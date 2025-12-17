@@ -445,6 +445,18 @@ export class UnifiedLeaveService {
     const created = new this.leaveRequestModel(payload);
     await created.save();
 
+    // Update pending count in entitlement when request is created
+    if (leaveType.deductible) {
+      const ent = await this.entitlementModel.findOne({
+        employeeId: new Types.ObjectId(dto.employeeId),
+        leaveTypeId: new Types.ObjectId(dto.leaveTypeId),
+      });
+      if (ent) {
+        ent.pending = (ent.pending || 0) + duration;
+        await ent.save();
+      }
+    }
+
     const employeeProfile = await this.sharedLeavesService.getEmployeeProfile(dto.employeeId);
     const employeeName = employeeProfile?.fullName || 'Employee';
     await this.sharedLeavesService.sendLeaveRequestSubmittedNotification(
@@ -650,6 +662,109 @@ export class UnifiedLeaveService {
     throw new BadRequestException('Request cannot be cancelled in current state');
   }
 
+  async returnForCorrection(id: string, reviewerId: string, reason: string) {
+    this.validateObjectId(id, 'id');
+    this.validateObjectId(reviewerId, 'reviewerId');
+
+    const leave = await this.leaveRequestModel.findById(id);
+    if (!leave) throw new NotFoundException('Leave request not found');
+
+    if (leave.status !== LeaveStatus.PENDING) {
+      throw new BadRequestException('Only pending requests can be returned for correction');
+    }
+
+    leave.status = LeaveStatus.RETURNED_FOR_CORRECTION;
+
+    // Add to approval flow history
+    if (!leave.approvalFlow || !Array.isArray(leave.approvalFlow)) {
+      leave.approvalFlow = [] as any;
+    }
+
+    leave.approvalFlow.push({
+      role: 'reviewer',
+      status: 'returned_for_correction',
+      decidedBy: new Types.ObjectId(reviewerId),
+      decidedAt: new Date(),
+      reason: reason,
+    } as any);
+
+    await leave.save();
+
+    const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
+    await this.sharedLeavesService.sendLeaveRequestReturnedForCorrectionNotification(
+      leave.employeeId.toString(),
+      leaveType?.name || 'Leave',
+      leave.dates.from,
+      leave.dates.to,
+      reason
+    );
+
+    return leave;
+  }
+
+  async resubmitCorrectedRequest(id: string, employeeId: string, corrections: Partial<{
+    from: string;
+    to: string;
+    justification: string;
+    attachmentId: string;
+  }>) {
+    this.validateObjectId(id, 'id');
+    this.validateObjectId(employeeId, 'employeeId');
+
+    const leave = await this.leaveRequestModel.findById(id);
+    if (!leave) throw new NotFoundException('Leave request not found');
+
+    if (leave.employeeId.toString() !== employeeId) {
+      throw new BadRequestException('Unauthorized');
+    }
+
+    if (leave.status !== LeaveStatus.RETURNED_FOR_CORRECTION) {
+      throw new BadRequestException('Only requests returned for correction can be resubmitted');
+    }
+
+    // Apply corrections
+    if (corrections.from && corrections.to) {
+      const from = new Date(corrections.from);
+      const to = new Date(corrections.to);
+
+      const duration = await this._calculateWorkingDuration(employeeId, from, to);
+      leave.dates = { from, to };
+      leave.durationDays = duration;
+    }
+
+    if (corrections.justification) {
+      leave.justification = corrections.justification;
+    }
+
+    if (corrections.attachmentId) {
+      leave.attachmentId = new Types.ObjectId(corrections.attachmentId);
+    }
+
+    // Reset status to pending
+    leave.status = LeaveStatus.PENDING;
+
+    // Reset approval flow
+    leave.approvalFlow = [
+      { role: 'manager', status: 'pending' },
+      { role: 'hr', status: 'pending' },
+    ] as any;
+
+    await leave.save();
+
+    const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
+    const employeeProfile = await this.sharedLeavesService.getEmployeeProfile(employeeId);
+
+    await this.sharedLeavesService.sendLeaveRequestSubmittedNotification(
+      employeeId,
+      employeeProfile?.fullName || 'Employee',
+      leaveType?.name || 'Leave',
+      leave.dates.from,
+      leave.dates.to
+    );
+
+    return leave;
+  }
+
   async managerApprove(id: string, managerId: string) {
     this.validateObjectId(id, 'id');
     this.validateObjectId(managerId, 'managerId');
@@ -674,8 +789,42 @@ export class UnifiedLeaveService {
       decidedAt: new Date(),
     } as any;
 
-    leave.status = LeaveStatus.PENDING;
+    // Set status to APPROVED (manager approval is final)
+    leave.status = LeaveStatus.APPROVED;
+
+    // Update entitlement balance
+    const ent = await this.entitlementModel.findOne({
+      employeeId: leave.employeeId,
+      leaveTypeId: leave.leaveTypeId,
+    });
+
+    const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
+    const isDeductible = leaveType?.deductible ?? true;
+
+    if (isDeductible && ent) {
+      // Move from pending to taken
+      const durationDays = leave.durationDays || 0;
+      ent.pending = Math.max(0, (ent.pending || 0) - durationDays);
+      ent.taken = (ent.taken || 0) + durationDays;
+
+      // Calculate remaining properly: yearly + carryForward - taken
+      const yearly = ent.yearlyEntitlement || 0;
+      const carryForward = ent.carryForward || 0;
+      ent.remaining = yearly + carryForward - ent.taken;
+
+      await ent.save();
+    }
+
     await leave.save();
+
+    // Send approval notification to employee
+    await this.sharedLeavesService.sendLeaveRequestApprovedNotification(
+      leave.employeeId.toString(),
+      leaveType?.name || 'Leave',
+      leave.dates.from,
+      leave.dates.to
+    );
+
     return leave;
   }
 
@@ -699,10 +848,22 @@ export class UnifiedLeaveService {
       status: 'rejected',
       decidedBy: new Types.ObjectId(managerId),
       decidedAt: new Date(),
+      reason: reason,
     } as any;
 
     leave.status = LeaveStatus.REJECTED;
     await leave.save();
+
+    // Update entitlement - remove from pending
+    const ent = await this.entitlementModel.findOne({
+      employeeId: leave.employeeId,
+      leaveTypeId: leave.leaveTypeId,
+    });
+
+    if (ent) {
+      ent.pending = Math.max(0, (ent.pending || 0) - (leave.durationDays || 0));
+      await ent.save();
+    }
 
     const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
     await this.sharedLeavesService.sendLeaveRequestRejectedNotification(
@@ -964,18 +1125,63 @@ export class UnifiedLeaveService {
   async getEmployeeBalances(employeeId: string) {
     if (!employeeId) throw new BadRequestException('employeeId required');
 
-    const entitlements = await this.entitlementModel
+    let entitlements = await this.entitlementModel
       .find({ employeeId: new Types.ObjectId(employeeId) })
       .lean();
 
+    // If employee has no entitlements, auto-create default entitlements for all leave types
+    if (entitlements.length === 0) {
+      const allLeaveTypes = await this.leaveTypeModel.find().lean();
+
+      for (const leaveType of allLeaveTypes) {
+        // Default entitlement values based on leave type
+        let defaultEntitlement = 0;
+        const typeName = (leaveType.name || '').toLowerCase();
+        const typeCode = (leaveType.code || '').toLowerCase();
+
+        if (typeName.includes('annual') || typeCode.includes('annual')) {
+          defaultEntitlement = 21; // 21 days annual leave
+        } else if (typeName.includes('sick') || typeCode.includes('sick')) {
+          defaultEntitlement = 14; // 14 days sick leave
+        } else if (typeName.includes('personal') || typeCode.includes('personal')) {
+          defaultEntitlement = 5; // 5 days personal leave
+        } else {
+          defaultEntitlement = 5; // Default for other types
+        }
+
+        await this.entitlementModel.create({
+          employeeId: new Types.ObjectId(employeeId),
+          leaveTypeId: leaveType._id,
+          yearlyEntitlement: defaultEntitlement,
+          accruedActual: defaultEntitlement,
+          accruedRounded: defaultEntitlement,
+          carryForward: 0,
+          taken: 0,
+          pending: 0,
+          remaining: defaultEntitlement,
+          lastAccrualDate: new Date(),
+        });
+      }
+
+      // Re-fetch entitlements after creation
+      entitlements = await this.entitlementModel
+        .find({ employeeId: new Types.ObjectId(employeeId) })
+        .lean();
+    }
+
+    // Fetch all leave types to enrich the response
+    const allLeaveTypes = await this.leaveTypeModel.find().lean();
+    const leaveTypeMap = new Map(allLeaveTypes.map(lt => [lt._id.toString(), lt]));
+
     const results = await Promise.all(
       entitlements.map(async (ent: any) => {
+        // Match both uppercase and lowercase status values for compatibility
         const takenAgg = await this.leaveRequestModel.aggregate([
           {
             $match: {
               employeeId: new Types.ObjectId(employeeId),
               leaveTypeId: new Types.ObjectId(ent.leaveTypeId),
-              status: { $in: [LeaveStatus.APPROVED] },
+              status: { $in: ['approved', 'APPROVED'] },
             },
           },
           { $group: { _id: null, takenDays: { $sum: '$durationDays' } } },
@@ -986,7 +1192,7 @@ export class UnifiedLeaveService {
             $match: {
               employeeId: new Types.ObjectId(employeeId),
               leaveTypeId: new Types.ObjectId(ent.leaveTypeId),
-              status: LeaveStatus.PENDING,
+              status: { $in: ['pending', 'PENDING'] },
             },
           },
           { $group: { _id: null, pendingDays: { $sum: '$durationDays' } } },
@@ -995,21 +1201,26 @@ export class UnifiedLeaveService {
         const takenFromRequests = takenAgg[0]?.takenDays ?? 0;
         const pendingFromRequests = pendingAgg[0]?.pendingDays ?? 0;
 
-        const taken = (ent.taken ?? 0) + takenFromRequests;
-        const pending = Math.max(ent.pending ?? 0, pendingFromRequests);
-        const accrued =
-          ent.accruedRounded ??
-          ent.accruedActual ??
-          ent.yearlyEntitlement ??
-          0;
+        // Use aggregated values from actual requests for accuracy
+        // This ensures we always have the correct count from approved/pending requests
+        const taken = takenFromRequests;
+        const pending = pendingFromRequests;
+        const yearly = ent.yearlyEntitlement ?? 0;
         const carryForward = ent.carryForward ?? 0;
-        const remaining =
-          ent.remaining ?? accrued + carryForward - taken - pending;
+
+        // Always calculate remaining from source values: yearly + carryForward - taken
+        // This ensures accuracy even if stored values are stale
+        const remaining = yearly + carryForward - taken;
+
+        // Get leave type info
+        const leaveType = leaveTypeMap.get(ent.leaveTypeId.toString());
 
         return {
           leaveTypeId: ent.leaveTypeId,
-          yearlyEntitlement: ent.yearlyEntitlement ?? 0,
-          accrued,
+          leaveTypeName: leaveType?.name || '',
+          leaveTypeCode: leaveType?.code || '',
+          yearlyEntitlement: yearly,
+          accrued: yearly,
           taken,
           pending,
           carryForward,

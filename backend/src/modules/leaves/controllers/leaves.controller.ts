@@ -146,7 +146,7 @@ export class UnifiedLeaveController {
   }
 
   @Get('requests')
-  @Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  @Roles(SystemRole.DEPARTMENT_HEAD, SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
   async getAllRequests(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
@@ -215,6 +215,31 @@ export class UnifiedLeaveController {
     @Query('reason') reason?: string,
   ) {
     return this.service.managerReject(id, managerId, reason);
+  }
+
+  @Patch('requests/:id/return-for-correction')
+  @Roles(SystemRole.DEPARTMENT_HEAD, SystemRole.HR_MANAGER, SystemRole.HR_EMPLOYEE, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  async returnForCorrection(
+    @Param('id') id: string,
+    @Query('reviewerId') reviewerId: string,
+    @Query('reason') reason: string,
+  ) {
+    return this.service.returnForCorrection(id, reviewerId, reason);
+  }
+
+  @Patch('requests/:id/resubmit')
+  @Roles(SystemRole.DEPARTMENT_EMPLOYEE, SystemRole.DEPARTMENT_HEAD, SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  async resubmitCorrectedRequest(
+    @Param('id') id: string,
+    @Query('employeeId') employeeId: string,
+    @Body() corrections: Partial<{
+      from: string;
+      to: string;
+      justification: string;
+      attachmentId: string;
+    }>,
+  ) {
+    return this.service.resubmitCorrectedRequest(id, employeeId, corrections);
   }
 
   @Patch('requests/:id/hr-finalize')

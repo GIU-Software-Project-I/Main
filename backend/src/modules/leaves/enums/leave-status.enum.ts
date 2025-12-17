@@ -3,4 +3,5 @@ export enum LeaveStatus {
   APPROVED = 'approved',
   REJECTED = 'rejected',
   CANCELLED = 'cancelled',
+  RETURNED_FOR_CORRECTION = 'returned_for_correction',
 }
