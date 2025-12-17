@@ -716,7 +716,7 @@ export default function ShiftManagementPage() {
                               <span>
                                 {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
                               </span>
-                                                            <span>Policy: {shift.punchPolicy.replace('_', ' ')}</span>
+                                                            <span>Policy: {shift.punchPolicy ? shift.punchPolicy.replace('_', ' ') : 'N/A'}</span>
                                                             <span>
                                 Grace: {shift.graceInMinutes}m in / {shift.graceOutMinutes}m out
                               </span>

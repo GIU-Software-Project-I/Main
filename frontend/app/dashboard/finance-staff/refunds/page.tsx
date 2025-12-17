@@ -6,7 +6,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import { SystemRole } from '@/app/types';
 
 export default function RefundsPage() {
-  const { hasRole, user } = useAuth();
+  const { user } = useAuth();
   const [refunds, setRefunds] = useState<RefundGeneration[]>([]);
   const [payrollCycles, setPayrollCycles] = useState<PayrollCycle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,9 +32,9 @@ export default function RefundsPage() {
   const [refundNotes, setRefundNotes] = useState('');
 
   useEffect(() => {
-    if (!hasRole([SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN])) return;
+    if (!user?.role || ![SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN].includes(user.role as SystemRole)) return;
     loadData();
-  }, [hasRole]);
+  }, [user]);
 
   const loadData = async () => {
     setLoading(true);
@@ -109,7 +109,7 @@ export default function RefundsPage() {
     setRefundType('dispute');
   };
 
-  if (!hasRole([SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN])) {
+  if (!user?.role || ![SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN].includes(user.role as SystemRole)) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-slate-500">Access denied. Finance Staff role required.</p>

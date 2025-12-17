@@ -6,13 +6,8 @@ export class CreateInsuranceDto {
   name: string;
 
   @IsNotEmpty()
-  @IsNumber()
-  @Min(0)
-  amount: number;
-
-  @IsNotEmpty()
   @IsString()
-  createdByEmployeeId: string;
+  createdByEmployeeId: string; // Keep original name
 
   @IsNotEmpty()
   @IsNumber()

@@ -43,7 +43,6 @@ export default function PayrollSystemConfigurationApprovalPage() {
     { id: "signingBonuses", label: "Signing Bonuses", icon: "🎁" },
     { id: "terminationBenefits", label: "Termination Benefits", icon: "🚪" },
     { id: "taxRules", label: "Tax Rules", icon: "📊" },
-    { id: "taxBrackets", label: "Tax Brackets", icon: "🧮" },
   ];
 
   const filtered = useMemo(() => {

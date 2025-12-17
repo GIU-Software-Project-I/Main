@@ -10,7 +10,7 @@ export default function JobCandidatePage() {
           <h1 className="text-3xl font-bold text-slate-900">Job Candidate Portal</h1>
           <p className="text-slate-600 mt-2">Track your applications and status</p>
         </div>
-        <Link href="/dashboard/department-employee/employee-profile">
+        <Link href="/portal/my-profile">
           <button className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
             My Profile
           </button>
@@ -49,7 +49,7 @@ export default function JobCandidatePage() {
             <div className="text-2xl mb-2">📋</div>
             <p className="font-medium text-slate-900">My Applications</p>
           </button>
-          <Link href="/dashboard/department-employee/employee-profile" className="contents">
+          <Link href="/portal/my-profile" className="contents">
             <button className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center w-full">
               <div className="text-2xl mb-2">👤</div>
               <p className="font-medium text-slate-900">My Profile</p>

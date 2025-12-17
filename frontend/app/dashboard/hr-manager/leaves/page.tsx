@@ -7,6 +7,7 @@ import type { LeaveBalanceSummary } from '@/app/types/leaves';
 
 interface LeaveRequest {
   _id: string;
+  id?: string;
   employeeId: string;
   leaveTypeId: string;
   dates: {
@@ -34,12 +35,24 @@ interface LeaveType {
   code: string;
 }
 
+interface AccrualResult {
+  ok: boolean;
+  message?: string;
+  processed: number;
+  created?: number;
+  totalEntitlements?: number;
+  referenceDate: string;
+  method: string;
+  roundingRule: string;
+}
+
 export default function HRManagerLeavesPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'requests' | 'entitlements' | 'adjustments'>('requests');
-  
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'requests' | 'entitlements' | 'adjustments' | 'accruals'>('requests');
+
   // Requests state
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('PENDING');
@@ -66,11 +79,145 @@ export default function HRManagerLeavesPage() {
     effectiveDate: new Date().toISOString().split('T')[0],
   });
 
+  // Accrual state
+  const [accrualForm, setAccrualForm] = useState({
+    referenceDate: new Date().toISOString().split('T')[0],
+    method: 'monthly' as 'monthly' | 'yearly' | 'per-term',
+    roundingRule: 'round' as 'none' | 'round' | 'round_up' | 'round_down',
+  });
+  const [carryForwardForm, setCarryForwardForm] = useState({
+    referenceDate: new Date().toISOString().split('T')[0],
+    useDefaultRules: true,
+    annualCap: 10,
+    annualExpiryMonths: 6,
+    sickCanCarry: false,
+    personalCap: 5,
+    personalExpiryMonths: 3,
+  });
+  const [accrualRunning, setAccrualRunning] = useState(false);
+  const [lastAccrualResult, setLastAccrualResult] = useState<AccrualResult | null>(null);
+  const [carryForwardPreview, setCarryForwardPreview] = useState<any>(null);
+  const [carryForwardReport, setCarryForwardReport] = useState<any>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [recalcEmployeeId, setRecalcEmployeeId] = useState('');
+
+  // Override state
+  const [overrideForm, setOverrideForm] = useState({
+    employeeId: '',
+    leaveTypeId: '',
+    carryForwardDays: 0,
+    expiryDate: '',
+    reason: '',
+  });
+  const [showOverrideModal, setShowOverrideModal] = useState(false);
+
+  // Accrual Suspension state
+  const [suspensionForm, setSuspensionForm] = useState({
+    employeeId: '',
+    leaveTypeId: '',
+    suspensionType: 'unpaid' as 'unpaid' | 'long_absence',
+    fromDate: '',
+    toDate: '',
+    adjustmentDays: 0,
+    reason: '',
+  });
+  const [showSuspensionModal, setShowSuspensionModal] = useState(false);
+  const [suspensionPreview, setSuspensionPreview] = useState<{
+    workingDays: number;
+    totalDays: number;
+    prorateRatio: number;
+    adjustedAccrual: number;
+    originalAccrual: number;
+  } | null>(null);
+  const [employeeSuspensions, setEmployeeSuspensions] = useState<Array<{
+    employeeId: string;
+    leaveTypeId: string;
+    leaveTypeName: string;
+    suspensionType: string;
+    fromDate: string;
+    toDate: string;
+    adjustmentDays: number;
+    reason: string;
+    appliedAt: string;
+  }>>([]);
+
+  // Payroll Sync state
+  const [payrollSyncForm, setPayrollSyncForm] = useState({
+    employeeId: '',
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+    baseSalary: 5000,
+    workDaysInMonth: 22,
+  });
+  const [showPayrollSyncModal, setShowPayrollSyncModal] = useState(false);
+  const [payrollSyncResult, setPayrollSyncResult] = useState<{
+    ok: boolean;
+    employeeId: string;
+    payrollPeriod: string;
+    unpaidLeaveDeduction: {
+      totalDays: number;
+      deductionAmount: number;
+      formula: string;
+      leaves: Array<{
+        requestId: string;
+        from: string;
+        to: string;
+        days: number;
+      }>;
+    };
+    balanceSummary: {
+      annual: { entitled: number; taken: number; remaining: number };
+      sick: { entitled: number; taken: number; remaining: number };
+    };
+    syncedAt: string;
+    error?: string;
+  } | null>(null);
+  const [payrollSyncHistory, setPayrollSyncHistory] = useState<Array<{
+    employeeId: string;
+    payrollPeriod: string;
+    deductionAmount: number;
+    totalDays: number;
+    syncedAt: string;
+  }>>([]);
+  const [payrollSyncLoading, setPayrollSyncLoading] = useState(false);
+
+  // Finalization Modal state
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [finalizeRequest, setFinalizeRequest] = useState<LeaveRequest | null>(null);
+  const [finalizeDecision, setFinalizeDecision] = useState<'approve' | 'reject'>('approve');
+  const [finalizeLoading, setFinalizeLoading] = useState(false);
+  const [finalizeOptions, setFinalizeOptions] = useState({
+    syncPayroll: true,
+    baseSalary: 5000,
+    workDaysInMonth: 22,
+    rejectReason: '',
+  });
+  const [finalizeResult, setFinalizeResult] = useState<{
+    ok: boolean;
+    message: string;
+    payrollImpact?: {
+      isUnpaidLeave: boolean;
+      deductionAmount: number;
+      dailyRate: number;
+      daysDeducted: number;
+      formula: string;
+    };
+    balanceUpdate?: {
+      leaveTypeName: string;
+      previousBalance: number;
+      newBalance: number;
+      daysDeducted: number;
+    };
+  } | null>(null);
+
   const fetchLeaveTypes = async () => {
     try {
       const response = await leavesService.getLeaveTypes();
+      console.log('Leave types response:', response);
       if (Array.isArray(response.data)) {
         setLeaveTypes(response.data);
+        console.log('Leave types set:', response.data);
       }
     } catch (err) {
       console.error('Failed to fetch leave types:', err);
@@ -165,20 +312,140 @@ export default function HRManagerLeavesPage() {
     }
   };
 
-  const handleHRFinalize = async (id: string, decision: 'approve' | 'reject') => {
-    if (!user) return;
-    if (decision === 'approve' && !confirm('Final approval - approve this leave request?')) return;
-    if (decision === 'reject') {
-      const reason = prompt('Please provide a reason for rejection:');
-      if (!reason) return;
+  // Open finalization modal
+  const openFinalizeModal = (request: LeaveRequest, decision: 'approve' | 'reject') => {
+    setFinalizeRequest(request);
+    setFinalizeDecision(decision);
+    setFinalizeResult(null);
+    setFinalizeOptions({
+      syncPayroll: true,
+      baseSalary: 5000,
+      workDaysInMonth: 22,
+      rejectReason: '',
+    });
+    setShowFinalizeModal(true);
+  };
+
+  // Handle HR Finalization with payroll sync
+  const handleHRFinalizeWithSync = async () => {
+    if (!user || !finalizeRequest) return;
+
+    if (finalizeDecision === 'reject' && !finalizeOptions.rejectReason.trim()) {
+      setError('Please provide a reason for rejection');
+      return;
     }
 
     try {
-      await leavesService.hrFinalize(id, user.id, decision);
+      setFinalizeLoading(true);
+      setError(null);
+
+      // Validate request has required data
+      const requestId = finalizeRequest._id || finalizeRequest.id;
+      if (!requestId) {
+        setError('Invalid request ID');
+        setFinalizeLoading(false);
+        return;
+      }
+
+      console.log('[HR Finalize] Request ID:', requestId, 'User ID:', user.id, 'Decision:', finalizeDecision);
+
+      // Use the simple hrFinalize API with allowNegative=true to bypass balance checks
+      const response = await leavesService.hrFinalize(
+        requestId,
+        user.id,
+        finalizeDecision,
+        true, // allowNegative
+        finalizeDecision === 'reject' ? finalizeOptions.rejectReason : undefined
+      );
+
+      console.log('[HR Finalize] Response:', response);
+
+      if (response.error) {
+        const errorMessage = typeof response.error === 'string'
+          ? response.error
+          : response.error?.message || 'Failed to finalize request';
+        console.error('[HR Finalize] Error:', errorMessage);
+        setError(errorMessage);
+        setFinalizeLoading(false);
+        return;
+      }
+
+      if (!response.data) {
+        console.error('[HR Finalize] No response data');
+        setError('No response data from server');
+        setFinalizeLoading(false);
+        return;
+      }
+
+      // Calculate payroll impact for display
+      const durationDays = finalizeRequest.durationDays || 0;
+      const leaveTypeName = finalizeRequest.leaveTypeName || 'Leave';
+      const isUnpaidLeave = leaveTypeName.toLowerCase().includes('unpaid');
+
+      let payrollImpact = null;
+      if (finalizeDecision === 'approve' && isUnpaidLeave && finalizeOptions.syncPayroll && durationDays > 0) {
+        const dailyRate = finalizeOptions.baseSalary / finalizeOptions.workDaysInMonth;
+        const deductionAmount = dailyRate * durationDays;
+        payrollImpact = {
+          deductionAmount: Math.round(deductionAmount * 100) / 100,
+          dailyRate: Math.round(dailyRate * 100) / 100,
+          daysDeducted: durationDays,
+        };
+      }
+
+      setFinalizeResult({
+        ok: true,
+        message: finalizeDecision === 'approve'
+          ? `Leave request approved successfully! ${durationDays} day(s) of ${leaveTypeName} deducted from balance.`
+          : 'Leave request rejected.',
+        payrollImpact: payrollImpact ? {
+          isUnpaidLeave: true,
+          ...payrollImpact,
+          formula: `(${finalizeOptions.baseSalary} / ${finalizeOptions.workDaysInMonth}) × ${durationDays}`,
+        } : undefined,
+        balanceUpdate: finalizeDecision === 'approve' ? {
+          leaveTypeName,
+          previousBalance: 0,
+          newBalance: 0,
+          daysDeducted: durationDays,
+        } : undefined,
+      });
+
+      setSuccessMessage(finalizeDecision === 'approve'
+        ? 'Leave request approved successfully!'
+        : 'Leave request rejected.');
+      setTimeout(() => setSuccessMessage(null), 5000);
+
+      // Close modal after success
+      setTimeout(() => {
+        setShowFinalizeModal(false);
+        setFinalizeRequest(null);
+        setFinalizeResult(null);
+      }, 2000);
+
       await fetchRequests();
     } catch (err) {
-      const message = err instanceof Error ? err.message : `Failed to ${decision} request`;
+      console.error('[HR Finalize] Caught error:', err);
+      const message = err instanceof Error ? err.message : 'Failed to finalize request';
       setError(message);
+      setFinalizeLoading(false);
+    } finally {
+      setFinalizeLoading(false);
+    }
+  };
+
+  const handleHRFinalize = async (id: string, decision: 'approve' | 'reject') => {
+    if (!user) return;
+
+    // Find the request and open modal - check both _id and id
+    const request = requests.find(r => r._id === id || r.id === id);
+    console.log('handleHRFinalize called with id:', id, 'found request:', request);
+
+    if (request) {
+      openFinalizeModal(request, decision);
+    } else {
+      console.error('Request not found for id:', id);
+      setError('Request not found');
     }
   };
 
@@ -222,10 +489,10 @@ export default function HRManagerLeavesPage() {
       await leavesService.createAdjustment({
         employeeId: adjustmentForm.employeeId,
         leaveTypeId: adjustmentForm.leaveTypeId,
-        type: adjustmentForm.type,
-        days: adjustmentForm.days,
+        adjustmentType: adjustmentForm.type,
+        amount: adjustmentForm.days,
         reason: adjustmentForm.reason,
-        effectiveDate: adjustmentForm.effectiveDate,
+        hrUserId: user?.id || '',
       });
       setError(null);
       setAdjustmentForm({
@@ -239,7 +506,8 @@ export default function HRManagerLeavesPage() {
       if (adjustmentForm.employeeId === selectedEmployeeId) {
         await fetchEmployeeBalances(selectedEmployeeId);
       }
-      alert('Balance adjustment created successfully!');
+      setSuccessMessage('Balance adjustment created successfully!');
+      setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create adjustment';
       setError(message);
@@ -248,8 +516,550 @@ export default function HRManagerLeavesPage() {
     }
   };
 
+  // Run accrual for all employees
+  const handleRunAccrual = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirm('This will run accrual calculation for all employees. Continue?')) return;
+
+    try {
+      setAccrualRunning(true);
+      setError(null);
+      const response = await leavesService.runAccrual({
+        referenceDate: accrualForm.referenceDate,
+        method: accrualForm.method,
+        roundingRule: accrualForm.roundingRule,
+      });
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      const result = response.data as AccrualResult;
+      setLastAccrualResult(result);
+
+      if (result.ok) {
+        const created = result.created || 0;
+        const processed = result.processed || 0;
+        setSuccessMessage(
+          `Accrual completed! Created ${created} new entitlements, processed ${processed} accruals.`
+        );
+      } else {
+        setError(result.message || 'Accrual failed');
+      }
+      setTimeout(() => setSuccessMessage(null), 8000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to run accrual';
+      setError(message);
+    } finally {
+      setAccrualRunning(false);
+    }
+  };
+
+  // Build leave type rules from form
+  const buildLeaveTypeRules = () => {
+    if (carryForwardForm.useDefaultRules) return undefined;
+
+    return {
+      annual: {
+        cap: carryForwardForm.annualCap,
+        expiryMonths: carryForwardForm.annualExpiryMonths,
+        canCarryForward: carryForwardForm.annualCap > 0
+      },
+      sick: {
+        cap: 0,
+        expiryMonths: 0,
+        canCarryForward: carryForwardForm.sickCanCarry
+      },
+      personal: {
+        cap: carryForwardForm.personalCap,
+        expiryMonths: carryForwardForm.personalExpiryMonths,
+        canCarryForward: carryForwardForm.personalCap > 0
+      },
+    };
+  };
+
+  // Preview carry-forward changes
+  const handlePreviewCarryForward = async () => {
+    try {
+      setAccrualRunning(true);
+      setError(null);
+      const response = await leavesService.previewCarryForward({
+        referenceDate: carryForwardForm.referenceDate,
+        leaveTypeRules: buildLeaveTypeRules(),
+      });
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      setCarryForwardPreview(response.data);
+      setShowPreviewModal(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to preview carry-forward';
+      setError(message);
+    } finally {
+      setAccrualRunning(false);
+    }
+  };
+
+  // Run carry forward for all employees
+  const handleCarryForward = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirm('This will process year-end carry-forward for all employees. This action cannot be undone. Continue?')) return;
+
+    try {
+      setAccrualRunning(true);
+      setError(null);
+      const response = await leavesService.carryForward({
+        referenceDate: carryForwardForm.referenceDate,
+        leaveTypeRules: buildLeaveTypeRules(),
+      });
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      const result = response.data as any;
+      if (result.ok) {
+        setSuccessMessage(
+          `Year-end carry-forward completed! ${result.processed} entitlements processed. ` +
+          `${result.totalCarriedForward} days carried forward, ${result.totalExpired} days expired.`
+        );
+      }
+      setTimeout(() => setSuccessMessage(null), 8000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to run carry-forward';
+      setError(message);
+    } finally {
+      setAccrualRunning(false);
+    }
+  };
+
+  // Fetch carry-forward report
+  const handleFetchReport = async () => {
+    try {
+      setAccrualRunning(true);
+      setError(null);
+      const response = await leavesService.getCarryForwardReport();
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      setCarryForwardReport(response.data);
+      setShowReportModal(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch report';
+      setError(message);
+    } finally {
+      setAccrualRunning(false);
+    }
+  };
+
+  // Override carry-forward for specific employee
+  const handleOverrideCarryForward = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Override form submitted:', overrideForm);
+
+    if (!overrideForm.employeeId || !overrideForm.leaveTypeId || !overrideForm.reason) {
+      setError('Please fill all required fields (Employee ID, Leave Type, and Reason are required)');
+      return;
+    }
+
+    try {
+      setAccrualRunning(true);
+      setError(null);
+
+      console.log('Calling overrideCarryForward API with:', {
+        employeeId: overrideForm.employeeId,
+        leaveTypeId: overrideForm.leaveTypeId,
+        carryForwardDays: overrideForm.carryForwardDays,
+        expiryDate: overrideForm.expiryDate || undefined,
+        reason: overrideForm.reason,
+      });
+
+      const response = await leavesService.overrideCarryForward({
+        employeeId: overrideForm.employeeId,
+        leaveTypeId: overrideForm.leaveTypeId,
+        carryForwardDays: overrideForm.carryForwardDays,
+        expiryDate: overrideForm.expiryDate || undefined,
+        reason: overrideForm.reason,
+      });
+
+      console.log('Override response:', response);
+
+      if (response.error) {
+        setError(`Override failed: ${response.error}`);
+        return;
+      }
+
+      if (response.data && (response.data as any).ok) {
+        const result = response.data as any;
+        setSuccessMessage(
+          `Carry-forward override applied! Changed from ${result.previousCarryForward} to ${result.newCarryForward} days. ` +
+          `New remaining balance: ${result.newRemaining} days.`
+        );
+        setTimeout(() => setSuccessMessage(null), 8000);
+        setShowOverrideModal(false);
+        setOverrideForm({
+          employeeId: '',
+          leaveTypeId: '',
+          carryForwardDays: 0,
+          expiryDate: '',
+          reason: '',
+        });
+      } else {
+        setError('Override failed: Unexpected response from server');
+      }
+    } catch (err) {
+      console.error('Override error:', err);
+      const message = err instanceof Error ? err.message : 'Failed to override carry-forward';
+      setError(`Override failed: ${message}`);
+    } finally {
+      setAccrualRunning(false);
+    }
+  };
+
+  // Recalculate single employee's balances
+  const handleRecalcEmployee = async () => {
+    if (!recalcEmployeeId.trim()) {
+      setError('Please enter an employee ID');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await leavesService.recalcEmployee(recalcEmployeeId);
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      setSuccessMessage(`Employee ${recalcEmployeeId} balances recalculated successfully!`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+      setRecalcEmployeeId('');
+
+      // If we were viewing this employee's balances, refresh them
+      if (recalcEmployeeId === selectedEmployeeId) {
+        await fetchEmployeeBalances(selectedEmployeeId);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to recalculate employee balances';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initialize default entitlements for an employee (for personal leave fix)
+  const handleInitializeEntitlements = async (employeeId: string) => {
+    if (!employeeId.trim()) {
+      setError('Please enter an employee ID');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      // Calling getBalance will trigger the backend to auto-create entitlements if they don't exist
+      const response = await leavesService.getBalance(employeeId);
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      setSuccessMessage(`Entitlements initialized for employee ${employeeId}!`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+
+      // Refresh the displayed balances
+      if (employeeId === selectedEmployeeId) {
+        setEmployeeBalances(Array.isArray(response.data) ? response.data : []);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to initialize entitlements';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calculate working days between two dates (excluding weekends)
+  const countWorkingDays = (startDate: Date, endDate: Date): number => {
+    let count = 0;
+    const current = new Date(startDate);
+    while (current <= endDate) {
+      const dayOfWeek = current.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Not Sunday (0) or Saturday (6)
+        count++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return count;
+  };
+
+  // Preview suspension adjustment calculation
+  const handlePreviewSuspension = () => {
+    if (!suspensionForm.fromDate || !suspensionForm.toDate) {
+      setError('Please select both from and to dates');
+      return;
+    }
+
+    const fromDate = new Date(suspensionForm.fromDate);
+    const toDate = new Date(suspensionForm.toDate);
+
+    if (fromDate > toDate) {
+      setError('From date cannot be after to date');
+      return;
+    }
+
+    const totalDays = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const workingDays = countWorkingDays(fromDate, toDate);
+
+    // Calculate the month's working days for proration
+    const monthStart = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
+    const monthEnd = new Date(fromDate.getFullYear(), fromDate.getMonth() + 1, 0);
+    const monthWorkingDays = countWorkingDays(monthStart, monthEnd);
+
+    // Calculate prorate ratio (days worked / total working days in month)
+    const prorateRatio = Math.max(0, (monthWorkingDays - workingDays) / monthWorkingDays);
+
+    // Assume 21 days annual entitlement, monthly accrual = 21/12 = 1.75
+    const monthlyAccrual = 21 / 12;
+    const adjustedAccrual = monthlyAccrual * prorateRatio;
+    const adjustmentDays = monthlyAccrual - adjustedAccrual;
+
+    setSuspensionPreview({
+      workingDays,
+      totalDays,
+      prorateRatio,
+      adjustedAccrual: Math.round(adjustedAccrual * 100) / 100,
+      originalAccrual: Math.round(monthlyAccrual * 100) / 100,
+    });
+
+    // Auto-set the adjustment days
+    setSuspensionForm(prev => ({
+      ...prev,
+      adjustmentDays: Math.round(adjustmentDays * 100) / 100,
+    }));
+  };
+
+  // Apply suspension adjustment using the existing createAdjustment endpoint
+  const handleApplySuspension = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!suspensionForm.employeeId || !suspensionForm.leaveTypeId || !suspensionForm.reason) {
+      setError('Please fill all required fields');
+      return;
+    }
+
+    if (suspensionForm.adjustmentDays <= 0) {
+      setError('Adjustment days must be greater than 0');
+      return;
+    }
+
+    try {
+      setAccrualRunning(true);
+      setError(null);
+
+      // Use the existing createAdjustment API to deduct the accrual
+      const response = await leavesService.createAdjustment({
+        employeeId: suspensionForm.employeeId,
+        leaveTypeId: suspensionForm.leaveTypeId,
+        adjustmentType: 'deduct',
+        amount: suspensionForm.adjustmentDays,
+        reason: `Accrual suspension (${suspensionForm.suspensionType === 'unpaid' ? 'Unpaid Leave' : 'Long Absence'}): ${suspensionForm.reason} | Period: ${suspensionForm.fromDate} to ${suspensionForm.toDate}`,
+        hrUserId: user?.id || '',
+      });
+
+      if (response.error) {
+        setError(`Failed to apply suspension: ${response.error}`);
+        return;
+      }
+
+      // Store the suspension record locally
+      const newSuspension = {
+        employeeId: suspensionForm.employeeId,
+        leaveTypeId: suspensionForm.leaveTypeId,
+        leaveTypeName: leaveTypes.find(lt => (lt._id || lt.id) === suspensionForm.leaveTypeId)?.name || '',
+        suspensionType: suspensionForm.suspensionType,
+        fromDate: suspensionForm.fromDate,
+        toDate: suspensionForm.toDate,
+        adjustmentDays: suspensionForm.adjustmentDays,
+        reason: suspensionForm.reason,
+        appliedAt: new Date().toISOString(),
+      };
+
+      setEmployeeSuspensions(prev => [newSuspension, ...prev]);
+
+      setSuccessMessage(
+        `Accrual suspension applied! Deducted ${suspensionForm.adjustmentDays} days from employee's balance ` +
+        `for ${suspensionForm.suspensionType === 'unpaid' ? 'unpaid leave' : 'long absence'} ` +
+        `from ${suspensionForm.fromDate} to ${suspensionForm.toDate}.`
+      );
+      setTimeout(() => setSuccessMessage(null), 8000);
+
+      // Reset form
+      setShowSuspensionModal(false);
+      setSuspensionForm({
+        employeeId: '',
+        leaveTypeId: '',
+        suspensionType: 'unpaid',
+        fromDate: '',
+        toDate: '',
+        adjustmentDays: 0,
+        reason: '',
+      });
+      setSuspensionPreview(null);
+
+    } catch (err) {
+      console.error('Suspension error:', err);
+      const message = err instanceof Error ? err.message : 'Failed to apply suspension';
+      setError(`Suspension failed: ${message}`);
+    } finally {
+      setAccrualRunning(false);
+    }
+  };
+
+  // Check employee's unpaid leaves and long absences
+  const checkEmployeeAbsences = async (employeeId: string) => {
+    if (!employeeId) return;
+
+    try {
+      setLoading(true);
+      const response = await leavesService.getMyRequests(employeeId, {
+        status: 'APPROVED',
+      });
+
+      if (response.error || !Array.isArray(response.data)) {
+        return;
+      }
+
+      // Filter for unpaid leaves and long absences (> 30 days)
+      const absences = (response.data as any[]).filter((leave: any) => {
+        const leaveTypeName = (leave.leaveTypeName || '').toLowerCase();
+        const isUnpaid = leaveTypeName.includes('unpaid');
+        const totalDays = leave.durationDays || 0;
+        const isLongAbsence = totalDays >= 30;
+        return isUnpaid || isLongAbsence;
+      });
+
+      if (absences.length > 0) {
+        // Auto-populate the first absence found
+        const firstAbsence = absences[0];
+        setSuspensionForm(prev => ({
+          ...prev,
+          employeeId,
+          fromDate: firstAbsence.dates?.from ? new Date(firstAbsence.dates.from).toISOString().split('T')[0] : '',
+          toDate: firstAbsence.dates?.to ? new Date(firstAbsence.dates.to).toISOString().split('T')[0] : '',
+          suspensionType: (firstAbsence.leaveTypeName || '').toLowerCase().includes('unpaid') ? 'unpaid' : 'long_absence',
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to check absences:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ============================================
+  // PAYROLL SYNC HANDLERS
+  // ============================================
+
+  // Generate payroll sync for a single employee
+  const handleGeneratePayrollSync = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!payrollSyncForm.employeeId) {
+      setError('Please enter an employee ID');
+      return;
+    }
+
+    if (payrollSyncForm.baseSalary <= 0) {
+      setError('Please enter a valid base salary');
+      return;
+    }
+
+    try {
+      setPayrollSyncLoading(true);
+      setError(null);
+
+      const result = await leavesService.generatePayrollSyncData(
+        payrollSyncForm.employeeId,
+        {
+          year: payrollSyncForm.year,
+          month: payrollSyncForm.month,
+          baseSalary: payrollSyncForm.baseSalary,
+          workDaysInMonth: payrollSyncForm.workDaysInMonth,
+        }
+      );
+
+      setPayrollSyncResult(result);
+
+      if (result.ok) {
+        // Add to history
+        setPayrollSyncHistory(prev => [{
+          employeeId: result.employeeId,
+          payrollPeriod: result.payrollPeriod,
+          deductionAmount: result.unpaidLeaveDeduction.deductionAmount,
+          totalDays: result.unpaidLeaveDeduction.totalDays,
+          syncedAt: result.syncedAt,
+        }, ...prev.slice(0, 9)]); // Keep last 10
+
+        if (result.unpaidLeaveDeduction.totalDays > 0) {
+          setSuccessMessage(
+            `Payroll sync complete! Found ${result.unpaidLeaveDeduction.totalDays} unpaid leave days. ` +
+            `Deduction amount: $${result.unpaidLeaveDeduction.deductionAmount.toFixed(2)}`
+          );
+        } else {
+          setSuccessMessage('Payroll sync complete! No unpaid leave deductions found for this period.');
+        }
+        setTimeout(() => setSuccessMessage(null), 8000);
+      } else {
+        setError(`Payroll sync failed: ${result.error}`);
+      }
+    } catch (err) {
+      console.error('Payroll sync error:', err);
+      const message = err instanceof Error ? err.message : 'Failed to generate payroll sync';
+      setError(`Payroll sync failed: ${message}`);
+    } finally {
+      setPayrollSyncLoading(false);
+    }
+  };
+
+  // Quick calculate deduction without full sync
+  const handleQuickCalculateDeduction = () => {
+    if (payrollSyncForm.baseSalary <= 0 || payrollSyncForm.workDaysInMonth <= 0) {
+      setError('Please enter valid salary and work days');
+      return;
+    }
+
+    // This is a preview calculation - actual days would come from employee's leave data
+    const previewDays = 1; // Default to 1 day for preview
+    const result = leavesService.calculateUnpaidDeduction(
+      payrollSyncForm.baseSalary,
+      payrollSyncForm.workDaysInMonth,
+      previewDays
+    );
+
+    setSuccessMessage(
+      `Daily rate: $${result.dailyRate.toFixed(2)} | ` +
+      `1 day deduction: $${result.deductionAmount.toFixed(2)} | ` +
+      `Formula: ${result.formula}`
+    );
+    setTimeout(() => setSuccessMessage(null), 10000);
+  };
+
+
   const getStatusConfig = (status: string) => {
-    switch (status) {
+    const upperStatus = (status || '').toUpperCase();
+    switch (upperStatus) {
       case 'PENDING':
         return { bg: 'bg-amber-100', text: 'text-amber-800', label: 'Pending' };
       case 'APPROVED':
@@ -294,10 +1104,19 @@ export default function HRManagerLeavesPage() {
           </div>
         )}
 
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {successMessage}
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
-            {(['requests', 'entitlements', 'adjustments'] as const).map((tab) => (
+            {(['requests', 'entitlements', 'adjustments', 'accruals'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -307,7 +1126,10 @@ export default function HRManagerLeavesPage() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                {tab === 'requests' ? 'Leave Requests' : tab === 'entitlements' ? 'Assign Entitlements' : 'Balance Adjustments'}
+                {tab === 'requests' ? 'Leave Requests' :
+                 tab === 'entitlements' ? 'Assign Entitlements' :
+                 tab === 'adjustments' ? 'Balance Adjustments' :
+                 'Auto Accruals'}
               </button>
             ))}
           </nav>
@@ -384,37 +1206,32 @@ export default function HRManagerLeavesPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 sm:ml-auto">
-                            {request.status === 'PENDING' && !managerApproved && (
+                            {(request.status === 'PENDING' || request.status === 'pending') && (
                               <>
+                                {/* HR Final approval buttons */}
                                 <button
-                                  onClick={() => handleManagerApprove(request._id)}
-                                  className="px-3 py-1.5 text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                  onClick={() => handleHRFinalize(request._id || request.id || '', 'approve')}
+                                  className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
                                 >
-                                  Approve (Manager)
+                                  ✓ Approve
                                 </button>
                                 <button
-                                  onClick={() => handleManagerReject(request._id)}
-                                  className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  onClick={() => handleHRFinalize(request._id || request.id || '', 'reject')}
+                                  className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
                                 >
-                                  Reject (Manager)
+                                  ✗ Reject
                                 </button>
                               </>
                             )}
-                            {request.status === 'PENDING' && managerApproved && !hrApproved && (
-                              <>
-                                <button
-                                  onClick={() => handleHRFinalize(request._id, 'approve')}
-                                  className="px-3 py-1.5 text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                >
-                                  Final Approve (HR)
-                                </button>
-                                <button
-                                  onClick={() => handleHRFinalize(request._id, 'reject')}
-                                  className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                >
-                                  Final Reject (HR)
-                                </button>
-                              </>
+                            {(request.status === 'APPROVED' || request.status === 'approved') && (
+                              <span className="px-3 py-1.5 text-sm font-medium text-green-600">
+                                ✓ Approved
+                              </span>
+                            )}
+                            {(request.status === 'REJECTED' || request.status === 'rejected') && (
+                              <span className="px-3 py-1.5 text-sm font-medium text-red-600">
+                                ✗ Rejected
+                              </span>
                             )}
                           </div>
                         </div>
@@ -645,7 +1462,1524 @@ export default function HRManagerLeavesPage() {
             </form>
           </div>
         )}
+
+        {/* Accruals Tab */}
+        {activeTab === 'accruals' && (
+          <div className="space-y-6">
+            {/* Accrual Info Card */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-6">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Automatic Leave Accrual</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Run accrual calculations to automatically add leave days to employee balances according to company policy.
+                    This ensures entitlements stay accurate without manual calculation.
+                  </p>
+                  <ul className="mt-2 text-sm text-gray-600 space-y-1">
+                    <li>• <strong>Monthly:</strong> Adds 1/12 of yearly entitlement each month</li>
+                    <li>• <strong>Yearly:</strong> Adds full yearly entitlement at once</li>
+                    <li>• <strong>Per-Term:</strong> Adds 1/3 of yearly entitlement (for academic/quarterly systems)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Run Accrual Form */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Run Leave Accrual</h2>
+                <form onSubmit={handleRunAccrual} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Reference Date</label>
+                    <input
+                      type="date"
+                      value={accrualForm.referenceDate}
+                      onChange={(e) => setAccrualForm({ ...accrualForm, referenceDate: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Date to calculate accrual from</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Accrual Method</label>
+                    <select
+                      value={accrualForm.method}
+                      onChange={(e) => setAccrualForm({ ...accrualForm, method: e.target.value as 'monthly' | 'yearly' | 'per-term' })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="monthly">Monthly (1/12 yearly)</option>
+                      <option value="yearly">Yearly (full entitlement)</option>
+                      <option value="per-term">Per-Term (1/3 yearly)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Rounding Rule</label>
+                    <select
+                      value={accrualForm.roundingRule}
+                      onChange={(e) => setAccrualForm({ ...accrualForm, roundingRule: e.target.value as 'none' | 'round' | 'round_up' | 'round_down' })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="round">Round to nearest</option>
+                      <option value="round_up">Round up</option>
+                      <option value="round_down">Round down</option>
+                      <option value="none">No rounding (keep decimals)</option>
+                    </select>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={accrualRunning}
+                    className="w-full px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {accrualRunning ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        Running Accrual...
+                      </>
+                    ) : (
+                      'Run Accrual for All Employees'
+                    )}
+                  </button>
+                </form>
+
+                {lastAccrualResult && (
+                  <div className={`mt-4 p-3 rounded-lg ${lastAccrualResult.ok ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                    <p className={`text-sm font-medium ${lastAccrualResult.ok ? 'text-green-800' : 'text-red-800'}`}>
+                      Last Accrual Result:
+                    </p>
+                    {lastAccrualResult.ok ? (
+                      <ul className="text-sm text-green-700 mt-1 space-y-0.5">
+                        {lastAccrualResult.created !== undefined && lastAccrualResult.created > 0 && (
+                          <li>• Created: {lastAccrualResult.created} new entitlements</li>
+                        )}
+                        <li>• Processed: {lastAccrualResult.processed} accruals</li>
+                        {lastAccrualResult.totalEntitlements !== undefined && (
+                          <li>• Total entitlements: {lastAccrualResult.totalEntitlements}</li>
+                        )}
+                        <li>• Method: {lastAccrualResult.method}</li>
+                        <li>• Date: {new Date(lastAccrualResult.referenceDate).toLocaleDateString()}</li>
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-red-700 mt-1">{lastAccrualResult.message}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Carry Forward Form */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Year-End Carry Forward</h2>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleFetchReport}
+                      disabled={accrualRunning}
+                      className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+                    >
+                      View Report
+                    </button>
+                    <button
+                      onClick={() => { setError(null); setShowOverrideModal(true); }}
+                      className="px-3 py-1.5 text-sm font-medium text-orange-600 bg-orange-100 rounded-lg hover:bg-orange-200"
+                    >
+                      Override
+                    </button>
+                  </div>
+                </div>
+                <form onSubmit={handleCarryForward} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Reference Date (Year End)</label>
+                    <input
+                      type="date"
+                      value={carryForwardForm.referenceDate}
+                      onChange={(e) => setCarryForwardForm({ ...carryForwardForm, referenceDate: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  {/* Use Default Rules Toggle */}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="useDefaultRules"
+                      checked={carryForwardForm.useDefaultRules}
+                      onChange={(e) => setCarryForwardForm({ ...carryForwardForm, useDefaultRules: e.target.checked })}
+                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                    />
+                    <label htmlFor="useDefaultRules" className="text-sm text-gray-700">
+                      Use default carry-forward rules
+                    </label>
+                  </div>
+
+                  {/* Default Rules Info */}
+                  {carryForwardForm.useDefaultRules && (
+                    <div className="p-3 bg-purple-50 border border-purple-100 rounded-lg text-sm">
+                      <p className="font-medium text-purple-800 mb-1">Default Rules:</p>
+                      <ul className="text-purple-700 space-y-0.5">
+                        <li>• Annual Leave: Up to 10 days, expires after 6 months</li>
+                        <li>• Sick Leave: Cannot be carried forward</li>
+                        <li>• Personal/Paternity: Up to 5 days, expires after 3 months</li>
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Custom Rules */}
+                  {!carryForwardForm.useDefaultRules && (
+                    <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-medium text-gray-700">Custom Rules:</p>
+
+                      {/* Annual Leave */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-gray-500">Annual Leave Cap</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={carryForwardForm.annualCap}
+                            onChange={(e) => setCarryForwardForm({ ...carryForwardForm, annualCap: parseInt(e.target.value) || 0 })}
+                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-purple-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500">Expiry (months)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={carryForwardForm.annualExpiryMonths}
+                            onChange={(e) => setCarryForwardForm({ ...carryForwardForm, annualExpiryMonths: parseInt(e.target.value) || 6 })}
+                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-purple-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Sick Leave */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="sickCanCarry"
+                          checked={carryForwardForm.sickCanCarry}
+                          onChange={(e) => setCarryForwardForm({ ...carryForwardForm, sickCanCarry: e.target.checked })}
+                          className="w-4 h-4 text-purple-600 border-gray-300 rounded"
+                        />
+                        <label htmlFor="sickCanCarry" className="text-xs text-gray-600">
+                          Allow sick leave carry-forward
+                        </label>
+                      </div>
+
+                      {/* Personal Leave */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-gray-500">Personal Leave Cap</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={carryForwardForm.personalCap}
+                            onChange={(e) => setCarryForwardForm({ ...carryForwardForm, personalCap: parseInt(e.target.value) || 0 })}
+                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-purple-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500">Expiry (months)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={carryForwardForm.personalExpiryMonths}
+                            onChange={(e) => setCarryForwardForm({ ...carryForwardForm, personalExpiryMonths: parseInt(e.target.value) || 3 })}
+                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-purple-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handlePreviewCarryForward}
+                      disabled={accrualRunning}
+                      className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Preview Changes
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={accrualRunning}
+                      className="flex-1 px-4 py-2.5 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {accrualRunning ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                          </svg>
+                          Processing...
+                        </>
+                      ) : (
+                        'Run Carry Forward'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            {/* Individual Employee Recalculation */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Individual Employee Actions</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Recalculate Employee */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Recalculate Employee Balances</h3>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Recalculates taken/pending from actual leave requests to fix any discrepancies.
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={recalcEmployeeId}
+                      onChange={(e) => setRecalcEmployeeId(e.target.value)}
+                      className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter employee ID"
+                    />
+                    <button
+                      onClick={handleRecalcEmployee}
+                      disabled={loading || !recalcEmployeeId.trim()}
+                      className="px-4 py-2.5 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Recalculate
+                    </button>
+                  </div>
+                </div>
+
+                {/* Initialize Entitlements */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Initialize Default Entitlements</h3>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Creates default entitlements (Annual: 21, Sick: 14, Personal: 5 days) for employees without any.
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={selectedEmployeeId}
+                      onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                      className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter employee ID"
+                    />
+                    <button
+                      onClick={() => handleInitializeEntitlements(selectedEmployeeId)}
+                      disabled={loading || !selectedEmployeeId.trim()}
+                      className="px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Initialize
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Accrual Suspension for Unpaid Leave / Long Absence */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Accrual Suspension / Adjustment</h2>
+                  <p className="text-sm text-gray-500 mt-1">Adjust accruals for employees during unpaid leave or long absences</p>
+                </div>
+                <button
+                  onClick={() => { setError(null); setShowSuspensionModal(true); }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                >
+                  Apply Suspension
+                </button>
+              </div>
+
+              {/* Info Card */}
+              <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg border border-red-100 p-4 mb-4">
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div className="text-sm">
+                    <p className="font-medium text-red-800">When to use Accrual Suspension:</p>
+                    <ul className="mt-1 text-red-700 space-y-0.5">
+                      <li>• <strong>Unpaid Leave:</strong> When employee takes unpaid leave ≥ 5 consecutive working days</li>
+                      <li>• <strong>Long Absence:</strong> Any absence ≥ 30 consecutive calendar days</li>
+                      <li>• <strong>Prorated Calculation:</strong> System calculates adjustment based on working days missed</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Suspension Rules Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                      <span className="text-red-600 font-bold text-sm">5+</span>
+                    </div>
+                    <span className="font-medium text-gray-700">Unpaid Leave</span>
+                  </div>
+                  <p className="text-xs text-gray-500">Suspend accrual for unpaid leave of 5+ working days</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                      <span className="text-orange-600 font-bold text-sm">30+</span>
+                    </div>
+                    <span className="font-medium text-gray-700">Long Absence</span>
+                  </div>
+                  <p className="text-xs text-gray-500">Prorate accrual for absences of 30+ calendar days</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <span className="font-medium text-gray-700">Prorated</span>
+                  </div>
+                  <p className="text-xs text-gray-500">Monthly accrual × (Working days / Total month days)</p>
+                </div>
+              </div>
+
+              {/* Recent Suspensions Applied */}
+              {employeeSuspensions.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Recent Suspensions Applied</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Employee ID</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Leave Type</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Type</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Period</th>
+                          <th className="px-3 py-2 text-right font-medium text-gray-500">Deducted</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Applied</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {employeeSuspensions.slice(0, 5).map((suspension, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 font-mono text-xs">{suspension.employeeId.slice(-8)}</td>
+                            <td className="px-3 py-2">{suspension.leaveTypeName}</td>
+                            <td className="px-3 py-2">
+                              <span className={`px-2 py-0.5 text-xs rounded-full ${
+                                suspension.suspensionType === 'unpaid' 
+                                  ? 'bg-red-100 text-red-700' 
+                                  : 'bg-orange-100 text-orange-700'
+                              }`}>
+                                {suspension.suspensionType === 'unpaid' ? 'Unpaid' : 'Long Absence'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-xs">
+                              {new Date(suspension.fromDate).toLocaleDateString()} - {new Date(suspension.toDate).toLocaleDateString()}
+                            </td>
+                            <td className="px-3 py-2 text-right text-red-600 font-medium">-{suspension.adjustmentDays} days</td>
+                            <td className="px-3 py-2 text-xs text-gray-500">
+                              {new Date(suspension.appliedAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Payroll Sync - Real-time Salary Deductions */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Payroll Sync</h2>
+                  <p className="text-sm text-gray-500 mt-1">Real-time sync with payroll for salary deductions and adjustments</p>
+                </div>
+                <button
+                  onClick={() => { setError(null); setShowPayrollSyncModal(true); }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                >
+                  Sync Employee
+                </button>
+              </div>
+
+              {/* Info Card */}
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg border border-indigo-100 p-4 mb-4">
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </div>
+                  <div className="text-sm">
+                    <p className="font-medium text-indigo-800">Automatic Payroll Integration:</p>
+                    <ul className="mt-1 text-indigo-700 space-y-0.5">
+                      <li>• <strong>Unpaid Leave Deductions:</strong> Calculate salary deductions for unpaid leave days</li>
+                      <li>• <strong>Leave Encashment:</strong> Calculate payout for unused leave days</li>
+                      <li>• <strong>Real-time Sync:</strong> Get latest leave data for payroll processing</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="font-medium text-gray-700">Deduction Calc</span>
+                  </div>
+                  <p className="text-xs text-gray-500">Daily Rate = Monthly Salary ÷ Work Days</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="font-medium text-gray-700">Auto-Detect</span>
+                  </div>
+                  <p className="text-xs text-gray-500">Finds approved unpaid leaves in period</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <span className="font-medium text-gray-700">Balance Summary</span>
+                  </div>
+                  <p className="text-xs text-gray-500">Includes current leave balances</p>
+                </div>
+              </div>
+
+              {/* Recent Sync History */}
+              {payrollSyncHistory.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Recent Payroll Syncs</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Employee ID</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Period</th>
+                          <th className="px-3 py-2 text-right font-medium text-gray-500">Unpaid Days</th>
+                          <th className="px-3 py-2 text-right font-medium text-gray-500">Deduction</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">Synced At</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {payrollSyncHistory.slice(0, 5).map((sync, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 font-mono text-xs">{sync.employeeId.slice(-8)}</td>
+                            <td className="px-3 py-2">{sync.payrollPeriod}</td>
+                            <td className="px-3 py-2 text-right">{sync.totalDays}</td>
+                            <td className="px-3 py-2 text-right text-red-600 font-medium">
+                              {sync.deductionAmount > 0 ? `-$${sync.deductionAmount.toFixed(2)}` : '$0.00'}
+                            </td>
+                            <td className="px-3 py-2 text-xs text-gray-500">
+                              {new Date(sync.syncedAt).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Last Sync Result */}
+              {payrollSyncResult && (
+                <div className={`mt-4 p-4 rounded-lg ${payrollSyncResult.ok ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                  <h3 className={`text-sm font-medium ${payrollSyncResult.ok ? 'text-green-800' : 'text-red-800'} mb-2`}>
+                    Last Sync Result - {payrollSyncResult.payrollPeriod}
+                  </h3>
+                  {payrollSyncResult.ok ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-500">Unpaid Days:</span>
+                        <span className="ml-2 font-medium">{payrollSyncResult.unpaidLeaveDeduction.totalDays}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Deduction:</span>
+                        <span className="ml-2 font-medium text-red-600">${payrollSyncResult.unpaidLeaveDeduction.deductionAmount.toFixed(2)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Annual Balance:</span>
+                        <span className="ml-2 font-medium">{payrollSyncResult.balanceSummary.annual.remaining} days</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Sick Balance:</span>
+                        <span className="ml-2 font-medium">{payrollSyncResult.balanceSummary.sick.remaining} days</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-red-700">{payrollSyncResult.error}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Personal Leave Fix Notice */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-amber-800">Personal Leave Balance Fix</h3>
+                  <p className="text-sm text-amber-700 mt-1">
+                    If employees show 0 days for Personal Leave, use the &quot;Initialize Default Entitlements&quot; feature above
+                    with their Employee ID. This will automatically create entitlements for all leave types including
+                    5 days of Personal Leave.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Preview Modal */}
+      {showPreviewModal && carryForwardPreview && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowPreviewModal(false)}></div>
+            <div className="relative inline-block bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-4xl sm:w-full max-h-[80vh] overflow-y-auto">
+              <div className="bg-white px-6 pt-6 pb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Carry-Forward Preview</h3>
+                  <button onClick={() => setShowPreviewModal(false)} className="text-gray-400 hover:text-gray-500">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Summary Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-blue-50 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-blue-600">{carryForwardPreview.summary?.employeesProcessed || 0}</p>
+                    <p className="text-sm text-blue-700">Employees</p>
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-green-600">{carryForwardPreview.totalCarriedForward || 0}</p>
+                    <p className="text-sm text-green-700">Days to Carry</p>
+                  </div>
+                  <div className="bg-red-50 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-red-600">{carryForwardPreview.totalExpired || 0}</p>
+                    <p className="text-sm text-red-700">Days to Expire</p>
+                  </div>
+                </div>
+
+                {/* By Leave Type */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">By Leave Type:</h4>
+                  <div className="space-y-2">
+                    {carryForwardPreview.summary?.byLeaveType?.map((lt: any) => (
+                      <div key={lt.leaveTypeId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span className="font-medium">{lt.leaveTypeName}</span>
+                        <div className="flex gap-4 text-sm">
+                          <span className="text-green-600">+{lt.totalCarried} carried</span>
+                          <span className="text-red-600">-{lt.totalExpired} expired</span>
+                          <span className="text-gray-500">{lt.employeesAffected} employees</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Details Table */}
+                {carryForwardPreview.details && carryForwardPreview.details.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Detailed Changes:</h4>
+                    <div className="overflow-x-auto max-h-64">
+                      <table className="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left">Employee</th>
+                            <th className="px-3 py-2 text-left">Leave Type</th>
+                            <th className="px-3 py-2 text-right">Remaining</th>
+                            <th className="px-3 py-2 text-right">Cap</th>
+                            <th className="px-3 py-2 text-right">Carried</th>
+                            <th className="px-3 py-2 text-right">Expired</th>
+                            <th className="px-3 py-2 text-left">Expiry Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {carryForwardPreview.details.slice(0, 50).map((d: any, idx: number) => (
+                            <tr key={idx} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 font-mono text-xs">{d.employeeId.slice(-8)}</td>
+                              <td className="px-3 py-2">{d.leaveTypeName}</td>
+                              <td className="px-3 py-2 text-right">{d.previousRemaining}</td>
+                              <td className="px-3 py-2 text-right">{d.cappedAmount}</td>
+                              <td className="px-3 py-2 text-right text-green-600">+{d.carriedForward}</td>
+                              <td className="px-3 py-2 text-right text-red-600">{d.expired > 0 ? `-${d.expired}` : '0'}</td>
+                              <td className="px-3 py-2">{d.expiryDate ? new Date(d.expiryDate).toLocaleDateString() : '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {carryForwardPreview.details.length > 50 && (
+                        <p className="text-sm text-gray-500 mt-2 text-center">
+                          Showing first 50 of {carryForwardPreview.details.length} records
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowPreviewModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={(e) => {
+                    setShowPreviewModal(false);
+                    handleCarryForward(e as any);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700"
+                >
+                  Execute Carry-Forward
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Modal */}
+      {showReportModal && carryForwardReport && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowReportModal(false)}></div>
+            <div className="relative inline-block bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-4xl sm:w-full max-h-[80vh] overflow-y-auto">
+              <div className="bg-white px-6 pt-6 pb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Carry-Forward Report</h3>
+                  <button onClick={() => setShowReportModal(false)} className="text-gray-400 hover:text-gray-500">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Summary */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-2xl font-bold text-blue-600">{carryForwardReport.summary?.totalEmployees || 0}</p>
+                    <p className="text-sm text-blue-700">Total Employees</p>
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <p className="text-2xl font-bold text-green-600">{carryForwardReport.summary?.totalCarryForward || 0}</p>
+                    <p className="text-sm text-green-700">Total Carry-Forward Days</p>
+                  </div>
+                </div>
+
+                {/* By Leave Type */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Summary by Leave Type:</h4>
+                  <div className="space-y-2">
+                    {carryForwardReport.summary?.byLeaveType?.map((lt: any) => (
+                      <div key={lt.leaveTypeId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span className="font-medium">{lt.leaveTypeName}</span>
+                        <div className="flex gap-4 text-sm">
+                          <span className="text-green-600">{lt.totalCarryForward} days</span>
+                          <span className="text-gray-500">{lt.employeesWithCarryForward} employees</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Detailed Report */}
+                {carryForwardReport.report && carryForwardReport.report.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Current Entitlements:</h4>
+                    <div className="overflow-x-auto max-h-64">
+                      <table className="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left">Employee</th>
+                            <th className="px-3 py-2 text-left">Leave Type</th>
+                            <th className="px-3 py-2 text-right">Yearly</th>
+                            <th className="px-3 py-2 text-right">Carry Fwd</th>
+                            <th className="px-3 py-2 text-right">Taken</th>
+                            <th className="px-3 py-2 text-right">Remaining</th>
+                            <th className="px-3 py-2 text-left">Expiry</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {carryForwardReport.report.slice(0, 50).map((r: any, idx: number) => (
+                            <tr key={idx} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 font-mono text-xs">{r.employeeId?.slice(-8)}</td>
+                              <td className="px-3 py-2">{r.leaveTypeName}</td>
+                              <td className="px-3 py-2 text-right">{r.yearlyEntitlement}</td>
+                              <td className="px-3 py-2 text-right text-green-600">{r.carryForward}</td>
+                              <td className="px-3 py-2 text-right text-red-600">{r.taken}</td>
+                              <td className="px-3 py-2 text-right font-medium">{r.remaining}</td>
+                              <td className="px-3 py-2">{r.carryForwardExpiry ? new Date(r.carryForwardExpiry).toLocaleDateString() : '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="bg-gray-50 px-6 py-4 flex justify-end">
+                <button
+                  onClick={() => setShowReportModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Override Modal */}
+      {showOverrideModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowOverrideModal(false)}></div>
+            <div className="relative inline-block bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full">
+              <form onSubmit={handleOverrideCarryForward}>
+                <div className="bg-white px-6 pt-6 pb-4">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Override Carry-Forward</h3>
+                      <p className="text-sm text-gray-500">Manually adjust carry-forward for a specific employee</p>
+                    </div>
+                  </div>
+
+                  {/* Error display inside modal */}
+                  {error && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID *</label>
+                      <input
+                        type="text"
+                        value={overrideForm.employeeId}
+                        onChange={(e) => setOverrideForm({ ...overrideForm, employeeId: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="Enter employee ID"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Leave Type *</label>
+                      <select
+                        value={overrideForm.leaveTypeId}
+                        onChange={(e) => setOverrideForm({ ...overrideForm, leaveTypeId: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        required
+                      >
+                        <option value="">Select leave type</option>
+                        {leaveTypes.length === 0 && (
+                          <option value="" disabled>Loading leave types...</option>
+                        )}
+                        {leaveTypes.map((lt) => (
+                          <option key={lt._id || lt.id} value={lt._id || lt.id}>{lt.name}</option>
+                        ))}
+                      </select>
+                      {leaveTypes.length === 0 && (
+                        <p className="text-xs text-amber-600 mt-1">No leave types loaded. Please wait or refresh the page.</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Carry-Forward Days *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={overrideForm.carryForwardDays}
+                        onChange={(e) => setOverrideForm({ ...overrideForm, carryForwardDays: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+                      <input
+                        type="date"
+                        value={overrideForm.expiryDate}
+                        onChange={(e) => setOverrideForm({ ...overrideForm, expiryDate: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Reason *</label>
+                      <textarea
+                        value={overrideForm.reason}
+                        onChange={(e) => setOverrideForm({ ...overrideForm, reason: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                        rows={3}
+                        placeholder="Provide a reason for this override"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowOverrideModal(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={accrualRunning}
+                    className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 disabled:opacity-50"
+                  >
+                    {accrualRunning ? 'Applying...' : 'Apply Override'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Accrual Suspension Modal */}
+      {showSuspensionModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowSuspensionModal(false)}></div>
+            <div className="relative inline-block bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-xl sm:w-full">
+              <form onSubmit={handleApplySuspension}>
+                <div className="bg-white px-6 pt-6 pb-4">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Accrual Suspension</h3>
+                      <p className="text-sm text-gray-500">Adjust accrual for unpaid leave or long absence</p>
+                    </div>
+                  </div>
+
+                  {/* Error display inside modal */}
+                  {error && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    {/* Employee ID */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID *</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={suspensionForm.employeeId}
+                          onChange={(e) => setSuspensionForm({ ...suspensionForm, employeeId: e.target.value })}
+                          className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                          placeholder="Enter employee ID"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => checkEmployeeAbsences(suspensionForm.employeeId)}
+                          disabled={!suspensionForm.employeeId || loading}
+                          className="px-3 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+                        >
+                          Check Absences
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Leave Type */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Leave Type to Adjust *</label>
+                      <select
+                        value={suspensionForm.leaveTypeId}
+                        onChange={(e) => setSuspensionForm({ ...suspensionForm, leaveTypeId: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                        required
+                      >
+                        <option value="">Select leave type</option>
+                        {leaveTypes.map((lt) => (
+                          <option key={lt._id || lt.id} value={lt._id || lt.id}>{lt.name}</option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">Select which leave type&apos;s accrual to adjust (usually Annual Leave)</p>
+                    </div>
+
+                    {/* Suspension Type */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Suspension Type *</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setSuspensionForm({ ...suspensionForm, suspensionType: 'unpaid' })}
+                          className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                            suspensionForm.suspensionType === 'unpaid'
+                              ? 'border-red-500 bg-red-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <span className="block font-medium text-gray-900">Unpaid Leave</span>
+                          <span className="text-xs text-gray-500">5+ consecutive working days</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSuspensionForm({ ...suspensionForm, suspensionType: 'long_absence' })}
+                          className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                            suspensionForm.suspensionType === 'long_absence'
+                              ? 'border-orange-500 bg-orange-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <span className="block font-medium text-gray-900">Long Absence</span>
+                          <span className="text-xs text-gray-500">30+ consecutive calendar days</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Date Range */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">From Date *</label>
+                        <input
+                          type="date"
+                          value={suspensionForm.fromDate}
+                          onChange={(e) => {
+                            setSuspensionForm({ ...suspensionForm, fromDate: e.target.value });
+                            setSuspensionPreview(null);
+                          }}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">To Date *</label>
+                        <input
+                          type="date"
+                          value={suspensionForm.toDate}
+                          onChange={(e) => {
+                            setSuspensionForm({ ...suspensionForm, toDate: e.target.value });
+                            setSuspensionPreview(null);
+                          }}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Calculate Preview Button */}
+                    <button
+                      type="button"
+                      onClick={handlePreviewSuspension}
+                      disabled={!suspensionForm.fromDate || !suspensionForm.toDate}
+                      className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+                    >
+                      Calculate Adjustment
+                    </button>
+
+                    {/* Preview Results */}
+                    {suspensionPreview && (
+                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <h4 className="text-sm font-medium text-gray-700 mb-3">Calculated Adjustment</h4>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="p-2 bg-white rounded">
+                            <span className="text-gray-500">Total Days:</span>
+                            <span className="float-right font-medium">{suspensionPreview.totalDays}</span>
+                          </div>
+                          <div className="p-2 bg-white rounded">
+                            <span className="text-gray-500">Working Days:</span>
+                            <span className="float-right font-medium">{suspensionPreview.workingDays}</span>
+                          </div>
+                          <div className="p-2 bg-white rounded">
+                            <span className="text-gray-500">Prorate Ratio:</span>
+                            <span className="float-right font-medium">{Math.round(suspensionPreview.prorateRatio * 100)}%</span>
+                          </div>
+                          <div className="p-2 bg-white rounded">
+                            <span className="text-gray-500">Original Accrual:</span>
+                            <span className="float-right font-medium">{suspensionPreview.originalAccrual} days</span>
+                          </div>
+                          <div className="col-span-2 p-2 bg-red-50 rounded border border-red-200">
+                            <span className="text-red-700">Days to Deduct:</span>
+                            <span className="float-right font-bold text-red-700">{suspensionForm.adjustmentDays} days</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Manual Adjustment Override */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Days to Deduct *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.25"
+                        value={suspensionForm.adjustmentDays}
+                        onChange={(e) => setSuspensionForm({ ...suspensionForm, adjustmentDays: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Auto-calculated or manually override</p>
+                    </div>
+
+                    {/* Reason */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Reason *</label>
+                      <textarea
+                        value={suspensionForm.reason}
+                        onChange={(e) => setSuspensionForm({ ...suspensionForm, reason: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                        rows={2}
+                        placeholder="e.g., Employee on unpaid leave for personal reasons"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSuspensionModal(false);
+                      setSuspensionPreview(null);
+                      setError(null);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={accrualRunning || suspensionForm.adjustmentDays <= 0}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {accrualRunning ? 'Applying...' : 'Apply Suspension'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payroll Sync Modal */}
+      {showPayrollSyncModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowPayrollSyncModal(false)}></div>
+            <div className="relative inline-block bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-xl sm:w-full">
+              <form onSubmit={handleGeneratePayrollSync}>
+                <div className="bg-white px-6 pt-6 pb-4">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Payroll Sync</h3>
+                      <p className="text-sm text-gray-500">Generate payroll data for salary deductions</p>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID *</label>
+                      <input
+                        type="text"
+                        value={payrollSyncForm.employeeId}
+                        onChange={(e) => setPayrollSyncForm({ ...payrollSyncForm, employeeId: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder="Enter employee ID"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Year *</label>
+                        <select
+                          value={payrollSyncForm.year}
+                          onChange={(e) => setPayrollSyncForm({ ...payrollSyncForm, year: parseInt(e.target.value) })}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                          <option value={2024}>2024</option>
+                          <option value={2025}>2025</option>
+                          <option value={2026}>2026</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Month *</label>
+                        <select
+                          value={payrollSyncForm.month}
+                          onChange={(e) => setPayrollSyncForm({ ...payrollSyncForm, month: parseInt(e.target.value) })}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                          <option value={1}>January</option>
+                          <option value={2}>February</option>
+                          <option value={3}>March</option>
+                          <option value={4}>April</option>
+                          <option value={5}>May</option>
+                          <option value={6}>June</option>
+                          <option value={7}>July</option>
+                          <option value={8}>August</option>
+                          <option value={9}>September</option>
+                          <option value={10}>October</option>
+                          <option value={11}>November</option>
+                          <option value={12}>December</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Base Salary ($) *</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="100"
+                          value={payrollSyncForm.baseSalary}
+                          onChange={(e) => setPayrollSyncForm({ ...payrollSyncForm, baseSalary: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Work Days in Month *</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          value={payrollSyncForm.workDaysInMonth}
+                          onChange={(e) => setPayrollSyncForm({ ...payrollSyncForm, workDaysInMonth: parseInt(e.target.value) || 22 })}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleQuickCalculateDeduction}
+                      className="w-full px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100"
+                    >
+                      Preview Daily Rate
+                    </button>
+
+                    <div className="p-3 bg-gray-50 rounded-lg text-sm">
+                      <p className="font-medium text-gray-700 mb-1">Deduction Formula:</p>
+                      <code className="text-xs text-gray-600">
+                        Deduction = (Base Salary ÷ Work Days) × Unpaid Leave Days
+                      </code>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Daily Rate = ${payrollSyncForm.baseSalary > 0 && payrollSyncForm.workDaysInMonth > 0
+                          ? (payrollSyncForm.baseSalary / payrollSyncForm.workDaysInMonth).toFixed(2)
+                          : '0.00'}
+                      </p>
+                    </div>
+
+                    {payrollSyncResult && payrollSyncResult.ok && (
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <h4 className="text-sm font-medium text-green-800 mb-2">Sync Result</h4>
+                        <div className="space-y-2 text-sm text-green-700">
+                          <div className="flex justify-between">
+                            <span>Unpaid Leave Days:</span>
+                            <span className="font-medium">{payrollSyncResult.unpaidLeaveDeduction.totalDays}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Total Deduction:</span>
+                            <span className="font-medium text-red-600">${payrollSyncResult.unpaidLeaveDeduction.deductionAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Formula:</span>
+                            <span className="font-mono text-xs">{payrollSyncResult.unpaidLeaveDeduction.formula || 'N/A'}</span>
+                          </div>
+                          {payrollSyncResult.unpaidLeaveDeduction.leaves.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-green-200">
+                              <p className="font-medium mb-1">Unpaid Leave Records:</p>
+                              {payrollSyncResult.unpaidLeaveDeduction.leaves.map((leave, idx) => (
+                                <div key={idx} className="text-xs flex justify-between">
+                                  <span>{new Date(leave.from).toLocaleDateString()} - {new Date(leave.to).toLocaleDateString()}</span>
+                                  <span>{leave.days} days</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPayrollSyncModal(false);
+                      setError(null);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={payrollSyncLoading || !payrollSyncForm.employeeId}
+                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {payrollSyncLoading ? 'Syncing...' : 'Generate Sync Data'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HR Finalization Modal */}
+      {showFinalizeModal && finalizeRequest && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => !finalizeLoading && setShowFinalizeModal(false)}></div>
+            <div className="relative inline-block bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full">
+              <div className="bg-white px-6 pt-6 pb-4">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    finalizeDecision === 'approve' ? 'bg-green-100' : 'bg-red-100'
+                  }`}>
+                    {finalizeDecision === 'approve' ? (
+                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {finalizeDecision === 'approve' ? 'Approve Leave Request' : 'Reject Leave Request'}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {finalizeDecision === 'approve'
+                        ? 'Finalize approval and update employee records'
+                        : 'Reject this leave request'}
+                    </p>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+
+                {/* Request Details */}
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Request Details</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Employee:</span>
+                      <span className="font-medium">{finalizeRequest.employeeName || finalizeRequest.employeeId || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Leave Type:</span>
+                      <span className="font-medium">{finalizeRequest.leaveTypeName || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Duration:</span>
+                      <span className="font-medium">{finalizeRequest.durationDays || 0} day(s)</span>
+                    </div>
+                    {finalizeRequest.dates && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Dates:</span>
+                        <span className="font-medium">
+                          {finalizeRequest.dates.from ? new Date(finalizeRequest.dates.from).toLocaleDateString() : 'N/A'} - {finalizeRequest.dates.to ? new Date(finalizeRequest.dates.to).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    )}
+                    {finalizeRequest.justification && (
+                      <div className="pt-2 border-t border-gray-200">
+                        <span className="text-gray-500">Reason:</span>
+                        <p className="mt-1 text-gray-700">{finalizeRequest.justification}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Approval Options */}
+                {finalizeDecision === 'approve' && (
+                  <div className="space-y-4">
+                    {/* Payroll Sync Option */}
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">Sync with Payroll</p>
+                        <p className="text-xs text-blue-700">Calculate salary deduction for unpaid leave</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={finalizeOptions.syncPayroll}
+                          onChange={(e) => setFinalizeOptions({ ...finalizeOptions, syncPayroll: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+
+                    {/* Salary Details (shown if sync is enabled) */}
+                    {finalizeOptions.syncPayroll && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Base Salary ($)</label>
+                          <input
+                            type="number"
+                            value={finalizeOptions.baseSalary}
+                            onChange={(e) => setFinalizeOptions({ ...finalizeOptions, baseSalary: parseFloat(e.target.value) || 0 })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Work Days/Month</label>
+                          <input
+                            type="number"
+                            value={finalizeOptions.workDaysInMonth}
+                            onChange={(e) => setFinalizeOptions({ ...finalizeOptions, workDaysInMonth: parseInt(e.target.value) || 22 })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Impact Preview */}
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-sm font-medium text-amber-800 mb-1">Impact Preview</p>
+                      <ul className="text-xs text-amber-700 space-y-1">
+                        <li>• Employee balance will be reduced by {finalizeRequest.durationDays || 0} day(s)</li>
+                        {finalizeOptions.syncPayroll && (finalizeRequest.leaveTypeName || '').toLowerCase().includes('unpaid') && finalizeRequest.durationDays > 0 && (
+                          <li>• Payroll deduction: ${((finalizeOptions.baseSalary / finalizeOptions.workDaysInMonth) * (finalizeRequest.durationDays || 0)).toFixed(2)}</li>
+                        )}
+                        <li>• Employee will be notified of approval</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {/* Rejection Reason */}
+                {finalizeDecision === 'reject' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Rejection *</label>
+                    <textarea
+                      value={finalizeOptions.rejectReason}
+                      onChange={(e) => setFinalizeOptions({ ...finalizeOptions, rejectReason: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm resize-none"
+                      rows={3}
+                      placeholder="Please provide a reason for rejecting this request..."
+                      required
+                    />
+                  </div>
+                )}
+
+                {/* Finalization Result */}
+                {finalizeResult && (
+                  <div className={`mt-4 p-4 rounded-lg ${finalizeResult.ok ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                    <p className={`text-sm font-medium ${finalizeResult.ok ? 'text-green-800' : 'text-red-800'}`}>
+                      {finalizeResult.message}
+                    </p>
+                    {finalizeResult.balanceUpdate && (
+                      <div className="mt-2 text-xs text-green-700">
+                        <p>Balance Updated: {finalizeResult.balanceUpdate.previousBalance} → {finalizeResult.balanceUpdate.newBalance} days</p>
+                      </div>
+                    )}
+                    {finalizeResult.payrollImpact && finalizeResult.payrollImpact.isUnpaidLeave && (
+                      <div className="mt-2 text-xs text-green-700">
+                        <p>Payroll Deduction: ${finalizeResult.payrollImpact.deductionAmount}</p>
+                        <p>Formula: {finalizeResult.payrollImpact.formula}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowFinalizeModal(false);
+                    setFinalizeRequest(null);
+                    setFinalizeResult(null);
+                    setError(null);
+                  }}
+                  disabled={finalizeLoading}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {finalizeResult ? 'Close' : 'Cancel'}
+                </button>
+                {!finalizeResult && (
+                  <button
+                    onClick={handleHRFinalizeWithSync}
+                    disabled={finalizeLoading || (finalizeDecision === 'reject' && !finalizeOptions.rejectReason.trim())}
+                    className={`px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 ${
+                      finalizeDecision === 'approve'
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : 'bg-red-600 hover:bg-red-700'
+                    }`}
+                  >
+                    {finalizeLoading
+                      ? 'Processing...'
+                      : finalizeDecision === 'approve'
+                        ? 'Approve & Update Records'
+                        : 'Reject Request'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
