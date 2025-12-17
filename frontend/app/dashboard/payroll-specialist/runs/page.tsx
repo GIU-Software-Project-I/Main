@@ -219,7 +219,103 @@ export default function PayrollSpecialistRunsPage() {
       }
       
       const data = res?.data || res;
-      setPayslips(Array.isArray(data) ? data : []);
+      // Normalize payslip data to expected UI structure, supporting backend schema
+      const normalizePayslip = (p: any) => {
+          // Base Salary
+          const baseSalary = p.baseSalary ?? (p.earningsDetails ? p.earningsDetails.baseSalary : 0) ?? 0;
+        // If backend uses earningsDetails/deductionsDetails, flatten them
+        const earnings = p.earningsDetails || {};
+        const deductionsDetails = p.deductionsDetails || {};
+
+        // Allowances
+        let allowances = p.allowances || earnings.allowances;
+        if (Array.isArray(allowances)) {
+          allowances = {
+            total: allowances.reduce((sum, a) => sum + (a.amount || 0), 0),
+            items: allowances.map(a => ({ name: a.name, amount: a.amount }))
+          };
+        } else if (typeof allowances === 'number') {
+          allowances = { total: allowances, items: [] };
+        } else if (!allowances) {
+          allowances = { total: 0, items: [] };
+        }
+
+        // Bonuses
+        let bonuses = p.bonuses || earnings.bonuses;
+        if (Array.isArray(bonuses)) {
+          bonuses = {
+            total: bonuses.reduce((sum, b) => sum + (b.amount || 0), 0),
+            items: bonuses.map(b => ({ name: b.name, amount: b.amount }))
+          };
+        } else if (typeof bonuses === 'number') {
+          bonuses = { total: bonuses, items: [] };
+        } else if (!bonuses) {
+          bonuses = { total: 0, items: [] };
+        }
+
+        // Overtime
+        let overtime = p.overtime || earnings.overtime;
+        if (typeof overtime === 'number') {
+          overtime = { amount: overtime, minutes: 0, hours: 0, reason: '' };
+        } else if (overtime && typeof overtime === 'object') {
+          overtime = {
+            amount: overtime.amount ?? 0,
+            minutes: overtime.minutes ?? 0,
+            hours: overtime.hours ?? (overtime.minutes ? Math.round(overtime.minutes / 60) : 0),
+            reason: overtime.reason ?? ''
+          };
+        } else {
+          overtime = { amount: 0, minutes: 0, hours: 0, reason: '' };
+        }
+
+        // Deductions
+        let deductions = p.deductions;
+        if (!deductions && deductionsDetails) {
+          // Map backend deductionsDetails to UI structure
+          deductions = {
+            tax: deductionsDetails.taxAmount ?? 0,
+            socialSecurity: Array.isArray(deductionsDetails.insurances) ? deductionsDetails.insurances.reduce((sum: any, i: { amount: any; }) => sum + (i.amount || 0), 0) : 0,
+            healthInsurance: 0, // If you have a separate health insurance, map here
+            pension: 0, // If you have a separate pension, map here
+            penalties: deductionsDetails.penaltiesAmount ?? 0,
+            total: p.totaDeductions ?? deductionsDetails.taxAmount + (Array.isArray(deductionsDetails.insurances) ? deductionsDetails.insurances.reduce((sum: any, i: { amount: any; }) => sum + (i.amount || 0), 0) : 0) + (deductionsDetails.penaltiesAmount ?? 0),
+            items: [
+              ...(Array.isArray(deductionsDetails.taxes) ? deductionsDetails.taxes.map((t: any) => ({ name: t.name || 'Tax', amount: t.amount || 0 })) : []),
+              ...(Array.isArray(deductionsDetails.insurances) ? deductionsDetails.insurances.map((i: any) => ({ name: i.name || 'Insurance', amount: i.amount || 0 })) : []),
+              ...(deductionsDetails.penalties && deductionsDetails.penalties.items ? deductionsDetails.penalties.items.map((p: any) => ({ name: p.name || 'Penalty', amount: p.amount || 0 })) : [])
+            ]
+          };
+        } else if (typeof deductions === 'number') {
+          deductions = { total: deductions, items: [] };
+        } else if (!deductions) {
+          deductions = { total: 0, items: [] };
+        }
+
+        // Penalties
+        let penalties = p.penalties || (deductionsDetails && deductionsDetails.penalties);
+        if (typeof penalties === 'number') {
+          penalties = { total: penalties };
+        } else if (!penalties) {
+          penalties = { total: 0 };
+        }
+
+        // Gross/Net
+        const grossPay = p.grossPay ?? p.totalGrossSalary ?? earnings.baseSalary + allowances.total + bonuses.total + (overtime.amount || 0);
+        const netPay = p.netPay ?? p.netSalary ?? p.net ?? 0;
+
+        return {
+          ...p,
+          baseSalary,
+          allowances,
+          bonuses,
+          overtime,
+          deductions,
+          penalties,
+          grossPay,
+          netPay
+        };
+      };
+      setPayslips(Array.isArray(data) ? data.map(normalizePayslip) : []);
       setPayslipsRunId(runId);
     } catch (e: any) {
       setError(e?.message || 'Failed to load payslips');

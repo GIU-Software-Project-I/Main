@@ -225,6 +225,159 @@ export interface BulkReviewAttendanceDto {
     filterByIssue?: 'ALL' | 'MISSING_PUNCH' | 'INVALID_SEQUENCE' | 'SHORT_TIME';
 }
 
+// Shift Assignment Status enum
+export enum ShiftAssignmentStatus {
+    PENDING = 'PENDING',
+    APPROVED = 'APPROVED',
+    CANCELLED = 'CANCELLED',
+    EXPIRED = 'EXPIRED',
+}
+
+// Break Permission interfaces
+export interface BreakPermission {
+    _id: string;
+    employeeId: string;
+    attendanceRecordId: string;
+    startTime: string;
+    endTime: string;
+    duration: number;
+    reason: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface BreakPermissionDto {
+    employeeId: string;
+    attendanceRecordId: string;
+    startTime: Date | string;
+    endTime: Date | string;
+    reason: string;
+}
+
+export interface ApproveBreakPermissionDto {
+    approvedBy: string;
+}
+
+export interface RejectBreakPermissionDto {
+    rejectionReason: string;
+}
+
+export interface PermissionLimitDto {
+    maxMinutes: number;
+    setBy?: string;
+}
+
+// Holiday Type enum
+export enum HolidayType {
+    NATIONAL = 'NATIONAL',
+    ORGANIZATIONAL = 'ORGANIZATIONAL',
+    WEEKLY_REST = 'WEEKLY_REST',
+}
+
+// Holiday interfaces
+export interface Holiday {
+    _id?: string;
+    type: HolidayType;
+    startDate: string | Date;
+    endDate?: string | Date;
+    name?: string;
+    active: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface CreateHolidayDto {
+    type: HolidayType;
+    startDate: string | Date;
+    endDate?: string | Date;
+    name?: string;
+    active?: boolean;
+}
+
+export interface UpdateHolidayDto {
+    type?: HolidayType;
+    startDate?: string | Date;
+    endDate?: string | Date;
+    name?: string;
+    active?: boolean;
+}
+
+// Shift Assignment interfaces
+export interface ShiftAssignment {
+    _id: string;
+    employeeId?: string;
+    departmentId?: string;
+    positionId?: string;
+    shiftId: string;
+    scheduleRuleId?: string;
+    startDate: string;
+    endDate?: string;
+    status: ShiftAssignmentStatus;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface AssignShiftDto {
+    employeeId?: string;
+    departmentId?: string;
+    positionId?: string;
+    shiftId: string;
+    scheduleRuleId?: string;
+    startDate: string;
+    endDate?: string;
+    status?: ShiftAssignmentStatus;
+    createdBy?: string;
+}
+
+export interface RenewAssignmentDto {
+    startDate?: string;
+    endDate?: string;
+    scheduleRuleId?: string;
+    status?: ShiftAssignmentStatus;
+}
+
+export interface UpdateShiftAssignmentStatusDto {
+    status: ShiftAssignmentStatus;
+    reason?: string;
+    updatedBy?: string;
+}
+
+// Break Permission interfaces
+export interface BreakPermission {
+    _id: string;
+    employeeId: string;
+    attendanceRecordId: string;
+    startTime: string;
+    endTime: string;
+    duration: number;
+    reason: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface BreakPermissionDto {
+    employeeId: string;
+    attendanceRecordId: string;
+    startTime: Date | string;
+    endTime: Date | string;
+    reason: string;
+}
+
+export interface ApproveBreakPermissionDto {
+    approvedBy: string;
+}
+
+export interface RejectBreakPermissionDto {
+    rejectionReason: string;
+}
+
+export interface PermissionLimitDto {
+    maxMinutes: number;
+    setBy?: string;
+}
+
 export const timeManagementService = {
     // ============================================================
     // ATTENDANCE / PUNCH OPERATIONS
@@ -252,7 +405,7 @@ export const timeManagementService = {
 
     // Get employee's corrections - GET /attendance-correction/:employeeId
     getEmployeeCorrections: async (employeeId: string) => {
-        return apiService.get(`/attendance-correction/${employeeId}`);
+        return apiService.get<AttendanceCorrectionRequest[]>(`/attendance-correction/${employeeId}`);
     },
 
     // Get all corrections (manager) - GET /attendance-correction/all
@@ -270,21 +423,6 @@ export const timeManagementService = {
         return apiService.put('/attendance-correction/review', data);
     },
 
-    getAttendanceRecord: async () => {
-        return apiService.get('/attendance/record');
-    },
-
-    getTeamAttendance: async () => {
-        return apiService.get('/attendance/team');
-    },
-
-    approveCorrection: async (id: string, reviewerId: string, note?: string) => {
-        return apiService.put('/attendance-correction/review', { correctionRequestId: id, action: 'APPROVE', reviewerId, note });
-    },
-
-    rejectCorrection: async (id: string, reviewerId: string, note?: string) => {
-        return apiService.put('/attendance-correction/review', { correctionRequestId: id, action: 'REJECT', reviewerId, note });
-    },
 
     // ============================================================
     // SHIFT TYPE OPERATIONS
@@ -454,19 +592,135 @@ export const timeManagementService = {
         return apiService.put('/attendance-correction/review', data);
     },
 
-    // Get employee corrections - GET /attendance-correction/:employeeId
-    getEmployeeCorrections: async (employeeId: string) => {
-        return apiService.get<AttendanceCorrectionRequest[]>(`/attendance-correction/${employeeId}`);
+
+    // ============================================================
+    // SHIFT ASSIGNMENT OPERATIONS
+    // ============================================================
+
+    // Assign shift - POST /time-management/assignments
+    assignShift: async (data: AssignShiftDto) => {
+        return apiService.post<ShiftAssignment>('/time-management/assignments', data);
     },
 
-    // Get all pending corrections - GET /attendance-correction/pending
-    getPendingCorrections: async () => {
-        return apiService.get<AttendanceCorrectionRequest[]>('/attendance-correction/pending');
+    // Get all assignments - GET /time-management/assignments
+    getAllAssignments: async () => {
+        return apiService.get<ShiftAssignment[]>('/time-management/assignments');
     },
 
-    // Get all corrections (including history) - GET /attendance-correction/all
-    getAllCorrections: async () => {
-        return apiService.get<AttendanceCorrectionRequest[]>('/attendance-correction/all');
+    // Get assignments for employee - GET /time-management/assignments/employee/:employeeId
+    getAssignmentsForEmployee: async (employeeId: string) => {
+        return apiService.get<ShiftAssignment[]>(`/time-management/assignments/employee/${employeeId}`);
+    },
+
+    // Renew assignment - PATCH /time-management/assignments/:id
+    renewAssignment: async (id: string, data: RenewAssignmentDto) => {
+        return apiService.patch<ShiftAssignment>(`/time-management/assignments/${id}`, data);
+    },
+
+    // Expire assignment - DELETE /time-management/assignments/:id
+    expireAssignment: async (id: string) => {
+        return apiService.delete<void>(`/time-management/assignments/${id}`);
+    },
+
+    // Update assignment status - PATCH /time-management/assignments/:id/status
+    updateAssignmentStatus: async (id: string, data: UpdateShiftAssignmentStatusDto) => {
+        return apiService.patch<ShiftAssignment>(`/time-management/assignments/${id}/status`, data);
+    },
+
+    // ============================================================
+    // BREAK PERMISSION OPERATIONS
+    // ============================================================
+
+    // Create break permission - POST /break-permissions
+    createBreakPermission: async (data: {
+        employeeId: string;
+        attendanceRecordId: string;
+        startTime: Date | string;
+        endTime: Date | string;
+        reason: string;
+    }) => {
+        return apiService.post('/break-permissions', data);
+    },
+
+    // Get all break permissions (with optional filters) - GET /break-permissions
+    getAllBreakPermissions: async (employeeId?: string, status?: string) => {
+        const params = new URLSearchParams();
+        if (employeeId) params.append('employeeId', employeeId);
+        if (status) params.append('status', status);
+        const query = params.toString();
+        return apiService.get(`/break-permissions${query ? `?${query}` : ''}`);
+    },
+
+    // Get break permissions for specific employee - GET /break-permissions/employee/:employeeId
+    getEmployeeBreakPermissions: async (employeeId: string) => {
+        return apiService.get(`/break-permissions/employee/${employeeId}`);
+    },
+
+    // Approve break permission - POST /break-permissions/:permissionId/approve
+    approveBreakPermission: async (permissionId: string, approvedBy: string) => {
+        return apiService.post(`/break-permissions/${permissionId}/approve`, { approvedBy });
+    },
+
+    // Reject break permission - POST /break-permissions/:permissionId/reject
+    rejectBreakPermission: async (permissionId: string, rejectionReason: string) => {
+        return apiService.post(`/break-permissions/${permissionId}/reject`, { rejectionReason });
+    },
+
+    // Delete break permission - DELETE /break-permissions/:employeeId/:permissionId
+    deleteBreakPermission: async (employeeId: string, permissionId: string) => {
+        return apiService.delete(`/break-permissions/${employeeId}/${permissionId}`);
+    },
+
+    // Get approved break minutes - GET /break-permissions/attendance/:attendanceRecordId/approved-minutes
+    getApprovedBreakMinutes: async (attendanceRecordId: string) => {
+        return apiService.get(`/break-permissions/attendance/${attendanceRecordId}/approved-minutes`);
+    },
+
+    // Get permission limit - GET /break-permissions/limit
+    getPermissionLimit: async () => {
+        return apiService.get('/break-permissions/limit');
+    },
+
+    // Set permission limit - POST /break-permissions/limit
+    setPermissionLimit: async (maxMinutes: number, setBy?: string) => {
+        return apiService.post('/break-permissions/limit', { maxMinutes, setBy });
+    },
+
+    // ============================================================
+    // HOLIDAY OPERATIONS
+    // ============================================================
+
+    // Get all holidays - GET /holidays
+    getAllHolidays: async () => {
+        return apiService.get<Holiday[]>('/holidays');
+    },
+
+    // Get holiday by ID - GET /holidays/:id
+    getHolidayById: async (id: string) => {
+        return apiService.get<Holiday>(`/holidays/${id}`);
+    },
+
+    // Check if date is holiday - GET /holidays/check?date=YYYY-MM-DD
+    checkIfHoliday: async (date: string | Date) => {
+        const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
+        return apiService.get<{ isHoliday: boolean; holiday: Holiday | null }>(`/holidays/check?date=${dateStr}`);
+    },
+
+    // Create holiday - POST /holidays
+    createHoliday: async (data: CreateHolidayDto) => {
+        return apiService.post<Holiday>('/holidays', data);
+    },
+
+    // Update holiday - PUT /holidays/:id
+    updateHoliday: async (id: string, data: UpdateHolidayDto) => {
+        return apiService.put<Holiday>(`/holidays/${id}`, data);
+    },
+
+    // Delete holiday - DELETE /holidays/:id
+    deleteHoliday: async (id: string) => {
+        return apiService.delete<{ ok: boolean }>(`/holidays/${id}`);
     },
 };
+
+export default timeManagementService;
 

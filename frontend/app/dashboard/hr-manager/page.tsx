@@ -92,7 +92,7 @@ export default function HRManagerPage() {
             <p className="text-sm text-slate-500 mt-1">Welcome back, {user?.firstName || 'Manager'}</p>
           </div>
           <div className="flex gap-2">
-            <Link href="/dashboard/department-employee/employee-profile">
+            <Link href="/portal/my-profile">
               <button className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
                 My Profile
               </button>
