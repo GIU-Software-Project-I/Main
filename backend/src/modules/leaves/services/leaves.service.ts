@@ -1390,10 +1390,87 @@ export class UnifiedLeaveService {
     roundingRule: RoundingRule = RoundingRule.ROUND,
   ) {
     const ref = referenceDate ? new Date(referenceDate) : new Date();
+    let processedCount = 0;
+    let createdCount = 0;
 
+    // Get all leave types
+    const allLeaveTypes = await this.leaveTypeModel.find().lean();
+
+    if (allLeaveTypes.length === 0) {
+      return {
+        ok: false,
+        message: 'No leave types found. Please create leave types first.',
+        processed: 0,
+        created: 0,
+      };
+    }
+
+    // Get all unique employee IDs from existing entitlements and leave requests
+    const entitlementEmployees = await this.entitlementModel.distinct('employeeId');
+    const requestEmployees = await this.leaveRequestModel.distinct('employeeId');
+
+    // Combine and deduplicate
+    const allEmployeeIds = new Set([
+      ...entitlementEmployees.map(id => id.toString()),
+      ...requestEmployees.map(id => id.toString()),
+    ]);
+
+    this.logger.log(`Found ${allEmployeeIds.size} employees for accrual processing`);
+
+    // Create missing entitlements for each employee
+    for (const employeeIdStr of allEmployeeIds) {
+      const employeeId = new Types.ObjectId(employeeIdStr);
+      const existingEntitlements = await this.entitlementModel.find({ employeeId }).lean();
+      const existingTypeIds = new Set(existingEntitlements.map(e => e.leaveTypeId?.toString()));
+
+      for (const leaveType of allLeaveTypes) {
+        if (existingTypeIds.has(leaveType._id.toString())) continue;
+
+        // Determine default entitlement based on leave type
+        let defaultEntitlement = 0;
+        const typeName = (leaveType.name || '').toLowerCase();
+        const typeCode = (leaveType.code || '').toLowerCase();
+
+        if (typeName.includes('annual') || typeCode.includes('annual')) {
+          defaultEntitlement = 21;
+        } else if (typeName.includes('sick') || typeCode.includes('sick')) {
+          defaultEntitlement = 21; // Sick leave days
+        } else if (typeName.includes('personal') || typeCode.includes('personal')) {
+          defaultEntitlement = 5;
+        } else if (typeName.includes('paternity') || typeCode.includes('paternity')) {
+          defaultEntitlement = 5;
+        } else if (typeName.includes('maternity') || typeCode.includes('maternity')) {
+          defaultEntitlement = 90;
+        } else {
+          defaultEntitlement = 5;
+        }
+
+        await this.entitlementModel.create({
+          employeeId,
+          leaveTypeId: leaveType._id,
+          yearlyEntitlement: defaultEntitlement,
+          accruedActual: 0,
+          accruedRounded: 0,
+          carryForward: 0,
+          taken: 0,
+          pending: 0,
+          remaining: 0,
+          lastAccrualDate: null,
+        });
+        createdCount++;
+        this.logger.log(`Created entitlement for employee ${employeeIdStr}, type ${leaveType.name}`);
+      }
+    }
+
+    // Now run the actual accrual on all entitlements
     const entitlements = await this.entitlementModel.find();
+    this.logger.log(`Processing ${entitlements.length} entitlements for accrual`);
+
     for (const e of entitlements) {
-      if (!e.yearlyEntitlement) continue;
+      if (!e.yearlyEntitlement || e.yearlyEntitlement <= 0) {
+        this.logger.log(`Skipping entitlement ${e._id} - no yearly entitlement`);
+        continue;
+      }
 
       let delta = 0;
       const yearly = e.yearlyEntitlement || 0;
@@ -1412,27 +1489,66 @@ export class UnifiedLeaveService {
           delta = yearly / 12;
       }
 
-      const serviceDays = await this.calculateServiceDays(
-        e.employeeId.toString(),
-        e.lastAccrualDate ?? new Date(ref.getFullYear(), 0, 1),
-        ref,
-      );
-      if (serviceDays <= 0) continue;
+      // For first-time accrual or if method is YEARLY, just add the delta
+      const lastAccrual = e.lastAccrualDate;
 
-      e.accruedActual = (e.accruedActual || 0) + delta;
+      // Skip if already accrued today (prevent duplicate runs)
+      if (lastAccrual) {
+        const lastDate = new Date(lastAccrual);
+        const refDate = new Date(ref);
+        if (lastDate.toDateString() === refDate.toDateString()) {
+          this.logger.log(`Skipping entitlement ${e._id} - already accrued today`);
+          continue;
+        }
+      }
+
+      // Add the accrual
+      const previousAccrued = e.accruedActual || 0;
+      e.accruedActual = previousAccrued + delta;
       e.accruedRounded = this.applyRounding(e.accruedActual, roundingRule);
 
-      const taken = e.taken || 0;
-      const pending = e.pending || 0;
+      // Recalculate taken and pending from actual requests for accuracy
+      const takenAgg = await this.leaveRequestModel.aggregate([
+        {
+          $match: {
+            employeeId: e.employeeId,
+            leaveTypeId: e.leaveTypeId,
+            status: { $in: ['approved', 'APPROVED'] },
+          },
+        },
+        { $group: { _id: null, total: { $sum: '$durationDays' } } },
+      ]);
+
+      const pendingAgg = await this.leaveRequestModel.aggregate([
+        {
+          $match: {
+            employeeId: e.employeeId,
+            leaveTypeId: e.leaveTypeId,
+            status: { $in: ['pending', 'PENDING'] },
+          },
+        },
+        { $group: { _id: null, total: { $sum: '$durationDays' } } },
+      ]);
+
+      const taken = takenAgg[0]?.total ?? 0;
+      const pending = pendingAgg[0]?.total ?? 0;
       const carryForward = e.carryForward || 0;
+
+      e.taken = taken;
+      e.pending = pending;
       e.remaining = e.accruedRounded + carryForward - taken - pending;
       e.lastAccrualDate = ref;
+
       await e.save();
+      processedCount++;
+      this.logger.log(`Accrued ${delta} days for entitlement ${e._id}. New accrued: ${e.accruedActual}, remaining: ${e.remaining}`);
     }
 
     return {
       ok: true,
-      processed: entitlements.length,
+      processed: processedCount,
+      created: createdCount,
+      totalEntitlements: entitlements.length,
       referenceDate: ref,
       method,
       roundingRule,

@@ -34,12 +34,24 @@ interface LeaveType {
   code: string;
 }
 
+interface AccrualResult {
+  ok: boolean;
+  message?: string;
+  processed: number;
+  created?: number;
+  totalEntitlements?: number;
+  referenceDate: string;
+  method: string;
+  roundingRule: string;
+}
+
 export default function HRManagerLeavesPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'requests' | 'entitlements' | 'adjustments'>('requests');
-  
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'requests' | 'entitlements' | 'adjustments' | 'accruals'>('requests');
+
   // Requests state
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('PENDING');
@@ -65,6 +77,21 @@ export default function HRManagerLeavesPage() {
     reason: '',
     effectiveDate: new Date().toISOString().split('T')[0],
   });
+
+  // Accrual state
+  const [accrualForm, setAccrualForm] = useState({
+    referenceDate: new Date().toISOString().split('T')[0],
+    method: 'monthly' as 'monthly' | 'yearly' | 'per-term',
+    roundingRule: 'round' as 'none' | 'round' | 'round_up' | 'round_down',
+  });
+  const [carryForwardForm, setCarryForwardForm] = useState({
+    referenceDate: new Date().toISOString().split('T')[0],
+    capDays: 45,
+    expiryMonths: 12,
+  });
+  const [accrualRunning, setAccrualRunning] = useState(false);
+  const [lastAccrualResult, setLastAccrualResult] = useState<AccrualResult | null>(null);
+  const [recalcEmployeeId, setRecalcEmployeeId] = useState('');
 
   const fetchLeaveTypes = async () => {
     try {
@@ -239,9 +266,145 @@ export default function HRManagerLeavesPage() {
       if (adjustmentForm.employeeId === selectedEmployeeId) {
         await fetchEmployeeBalances(selectedEmployeeId);
       }
-      alert('Balance adjustment created successfully!');
+      setSuccessMessage('Balance adjustment created successfully!');
+      setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create adjustment';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Run accrual for all employees
+  const handleRunAccrual = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirm('This will run accrual calculation for all employees. Continue?')) return;
+
+    try {
+      setAccrualRunning(true);
+      setError(null);
+      const response = await leavesService.runAccrual({
+        referenceDate: accrualForm.referenceDate,
+        method: accrualForm.method,
+        roundingRule: accrualForm.roundingRule,
+      });
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      const result = response.data as AccrualResult;
+      setLastAccrualResult(result);
+
+      if (result.ok) {
+        const created = result.created || 0;
+        const processed = result.processed || 0;
+        setSuccessMessage(
+          `Accrual completed! Created ${created} new entitlements, processed ${processed} accruals.`
+        );
+      } else {
+        setError(result.message || 'Accrual failed');
+      }
+      setTimeout(() => setSuccessMessage(null), 8000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to run accrual';
+      setError(message);
+    } finally {
+      setAccrualRunning(false);
+    }
+  };
+
+  // Run carry forward for all employees
+  const handleCarryForward = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirm('This will process carry-forward for all employees. Continue?')) return;
+
+    try {
+      setAccrualRunning(true);
+      setError(null);
+      const response = await leavesService.carryForward({
+        referenceDate: carryForwardForm.referenceDate,
+        capDays: carryForwardForm.capDays,
+        expiryMonths: carryForwardForm.expiryMonths,
+      });
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      setSuccessMessage('Carry-forward completed successfully!');
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to run carry-forward';
+      setError(message);
+    } finally {
+      setAccrualRunning(false);
+    }
+  };
+
+  // Recalculate single employee's balances
+  const handleRecalcEmployee = async () => {
+    if (!recalcEmployeeId.trim()) {
+      setError('Please enter an employee ID');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await leavesService.recalcEmployee(recalcEmployeeId);
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      setSuccessMessage(`Employee ${recalcEmployeeId} balances recalculated successfully!`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+      setRecalcEmployeeId('');
+
+      // If we were viewing this employee's balances, refresh them
+      if (recalcEmployeeId === selectedEmployeeId) {
+        await fetchEmployeeBalances(selectedEmployeeId);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to recalculate employee balances';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initialize default entitlements for an employee (for personal leave fix)
+  const handleInitializeEntitlements = async (employeeId: string) => {
+    if (!employeeId.trim()) {
+      setError('Please enter an employee ID');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      // Calling getBalance will trigger the backend to auto-create entitlements if they don't exist
+      const response = await leavesService.getBalance(employeeId);
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      setSuccessMessage(`Entitlements initialized for employee ${employeeId}!`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+
+      // Refresh the displayed balances
+      if (employeeId === selectedEmployeeId) {
+        setEmployeeBalances(Array.isArray(response.data) ? response.data : []);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to initialize entitlements';
       setError(message);
     } finally {
       setLoading(false);
@@ -294,10 +457,19 @@ export default function HRManagerLeavesPage() {
           </div>
         )}
 
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {successMessage}
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
-            {(['requests', 'entitlements', 'adjustments'] as const).map((tab) => (
+            {(['requests', 'entitlements', 'adjustments', 'accruals'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -307,7 +479,10 @@ export default function HRManagerLeavesPage() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                {tab === 'requests' ? 'Leave Requests' : tab === 'entitlements' ? 'Assign Entitlements' : 'Balance Adjustments'}
+                {tab === 'requests' ? 'Leave Requests' :
+                 tab === 'entitlements' ? 'Assign Entitlements' :
+                 tab === 'adjustments' ? 'Balance Adjustments' :
+                 'Auto Accruals'}
               </button>
             ))}
           </nav>
@@ -643,6 +818,248 @@ export default function HRManagerLeavesPage() {
                 {loading ? 'Creating Adjustment...' : 'Create Adjustment'}
               </button>
             </form>
+          </div>
+        )}
+
+        {/* Accruals Tab */}
+        {activeTab === 'accruals' && (
+          <div className="space-y-6">
+            {/* Accrual Info Card */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-6">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Automatic Leave Accrual</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Run accrual calculations to automatically add leave days to employee balances according to company policy.
+                    This ensures entitlements stay accurate without manual calculation.
+                  </p>
+                  <ul className="mt-2 text-sm text-gray-600 space-y-1">
+                    <li>• <strong>Monthly:</strong> Adds 1/12 of yearly entitlement each month</li>
+                    <li>• <strong>Yearly:</strong> Adds full yearly entitlement at once</li>
+                    <li>• <strong>Per-Term:</strong> Adds 1/3 of yearly entitlement (for academic/quarterly systems)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Run Accrual Form */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Run Leave Accrual</h2>
+                <form onSubmit={handleRunAccrual} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Reference Date</label>
+                    <input
+                      type="date"
+                      value={accrualForm.referenceDate}
+                      onChange={(e) => setAccrualForm({ ...accrualForm, referenceDate: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Date to calculate accrual from</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Accrual Method</label>
+                    <select
+                      value={accrualForm.method}
+                      onChange={(e) => setAccrualForm({ ...accrualForm, method: e.target.value as 'monthly' | 'yearly' | 'per-term' })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="monthly">Monthly (1/12 yearly)</option>
+                      <option value="yearly">Yearly (full entitlement)</option>
+                      <option value="per-term">Per-Term (1/3 yearly)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Rounding Rule</label>
+                    <select
+                      value={accrualForm.roundingRule}
+                      onChange={(e) => setAccrualForm({ ...accrualForm, roundingRule: e.target.value as 'none' | 'round' | 'round_up' | 'round_down' })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="round">Round to nearest</option>
+                      <option value="round_up">Round up</option>
+                      <option value="round_down">Round down</option>
+                      <option value="none">No rounding (keep decimals)</option>
+                    </select>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={accrualRunning}
+                    className="w-full px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {accrualRunning ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        Running Accrual...
+                      </>
+                    ) : (
+                      'Run Accrual for All Employees'
+                    )}
+                  </button>
+                </form>
+
+                {lastAccrualResult && (
+                  <div className={`mt-4 p-3 rounded-lg ${lastAccrualResult.ok ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                    <p className={`text-sm font-medium ${lastAccrualResult.ok ? 'text-green-800' : 'text-red-800'}`}>
+                      Last Accrual Result:
+                    </p>
+                    {lastAccrualResult.ok ? (
+                      <ul className="text-sm text-green-700 mt-1 space-y-0.5">
+                        {lastAccrualResult.created !== undefined && lastAccrualResult.created > 0 && (
+                          <li>• Created: {lastAccrualResult.created} new entitlements</li>
+                        )}
+                        <li>• Processed: {lastAccrualResult.processed} accruals</li>
+                        {lastAccrualResult.totalEntitlements !== undefined && (
+                          <li>• Total entitlements: {lastAccrualResult.totalEntitlements}</li>
+                        )}
+                        <li>• Method: {lastAccrualResult.method}</li>
+                        <li>• Date: {new Date(lastAccrualResult.referenceDate).toLocaleDateString()}</li>
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-red-700 mt-1">{lastAccrualResult.message}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Carry Forward Form */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Carry Forward Leave</h2>
+                <form onSubmit={handleCarryForward} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Reference Date</label>
+                    <input
+                      type="date"
+                      value={carryForwardForm.referenceDate}
+                      onChange={(e) => setCarryForwardForm({ ...carryForwardForm, referenceDate: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Usually end of leave year</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Maximum Days to Carry Forward</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={carryForwardForm.capDays}
+                      onChange={(e) => setCarryForwardForm({ ...carryForwardForm, capDays: parseInt(e.target.value) || 0 })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Expiry (Months)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={carryForwardForm.expiryMonths}
+                      onChange={(e) => setCarryForwardForm({ ...carryForwardForm, expiryMonths: parseInt(e.target.value) || 12 })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Carried-forward days expire after this period</p>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={accrualRunning}
+                    className="w-full px-4 py-2.5 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {accrualRunning ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        Processing...
+                      </>
+                    ) : (
+                      'Process Carry Forward'
+                    )}
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* Individual Employee Recalculation */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Individual Employee Actions</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Recalculate Employee */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Recalculate Employee Balances</h3>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Recalculates taken/pending from actual leave requests to fix any discrepancies.
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={recalcEmployeeId}
+                      onChange={(e) => setRecalcEmployeeId(e.target.value)}
+                      className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter employee ID"
+                    />
+                    <button
+                      onClick={handleRecalcEmployee}
+                      disabled={loading || !recalcEmployeeId.trim()}
+                      className="px-4 py-2.5 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Recalculate
+                    </button>
+                  </div>
+                </div>
+
+                {/* Initialize Entitlements */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Initialize Default Entitlements</h3>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Creates default entitlements (Annual: 21, Sick: 14, Personal: 5 days) for employees without any.
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={selectedEmployeeId}
+                      onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                      className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter employee ID"
+                    />
+                    <button
+                      onClick={() => handleInitializeEntitlements(selectedEmployeeId)}
+                      disabled={loading || !selectedEmployeeId.trim()}
+                      className="px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Initialize
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Personal Leave Fix Notice */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-amber-800">Personal Leave Balance Fix</h3>
+                  <p className="text-sm text-amber-700 mt-1">
+                    If employees show 0 days for Personal Leave, use the &quot;Initialize Default Entitlements&quot; feature above
+                    with their Employee ID. This will automatically create entitlements for all leave types including
+                    5 days of Personal Leave.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

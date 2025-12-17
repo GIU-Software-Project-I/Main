@@ -48,6 +48,7 @@ export default function MyLeavesPage() {
   const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [thirdLeaveTypeName, setThirdLeaveTypeName] = useState<string>('Personal');
 
   // Filter and sort state
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -208,6 +209,40 @@ export default function MyLeavesPage() {
         code: lt.code,
       })));
 
+      // Detect the third leave type name (personal, paternity, maternity, etc.)
+      let foundThirdType = 'Personal';
+      for (const lt of fetchedLeaveTypes) {
+        const name = (lt.name || '').toLowerCase();
+        const code = (lt.code || '').toLowerCase();
+
+        // Skip annual and sick
+        if (name.includes('annual') || code.includes('annual')) continue;
+        if (name.includes('sick') || code.includes('sick')) continue;
+
+        // Use the first matching type
+        if (name.includes('personal') || code.includes('personal')) {
+          foundThirdType = 'Personal';
+          break;
+        } else if (name.includes('paternity') || code.includes('paternity')) {
+          foundThirdType = 'Paternity';
+          break;
+        } else if (name.includes('maternity') || code.includes('maternity')) {
+          foundThirdType = 'Maternity';
+          break;
+        } else if (name.includes('compassionate') || code.includes('compassionate')) {
+          foundThirdType = 'Compassionate';
+          break;
+        } else if (name.includes('unpaid') || code.includes('unpaid')) {
+          foundThirdType = 'Unpaid';
+          break;
+        } else if (lt.name) {
+          // Use the first non-annual/non-sick type found
+          foundThirdType = lt.name.replace(' Leave', '');
+          break;
+        }
+      }
+      setThirdLeaveTypeName(foundThirdType);
+
       // Backend balance response structure
       interface BackendBalance {
         leaveTypeId: string;
@@ -363,7 +398,12 @@ export default function MyLeavesPage() {
         return name.includes('sick') || code.includes('sick');
       }
       if (kind === 'personal') {
-        return name.includes('personal') || code.includes('personal');
+        // Check for personal, paternity, maternity, compassionate, or other third types
+        return name.includes('personal') || code.includes('personal') ||
+               name.includes('paternity') || code.includes('paternity') ||
+               name.includes('maternity') || code.includes('maternity') ||
+               name.includes('compassionate') || code.includes('compassionate') ||
+               name.includes('unpaid') || code.includes('unpaid');
       }
       return false;
     });
@@ -548,7 +588,7 @@ export default function MyLeavesPage() {
                   color="red"
                 />
                 <BalanceCard
-                  title="Personal Leave"
+                  title={`${thirdLeaveTypeName} Leave`}
                   entitled={personal.entitled}
                   taken={personal.taken}
                   pending={personal.pending}

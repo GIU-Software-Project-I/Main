@@ -20,8 +20,9 @@ interface TypeBalance {
 interface LeaveTypeMap {
   annual?: string;
   sick?: string;
-  personal?: string;
+  personal?: string; // Can also be paternity or other third leave type
 }
+
 
 export default function LeaveRequestPage() {
   const router = useRouter();
@@ -33,6 +34,7 @@ export default function LeaveRequestPage() {
   const [success, setSuccess] = useState(false);
   const [balance, setBalance] = useState<BalanceList>([]);
   const [leaveTypeMap, setLeaveTypeMap] = useState<LeaveTypeMap>({});
+  const [thirdLeaveTypeName, setThirdLeaveTypeName] = useState<string>('Personal Leave'); // Can be Personal, Paternity, etc.
   const [attachmentRequired, setAttachmentRequired] = useState<{ required: boolean; reason: string | null }>({ required: false, reason: null });
 
   // Post-leave configuration from backend
@@ -139,6 +141,7 @@ export default function LeaveRequestPage() {
         }
         const types = typesRes.data as BackendLeaveType[];
         const map: LeaveTypeMap = {};
+        let thirdTypeName = 'Personal Leave';
 
         for (const t of types) {
           const name = (t.name || '').toLowerCase();
@@ -151,12 +154,49 @@ export default function LeaveRequestPage() {
             map.annual = typeId;
           } else if (!map.sick && (name.includes('sick') || code.includes('sick'))) {
             map.sick = typeId;
-          } else if (!map.personal && (name.includes('personal') || code.includes('personal'))) {
+          } else if (!map.personal) {
+            // Check for personal, paternity, maternity, compassionate, or other third leave type
+            if (name.includes('personal') || code.includes('personal')) {
+              map.personal = typeId;
+              thirdTypeName = t.name || 'Personal Leave';
+            } else if (name.includes('paternity') || code.includes('paternity')) {
+              map.personal = typeId;
+              thirdTypeName = t.name || 'Paternity Leave';
+            } else if (name.includes('maternity') || code.includes('maternity')) {
+              map.personal = typeId;
+              thirdTypeName = t.name || 'Maternity Leave';
+            } else if (name.includes('compassionate') || code.includes('compassionate')) {
+              map.personal = typeId;
+              thirdTypeName = t.name || 'Compassionate Leave';
+            } else if (name.includes('unpaid') || code.includes('unpaid')) {
+              map.personal = typeId;
+              thirdTypeName = t.name || 'Unpaid Leave';
+            }
+          }
+        }
+
+        // If still no third type found, use the first non-annual/non-sick type
+        if (!map.personal) {
+          for (const t of types) {
+            const name = (t.name || '').toLowerCase();
+            const code = (t.code || '').toLowerCase();
+            const typeId = t._id || t.id;
+
+            if (!typeId) continue;
+
+            // Skip annual and sick
+            if (name.includes('annual') || code.includes('annual')) continue;
+            if (name.includes('sick') || code.includes('sick')) continue;
+
+            // Use this as the third leave type
             map.personal = typeId;
+            thirdTypeName = t.name || 'Other Leave';
+            break;
           }
         }
 
         setLeaveTypeMap(map);
+        setThirdLeaveTypeName(thirdTypeName);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load leave data';
@@ -186,7 +226,12 @@ export default function LeaveRequestPage() {
         return name.includes('sick') || code.includes('sick');
       }
       if (key === 'personal') {
-        return name.includes('personal') || code.includes('personal');
+        // Check for personal, paternity, maternity, compassionate, or other third types
+        return name.includes('personal') || code.includes('personal') ||
+               name.includes('paternity') || code.includes('paternity') ||
+               name.includes('maternity') || code.includes('maternity') ||
+               name.includes('compassionate') || code.includes('compassionate') ||
+               name.includes('unpaid') || code.includes('unpaid');
       }
       return false;
     });
@@ -368,7 +413,7 @@ export default function LeaveRequestPage() {
               <p className="text-xl font-bold text-gray-900">{getAvailableBalance('sick')} days</p>
             </div>
             <div className={`p-3 rounded-lg ${formData.type === 'personal' ? 'bg-purple-50 border-2 border-purple-200' : 'bg-gray-50'}`}>
-              <p className="text-sm text-gray-600">Personal</p>
+              <p className="text-sm text-gray-600">{thirdLeaveTypeName.replace(' Leave', '')}</p>
               <p className="text-xl font-bold text-gray-900">{getAvailableBalance('personal')} days</p>
             </div>
           </div>
@@ -390,7 +435,7 @@ export default function LeaveRequestPage() {
                 {[
                   { value: 'annual' as LeaveTypeKey, label: 'Annual Leave', color: 'blue' as const },
                   { value: 'sick' as LeaveTypeKey, label: 'Sick Leave', color: 'red' as const },
-                  { value: 'personal' as LeaveTypeKey, label: 'Personal Leave', color: 'purple' as const },
+                  { value: 'personal' as LeaveTypeKey, label: thirdLeaveTypeName, color: 'purple' as const },
                 ].map((type) => (
                   <button
                     key={type.value}
