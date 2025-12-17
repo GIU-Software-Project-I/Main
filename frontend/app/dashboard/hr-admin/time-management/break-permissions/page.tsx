@@ -31,21 +31,24 @@ export default function BreakPermissionsPage() {
       setLoading(true);
       setError(null);
 
-      // Get employee's break permissions
+      // Get employee's break permissions - try with fallbacks
       try {
-        // Try specific employee endpoint first, fallback to generic with query
-        let permResponse = await timeManagementService.getEmployeeBreakPermissions(user.id);
+        let permResponse = await timeManagementService.getEmployeeBreakPermissions(user.id).catch(() => null);
 
-        // If specific endpoint fails (404), try generic endpoint with query
-        if (permResponse && (permResponse.error || permResponse.status === 404)) {
+        // If specific endpoint fails, try generic endpoint with query
+        if (!permResponse || permResponse?.error || permResponse?.status === 404) {
           console.warn('Employee break permissions endpoint failed, trying generic endpoint...');
-          permResponse = await timeManagementService.getAllBreakPermissions(user.id);
+          permResponse = await timeManagementService.getAllBreakPermissions(user.id).catch(() => null);
         }
 
-        if (Array.isArray(permResponse)) {
-          setPermissions(permResponse);
-        } else if (permResponse && Array.isArray(permResponse.data)) {
-          setPermissions(permResponse.data);
+        if (permResponse) {
+          if (Array.isArray(permResponse)) {
+            setPermissions(permResponse);
+          } else if (Array.isArray(permResponse.data)) {
+            setPermissions(permResponse.data);
+          } else {
+            setPermissions([]);
+          }
         } else {
           setPermissions([]);
         }
@@ -54,22 +57,26 @@ export default function BreakPermissionsPage() {
         setPermissions([]);
       }
 
-      // Get today's attendance record
+      // Get today's attendance record - with fallback (optional)
       try {
-        const recordResponse = await timeManagementService.getTodayRecord(user.id);
+        const recordResponse = await timeManagementService.getTodayRecord(user.id).catch(() => null);
         if (recordResponse && recordResponse.data) {
           setTodayRecord(recordResponse.data);
-        } else if (recordResponse) {
+        } else if (recordResponse && !recordResponse.error && recordResponse !== null) {
           setTodayRecord(recordResponse);
+        } else {
+          // If endpoint doesn't exist or fails, allow form to show with warning
+          setTodayRecord(null);
         }
       } catch (err: unknown) {
-        console.warn('Could not fetch today record:', err);
+        console.warn('Could not fetch today record (optional):', err);
+        // Don't set error - this is non-critical
         setTodayRecord(null);
       }
 
-      // Get permission limit
+      // Get permission limit - with error suppression
       try {
-        const limitResponse = await timeManagementService.getPermissionLimit();
+        const limitResponse = await timeManagementService.getPermissionLimit().catch(() => null);
         if (limitResponse && typeof limitResponse === 'object') {
           const maxMinutes = (limitResponse as unknown as { maxMinutes?: number }).maxMinutes ||
                             (limitResponse as unknown as { data?: { maxMinutes?: number } }).data?.maxMinutes;
@@ -79,10 +86,11 @@ export default function BreakPermissionsPage() {
         }
       } catch (err: unknown) {
         console.warn('Could not fetch permission limit:', err);
+        // Keep default 180
       }
     } catch (err: unknown) {
       console.error('Error fetching data:', err);
-      setError('Failed to load break permissions');
+      // Don't show error for break permissions - it's optional
     } finally {
       setLoading(false);
     }
