@@ -1,10 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import Card from '@/app/components/ui/Card';
-import Button from '@/app/components/ui/Button';
+import { Card } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { JobOffer } from '@/app/types/recruitment';
+import { OfferFinalStatus, OfferResponseStatus, ApprovalStatus } from '@/app/types/enums';
+import { useAuth } from '@/app/context/AuthContext';
+import {
+  getOfferById,
+  approveOffer,
+  rejectOffer,
+  sendOffer,
+} from '@/app/services/recruitment';
 
 // ==================== INTERFACES ====================
 interface OfferDetail {
@@ -40,116 +49,45 @@ interface TimelineEvent {
   status: 'completed' | 'current' | 'pending';
 }
 
-// ==================== MOCK DATA ====================
-const getMockOffer = (id: string): OfferDetail => {
-  const offers: Record<string, OfferDetail> = {
-    '1': {
-      id: '1',
-      candidateName: 'Ahmed Hassan',
-      candidateEmail: 'ahmed.hassan@email.com',
-      candidatePhone: '+20 123 456 7890',
-      jobTitle: 'Software Engineer',
-      department: 'Engineering',
-      salary: 25000,
-      bonus: 5000,
-      benefits: ['Health Insurance', 'Annual Leave (21 days)', 'Transportation Allowance', 'Professional Development Budget'],
-      startDate: '2026-01-15',
-      expirationDate: '2025-12-20',
-      status: 'pending_approval',
-      createdAt: '2025-12-10',
-      createdBy: 'Sarah Mohamed',
-    },
-    '2': {
-      id: '2',
-      candidateName: 'Fatima Ali',
-      candidateEmail: 'fatima.ali@email.com',
-      candidatePhone: '+20 111 222 3333',
-      jobTitle: 'Product Manager',
-      department: 'Product',
-      salary: 35000,
-      bonus: 10000,
-      benefits: ['Health Insurance', 'Annual Leave (25 days)', 'Company Car', 'Stock Options'],
-      startDate: '2026-01-20',
-      expirationDate: '2025-12-25',
-      status: 'pending_approval',
-      createdAt: '2025-12-12',
-      createdBy: 'Mohamed Ahmed',
-    },
-    '3': {
-      id: '3',
-      candidateName: 'Omar Khalil',
-      candidateEmail: 'omar.khalil@email.com',
-      candidatePhone: '+20 100 200 3000',
-      jobTitle: 'Marketing Specialist',
-      department: 'Marketing',
-      salary: 18000,
-      benefits: ['Health Insurance', 'Annual Leave (21 days)', 'Performance Bonus'],
-      startDate: '2026-02-01',
-      expirationDate: '2025-12-30',
-      status: 'pending_signature',
-      createdAt: '2025-12-08',
-      createdBy: 'Sarah Mohamed',
-      approvedBy: 'HR Manager',
-      approvedAt: '2025-12-09',
-      sentAt: '2025-12-10',
-    },
-    '4': {
-      id: '4',
-      candidateName: 'Nour Ibrahim',
-      candidateEmail: 'nour.ibrahim@email.com',
-      candidatePhone: '+20 155 666 7777',
-      jobTitle: 'HR Coordinator',
-      department: 'Human Resources',
-      salary: 15000,
-      benefits: ['Health Insurance', 'Annual Leave (21 days)', 'Training Programs'],
-      startDate: '2026-01-10',
-      expirationDate: '2025-12-15',
-      status: 'signed',
-      createdAt: '2025-12-05',
-      createdBy: 'Mohamed Ahmed',
-      approvedBy: 'HR Manager',
-      approvedAt: '2025-12-06',
-      sentAt: '2025-12-07',
-      signedAt: '2025-12-08',
-      offerLetterUrl: '/documents/offer-nour-ibrahim.pdf',
-    },
-    '5': {
-      id: '5',
-      candidateName: 'Youssef Mansour',
-      candidateEmail: 'youssef.m@email.com',
-      candidatePhone: '+20 122 333 4444',
-      jobTitle: 'Financial Analyst',
-      department: 'Finance',
-      salary: 22000,
-      bonus: 3000,
-      benefits: ['Health Insurance', 'Annual Leave (21 days)', 'CFA Certification Support'],
-      startDate: '2026-01-25',
-      expirationDate: '2025-12-10',
-      status: 'accepted',
-      createdAt: '2025-12-01',
-      createdBy: 'Sarah Mohamed',
-      approvedBy: 'HR Manager',
-      approvedAt: '2025-12-02',
-      sentAt: '2025-12-03',
-      signedAt: '2025-12-04',
-      offerLetterUrl: '/documents/offer-youssef-mansour.pdf',
-    },
-  };
+// ==================== HELPER FUNCTIONS ====================
+const mapJobOfferToOfferDetail = (jobOffer: JobOffer): OfferDetail => {
+  // Map API status to local status
+  let status: OfferDetail['status'] = 'pending_approval';
+  
+  if (jobOffer.finalStatus === OfferFinalStatus.REJECTED) {
+    status = 'rejected';
+  } else if (jobOffer.applicantResponse === OfferResponseStatus.ACCEPTED) {
+    status = 'accepted';
+  } else if (jobOffer.applicantResponse === OfferResponseStatus.REJECTED) {
+    status = 'declined';
+  } else if (jobOffer.candidateSignedAt) {
+    status = 'signed';
+  } else if (jobOffer.finalStatus === OfferFinalStatus.APPROVED) {
+    status = 'approved';
+  } else if (jobOffer.approvers?.some(a => a.status === ApprovalStatus.APPROVED)) {
+    status = 'approved';
+  }
 
-  return offers[id] || {
-    id,
-    candidateName: 'Unknown Candidate',
-    candidateEmail: 'unknown@email.com',
-    candidatePhone: 'N/A',
-    jobTitle: 'Unknown Position',
-    department: 'Unknown',
-    salary: 0,
-    benefits: [],
-    startDate: 'N/A',
-    expirationDate: 'N/A',
-    status: 'pending_approval',
-    createdAt: 'N/A',
-    createdBy: 'Unknown',
+  return {
+    id: jobOffer.id,
+    candidateName: jobOffer.candidateName || 'Unknown',
+    candidateEmail: '', // Would need to fetch from candidate
+    candidatePhone: '', // Would need to fetch from candidate
+    jobTitle: jobOffer.positionTitle || jobOffer.role || 'Unknown Position',
+    department: jobOffer.departmentName || 'Unknown',
+    salary: jobOffer.grossSalary,
+    bonus: jobOffer.signingBonus,
+    benefits: jobOffer.benefits || [],
+    startDate: jobOffer.deadline || 'TBD',
+    expirationDate: jobOffer.deadline || 'TBD',
+    status,
+    createdAt: jobOffer.createdAt,
+    createdBy: 'HR Team',
+    approvedBy: jobOffer.approvers?.find(a => a.status === ApprovalStatus.APPROVED)?.employeeId,
+    approvedAt: jobOffer.approvers?.find(a => a.status === ApprovalStatus.APPROVED)?.actionDate,
+    sentAt: jobOffer.finalStatus === OfferFinalStatus.APPROVED ? jobOffer.updatedAt : undefined,
+    signedAt: jobOffer.candidateSignedAt,
+    offerLetterUrl: undefined, // Would need document handling
   };
 };
 
@@ -277,21 +215,79 @@ const getTimelineEvents = (offer: OfferDetail): TimelineEvent[] => {
 export default function OfferDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const offerId = params.id as string;
 
   const [offer, setOffer] = useState<OfferDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
 
-  useEffect(() => {
-    const fetchOffer = async () => {
+  // Load offer from API
+  const loadOffer = useCallback(async () => {
+    try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      setOffer(getMockOffer(offerId));
+      setError(null);
+      const offerData = await getOfferById(offerId);
+      if (!offerData) {
+        throw new Error('Offer not found');
+      }
+      setOffer(mapJobOfferToOfferDetail(offerData));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load offer');
+    } finally {
       setLoading(false);
-    };
-    fetchOffer();
+    }
   }, [offerId]);
+
+  useEffect(() => {
+    loadOffer();
+  }, [loadOffer]);
+
+  // Handle approve offer
+  const handleApprove = async (comment?: string) => {
+    if (!user) return;
+    try {
+      setProcessing(true);
+      setError(null);
+      await approveOffer(offerId, user.id, comment);
+      await loadOffer();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to approve offer');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Handle reject offer
+  const handleReject = async (reason: string) => {
+    if (!user) return;
+    try {
+      setProcessing(true);
+      setError(null);
+      await rejectOffer(offerId, user.id, reason);
+      await loadOffer();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reject offer');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Handle send offer
+  const handleSend = async () => {
+    try {
+      setProcessing(true);
+      setError(null);
+      await sendOffer(offerId);
+      await loadOffer();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send offer');
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   // ==================== STATUS HELPERS ====================
   const getStatusInfo = (status: OfferDetail['status']) => {
@@ -420,6 +416,16 @@ export default function OfferDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+          <p className="text-red-600">{error}</p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -478,7 +484,7 @@ export default function OfferDetailPage() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Candidate Information */}
-          <Card title="Candidate Information">
+          <Card>
             <div className="flex items-start gap-4">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-xl font-semibold text-slate-600">
                 {offer.candidateName.split(' ').map((n) => n[0]).join('')}
@@ -505,7 +511,7 @@ export default function OfferDetailPage() {
           </Card>
 
           {/* Offer Details */}
-          <Card title="Offer Details">
+          <Card>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h4 className="text-sm font-medium text-slate-500 mb-1">Position</h4>
@@ -565,7 +571,7 @@ export default function OfferDetailPage() {
 
           {/* Signature Status */}
           {(offer.status === 'pending_signature' || offer.status === 'signed' || offer.status === 'accepted') && (
-            <Card title="Signature Status">
+            <Card>
               <div className="flex items-center gap-6">
                 <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
                   offer.status === 'pending_signature' ? 'bg-orange-100' : 'bg-emerald-100'
@@ -605,7 +611,7 @@ export default function OfferDetailPage() {
 
         {/* Timeline Sidebar */}
         <div className="lg:col-span-1">
-          <Card title="Timeline" subtitle="Offer lifecycle">
+          <Card>
             <div className="relative">
               {timeline.map((event, index) => (
                 <div key={event.id} className="flex gap-4 pb-6 last:pb-0">
@@ -647,7 +653,7 @@ export default function OfferDetailPage() {
           </Card>
 
           {/* Quick Actions */}
-          <Card title="Quick Actions" className="mt-6">
+          <Card className="mt-6">
             <div className="space-y-2">
               <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors text-left">
                 <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
@@ -739,10 +745,10 @@ export default function OfferDetailPage() {
                 </div>
 
                 <div className="flex gap-3">
-                  <Button variant="outline" fullWidth onClick={() => setShowOnboardingModal(false)}>
+                  <Button variant="outline" className="w-full" onClick={() => setShowOnboardingModal(false)}>
                     Cancel
                   </Button>
-                  <Button fullWidth onClick={confirmOnboarding}>
+                  <Button className="w-full" onClick={confirmOnboarding}>
                     Start Onboarding
                   </Button>
                 </div>

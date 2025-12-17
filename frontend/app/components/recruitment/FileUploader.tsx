@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, DragEvent, ChangeEvent } from 'react';
-import Button from '@/app/components/ui/Button';
+import { Button } from '@/app/components/ui/button';
 
 // =====================================================
 // Types

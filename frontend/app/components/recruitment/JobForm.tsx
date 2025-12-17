@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import Button from '@/app/components/ui/Button';
-import Input from '@/app/components/ui/Input';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
 
 // =====================================================
 // Types
@@ -253,34 +253,46 @@ export default function JobForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Job Title */}
-      <Input
-        label="Job Title"
-        value={formData.title}
-        onChange={(e) => updateField('title', e.target.value)}
-        error={errors.title}
-        placeholder="e.g., Senior Software Engineer"
-        required
-      />
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-slate-700">
+          Job Title <span className="text-red-500">*</span>
+        </label>
+        <Input
+          value={formData.title}
+          onChange={(e) => updateField('title', e.target.value)}
+          placeholder="e.g., Senior Software Engineer"
+          required
+        />
+        {errors.title && <p className="text-sm text-red-600">{errors.title}</p>}
+      </div>
 
       {/* Department & Location */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          label="Department"
-          value={formData.department}
-          onChange={(e) => updateField('department', e.target.value)}
-          error={errors.department}
-          placeholder="e.g., Engineering"
-          required
-        />
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-slate-700">
+            Department <span className="text-red-500">*</span>
+          </label>
+          <Input
+            value={formData.department}
+            onChange={(e) => updateField('department', e.target.value)}
+            placeholder="e.g., Engineering"
+            required
+          />
+          {errors.department && <p className="text-sm text-red-600">{errors.department}</p>}
+        </div>
 
-        <Input
-          label="Location"
-          value={formData.location}
-          onChange={(e) => updateField('location', e.target.value)}
-          error={errors.location}
-          placeholder="e.g., New York, NY / Remote"
-          required
-        />
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-slate-700">
+            Location <span className="text-red-500">*</span>
+          </label>
+          <Input
+            value={formData.location}
+            onChange={(e) => updateField('location', e.target.value)}
+            placeholder="e.g., New York, NY / Remote"
+            required
+          />
+          {errors.location && <p className="text-sm text-red-600">{errors.location}</p>}
+        </div>
       </div>
 
       {/* Number of Openings */}
@@ -349,8 +361,7 @@ export default function JobForm({
         )}
         <Button
           type="submit"
-          variant="primary"
-          isLoading={isSubmitting || isLoading}
+          variant="default"
           disabled={isSubmitting || isLoading}
         >
           {mode === 'edit' ? 'Update Job' : submitLabel}

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, FormEvent, useMemo, ReactNode } from 'react';
-import Button from '@/app/components/ui/Button';
-import Input from '@/app/components/ui/Input';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
 
 // =====================================================
 // Types
@@ -374,24 +374,32 @@ export default function InterviewScheduler({
 
       {/* Date & Time */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Input
-          label="Date"
-          type="date"
-          value={formData.scheduledDate}
-          onChange={(e) => updateField('scheduledDate', e.target.value)}
-          min={minDate}
-          error={errors.scheduledDate}
-          required
-        />
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-slate-700">
+            Date <span className="text-red-500">*</span>
+          </label>
+          <Input
+            type="date"
+            value={formData.scheduledDate}
+            onChange={(e) => updateField('scheduledDate', e.target.value)}
+            min={minDate}
+            required
+          />
+          {errors.scheduledDate && <p className="text-sm text-red-600">{errors.scheduledDate}</p>}
+        </div>
 
-        <Input
-          label="Time"
-          type="time"
-          value={formData.scheduledTime}
-          onChange={(e) => updateField('scheduledTime', e.target.value)}
-          error={errors.scheduledTime}
-          required
-        />
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-slate-700">
+            Time <span className="text-red-500">*</span>
+          </label>
+          <Input
+            type="time"
+            value={formData.scheduledTime}
+            onChange={(e) => updateField('scheduledTime', e.target.value)}
+            required
+          />
+          {errors.scheduledTime && <p className="text-sm text-red-600">{errors.scheduledTime}</p>}
+        </div>
 
         <Select
           label="Duration"
@@ -404,26 +412,34 @@ export default function InterviewScheduler({
 
       {/* Video Link (for video interviews) */}
       {formData.method === 'video' && (
-        <Input
-          label="Video Meeting Link"
-          value={formData.videoLink || ''}
-          onChange={(e) => updateField('videoLink', e.target.value)}
-          placeholder="e.g., https://meet.google.com/xxx-xxxx-xxx"
-          error={errors.videoLink}
-          required
-        />
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-slate-700">
+            Video Meeting Link <span className="text-red-500">*</span>
+          </label>
+          <Input
+            value={formData.videoLink || ''}
+            onChange={(e) => updateField('videoLink', e.target.value)}
+            placeholder="e.g., https://meet.google.com/xxx-xxxx-xxx"
+            required
+          />
+          {errors.videoLink && <p className="text-sm text-red-600">{errors.videoLink}</p>}
+        </div>
       )}
 
       {/* Location (for on-site interviews) */}
       {formData.method === 'onsite' && (
-        <Input
-          label="Location"
-          value={formData.location || ''}
-          onChange={(e) => updateField('location', e.target.value)}
-          placeholder="e.g., Conference Room A, 3rd Floor"
-          error={errors.location}
-          required
-        />
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-slate-700">
+            Location <span className="text-red-500">*</span>
+          </label>
+          <Input
+            value={formData.location || ''}
+            onChange={(e) => updateField('location', e.target.value)}
+            placeholder="e.g., Conference Room A, 3rd Floor"
+            required
+          />
+          {errors.location && <p className="text-sm text-red-600">{errors.location}</p>}
+        </div>
       )}
 
       {/* Panel Selection */}
@@ -480,8 +496,7 @@ export default function InterviewScheduler({
         )}
         <Button
           type="submit"
-          variant="primary"
-          isLoading={isSubmitting || isLoading}
+          variant="default"
           disabled={isSubmitting || isLoading}
         >
           Schedule Interview

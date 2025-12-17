@@ -1,11 +1,18 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import Link from 'next/link';
-import Button from '@/app/components/ui/Button';
-import Card from '@/app/components/ui/Card';
-import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
+import { Button } from '@/app/components/ui/button';
+import { Card } from '@/app/components/ui/card';
+import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
 import { ApplicationStage, ApplicationStatus } from '@/app/types/enums';
+import {
+  getApplicationById,
+  getApplicationHistory,
+  submitInterviewFeedback,
+  getAverageScore,
+} from '@/app/services/recruitment';
+import { SubmitFeedbackRequest } from '@/app/types/recruitment';
 
 // =====================================================
 // Types
@@ -66,92 +73,6 @@ interface NewFeedback {
   score: number;
   comments: string;
 }
-
-// =====================================================
-// Mock Data
-// =====================================================
-
-const mockApplication: ApplicationDetail = {
-  id: '1',
-  applicationId: 'APP-2024-001',
-  candidate: {
-    id: 'CAND-001',
-    firstName: 'Ahmed',
-    lastName: 'Mohamed',
-    email: 'ahmed.mohamed@email.com',
-    phone: '+20 100 123 4567',
-    location: 'Cairo, Egypt',
-    linkedIn: 'https://linkedin.com/in/ahmedmohamed',
-    portfolio: 'https://ahmedmohamed.dev',
-  },
-  jobTitle: 'Senior Software Engineer',
-  departmentName: 'Engineering',
-  currentStage: ApplicationStage.DEPARTMENT_INTERVIEW,
-  status: ApplicationStatus.IN_PROCESS,
-  isReferral: true,
-  referredBy: 'Hassan Ali',
-  appliedDate: '2024-12-10',
-  cvUrl: '/documents/cv-ahmed-mohamed.pdf',
-  cvFileName: 'CV_Ahmed_Mohamed_2024.pdf',
-  coverLetter: 'I am excited to apply for the Senior Software Engineer position at your company. With over 5 years of experience in full-stack development and a strong background in React and Node.js, I believe I would be a valuable addition to your team...',
-  expectedSalary: 25000,
-  noticePeriod: '2 weeks',
-  scores: [
-    {
-      id: 'score-1',
-      evaluatorId: 'emp-001',
-      evaluatorName: 'Sara Ahmed',
-      stage: ApplicationStage.SCREENING,
-      score: 85,
-      comments: 'Strong technical background. CV shows relevant experience with our tech stack. Good educational qualifications.',
-      createdAt: '2024-12-11',
-    },
-  ],
-  averageScore: 85,
-};
-
-const mockCommunicationLogs: CommunicationLog[] = [
-  {
-    id: 'log-1',
-    type: 'system',
-    subject: 'Application Submitted',
-    content: 'Candidate submitted application for Senior Software Engineer position.',
-    createdBy: 'System',
-    createdAt: '2024-12-10T10:30:00',
-  },
-  {
-    id: 'log-2',
-    type: 'email',
-    subject: 'Application Received Confirmation',
-    content: 'Dear Ahmed, Thank you for applying to the Senior Software Engineer position. We have received your application and will review it shortly.',
-    createdBy: 'HR System',
-    createdAt: '2024-12-10T10:31:00',
-  },
-  {
-    id: 'log-3',
-    type: 'note',
-    subject: 'Initial Screening Note',
-    content: 'Candidate has strong references. Referred by Hassan Ali from Engineering team. Moving to screening stage.',
-    createdBy: 'Sara Ahmed',
-    createdAt: '2024-12-11T09:15:00',
-  },
-  {
-    id: 'log-4',
-    type: 'system',
-    subject: 'Stage Changed',
-    content: 'Application moved from Screening to Department Interview stage.',
-    createdBy: 'System',
-    createdAt: '2024-12-12T14:00:00',
-  },
-  {
-    id: 'log-5',
-    type: 'email',
-    subject: 'Interview Invitation',
-    content: 'Dear Ahmed, We are pleased to invite you for a technical interview for the Senior Software Engineer position. Please find the details below...',
-    createdBy: 'Sara Ahmed',
-    createdAt: '2024-12-12T14:30:00',
-  },
-];
 
 // =====================================================
 // Components
@@ -270,23 +191,79 @@ export default function ApplicationDetailsPage({
   const [application, setApplication] = useState<ApplicationDetail | null>(null);
   const [communicationLogs, setCommunicationLogs] = useState<CommunicationLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'feedback' | 'logs'>('profile');
   const [newFeedback, setNewFeedback] = useState<NewFeedback>({ score: 0, comments: '' });
   const [feedbackErrors, setFeedbackErrors] = useState<{ score?: string; comments?: string }>({});
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
-  // Load application data
-  useEffect(() => {
-    const loadData = async () => {
+  // Load application data from API
+  const loadData = useCallback(async () => {
+    try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setApplication(mockApplication);
-      setCommunicationLogs(mockCommunicationLogs);
+      setError(null);
+      
+      const [appData, historyData] = await Promise.all([
+        getApplicationById(resolvedParams.id),
+        getApplicationHistory(resolvedParams.id).catch(() => []),
+      ]);
+      
+      // Get average score
+      let avgScore = 0;
+      try {
+        const scoreResult = await getAverageScore(resolvedParams.id);
+        avgScore = scoreResult.averageScore || 0;
+      } catch {
+        // Score might not be available
+      }
+      
+      // Transform API response to local interface
+      const appDetail: ApplicationDetail = {
+        id: appData.id,
+        applicationId: appData.id || `APP-${appData.id}`,
+        candidate: {
+          id: appData.candidateId || '',
+          firstName: appData.candidateName?.split(' ')[0] || '',
+          lastName: appData.candidateName?.split(' ').slice(1).join(' ') || '',
+          email: appData.candidateEmail || '',
+          phone: '',
+          location: '',
+        },
+        jobTitle: appData.jobTitle || '',
+        departmentName: appData.departmentName || '',
+        currentStage: appData.currentStage || ApplicationStage.SCREENING,
+        status: appData.status || ApplicationStatus.SUBMITTED,
+        isReferral: false,
+        appliedDate: appData.createdAt || '',
+        cvUrl: '',
+        cvFileName: 'CV.pdf',
+        scores: [],
+        averageScore: avgScore,
+      };
+      
+      setApplication(appDetail);
+      
+      // Transform history to communication logs
+      const logs: CommunicationLog[] = (historyData as { id: string; type?: string; subject?: string; content?: string; createdBy?: string; createdAt?: string }[] || []).map((h) => ({
+        id: h.id,
+        type: (h.type || 'system') as CommunicationLog['type'],
+        subject: h.subject || '',
+        content: h.content || '',
+        createdBy: h.createdBy || 'System',
+        createdAt: h.createdAt || '',
+      }));
+      setCommunicationLogs(logs);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load application details');
+    } finally {
       setLoading(false);
-    };
-    loadData();
+    }
   }, [resolvedParams.id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Validate feedback (BR-10, BR-22)
   const validateFeedback = (): boolean => {
@@ -306,43 +283,31 @@ export default function ApplicationDetailsPage({
     return Object.keys(errors).length === 0;
   };
 
-  // Submit feedback (BR-10, BR-22)
+  // Submit feedback - Note: Feedback should be submitted from Interview page
+  // This handler is kept for compatibility but shows a message directing to interviews
   const handleSubmitFeedback = async () => {
-    if (!validateFeedback()) return;
+    if (!validateFeedback() || !application) return;
     
-    setSubmittingFeedback(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    const newScore: FeedbackScore = {
-      id: `score-${Date.now()}`,
-      evaluatorId: 'current-user',
-      evaluatorName: 'Current HR Employee',
-      stage: application?.currentStage || ApplicationStage.SCREENING,
-      score: newFeedback.score,
-      comments: newFeedback.comments,
-      createdAt: new Date().toISOString(),
-    };
-    
-    if (application) {
-      const updatedScores = [...application.scores, newScore];
-      const avgScore = Math.round(updatedScores.reduce((sum, s) => sum + s.score, 0) / updatedScores.length);
-      setApplication({
-        ...application,
-        scores: updatedScores,
-        averageScore: avgScore,
-      });
+    try {
+      setSubmittingFeedback(true);
+      setError(null);
+      
+      // Feedback must be submitted via interviews - this is a placeholder
+      // In the real flow, users should go to the interview detail page to submit feedback
+      setError('Please submit feedback from the Interview detail page. Navigate to Interviews and select the relevant interview.');
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to submit feedback');
+    } finally {
+      setSubmittingFeedback(false);
     }
-    
-    setNewFeedback({ score: 0, comments: '' });
-    setSubmittingFeedback(false);
-    setFeedbackSuccess(true);
-    setTimeout(() => setFeedbackSuccess(false), 3000);
   };
 
   // Handle CV download
   const handleDownloadCV = () => {
-    // In real app, this would trigger actual download
-    alert(`Downloading ${application?.cvFileName}`);
+    if (application?.cvUrl) {
+      window.open(application.cvUrl, '_blank');
+    }
   };
 
   if (loading) {
@@ -358,7 +323,7 @@ export default function ApplicationDetailsPage({
       <div className="p-6 text-center">
         <p className="text-slate-600">Application not found.</p>
         <Link href="/dashboard/hr-employee/recruitment/applications">
-          <Button variant="primary" className="mt-4">
+          <Button variant="default" className="mt-4">
             Back to Pipeline
           </Button>
         </Link>
@@ -405,6 +370,17 @@ export default function ApplicationDetailsPage({
         </div>
       )}
 
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+          <span className="text-red-800 font-medium">{error}</span>
+          <button onClick={() => setError(null)} className="ml-auto text-red-600 hover:text-red-800">×</button>
+        </div>
+      )}
+
       {/* Quick Actions */}
       <Card className="mb-6">
         <div className="flex items-center justify-between">
@@ -431,11 +407,11 @@ export default function ApplicationDetailsPage({
               <Button variant="outline">Schedule Interview</Button>
             </Link>
             <Link href={`/dashboard/hr-employee/recruitment/applications/${application.id}/reject`}>
-              <Button variant="danger">Reject</Button>
+              <Button variant="destructive">Reject</Button>
             </Link>
             {application.currentStage === ApplicationStage.HR_INTERVIEW && (
               <Link href={`/dashboard/hr-employee/recruitment/offers?applicationId=${application.id}`}>
-                <Button variant="primary">Create Offer</Button>
+                <Button variant="default">Create Offer</Button>
               </Link>
             )}
           </div>
@@ -473,7 +449,7 @@ export default function ApplicationDetailsPage({
           {activeTab === 'profile' && (
             <div className="space-y-6">
               {/* Personal Info */}
-              <Card title="Personal Information">
+              <Card>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-slate-500">Full Name</label>
@@ -523,7 +499,7 @@ export default function ApplicationDetailsPage({
               </Card>
 
               {/* Application Details */}
-              <Card title="Application Details">
+              <Card>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-slate-500">Position</label>
@@ -558,13 +534,13 @@ export default function ApplicationDetailsPage({
 
               {/* Cover Letter */}
               {application.coverLetter && (
-                <Card title="Cover Letter">
+                <Card>
                   <p className="text-slate-700 whitespace-pre-line">{application.coverLetter}</p>
                 </Card>
               )}
 
               {/* CV Preview & Download */}
-              <Card title="CV / Resume">
+              <Card>
                 <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -582,7 +558,7 @@ export default function ApplicationDetailsPage({
                       <Button variant="outline" onClick={() => window.open(application.cvUrl, '_blank')}>
                         Preview
                       </Button>
-                      <Button variant="primary" onClick={handleDownloadCV}>
+                      <Button variant="default" onClick={handleDownloadCV}>
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
@@ -599,7 +575,7 @@ export default function ApplicationDetailsPage({
           {activeTab === 'feedback' && (
             <div className="space-y-6">
               {/* Add New Feedback */}
-              <Card title="Add Feedback">
+              <Card>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -646,9 +622,9 @@ export default function ApplicationDetailsPage({
                   </div>
                   <div className="flex justify-end">
                     <Button
-                      variant="primary"
+                      variant="default"
                       onClick={handleSubmitFeedback}
-                      isLoading={submittingFeedback}
+                      disabled={submittingFeedback}
                     >
                       Submit Feedback
                     </Button>
@@ -657,7 +633,7 @@ export default function ApplicationDetailsPage({
               </Card>
 
               {/* Previous Feedback */}
-              <Card title="Previous Feedback">
+              <Card>
                 {application.scores.length === 0 ? (
                   <p className="text-slate-500 text-center py-8">No feedback recorded yet.</p>
                 ) : (
@@ -696,7 +672,7 @@ export default function ApplicationDetailsPage({
 
           {/* Communication Logs Tab (BR-37) */}
           {activeTab === 'logs' && (
-            <Card title="Communication History">
+            <Card>
               <div className="space-y-4">
                 {communicationLogs.map((log, index) => (
                   <div
@@ -724,7 +700,7 @@ export default function ApplicationDetailsPage({
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Stage Timeline */}
-          <Card title="Application Progress">
+          <Card>
             <div className="space-y-4">
               {Object.entries(stageConfig).map(([stage, config], index) => {
                 const stageOrder = Object.keys(stageConfig);
@@ -766,7 +742,7 @@ export default function ApplicationDetailsPage({
           </Card>
 
           {/* Quick Stats */}
-          <Card title="Quick Stats">
+          <Card>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-slate-600">Days in Pipeline</span>
@@ -797,23 +773,23 @@ export default function ApplicationDetailsPage({
           </Card>
 
           {/* Actions */}
-          <Card title="Quick Actions">
+          <Card>
             <div className="space-y-2">
               <Link href={`/dashboard/hr-employee/recruitment/interviews?applicationId=${application.id}`} className="block">
-                <Button variant="outline" fullWidth>
+                <Button variant="outline" className="w-full">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   Schedule Interview
                 </Button>
               </Link>
-              <Button variant="outline" fullWidth>
+              <Button variant="outline" className="w-full">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 Send Email
               </Button>
-              <Button variant="outline" fullWidth>
+              <Button variant="outline" className="w-full">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>

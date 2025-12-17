@@ -1,8 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import {
+  getApplicationById,
+  respondToOffer,
+  getInterviews,
+  getOfferByApplication,
+} from '@/app/services/recruitment';
+import { Application as ApiApplication, JobOffer, Interview as ApiInterview } from '@/app/types/recruitment';
+import { ApplicationStage as ApiApplicationStage, ApplicationStatus, OfferResponseStatus, InterviewStatus, InterviewMethod } from '@/app/types/enums';
 
 // =====================================================
 // TypeScript Interfaces
@@ -73,103 +81,93 @@ const STAGES: { key: ApplicationStage; label: string; icon: string }[] = [
 ];
 
 // =====================================================
-// Mock Data
+// Helper Functions
 // =====================================================
 
-const mockApplicationData: ApplicationDetails = {
-  id: 'app-001',
-  jobId: 'job-001',
-  jobTitle: 'Senior Software Engineer',
-  department: 'Engineering',
-  location: 'Cairo, Egypt',
-  appliedDate: '2025-12-01T10:30:00Z',
-  currentStage: 'interview',
-  status: 'active',
-  stageHistory: [
-    { stage: 'applied', date: '2025-12-01T10:30:00Z', notes: 'Application submitted successfully' },
-    { stage: 'screening', date: '2025-12-03T14:00:00Z', notes: 'CV reviewed by HR' },
-    { stage: 'interview', date: '2025-12-08T09:00:00Z', notes: 'Moved to interview stage' },
-  ],
-  interviews: [
-    {
-      id: 'int-001',
-      stage: 'HR Interview',
-      scheduledDate: '2025-12-18',
-      scheduledTime: '10:00',
-      mode: 'online',
-      videoLink: 'https://meet.example.com/abc123',
-      interviewers: ['Sarah Ahmed (HR Manager)'],
-      status: 'scheduled',
-    },
-    {
-      id: 'int-002',
-      stage: 'Technical Interview',
-      scheduledDate: '2025-12-22',
-      scheduledTime: '14:00',
-      mode: 'onsite',
-      location: 'Head Office, Building A, Room 301',
-      interviewers: ['Mohamed Ali (Engineering Lead)', 'Fatma Hassan (Senior Developer)'],
-      status: 'scheduled',
-    },
-  ],
-  offer: undefined,
-  communicationLogs: [
-    {
-      id: 'log-001',
-      type: 'email',
-      subject: 'Application Received - Senior Software Engineer',
-      date: '2025-12-01T10:35:00Z',
-      read: true,
-    },
-    {
-      id: 'log-002',
-      type: 'email',
-      subject: 'Interview Invitation - HR Interview',
-      date: '2025-12-08T09:15:00Z',
-      read: true,
-    },
-    {
-      id: 'log-003',
-      type: 'system',
-      subject: 'Technical Interview Scheduled',
-      date: '2025-12-10T11:00:00Z',
-      read: false,
-    },
-  ],
+const mapApiStageToLocal = (stage: string): ApplicationStage => {
+  const stageMap: Record<string, ApplicationStage> = {
+    [ApiApplicationStage.SCREENING]: 'screening',
+    [ApiApplicationStage.DEPARTMENT_INTERVIEW]: 'interview',
+    [ApiApplicationStage.HR_INTERVIEW]: 'interview',
+    [ApiApplicationStage.OFFER]: 'offer',
+  };
+  // Default to 'applied' for unknown stages
+  return stageMap[stage] || 'applied';
 };
 
-// Mock application with offer
-const mockApplicationWithOffer: ApplicationDetails = {
-  ...mockApplicationData,
-  id: 'app-002',
-  currentStage: 'offer',
-  stageHistory: [
-    ...mockApplicationData.stageHistory,
-    { stage: 'offer', date: '2025-12-12T16:00:00Z', notes: 'Offer extended' },
-  ],
-  interviews: mockApplicationData.interviews.map(int => ({ ...int, status: 'completed' as const })),
-  offer: {
-    id: 'offer-001',
-    salary: 25000,
-    currency: 'EGP',
-    benefits: ['Health Insurance', 'Annual Bonus', 'Remote Work Options', '21 Days PTO'],
-    startDate: '2026-01-15',
-    deadline: '2025-12-25',
-    status: 'pending',
-    documentUrl: '/documents/offer-letter.pdf',
-  },
+// Map API interview to local Interview type (BR-27: Candidates see interview schedule)
+const mapApiInterviewToLocal = (interview: ApiInterview): Interview => {
+  const date = new Date(interview.scheduledDate);
+  const isVirtual = interview.method === InterviewMethod.VIDEO || interview.method === InterviewMethod.PHONE;
+  
+  return {
+    id: interview.id,
+    stage: interview.stage === ApiApplicationStage.DEPARTMENT_INTERVIEW 
+      ? 'Department Interview'
+      : interview.stage === ApiApplicationStage.HR_INTERVIEW
+      ? 'HR Interview'
+      : 'Interview',
+    scheduledDate: interview.scheduledDate,
+    scheduledTime: date.toTimeString().slice(0, 5), // HH:MM format
+    mode: isVirtual ? 'online' : 'onsite',
+    location: isVirtual ? undefined : 'Office',
+    videoLink: interview.videoLink,
+    interviewers: interview.panelMembers?.map(p => p.employeeName) || [],
+    status: interview.status === InterviewStatus.SCHEDULED ? 'scheduled'
+          : interview.status === InterviewStatus.COMPLETED ? 'completed'
+          : 'cancelled',
+    feedback: interview.candidateFeedback,
+  };
 };
 
-// Simulated API call
-const fetchApplicationDetails = async (id: string): Promise<ApplicationDetails> => {
-  await new Promise(resolve => setTimeout(resolve, 800));
+// Map API offer to local Offer type (BR-36: Accept/Reject offers)
+const mapApiOfferToLocal = (offer: JobOffer): Offer => {
+  const statusMap: Record<string, 'pending' | 'accepted' | 'rejected' | 'expired'> = {
+    [OfferResponseStatus.PENDING]: 'pending',
+    [OfferResponseStatus.ACCEPTED]: 'accepted',
+    [OfferResponseStatus.REJECTED]: 'rejected',
+  };
   
-  // Return offer version for specific IDs to demo different states
-  if (id.includes('offer') || id === 'app-002') {
-    return mockApplicationWithOffer;
-  }
+  // Check if offer is expired
+  const isExpired = offer.deadline && new Date(offer.deadline) < new Date();
   
-  return { ...mockApplicationData, id };
+  return {
+    id: offer.id,
+    salary: offer.grossSalary,
+    currency: 'EGP', // Could be dynamic based on company settings
+    benefits: offer.benefits || [],
+    startDate: offer.createdAt, // Or could use a specific start date field
+    deadline: offer.deadline || '',
+    status: isExpired ? 'expired' : (statusMap[offer.applicantResponse] || 'pending'),
+    documentUrl: undefined, // Could be added if offer letter generation is implemented
+  };
+};
+
+const mapApiApplicationToLocal = (
+  app: ApiApplication, 
+  interviews: Interview[] = [], 
+  offer?: Offer
+): ApplicationDetails => {
+  const currentStage = mapApiStageToLocal(app.currentStage);
+  
+  return {
+    id: app.id,
+    jobId: app.requisitionId,
+    jobTitle: app.jobTitle || 'Unknown Position',
+    department: app.departmentName || 'Unknown Department',
+    location: 'TBD',
+    appliedDate: app.createdAt,
+    currentStage,
+    status: app.status === ApplicationStatus.SUBMITTED ? 'active' : 
+            app.status === ApplicationStatus.IN_PROCESS ? 'active' :
+            app.status === ApplicationStatus.REJECTED ? 'closed' : 'active',
+    stageHistory: [
+      { stage: currentStage, date: app.createdAt, notes: 'Application submitted' }
+    ],
+    interviews,
+    offer,
+    communicationLogs: [],
+  };
 };
 
 // =====================================================
@@ -682,28 +680,57 @@ export default function ApplicationStatusPage() {
   const applicationId = params.id as string;
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [application, setApplication] = useState<ApplicationDetails | null>(null);
   const [processingOffer, setProcessingOffer] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState<'accept' | 'reject' | null>(null);
 
-  // Load application details
-  useEffect(() => {
-    const loadApplication = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchApplicationDetails(applicationId);
-        setApplication(data);
-      } catch (error) {
-        console.error('Failed to load application:', error);
-      } finally {
-        setLoading(false);
+  // Load application details from API (BR-27: Application tracking with interviews)
+  const loadApplication = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch application details
+      const response = await getApplicationById(applicationId);
+      if (!response) {
+        throw new Error('Application not found');
       }
-    };
+      
+      // Fetch interviews for this application (BR-27: Candidates see interview schedule)
+      let localInterviews: Interview[] = [];
+      try {
+        const apiInterviews = await getInterviews({ applicationId });
+        localInterviews = apiInterviews.map(mapApiInterviewToLocal);
+      } catch (interviewErr) {
+        console.warn('Could not fetch interviews:', interviewErr);
+      }
+      
+      // Fetch offer for this application (BR-36: Candidates accept/reject offers)
+      let localOffer: Offer | undefined;
+      try {
+        const apiOffer = await getOfferByApplication(applicationId);
+        if (apiOffer) {
+          localOffer = mapApiOfferToLocal(apiOffer);
+        }
+      } catch (offerErr) {
+        // No offer exists yet - this is normal for applications not at offer stage
+        console.debug('No offer found for application');
+      }
+      
+      setApplication(mapApiApplicationToLocal(response, localInterviews, localOffer));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load application details');
+    } finally {
+      setLoading(false);
+    }
+  }, [applicationId]);
 
+  useEffect(() => {
     if (applicationId) {
       loadApplication();
     }
-  }, [applicationId]);
+  }, [applicationId, loadApplication]);
 
   // Handle offer response
   const handleOfferResponse = async (response: 'accepted' | 'rejected') => {
@@ -711,33 +738,16 @@ export default function ApplicationStatusPage() {
 
     setProcessingOffer(true);
     setShowConfirmModal(null);
+    setError(null);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // respondToOffer takes a simple string response
+      await respondToOffer(application.offer.id, response);
 
-      setApplication(prev =>
-        prev
-          ? {
-              ...prev,
-              offer: prev.offer ? { ...prev.offer, status: response } : undefined,
-              currentStage: response === 'accepted' ? 'hired' : prev.currentStage,
-              stageHistory:
-                response === 'accepted'
-                  ? [
-                      ...prev.stageHistory,
-                      {
-                        stage: 'hired' as ApplicationStage,
-                        date: new Date().toISOString(),
-                        notes: 'Offer accepted',
-                      },
-                    ]
-                  : prev.stageHistory,
-            }
-          : null
-      );
-    } catch (error) {
-      console.error('Failed to respond to offer:', error);
+      // Reload application to get updated state
+      await loadApplication();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to respond to offer');
     } finally {
       setProcessingOffer(false);
     }
@@ -750,6 +760,26 @@ export default function ApplicationStatusPage() {
         <div className="text-center">
           <LoadingSpinner size="lg" />
           <p className="mt-4 text-slate-600">Loading application details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && !application) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="card text-center max-w-md">
+          <div className="text-6xl mb-4">❌</div>
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">Error Loading Application</h2>
+          <p className="text-slate-600 mb-6">{error}</p>
+          <Link
+            href="/dashboard/job-candidate/recruitment/applications"
+            className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium"
+          >
+            <ArrowLeftIcon className="w-4 h-4" />
+            Back to Applications
+          </Link>
         </div>
       </div>
     );
@@ -776,6 +806,14 @@ export default function ApplicationStatusPage() {
 
   return (
     <div className="space-y-6">
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <XCircleIcon className="w-5 h-5 text-red-600" />
+          <p className="text-red-600">{error}</p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

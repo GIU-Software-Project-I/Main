@@ -1,5 +1,6 @@
 'use client';
 
+import { ReactNode } from 'react';
 import { AuditLog, AuditEventType, AuditActorType } from '@/app/types/recruitment';
 
 // =====================================================
@@ -16,7 +17,7 @@ interface AuditEventProps {
 // =====================================================
 
 function getEventIcon(eventType: AuditEventType) {
-  const iconMap: Record<AuditEventType, { bg: string; icon: JSX.Element }> = {
+  const iconMap: Record<AuditEventType, { bg: string; icon: ReactNode }> = {
     application_created: {
       bg: 'bg-cyan-100',
       icon: (

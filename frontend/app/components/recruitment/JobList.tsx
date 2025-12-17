@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { JobRequisition, JobTemplate } from '@/app/types/recruitment';
-import Button from '@/app/components/ui/Button';
-import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
+import { Button } from '@/app/components/ui/button';
+import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
 
 // =====================================================
 // Types
@@ -175,7 +175,7 @@ function JobCard({
         </Button>
         
         {canApply && onApply && (
-          <Button variant="primary" size="sm" onClick={() => onApply(job.id)}>
+          <Button variant="default" size="sm" onClick={() => onApply(job.id)}>
             Apply Now
           </Button>
         )}
@@ -187,7 +187,7 @@ function JobCard({
         )}
 
         {canPublish && onPublish && job.publishStatus === 'draft' && (
-          <Button variant="primary" size="sm" onClick={() => onPublish(job.id)}>
+          <Button variant="default" size="sm" onClick={() => onPublish(job.id)}>
             Publish
           </Button>
         )}
@@ -199,7 +199,7 @@ function JobCard({
         )}
 
         {canDelete && onDelete && job.publishStatus === 'draft' && (
-          <Button variant="danger" size="sm" onClick={() => onDelete(job.id)}>
+          <Button variant="destructive" size="sm" onClick={() => onDelete(job.id)}>
             Delete
           </Button>
         )}
@@ -295,7 +295,7 @@ function JobTable({
                   </Button>
 
                   {isCandidate && job.publishStatus === 'published' && onApply && (
-                    <Button variant="primary" size="sm" onClick={() => onApply(job.id)}>
+                    <Button variant="default" size="sm" onClick={() => onApply(job.id)}>
                       Apply
                     </Button>
                   )}
@@ -307,7 +307,7 @@ function JobTable({
                   )}
 
                   {canPublish && onPublish && job.publishStatus === 'draft' && (
-                    <Button variant="primary" size="sm" onClick={() => onPublish(job.id)}>
+                    <Button variant="default" size="sm" onClick={() => onPublish(job.id)}>
                       Publish
                     </Button>
                   )}
@@ -319,7 +319,7 @@ function JobTable({
                   )}
 
                   {canDelete && onDelete && job.publishStatus === 'draft' && (
-                    <Button variant="danger" size="sm" onClick={() => onDelete(job.id)}>
+                    <Button variant="destructive" size="sm" onClick={() => onDelete(job.id)}>
                       Delete
                     </Button>
                   )}

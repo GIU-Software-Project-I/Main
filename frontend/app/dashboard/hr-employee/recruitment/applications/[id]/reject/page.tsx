@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Button from '@/app/components/ui/Button';
-import Card from '@/app/components/ui/Card';
-import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
+import { Button } from '@/app/components/ui/button';
+import { Card } from '@/app/components/ui/card';
+import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
+import { getApplicationById, rejectApplication } from '@/app/services/recruitment';
 
 // =====================================================
 // Types
@@ -36,19 +37,8 @@ interface RejectionTemplate {
 }
 
 // =====================================================
-// Mock Data
+// Static Data
 // =====================================================
-
-const mockCandidate: CandidateInfo = {
-  id: 'CAND-001',
-  applicationId: 'APP-2024-001',
-  candidateName: 'Ahmed Mohamed',
-  candidateEmail: 'ahmed.mohamed@email.com',
-  jobTitle: 'Senior Software Engineer',
-  departmentName: 'Engineering',
-  appliedDate: '2024-12-10',
-  currentStage: 'Department Interview',
-};
 
 const rejectionReasons: RejectionReason[] = [
   {
@@ -214,6 +204,7 @@ export default function RejectApplicationPage({
 
   const [candidate, setCandidate] = useState<CandidateInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -226,16 +217,40 @@ export default function RejectApplicationPage({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Load candidate data
-  useEffect(() => {
-    const loadData = async () => {
+  // Load candidate data from API
+  const loadData = useCallback(async () => {
+    try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setCandidate(mockCandidate);
+      setError(null);
+      
+      const appData = await getApplicationById(resolvedParams.id);
+      
+      if (!appData) {
+        throw new Error('Application not found');
+      }
+      
+      const candidateInfo: CandidateInfo = {
+        id: appData.candidateId || appData.id,
+        applicationId: `APP-${appData.id}`,
+        candidateName: appData.candidateName || 'Unknown',
+        candidateEmail: appData.candidateEmail || '',
+        jobTitle: appData.jobTitle || '',
+        departmentName: appData.departmentName || '',
+        appliedDate: appData.createdAt || '',
+        currentStage: appData.currentStage || 'Unknown',
+      };
+      
+      setCandidate(candidateInfo);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load application data');
+    } finally {
       setLoading(false);
-    };
-    loadData();
+    }
   }, [resolvedParams.id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Validate form (BR-36, BR-37)
   const validateForm = (): boolean => {
@@ -266,10 +281,23 @@ export default function RejectApplicationPage({
 
   // Send rejection (BR-36, BR-37)
   const handleSendRejection = async () => {
+    if (!candidate) return;
+    
     setSending(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setSending(false);
-    setSent(true);
+    setError(null);
+    
+    try {
+      // Build rejection reason with notes
+      const rejectionReason = `${selectedReason}${internalNotes ? ` - ${internalNotes}` : ''}`;
+      
+      await rejectApplication(resolvedParams.id, rejectionReason);
+      
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send rejection');
+    } finally {
+      setSending(false);
+    }
   };
 
   const selectedReasonData = rejectionReasons.find((r) => r.id === selectedReason);
@@ -283,12 +311,27 @@ export default function RejectApplicationPage({
     );
   }
 
+  if (error && !candidate) {
+    return (
+      <div className="p-6 text-center">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 max-w-md mx-auto">
+          <p className="text-red-600">{error}</p>
+        </div>
+        <Link href="/dashboard/hr-employee/recruitment/applications">
+          <Button variant="default" className="mt-4">
+            Back to Pipeline
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
   if (!candidate) {
     return (
       <div className="p-6 text-center">
         <p className="text-slate-600">Application not found.</p>
         <Link href="/dashboard/hr-employee/recruitment/applications">
-          <Button variant="primary" className="mt-4">
+          <Button variant="default" className="mt-4">
             Back to Pipeline
           </Button>
         </Link>
@@ -328,7 +371,7 @@ export default function RejectApplicationPage({
               <Button variant="outline">Back to Pipeline</Button>
             </Link>
             <Link href={`/dashboard/hr-employee/recruitment/applications/${resolvedParams.id}`}>
-              <Button variant="primary">View Application</Button>
+              <Button variant="default">View Application</Button>
             </Link>
           </div>
         </Card>
@@ -354,6 +397,19 @@ export default function RejectApplicationPage({
           Send an automated rejection notification to the candidate (BR-36)
         </p>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <svg className="w-5 h-5 text-red-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+          <div>
+            <p className="font-medium text-red-800">Error</p>
+            <p className="text-sm text-red-700 mt-1">{error}</p>
+          </div>
+        </div>
+      )}
 
       {/* Warning Banner */}
       <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
@@ -390,7 +446,7 @@ export default function RejectApplicationPage({
         {/* Left Column - Form */}
         <div className="space-y-6">
           {/* Rejection Reason */}
-          <Card title="Rejection Reason">
+          <Card>
             <p className="text-sm text-slate-600 mb-4">
               Select the primary reason for rejecting this application.
             </p>
@@ -416,7 +472,7 @@ export default function RejectApplicationPage({
           </Card>
 
           {/* Email Template */}
-          <Card title="Email Template">
+          <Card>
             <div className="space-y-3">
               {rejectionTemplates.map((template) => (
                 <button
@@ -471,7 +527,7 @@ export default function RejectApplicationPage({
           </Card>
 
           {/* Internal Notes */}
-          <Card title="Internal Notes (Optional)">
+          <Card>
             <p className="text-sm text-slate-600 mb-3">
               Add notes for internal records. These will not be shared with the candidate.
             </p>
@@ -487,7 +543,7 @@ export default function RejectApplicationPage({
 
         {/* Right Column - Preview */}
         <div className="space-y-6">
-          <Card title="Email Preview">
+          <Card>
             <EmailPreview
               template={selectedTemplateData || null}
               candidate={candidate}
@@ -502,7 +558,7 @@ export default function RejectApplicationPage({
         <Link href={`/dashboard/hr-employee/recruitment/applications/${resolvedParams.id}`}>
           <Button variant="outline">Cancel</Button>
         </Link>
-        <Button variant="danger" onClick={handleConfirmClick}>
+        <Button variant="destructive" onClick={handleConfirmClick}>
           Send Rejection
         </Button>
       </div>
@@ -531,17 +587,17 @@ export default function RejectApplicationPage({
               <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  fullWidth
+                  className="w-full"
                   onClick={() => setShowConfirmation(false)}
                   disabled={sending}
                 >
                   Cancel
                 </Button>
                 <Button
-                  variant="danger"
-                  fullWidth
+                  variant="destructive"
+                  className="w-full"
                   onClick={handleSendRejection}
-                  isLoading={sending}
+                  disabled={sending}
                 >
                   Confirm & Send
                 </Button>

@@ -51,7 +51,9 @@ app.enableCors({
             'http://localhost:8000',
             'http://172.24.0.1:8000',
             'http://172.30.64.1:8000',
-            'http://192.168.21.1:8000'
+            'http://192.168.21.1:8000',
+            'http://172.20.176.1:8000',
+            'http://192.168.1.6:8000'
         ],
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Card from '@/app/components/ui/Card';
-import Button from '@/app/components/ui/Button';
+import { Card } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { getOffers, approveOffer, rejectOffer } from '@/app/services/recruitment';
+import { useAuth } from '@/app/context/AuthContext';
 
 // ==================== INTERFACES ====================
 interface Offer {
@@ -32,120 +34,77 @@ interface CommunicationLog {
   user: string;
 }
 
-// ==================== MOCK DATA ====================
-const mockOffers: Offer[] = [
-  {
-    id: '1',
-    candidateName: 'Ahmed Hassan',
-    candidateEmail: 'ahmed.hassan@email.com',
-    jobTitle: 'Software Engineer',
-    department: 'Engineering',
-    salary: 25000,
-    startDate: '2026-01-15',
-    status: 'pending_approval',
-    createdAt: '2025-12-10',
-    createdBy: 'Sarah Mohamed',
-  },
-  {
-    id: '2',
-    candidateName: 'Fatima Ali',
-    candidateEmail: 'fatima.ali@email.com',
-    jobTitle: 'Product Manager',
-    department: 'Product',
-    salary: 35000,
-    startDate: '2026-01-20',
-    status: 'pending_approval',
-    createdAt: '2025-12-12',
-    createdBy: 'Mohamed Ahmed',
-  },
-  {
-    id: '3',
-    candidateName: 'Omar Khalil',
-    candidateEmail: 'omar.khalil@email.com',
-    jobTitle: 'Marketing Specialist',
-    department: 'Marketing',
-    salary: 18000,
-    startDate: '2026-02-01',
-    status: 'approved',
-    createdAt: '2025-12-08',
-    createdBy: 'Sarah Mohamed',
-    approvedBy: 'HR Manager',
-    approvedAt: '2025-12-09',
-  },
-  {
-    id: '4',
-    candidateName: 'Nour Ibrahim',
-    candidateEmail: 'nour.ibrahim@email.com',
-    jobTitle: 'HR Coordinator',
-    department: 'Human Resources',
-    salary: 15000,
-    startDate: '2026-01-10',
-    status: 'sent',
-    createdAt: '2025-12-05',
-    createdBy: 'Mohamed Ahmed',
-    approvedBy: 'HR Manager',
-    approvedAt: '2025-12-06',
-  },
-  {
-    id: '5',
-    candidateName: 'Youssef Mansour',
-    candidateEmail: 'youssef.m@email.com',
-    jobTitle: 'Financial Analyst',
-    department: 'Finance',
-    salary: 22000,
-    startDate: '2026-01-25',
-    status: 'accepted',
-    createdAt: '2025-12-01',
-    createdBy: 'Sarah Mohamed',
-    approvedBy: 'HR Manager',
-    approvedAt: '2025-12-02',
-  },
-  {
-    id: '6',
-    candidateName: 'Layla Mahmoud',
-    candidateEmail: 'layla.m@email.com',
-    jobTitle: 'Software Engineer',
-    department: 'Engineering',
-    salary: 24000,
-    startDate: '2026-01-15',
-    status: 'rejected',
-    createdAt: '2025-12-03',
-    createdBy: 'Mohamed Ahmed',
-    rejectionReason: 'Budget constraints for this quarter',
-  },
-];
-
-const mockCommunicationLogs: CommunicationLog[] = [
-  { id: '1', offerId: '1', type: 'system', message: 'Offer created and submitted for approval', timestamp: '2025-12-10 09:30', user: 'Sarah Mohamed' },
-  { id: '2', offerId: '3', type: 'system', message: 'Offer approved by HR Manager', timestamp: '2025-12-09 14:15', user: 'HR Manager' },
-  { id: '3', offerId: '3', type: 'email', message: 'Offer letter sent to candidate', timestamp: '2025-12-09 14:30', user: 'System' },
-  { id: '4', offerId: '4', type: 'email', message: 'Offer letter sent to candidate', timestamp: '2025-12-07 10:00', user: 'System' },
-  { id: '5', offerId: '5', type: 'system', message: 'Candidate accepted the offer', timestamp: '2025-12-05 16:45', user: 'System' },
-];
-
 // ==================== MAIN COMPONENT ====================
 export default function OffersPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [logs, setLogs] = useState<CommunicationLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showLogsPanel, setShowLogsPanel] = useState(false);
+  const [processing, setProcessing] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const offersData = await getOffers();
+      
+      // Transform API response to local interface
+      // Note: JobOffer type matches backend offer.schema.ts
+      const transformedOffers: Offer[] = offersData.map((o) => {
+        // Check if any approver has approved/rejected
+        const approvedApprover = o.approvers?.find(a => a.status === 'approved');
+        const rejectedApprover = o.approvers?.find(a => a.status === 'rejected');
+        
+        return {
+          id: o.id,
+          candidateName: o.candidateName || 'Unknown',
+          candidateEmail: '', // Not in schema, would need candidate lookup
+          jobTitle: o.positionTitle || o.role || '',
+          department: o.departmentName || '',
+          salary: o.grossSalary || 0,
+          startDate: o.deadline || '',
+          status: mapOfferStatus(o.finalStatus, o.applicantResponse),
+          createdAt: o.createdAt || '',
+          createdBy: 'HR Team', // Not tracked in schema
+          approvedBy: approvedApprover?.employeeId,
+          approvedAt: approvedApprover?.actionDate,
+          rejectionReason: rejectedApprover?.comment,
+        };
+      });
+      
+      setOffers(transformedOffers);
+      setLogs([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load offers');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Helper to map API status to local status
+  const mapOfferStatus = (
+    finalStatus?: string,
+    applicantResponse?: string,
+  ): Offer['status'] => {
+    if (applicantResponse === 'accepted') return 'accepted';
+    if (applicantResponse === 'rejected') return 'declined';
+    if (finalStatus === 'rejected') return 'rejected';
+    if (finalStatus === 'approved') return 'approved';
+    return 'pending_approval';
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setOffers(mockOffers);
-      setLogs(mockCommunicationLogs);
-      setLoading(false);
-    };
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   // ==================== HANDLERS ====================
   const handleApprove = (offer: Offer) => {
@@ -159,62 +118,84 @@ export default function OffersPage() {
     setShowRejectModal(true);
   };
 
-  const confirmApproval = () => {
-    if (!selectedOffer) return;
+  const confirmApproval = async () => {
+    if (!selectedOffer || !user) return;
 
-    setOffers((prev) =>
-      prev.map((o) =>
-        o.id === selectedOffer.id
-          ? {
-              ...o,
-              status: 'approved',
-              approvedBy: 'HR Manager',
-              approvedAt: new Date().toISOString().split('T')[0],
-            }
-          : o
-      )
-    );
+    try {
+      setProcessing(true);
+      setError(null);
+      
+      await approveOffer(selectedOffer.id, user.id);
 
-    // Add log
-    const newLog: CommunicationLog = {
-      id: Date.now().toString(),
-      offerId: selectedOffer.id,
-      type: 'system',
-      message: 'Offer approved by HR Manager',
-      timestamp: new Date().toLocaleString(),
-      user: 'HR Manager',
-    };
-    setLogs((prev) => [newLog, ...prev]);
+      setOffers((prev) =>
+        prev.map((o) =>
+          o.id === selectedOffer.id
+            ? {
+                ...o,
+                status: 'approved',
+                approvedBy: `${user.firstName} ${user.lastName}`,
+                approvedAt: new Date().toISOString().split('T')[0],
+              }
+            : o
+        )
+      );
 
-    setShowApprovalModal(false);
-    setSelectedOffer(null);
+      // Add log
+      const newLog: CommunicationLog = {
+        id: Date.now().toString(),
+        offerId: selectedOffer.id,
+        type: 'system',
+        message: 'Offer approved by HR Manager',
+        timestamp: new Date().toLocaleString(),
+        user: 'HR Manager',
+      };
+      setLogs((prev) => [newLog, ...prev]);
+
+      setShowApprovalModal(false);
+      setSelectedOffer(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to approve offer');
+    } finally {
+      setProcessing(false);
+    }
   };
 
-  const confirmRejection = () => {
-    if (!selectedOffer || !rejectionReason.trim()) return;
+  const confirmRejection = async () => {
+    if (!selectedOffer || !rejectionReason.trim() || !user) return;
 
-    setOffers((prev) =>
-      prev.map((o) =>
-        o.id === selectedOffer.id
-          ? { ...o, status: 'rejected', rejectionReason }
-          : o
-      )
-    );
+    try {
+      setProcessing(true);
+      setError(null);
+      
+      await rejectOffer(selectedOffer.id, user.id, rejectionReason);
 
-    // Add log
-    const newLog: CommunicationLog = {
-      id: Date.now().toString(),
-      offerId: selectedOffer.id,
-      type: 'system',
-      message: `Offer rejected: ${rejectionReason}`,
-      timestamp: new Date().toLocaleString(),
-      user: 'HR Manager',
-    };
-    setLogs((prev) => [newLog, ...prev]);
+      setOffers((prev) =>
+        prev.map((o) =>
+          o.id === selectedOffer.id
+            ? { ...o, status: 'rejected', rejectionReason }
+            : o
+        )
+      );
 
-    setShowRejectModal(false);
-    setSelectedOffer(null);
-    setRejectionReason('');
+      // Add log
+      const newLog: CommunicationLog = {
+        id: Date.now().toString(),
+        offerId: selectedOffer.id,
+        type: 'system',
+        message: `Offer rejected: ${rejectionReason}`,
+        timestamp: new Date().toLocaleString(),
+        user: `${user.firstName} ${user.lastName}`,
+      };
+      setLogs((prev) => [newLog, ...prev]);
+
+      setShowRejectModal(false);
+      setSelectedOffer(null);
+      setRejectionReason('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reject offer');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   // ==================== FILTERING ====================
@@ -406,7 +387,7 @@ export default function OffersPage() {
                             </svg>
                             Approve
                           </Button>
-                          <Button variant="danger" size="sm" onClick={() => handleReject(offer)}>
+                          <Button variant="destructive" size="sm" onClick={() => handleReject(offer)}>
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -445,7 +426,7 @@ export default function OffersPage() {
         {/* Communication Logs Panel (BR-37) */}
         {showLogsPanel && (
           <div className="lg:col-span-1">
-            <Card title="Communication Logs" subtitle="Activity history (BR-37)">
+            <Card>
               <div className="space-y-3 max-h-[600px] overflow-y-auto">
                 {logs.length === 0 ? (
                   <p className="text-sm text-slate-500 text-center py-4">No logs available</p>
@@ -516,10 +497,10 @@ export default function OffersPage() {
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <Button variant="outline" fullWidth onClick={() => setShowApprovalModal(false)}>
+                  <Button variant="outline" className="w-full" onClick={() => setShowApprovalModal(false)}>
                     Cancel
                   </Button>
-                  <Button fullWidth onClick={confirmApproval}>
+                  <Button className="w-full" onClick={confirmApproval}>
                     Confirm Approval
                   </Button>
                 </div>
@@ -553,10 +534,10 @@ export default function OffersPage() {
                   onChange={(e) => setRejectionReason(e.target.value)}
                 />
                 <div className="flex gap-3">
-                  <Button variant="outline" fullWidth onClick={() => setShowRejectModal(false)}>
+                  <Button variant="outline" className="w-full" onClick={() => setShowRejectModal(false)}>
                     Cancel
                   </Button>
-                  <Button variant="danger" fullWidth onClick={confirmRejection} disabled={!rejectionReason.trim()}>
+                  <Button variant="destructive" className="w-full" onClick={confirmRejection} disabled={!rejectionReason.trim()}>
                     Confirm Rejection
                   </Button>
                 </div>

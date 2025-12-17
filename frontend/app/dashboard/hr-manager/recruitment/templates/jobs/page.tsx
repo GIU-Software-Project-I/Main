@@ -1,100 +1,119 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import Button from '@/app/components/ui/Button';
-import Card from '@/app/components/ui/Card';
-import Input from '@/app/components/ui/Input';
+import { Button } from '@/app/components/ui/button';
+import { Card } from '@/app/components/ui/card';
+import { Input } from '@/app/components/ui/input';
+import { getJobTemplates, createJobTemplate, updateJobTemplate, deleteJobTemplate } from '@/app/services/recruitment';
+import { JobTemplate as ApiJobTemplate } from '@/app/types/recruitment';
 
 // ==================== INTERFACES ====================
 interface JobTemplate {
   id: string;
   title: string;
   department: string;
-  location: string;
-  qualifications: string;
+  description: string;
+  qualifications: string; // Display as string, stored as array in DB
+  skills: string; // Display as string, stored as array in DB
   createdAt: string;
   updatedAt: string;
-  status: 'draft' | 'active';
 }
 
 interface FormData {
   title: string;
   department: string;
-  location: string;
+  description: string;
   qualifications: string;
+  skills: string;
 }
 
 interface FormErrors {
   title?: string;
   department?: string;
-  location?: string;
+  description?: string;
   qualifications?: string;
+  skills?: string;
 }
 
-// ==================== MOCK DATA ====================
-const mockTemplates: JobTemplate[] = [
-  {
-    id: '1',
-    title: 'Software Engineer',
-    department: 'Engineering',
-    location: 'Cairo, Egypt',
-    qualifications: '• 3+ years of experience in software development\n• Proficiency in TypeScript, React, Node.js\n• Bachelor\'s degree in Computer Science or related field\n• Strong problem-solving skills',
-    createdAt: '2025-11-15',
-    updatedAt: '2025-12-01',
-    status: 'active',
-  },
-  {
-    id: '2',
-    title: 'Product Manager',
-    department: 'Product',
-    location: 'Cairo, Egypt',
-    qualifications: '• 5+ years of product management experience\n• Experience with agile methodologies\n• Strong analytical and communication skills\n• MBA preferred',
-    createdAt: '2025-11-20',
-    updatedAt: '2025-11-25',
-    status: 'active',
-  },
-  {
-    id: '3',
-    title: 'HR Coordinator',
-    department: 'Human Resources',
-    location: 'Alexandria, Egypt',
-    qualifications: '• 2+ years HR experience\n• Knowledge of Egyptian labor law\n• Excellent communication skills\n• HR certification preferred',
-    createdAt: '2025-12-01',
-    updatedAt: '2025-12-10',
-    status: 'draft',
-  },
-];
+// ==================== HELPER FUNCTIONS ====================
+// Convert array to bullet-point string for display
+const arrayToString = (arr: string[] | undefined): string => {
+  if (!arr || arr.length === 0) return '';
+  return arr.map(item => `• ${item}`).join('\n');
+};
 
+// Convert bullet-point string to array for API
+const stringToArray = (str: string): string[] => {
+  if (!str.trim()) return [];
+  return str
+    .split('\n')
+    .map(line => line.replace(/^[•\-*]\s*/, '').trim())
+    .filter(line => line.length > 0);
+};
+
+// Transform API response to local format
+const transformApiToLocal = (apiTemplate: ApiJobTemplate): JobTemplate => ({
+  id: apiTemplate._id || apiTemplate.id,
+  title: apiTemplate.title || '',
+  department: apiTemplate.department || '',
+  description: apiTemplate.description || '',
+  qualifications: arrayToString(apiTemplate.qualifications),
+  skills: arrayToString(apiTemplate.skills),
+  createdAt: apiTemplate.createdAt ? new Date(apiTemplate.createdAt).toLocaleDateString() : '',
+  updatedAt: apiTemplate.updatedAt ? new Date(apiTemplate.updatedAt).toLocaleDateString() : '',
+});
+
+// Transform local form data to API format
+const transformLocalToApi = (formData: FormData) => ({
+  title: formData.title,
+  department: formData.department,
+  description: formData.description || undefined,
+  qualifications: stringToArray(formData.qualifications),
+  skills: stringToArray(formData.skills),
+});
+
+// ==================== STATIC DATA ====================
 const departments = ['Engineering', 'Product', 'Human Resources', 'Finance', 'Marketing', 'Sales', 'Operations'];
-const locations = ['Cairo, Egypt', 'Alexandria, Egypt', 'Giza, Egypt', 'Remote'];
 
 // ==================== MAIN COMPONENT ====================
 export default function JobTemplatesPage() {
   const [templates, setTemplates] = useState<JobTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<JobTemplate | null>(null);
   const [formData, setFormData] = useState<FormData>({
     title: '',
     department: '',
-    location: '',
+    description: '',
     qualifications: '',
+    skills: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<JobTemplate | null>(null);
+
+  const fetchTemplates = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const templatesData = await getJobTemplates();
+      const transformedTemplates = templatesData.map(transformApiToLocal);
+      
+      setTemplates(transformedTemplates);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load job templates');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    // Simulate API call
-    const fetchTemplates = async () => {
-      setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setTemplates(mockTemplates);
-      setLoading(false);
-    };
     fetchTemplates();
-  }, []);
+  }, [fetchTemplates]);
 
   // ==================== VALIDATION (BR-2) ====================
   const validateForm = (): boolean => {
@@ -106,13 +125,13 @@ export default function JobTemplatesPage() {
     if (!formData.department.trim()) {
       newErrors.department = 'Department is required';
     }
-    if (!formData.location.trim()) {
-      newErrors.location = 'Location is required';
-    }
     if (!formData.qualifications.trim()) {
-      newErrors.qualifications = 'Qualifications & skills are required';
+      newErrors.qualifications = 'Qualifications are required';
     } else if (formData.qualifications.trim().length < 20) {
       newErrors.qualifications = 'Please provide more detailed qualifications (min 20 characters)';
+    }
+    if (!formData.skills.trim()) {
+      newErrors.skills = 'Skills are required';
     }
 
     setErrors(newErrors);
@@ -122,7 +141,7 @@ export default function JobTemplatesPage() {
   // ==================== HANDLERS ====================
   const handleOpenCreate = () => {
     setEditingTemplate(null);
-    setFormData({ title: '', department: '', location: '', qualifications: '' });
+    setFormData({ title: '', department: '', description: '', qualifications: '', skills: '' });
     setErrors({});
     setShowModal(true);
   };
@@ -132,44 +151,56 @@ export default function JobTemplatesPage() {
     setFormData({
       title: template.title,
       department: template.department,
-      location: template.location,
+      description: template.description,
       qualifications: template.qualifications,
+      skills: template.skills,
     });
     setErrors({});
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) return;
 
-    if (editingTemplate) {
-      // Update existing
-      setTemplates((prev) =>
-        prev.map((t) =>
-          t.id === editingTemplate.id
-            ? { ...t, ...formData, updatedAt: new Date().toISOString().split('T')[0] }
-            : t
-        )
-      );
-    } else {
-      // Create new
-      const newTemplate: JobTemplate = {
-        id: Date.now().toString(),
-        ...formData,
-        createdAt: new Date().toISOString().split('T')[0],
-        updatedAt: new Date().toISOString().split('T')[0],
-        status: 'draft',
-      };
-      setTemplates((prev) => [newTemplate, ...prev]);
-    }
+    try {
+      setSaving(true);
+      setError(null);
+      
+      const apiData = transformLocalToApi(formData);
+      
+      if (editingTemplate) {
+        // Update existing
+        const updated = await updateJobTemplate(editingTemplate.id, apiData);
+        const transformedUpdated = transformApiToLocal(updated);
+        setTemplates((prev) =>
+          prev.map((t) =>
+            t.id === editingTemplate.id ? transformedUpdated : t
+          )
+        );
+      } else {
+        // Create new
+        const newTemplate = await createJobTemplate(apiData);
+        const transformedNew = transformApiToLocal(newTemplate);
+        setTemplates((prev) => [transformedNew, ...prev]);
+      }
 
-    setShowModal(false);
-    setShowPreview(false);
+      setShowModal(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save template');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this template?')) {
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this template?')) return;
+    
+    try {
+      setError(null);
+      await deleteJobTemplate(id);
       setTemplates((prev) => prev.filter((t) => t.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete template');
     }
   };
 
@@ -191,6 +222,23 @@ export default function JobTemplatesPage() {
   // ==================== RENDER ====================
   return (
     <div className="space-y-6">
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
+          </div>
+          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -246,39 +294,33 @@ export default function JobTemplatesPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold text-slate-900">{template.title}</h3>
-                    <span
-                      className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                        template.status === 'active'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {template.status}
-                    </span>
                   </div>
                   <div className="flex flex-wrap gap-4 mt-2 text-sm text-slate-500">
                     <span className="flex items-center gap-1">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
-                      {template.department}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      {template.location}
+                      {template.department || 'No department'}
                     </span>
                     <span className="flex items-center gap-1">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      Updated: {template.updatedAt}
+                      Updated: {template.updatedAt || 'N/A'}
                     </span>
                   </div>
+                  {template.description && (
+                    <p className="mt-2 text-sm text-slate-600 line-clamp-2">{template.description}</p>
+                  )}
                 </div>
                 <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setPreviewTemplate(template)}>
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Preview
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => handleOpenEdit(template)}>
                     Edit
                   </Button>
@@ -352,40 +394,34 @@ export default function JobTemplatesPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                        Location *
+                        Description
                       </label>
-                      <select
-                        className={`w-full px-4 py-3 border rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
-                          errors.location
+                      <textarea
+                        className={`w-full px-4 py-3 border rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all min-h-[80px] ${
+                          errors.description
                             ? 'border-red-300 focus:ring-red-500'
                             : 'border-slate-200 focus:ring-blue-500'
                         }`}
-                        value={formData.location}
-                        onChange={(e) => handleInputChange('location', e.target.value)}
-                      >
-                        <option value="">Select location</option>
-                        {locations.map((loc) => (
-                          <option key={loc} value={loc}>
-                            {loc}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.location && (
-                        <p className="mt-1.5 text-sm text-red-600">{errors.location}</p>
+                        placeholder="Brief description of the job role and responsibilities..."
+                        value={formData.description}
+                        onChange={(e) => handleInputChange('description', e.target.value)}
+                      />
+                      {errors.description && (
+                        <p className="mt-1.5 text-sm text-red-600">{errors.description}</p>
                       )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                        Qualifications & Skills *
+                        Qualifications *
                       </label>
                       <textarea
-                        className={`w-full px-4 py-3 border rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all min-h-[150px] ${
+                        className={`w-full px-4 py-3 border rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all min-h-[120px] ${
                           errors.qualifications
                             ? 'border-red-300 focus:ring-red-500'
                             : 'border-slate-200 focus:ring-blue-500'
                         }`}
-                        placeholder="• Required experience&#10;• Technical skills&#10;• Education requirements&#10;• Soft skills"
+                        placeholder="• Bachelor's degree in Computer Science&#10;• 3+ years of experience&#10;• Strong analytical skills"
                         value={formData.qualifications}
                         onChange={(e) => handleInputChange('qualifications', e.target.value)}
                       />
@@ -393,7 +429,29 @@ export default function JobTemplatesPage() {
                         <p className="mt-1.5 text-sm text-red-600">{errors.qualifications}</p>
                       )}
                       <p className="mt-1.5 text-xs text-slate-400">
-                        Use bullet points (•) for better readability
+                        Use bullet points (•) or new lines for each qualification
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Skills *
+                      </label>
+                      <textarea
+                        className={`w-full px-4 py-3 border rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all min-h-[120px] ${
+                          errors.skills
+                            ? 'border-red-300 focus:ring-red-500'
+                            : 'border-slate-200 focus:ring-blue-500'
+                        }`}
+                        placeholder="• JavaScript / TypeScript&#10;• React / Next.js&#10;• Node.js / NestJS"
+                        value={formData.skills}
+                        onChange={(e) => handleInputChange('skills', e.target.value)}
+                      />
+                      {errors.skills && (
+                        <p className="mt-1.5 text-sm text-red-600">{errors.skills}</p>
+                      )}
+                      <p className="mt-1.5 text-xs text-slate-400">
+                        Use bullet points (•) or new lines for each skill
                       </p>
                     </div>
                   </div>
@@ -416,18 +474,18 @@ export default function JobTemplatesPage() {
                         </svg>
                         {formData.department || 'Department'}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        {formData.location || 'Location'}
-                      </span>
                     </div>
+                    {formData.description && (
+                      <p className="mt-3 text-sm text-slate-600">{formData.description}</p>
+                    )}
                     <hr className="my-4" />
-                    <h5 className="font-semibold text-slate-800 mb-2">Qualifications & Skills</h5>
-                    <div className="text-sm text-slate-600 whitespace-pre-line">
+                    <h5 className="font-semibold text-slate-800 mb-2">Qualifications</h5>
+                    <div className="text-sm text-slate-600 whitespace-pre-line mb-4">
                       {formData.qualifications || 'No qualifications specified'}
+                    </div>
+                    <h5 className="font-semibold text-slate-800 mb-2">Skills</h5>
+                    <div className="text-sm text-slate-600 whitespace-pre-line">
+                      {formData.skills || 'No skills specified'}
                     </div>
                   </div>
                 </div>
@@ -435,14 +493,91 @@ export default function JobTemplatesPage() {
 
               {/* Modal Footer */}
               <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
-                <Button variant="outline" onClick={() => setShowModal(false)}>
+                <Button variant="outline" onClick={() => setShowModal(false)} disabled={saving}>
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSave}
-                  disabled={!formData.title || !formData.department || !formData.location || !formData.qualifications}
+                  disabled={saving || !formData.title || !formData.department || !formData.qualifications || !formData.skills}
                 >
-                  {editingTemplate ? 'Update Template' : 'Create Template'}
+                  {saving ? 'Saving...' : editingTemplate ? 'Update Template' : 'Create Template'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {previewTemplate && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setPreviewTemplate(null)} />
+            <div className="relative bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+              {/* Preview Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-blue-600 to-blue-700">
+                <div>
+                  <h2 className="text-xl font-semibold text-white">{previewTemplate.title}</h2>
+                  <p className="text-blue-100 text-sm mt-1">{previewTemplate.department}</p>
+                </div>
+                <button onClick={() => setPreviewTemplate(null)} className="text-white/80 hover:text-white">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Preview Body */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                {/* Description */}
+                {previewTemplate.description && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Description</h3>
+                    <p className="text-slate-700">{previewTemplate.description}</p>
+                  </div>
+                )}
+
+                {/* Qualifications */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Qualifications</h3>
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <div className="text-slate-700 whitespace-pre-line">
+                      {previewTemplate.qualifications || 'No qualifications specified'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Skills */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Required Skills</h3>
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <div className="text-slate-700 whitespace-pre-line">
+                      {previewTemplate.skills || 'No skills specified'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Meta Info */}
+                <div className="flex items-center gap-6 pt-4 border-t border-slate-200 text-sm text-slate-500">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Last updated: {previewTemplate.updatedAt}
+                  </span>
+                </div>
+              </div>
+
+              {/* Preview Footer */}
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
+                <Button variant="outline" onClick={() => setPreviewTemplate(null)}>
+                  Close
+                </Button>
+                <Button onClick={() => { setPreviewTemplate(null); handleOpenEdit(previewTemplate); }}>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit Template
                 </Button>
               </div>
             </div>

@@ -1,8 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import Card from '@/app/components/ui/Card';
+import { useState, useEffect, useCallback } from 'react';
+import { Card } from '@/app/components/ui/card';
+import { getRecruitmentDashboard } from '@/app/services/recruitment';
+
+// Interface matching backend getRecruitmentDashboard response
+interface DashboardResponse {
+  totalOpenPositions: number;
+  totalApplications: number;
+  applicationsByStage: { _id: string; count: number }[];
+  applicationsByStatus: { _id: string; count: number }[];
+  recentApplications: unknown[];
+}
 
 interface RecruitmentStats {
   openJobs: number;
@@ -19,24 +29,54 @@ export default function RecruitmentOverviewPage() {
     hiredThisMonth: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Simulate API call
-    const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
+    try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      setError(null);
+      
+      const dashboardData = await getRecruitmentDashboard() as DashboardResponse;
+      
+      // Extract stats from backend response
+      const activeCandidates = dashboardData?.applicationsByStatus
+        ?.filter(s => s._id !== 'rejected' && s._id !== 'hired')
+        .reduce((sum, s) => sum + s.count, 0) || 0;
+      
+      const hiredCount = dashboardData?.applicationsByStatus
+        ?.find(s => s._id === 'hired')?.count || 0;
+      
+      const pendingOffers = dashboardData?.applicationsByStage
+        ?.find(s => s._id === 'offer')?.count || 0;
+      
       setStats({
-        openJobs: 12,
-        activeCandidates: 156,
-        pendingOffers: 8,
-        hiredThisMonth: 5,
+        openJobs: dashboardData?.totalOpenPositions || 0,
+        activeCandidates: activeCandidates,
+        pendingOffers: pendingOffers,
+        hiredThisMonth: hiredCount,
       });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load recruitment stats');
+    } finally {
       setLoading(false);
-    };
-    fetchStats();
+    }
   }, []);
 
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
   const modules = [
+    {
+      title: 'Job Requisitions',
+      description: 'Create, manage, publish and close job postings',
+      href: '/dashboard/hr-manager/recruitment/jobs',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      ),
+    },
     {
       title: 'Job Templates',
       description: 'Create and manage standardized job description templates',
