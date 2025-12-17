@@ -16,7 +16,15 @@ const formatPayrollPeriod = (period: any): string => {
     const year = period.year || '';
     if (month && year) return `${month} ${year}`;
     if (period.startDate && period.endDate) {
-      return `${new Date(period.startDate).toLocaleDateString()} - ${new Date(period.endDate).toLocaleDateString()}`;
+      return `${new Date(period.startDate).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })} - ${new Date(period.endDate).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })}`;
     }
     // Graceful fallback for unknown period formats
     if (period.name) return period.name;
@@ -24,6 +32,39 @@ const formatPayrollPeriod = (period: any): string => {
     return 'Custom Period';
   }
   return String(period);
+};
+
+// Helper function for consistent date/time formatting
+const formatDateTime = (dateString: string | Date, includeTime: boolean = false): string => {
+  if (!dateString) return '-';
+  
+  try {
+    const date = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid date';
+    }
+    
+    if (includeTime) {
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return 'Invalid date';
+  }
 };
 
 export default function PayrollSpecialistRunsPage() {
@@ -451,7 +492,7 @@ export default function PayrollSpecialistRunsPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Created:</span>
-                      <span className="text-black">{run.createdAt ? new Date(run.createdAt).toLocaleDateString() : '-'}</span>
+                      <span className="text-black">{formatDateTime(run.createdAt)}</span>
                     </div>
                   </div>
                 </div>
@@ -552,18 +593,18 @@ export default function PayrollSpecialistRunsPage() {
                   </div>
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <span className="text-gray-600">Created:</span>
-                    <span className="text-black">{selectedRun.createdAt ? new Date(selectedRun.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}</span>
+                    <span className="text-black">{formatDateTime(selectedRun.createdAt)}</span>
                   </div>
                   {selectedRun.managerApprovalDate && (
                     <div className="flex justify-between py-2 border-b border-gray-100">
                       <span className="text-gray-600">Manager Approved:</span>
-                      <span className="text-green-700">{new Date(selectedRun.managerApprovalDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                      <span className="text-green-700">{formatDateTime(selectedRun.managerApprovalDate)}</span>
                     </div>
                   )}
                   {selectedRun.financeApprovalDate && (
                     <div className="flex justify-between py-2">
                       <span className="text-gray-600">Finance Approved:</span>
-                      <span className="text-green-700">{new Date(selectedRun.financeApprovalDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                      <span className="text-green-700">{formatDateTime(selectedRun.financeApprovalDate)}</span>
                     </div>
                   )}
                 </div>
@@ -1057,13 +1098,13 @@ export default function PayrollSpecialistRunsPage() {
                   <div>
                     <div className="text-sm text-blue-600">Total Gross</div>
                     <div className="text-2xl font-bold text-black">
-                      ${payslips.reduce((sum, p) => sum + (p.totalGrossSalary || 0), 0).toLocaleString()}
+                      ${payslips.reduce((sum, p) => sum + (p.grossPay || 0), 0).toLocaleString()}
                     </div>
                   </div>
                   <div>
                     <div className="text-sm text-blue-600">Total Deductions</div>
                     <div className="text-2xl font-bold text-red-600">
-                      ${payslips.reduce((sum, p) => sum + (p.totaDeductions || p.totalDeductions || 0), 0).toLocaleString()}
+                      ${payslips.reduce((sum, p) => sum + (p.deductions?.total || 0), 0).toLocaleString()}
                     </div>
                   </div>
                   <div>
@@ -1090,19 +1131,19 @@ export default function PayrollSpecialistRunsPage() {
                           <div className="text-xs text-gray-500">#{slip.employeeNumber}</div>
                         )}
                       </div>
-                      <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(slip.paymentStatus)}`}>
-                        {slip.paymentStatus || 'pending'}
+                      <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(slip.status)}`}>
+                        {slip.status || 'pending'}
                       </span>
                     </div>
                     
                     <div className="space-y-1 text-sm border-t border-gray-100 pt-2 mt-2">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Gross:</span>
-                        <span className="text-black">${(slip.totalGrossSalary || 0).toLocaleString()}</span>
+                        <span className="text-black">${(slip.grossPay || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Deductions:</span>
-                        <span className="text-red-600">-${(slip.totaDeductions || slip.totalDeductions || 0).toLocaleString()}</span>
+                        <span className="text-red-600">-${(slip.deductions?.total || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between font-semibold border-t border-gray-200 pt-1 mt-1">
                         <span className="text-gray-800">Net Pay:</span>
@@ -1136,12 +1177,14 @@ export default function PayrollSpecialistRunsPage() {
                           <div className="text-sm text-gray-500">Employee #: {selectedPayslip.employeeNumber}</div>
                         )}
                       </div>
-                      <span className={`px-3 py-1 rounded text-sm font-medium border ${getStatusColor(selectedPayslip.paymentStatus)}`}>
-                        {selectedPayslip.paymentStatus || 'pending'}
+                      <span className={`px-3 py-1 rounded text-sm font-medium border ${getStatusColor(selectedPayslip.status)}`}>
+                        {selectedPayslip.status || 'pending'}
                       </span>
                     </div>
                     {selectedPayslip.payrollPeriod && (
-                      <div className="text-sm text-gray-600 mt-2">Period: {selectedPayslip.payrollPeriod}</div>
+                      <div className="text-sm text-gray-600 mt-2">
+                        Period: {formatPayrollPeriod(selectedPayslip.payrollPeriod)}
+                      </div>
                     )}
                     {selectedPayslip.entity && (
                       <div className="text-sm text-gray-600">Entity: {selectedPayslip.entity}</div>
@@ -1155,105 +1198,63 @@ export default function PayrollSpecialistRunsPage() {
                       Earnings
                     </h3>
                     <div className="bg-green-50 rounded-lg p-4 space-y-2">
-                      {selectedPayslip.earningsDetails && (
+                      <div className="flex justify-between py-1 border-b border-green-100">
+                        <span className="text-gray-700">Base Salary</span>
+                        <span className="text-black font-medium">${(selectedPayslip.baseSalary || 0).toLocaleString()}</span>
+                      </div>
+                      
+                      {selectedPayslip.allowances?.total > 0 && (
                         <>
                           <div className="flex justify-between py-1 border-b border-green-100">
-                            <span className="text-gray-700">Base Salary</span>
-                            <span className="text-black font-medium">${(selectedPayslip.earningsDetails.baseSalary || 0).toLocaleString()}</span>
+                            <span className="text-gray-700 font-medium">Allowances</span>
+                            <span className="text-black font-medium">
+                              +${(selectedPayslip.allowances.total || 0).toLocaleString()}
+                            </span>
                           </div>
-                          
-                          {/* Allowances - show detailed breakdown */}
-                          {Array.isArray(selectedPayslip.earningsDetails.allowances) && selectedPayslip.earningsDetails.allowances.length > 0 && (
-                            <div className="border-b border-green-100 pb-2">
-                              <div className="flex justify-between py-1">
-                                <span className="text-gray-700 font-medium">Allowances</span>
-                                <span className="text-black font-medium">
-                                  ${selectedPayslip.earningsDetails.allowances.reduce((sum: number, a: any) => sum + (a.amount || 0), 0).toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="ml-4 text-sm text-gray-500">
-                                {selectedPayslip.earningsDetails.allowances.map((allowance: any, idx: number) => (
-                                  <div key={idx} className="flex justify-between py-0.5">
-                                    <span>{allowance.name || 'Allowance'}</span>
-                                    <span>${(allowance.amount || 0).toLocaleString()}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Bonuses - show detailed breakdown */}
-                          {Array.isArray(selectedPayslip.earningsDetails.bonuses) && selectedPayslip.earningsDetails.bonuses.length > 0 && (
-                            <div className="border-b border-green-100 pb-2">
-                              <div className="flex justify-between py-1">
-                                <span className="text-gray-700 font-medium">Bonuses</span>
-                                <span className="text-black font-medium">
-                                  ${selectedPayslip.earningsDetails.bonuses.reduce((sum: number, b: any) => sum + (b.amount || 0), 0).toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="ml-4 text-sm text-gray-500">
-                                {selectedPayslip.earningsDetails.bonuses.map((bonus: any, idx: number) => (
-                                  <div key={idx} className="flex justify-between py-0.5">
-                                    <span>{bonus.name || bonus.type || 'Bonus'}</span>
-                                    <span>${(bonus.amount || 0).toLocaleString()}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Benefits */}
-                          {Array.isArray(selectedPayslip.earningsDetails.benefits) && selectedPayslip.earningsDetails.benefits.length > 0 && (
-                            <div className="border-b border-green-100 pb-2">
-                              <div className="flex justify-between py-1">
-                                <span className="text-gray-700 font-medium">Benefits</span>
-                                <span className="text-black font-medium">
-                                  ${selectedPayslip.earningsDetails.benefits.reduce((sum: number, b: any) => sum + (b.amount || 0), 0).toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="ml-4 text-sm text-gray-500">
-                                {selectedPayslip.earningsDetails.benefits.map((benefit: any, idx: number) => (
-                                  <div key={idx} className="flex justify-between py-0.5">
-                                    <span>{benefit.name || benefit.type || 'Benefit'}</span>
-                                    <span>${(benefit.amount || 0).toLocaleString()}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Refunds */}
-                          {Array.isArray(selectedPayslip.earningsDetails.refunds) && selectedPayslip.earningsDetails.refunds.length > 0 && (
-                            <div className="border-b border-green-100 pb-2">
-                              <div className="flex justify-between py-1">
-                                <span className="text-gray-700 font-medium">Refunds</span>
-                                <span className="text-black font-medium">
-                                  ${selectedPayslip.earningsDetails.refunds.reduce((sum: number, r: any) => sum + (r.amount || 0), 0).toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="ml-4 text-sm text-gray-500">
-                                {selectedPayslip.earningsDetails.refunds.map((refund: any, idx: number) => (
-                                  <div key={idx} className="flex justify-between py-0.5">
-                                    <span>{refund.reason || refund.description || 'Refund'}</span>
-                                    <span>${(refund.amount || 0).toLocaleString()}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Overtime */}
-                          {(selectedPayslip.earningsDetails.overtime || 0) > 0 && (
-                            <div className="flex justify-between py-1 border-b border-green-100">
-                              <span className="text-gray-700">Overtime</span>
-                              <span className="text-black">${(selectedPayslip.earningsDetails.overtime || 0).toLocaleString()}</span>
+                          {selectedPayslip.allowances.items && selectedPayslip.allowances.items.length > 0 && (
+                            <div className="ml-4 text-sm text-gray-500">
+                              {selectedPayslip.allowances.items.map((item: any, idx: number) => (
+                                <div key={idx} className="flex justify-between py-0.5">
+                                  <span>{item.name || 'Allowance'}</span>
+                                  <span>+${(item.amount || 0).toLocaleString()}</span>
+                                </div>
+                              ))}
                             </div>
                           )}
                         </>
                       )}
-                      <div className="flex justify-between py-2 font-semibold text-green-700 border-t border-green-200">
+                      
+                      {selectedPayslip.overtime?.amount > 0 && (
+                        <div className="flex justify-between py-1 border-b border-green-100">
+                          <span className="text-gray-700">Overtime ({selectedPayslip.overtime?.hours || 0} hours)</span>
+                          <span className="text-black">+${(selectedPayslip.overtime.amount || 0).toLocaleString()}</span>
+                        </div>
+                      )}
+                      
+                      {selectedPayslip.bonuses?.total > 0 && (
+                        <>
+                          <div className="flex justify-between py-1 border-b border-green-100">
+                            <span className="text-gray-700 font-medium">Bonuses</span>
+                            <span className="text-black font-medium">
+                              +${(selectedPayslip.bonuses.total || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          {selectedPayslip.bonuses.items && selectedPayslip.bonuses.items.length > 0 && (
+                            <div className="ml-4 text-sm text-gray-500">
+                              {selectedPayslip.bonuses.items.map((item: any, idx: number) => (
+                                <div key={idx} className="flex justify-between py-0.5">
+                                  <span>{item.name || 'Bonus'}</span>
+                                  <span>+${(item.amount || 0).toLocaleString()}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                      
+                      <div className="flex justify-between py-2 font-semibold text-green-700 border-t border-green-200 mt-1 pt-1">
                         <span>Total Gross Salary</span>
-                        <span>${(selectedPayslip.totalGrossSalary || 0).toLocaleString()}</span>
+                        <span>${(selectedPayslip.grossPay || 0).toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -1265,102 +1266,71 @@ export default function PayrollSpecialistRunsPage() {
                       Deductions
                     </h3>
                     <div className="bg-red-50 rounded-lg p-4 space-y-2">
-                      {selectedPayslip.deductionsDetails && (
-                        <>
-                          {/* Tax Deductions */}
-                          {(selectedPayslip.deductionsDetails.taxAmount || 0) > 0 && (
-                            <div className="border-b border-red-100 pb-2">
-                              <div className="flex justify-between py-1">
-                                <span className="text-gray-700 font-medium">Taxes</span>
-                                <span className="text-red-600 font-medium">${(selectedPayslip.deductionsDetails.taxAmount || 0).toLocaleString()}</span>
-                              </div>
-                              {Array.isArray(selectedPayslip.deductionsDetails.taxes) && selectedPayslip.deductionsDetails.taxes.length > 0 && (
-                                <div className="ml-4 text-sm text-gray-500">
-                                  {selectedPayslip.deductionsDetails.taxes.map((tax: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between py-0.5">
-                                      <span>{tax.name || 'Tax'}</span>
-                                      <span>{(tax.rate * 100).toFixed(1)}%</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          
-                          {/* Insurance Deductions */}
-                          {(selectedPayslip.deductionsDetails.insuranceAmount || 0) > 0 && (
-                            <div className="border-b border-red-100 pb-2">
-                              <div className="flex justify-between py-1">
-                                <span className="text-gray-700 font-medium">Social Insurance</span>
-                                <span className="text-red-600 font-medium">${(selectedPayslip.deductionsDetails.insuranceAmount || 0).toLocaleString()}</span>
-                              </div>
-                              {Array.isArray(selectedPayslip.deductionsDetails.insurances) && selectedPayslip.deductionsDetails.insurances.length > 0 && (
-                                <div className="ml-4 text-sm text-gray-500">
-                                  {selectedPayslip.deductionsDetails.insurances.map((ins: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between py-0.5">
-                                      <span>{ins.name || 'Insurance'}</span>
-                                      <span>{((ins.employeeRate || 0) * 100).toFixed(2)}% (Employee)</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          
-                          {/* Penalties */}
-                          {(selectedPayslip.deductionsDetails.penaltiesAmount || 0) > 0 && (
-                            <div className="border-b border-red-100 pb-2">
-                              <div className="flex justify-between py-1">
-                                <span className="text-gray-700 font-medium">Penalties</span>
-                                <span className="text-red-600 font-medium">${(selectedPayslip.deductionsDetails.penaltiesAmount || 0).toLocaleString()}</span>
-                              </div>
-                              {Array.isArray(selectedPayslip.deductionsDetails.penalties) && selectedPayslip.deductionsDetails.penalties.length > 0 && (
-                                <div className="ml-4 text-sm text-gray-500">
-                                  {selectedPayslip.deductionsDetails.penalties.map((penalty: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between py-0.5">
-                                      <span>{penalty.reason || penalty.type || 'Penalty'}</span>
-                                      <span>${(penalty.amount || 0).toLocaleString()}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          
-                          {/* Unpaid Leave Deductions */}
-                          {(selectedPayslip.deductionsDetails.unpaidLeaveAmount || 0) > 0 && (
-                            <div className="border-b border-red-100 pb-2">
-                              <div className="flex justify-between py-1">
-                                <span className="text-gray-700 font-medium">Unpaid Leave</span>
-                                <span className="text-red-600 font-medium">${(selectedPayslip.deductionsDetails.unpaidLeaveAmount || 0).toLocaleString()}</span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Late Arrival / Early Leave Deductions */}
-                          {(selectedPayslip.deductionsDetails.lateDeductionAmount || 0) > 0 && (
-                            <div className="border-b border-red-100 pb-2">
-                              <div className="flex justify-between py-1">
-                                <span className="text-gray-700 font-medium">Late Arrival / Early Leave</span>
-                                <span className="text-red-600 font-medium">${(selectedPayslip.deductionsDetails.lateDeductionAmount || 0).toLocaleString()}</span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Other Deductions */}
-                          {(selectedPayslip.deductionsDetails.otherDeductions || 0) > 0 && (
-                            <div className="border-b border-red-100 pb-2">
-                              <div className="flex justify-between py-1">
-                                <span className="text-gray-700 font-medium">Other Deductions</span>
-                                <span className="text-red-600 font-medium">${(selectedPayslip.deductionsDetails.otherDeductions || 0).toLocaleString()}</span>
-                              </div>
-                            </div>
-                          )}
-                        </>
+                      {/* Tax Deduction */}
+                      {selectedPayslip.deductions?.tax > 0 && (
+                        <div className="border-b border-red-100 pb-2">
+                          <div className="flex justify-between py-1">
+                            <span className="text-gray-700 font-medium">Income Tax</span>
+                            <span className="text-red-600 font-medium">
+                              -${(selectedPayslip.deductions.tax || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
                       )}
-                      <div className="flex justify-between py-2 font-semibold text-red-700 border-t border-red-200">
+                      
+                      {selectedPayslip.deductions?.socialSecurity > 0 && (
+                        <div className="border-b border-red-100 pb-2">
+                          <div className="flex justify-between py-1">
+                            <span className="text-gray-700 font-medium">Social Security</span>
+                            <span className="text-red-600 font-medium">
+                              -${(selectedPayslip.deductions.socialSecurity || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {selectedPayslip.deductions?.healthInsurance > 0 && (
+                        <div className="border-b border-red-100 pb-2">
+                          <div className="flex justify-between py-1">
+                            <span className="text-gray-700 font-medium">Health Insurance</span>
+                            <span className="text-red-600 font-medium">
+                              -${(selectedPayslip.deductions.healthInsurance || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {selectedPayslip.deductions?.pension > 0 && (
+                        <div className="border-b border-red-100 pb-2">
+                          <div className="flex justify-between py-1">
+                            <span className="text-gray-700 font-medium">Pension</span>
+                            <span className="text-red-600 font-medium">
+                              -${(selectedPayslip.deductions.pension || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Detailed Deductions Items */}
+                      {selectedPayslip.deductions?.items && selectedPayslip.deductions.items.length > 0 && (
+                        <div className="border-b border-red-100 pb-2">
+                          <div className="flex justify-between py-1">
+                            <span className="text-gray-700 font-medium">Deduction Details</span>
+                          </div>
+                          <div className="ml-4 text-sm text-gray-500">
+                            {selectedPayslip.deductions.items.map((item: any, idx: number) => (
+                              <div key={idx} className="flex justify-between py-0.5">
+                                <span>{item.name || 'Deduction'}</span>
+                                <span>-${(item.amount || 0).toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between py-2 font-semibold text-red-700 border-t border-red-200 mt-1 pt-1">
                         <span>Total Deductions</span>
-                        <span>${(selectedPayslip.totaDeductions || selectedPayslip.totalDeductions || 0).toLocaleString()}</span>
+                        <span>-${(selectedPayslip.deductions?.total || 0).toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -1377,10 +1347,10 @@ export default function PayrollSpecialistRunsPage() {
                   <div className="mt-4 text-xs text-gray-500 space-y-1">
                     <div>Payslip ID: {selectedPayslip._id}</div>
                     {selectedPayslip.createdAt && (
-                      <div>Generated: {new Date(selectedPayslip.createdAt).toLocaleString()}</div>
+                      <div>Generated: {formatDateTime(selectedPayslip.createdAt, true)}</div>
                     )}
-                    {selectedPayslip.distributedAt && (
-                      <div>Distributed: {new Date(selectedPayslip.distributedAt).toLocaleString()}</div>
+                    {selectedPayslip.paidAt && (
+                      <div>Paid: {formatDateTime(selectedPayslip.paidAt, true)}</div>
                     )}
                   </div>
                 </div>

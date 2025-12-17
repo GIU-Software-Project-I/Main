@@ -111,6 +111,7 @@ export const payrollExecutionService = {
   getEmployeeStatusDiagnostics: async () => {
     return apiService.get('/payroll-execution/diagnostics/employee-status');
   },
+  
 
   // List departments for entity dropdown
   listDepartments: async () => {

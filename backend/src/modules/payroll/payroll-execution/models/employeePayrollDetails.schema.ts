@@ -128,6 +128,50 @@ export class employeePayrollDetails {
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: payrollRuns.name, required: true })
     payrollRunId: mongoose.Types.ObjectId;
 
+        // Persistent irregularities for this payroll detail
+        @Prop({
+            type: [
+                {
+                    _id: false,
+                    irregularityId: { type: String, required: true },
+                    type: { type: String, required: true },
+                    severity: { type: String, enum: ['info', 'low', 'medium', 'high', 'critical'], required: true },
+                    status: { type: String, enum: ['pending', 'escalated', 'resolved', 'rejected'], default: 'pending' },
+                    description: { type: String },
+                    flaggedAt: { type: Date, default: Date.now },
+                    escalatedAt: { type: Date },
+                    escalationReason: { type: String },
+                    escalatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeProfile' },
+                    resolution: {
+                        action: { type: String },
+                        notes: { type: String },
+                        resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeProfile' },
+                        resolvedAt: { type: Date },
+                        adjustedValue: { type: Number },
+                    },
+                },
+            ],
+            default: [],
+        })
+        irregularities?: Array<{
+            irregularityId: string;
+            type: string;
+            severity: 'info' | 'low' | 'medium' | 'high' | 'critical';
+            status: 'pending' | 'escalated' | 'resolved' | 'rejected';
+            description?: string;
+            flaggedAt?: Date;
+            escalatedAt?: Date;
+            escalationReason?: string;
+            escalatedBy?: mongoose.Types.ObjectId;
+            resolution?: {
+                action: string;
+                notes: string;
+                resolvedBy: mongoose.Types.ObjectId;
+                resolvedAt: Date;
+                adjustedValue?: number;
+            };
+        }>;
+
 }
 
 
