@@ -9,7 +9,7 @@ type ReportType = 'tax' | 'insurance' | 'benefits' | 'payslip-history' | 'payrol
 type GenerateReportType = 'tax' | 'insurance' | 'benefits' | 'contributions' | 'payroll-summary' | 'payslip-history';
 
 export default function TaxInsuranceBenefitsPage() {
-  const { hasRole } = useAuth();
+  const { user } = useAuth();
   const [taxReports, setTaxReports] = useState<TaxReport[]>([]);
   const [insuranceReports, setInsuranceReports] = useState<InsuranceReport[]>([]);
   const [benefitsReports, setBenefitsReports] = useState<BenefitsReport[]>([]);
@@ -46,9 +46,9 @@ export default function TaxInsuranceBenefitsPage() {
   }, []);
 
   useEffect(() => {
-    if (!hasRole([SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN])) return;
+    if (!user?.role || ![SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN].includes(user.role as SystemRole)) return;
     loadReports();
-  }, [hasRole, selectedPeriod]);
+  }, [user, selectedPeriod]);
 
   const loadReports = async () => {
     setLoading(true);
@@ -238,7 +238,7 @@ export default function TaxInsuranceBenefitsPage() {
     }
   };
 
-  if (!hasRole([SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN])) {
+  if (!user?.role || ![SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN].includes(user.role as SystemRole)) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-slate-500">Access denied. Finance Staff role required.</p>
