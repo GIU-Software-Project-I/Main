@@ -31,23 +31,14 @@ export class PayrollManagerController {
   async getPendingDisputeConfirmations() {
     try {
       const allDisputes = await this.disputesModel
-        .find({})
+        .find({ status: DisputeStatus.PENDING_MANAGER_APPROVAL })
         .populate('employeeId', 'firstName lastName employeeNumber')
         .populate('payslipId', 'payPeriod netSalary')
         .sort({ createdAt: -1 })
         .lean()
         .exec();
       
-      const disputesList = allDisputes.filter((d: any) => {
-        const status = String(d.status || '').toLowerCase().trim();
-        const isApproved = status === 'approved' || status === DisputeStatus.APPROVED.toLowerCase();
-        if (!isApproved) return false;
-        const isConfirmed = d.resolutionComment && 
-          String(d.resolutionComment).toLowerCase().includes('confirmed by payroll manager');
-        return !isConfirmed;
-      });
-      
-      return disputesList.map((d: any) => {
+      return allDisputes.map((d: any) => {
         const employee = (d.employeeId && typeof d.employeeId === 'object') ? d.employeeId : {};
         return {
           id: d._id?.toString() || String(d._id) || 'unknown',
@@ -58,7 +49,7 @@ export class PayrollManagerController {
           description: d.description || 'No description',
           amount: (d as any).disputedAmount || (d as any).amount || 0,
           priority: (d as any).priority || 'medium',
-          status: 'pending_confirmation',
+          status: d.status || DisputeStatus.PENDING_MANAGER_APPROVAL,
           specialistName: 'Payroll Specialist',
           specialistNotes: d.resolutionComment || '',
           submittedAt: d.createdAt ? new Date(d.createdAt).toISOString() : new Date().toISOString(),
@@ -194,7 +185,7 @@ export class PayrollManagerController {
         description: (result as any).description || (result as any).disputeReason || 'No description',
         amount: (result as any).disputedAmount || (result as any).amount || 0,
         priority: (result as any).priority || 'medium',
-        status: confirmed ? 'confirmed' : 'rejected_by_manager',
+        status: (result as any).status || (confirmed ? 'approved' : 'rejected'),
         specialistName: 'Payroll Specialist',
         specialistNotes: (result as any).resolutionComment || '',
         submittedAt: (result as any).createdAt ? new Date((result as any).createdAt).toISOString() : new Date().toISOString(),
@@ -215,22 +206,13 @@ export class PayrollManagerController {
   async getPendingClaimConfirmations() {
     try {
       const allClaims = await this.claimsModel
-        .find({})
+        .find({ status: ClaimStatus.PENDING_MANAGER_APPROVAL })
         .populate('employeeId', 'firstName lastName employeeNumber')
         .sort({ createdAt: -1 })
         .lean()
         .exec();
       
-      const claimsList = allClaims.filter((c: any) => {
-        const status = String(c.status || '').toLowerCase().trim();
-        const isApproved = status === 'approved' || status === ClaimStatus.APPROVED.toLowerCase();
-        if (!isApproved) return false;
-        const isConfirmed = c.resolutionComment && 
-          String(c.resolutionComment).toLowerCase().includes('confirmed by payroll manager');
-        return !isConfirmed;
-      });
-      
-      return claimsList.map((c: any) => {
+      return allClaims.map((c: any) => {
         const employee = (c.employeeId && typeof c.employeeId === 'object') ? c.employeeId : {};
         return {
           id: c._id?.toString() || String(c._id) || 'unknown',
@@ -243,7 +225,7 @@ export class PayrollManagerController {
           amount: c.amount || 0,
           approvedAmount: c.approvedAmount || c.amount || 0,
           priority: (c as any).priority || 'medium',
-          status: 'pending_confirmation',
+          status: c.status || ClaimStatus.PENDING_MANAGER_APPROVAL,
           specialistName: 'Payroll Specialist',
           specialistNotes: c.resolutionComment || '',
           submittedAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
@@ -383,7 +365,7 @@ export class PayrollManagerController {
         amount: (result as any).amount || 0,
         approvedAmount: (result as any).approvedAmount || (result as any).amount || 0,
         priority: (result as any).priority || 'medium',
-        status: confirmed ? 'confirmed' : 'rejected_by_manager',
+        status: (result as any).status || (confirmed ? 'approved' : 'rejected'),
         specialistName: 'Payroll Specialist',
         specialistNotes: (result as any).resolutionComment || '',
         submittedAt: (result as any).createdAt ? new Date((result as any).createdAt).toISOString() : new Date().toISOString(),

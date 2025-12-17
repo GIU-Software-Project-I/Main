@@ -141,7 +141,7 @@ export interface PayrollDispute {
   description: string;
   amount?: number;
   period: string;
-  status: 'pending_review' | 'under_review' | 'approved_by_specialist' | 'rejected' | 'escalated';
+  status: 'under_review' | 'pending payroll Manager approval' | 'approved' | 'rejected';
   submittedAt: string;
   reviewedAt?: string;
   reviewedBy?: string;
@@ -181,7 +181,7 @@ export interface ExpenseClaim {
   category: 'travel' | 'meals' | 'supplies' | 'training' | 'other';
   submittedAt: string;
   period: string;
-  status: 'pending_review' | 'under_review' | 'approved_by_specialist' | 'rejected' | 'escalated';
+  status: 'under_review' | 'pending payroll Manager approval' | 'approved' | 'rejected';
   reviewedAt?: string;
   reviewedBy?: string;
   notes?: string;

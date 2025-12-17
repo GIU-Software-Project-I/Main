@@ -1332,10 +1332,11 @@ async getLeaveCompensation(employeeId: string) {
       console.log('Before update - Dispute ID:', dispute._id, 'Current Status:', dispute.status);
       
       if (action === 'approve') {
-        dispute.status = 'approved_by_specialist' as any;
+        // When specialist approves, set status to PENDING_MANAGER_APPROVAL (escalates to manager)
+        dispute.status = DisputeStatus.PENDING_MANAGER_APPROVAL;
         dispute.resolutionComment = reason || 'Approved by Payroll Specialist';
       } else {
-        dispute.status = 'rejected' as any;
+        dispute.status = DisputeStatus.REJECTED;
         dispute.rejectionReason = reason || 'Rejected by Payroll Specialist';
       }
       
@@ -1363,11 +1364,12 @@ async getLeaveCompensation(employeeId: string) {
       throw new NotFoundException('Dispute not found');
     }
     
-    if (dispute.status !== DisputeStatus.APPROVED_BY_SPECIALIST) {
-      throw new BadRequestException('Only disputes approved by specialist can be confirmed by manager');
+    if (dispute.status !== DisputeStatus.PENDING_MANAGER_APPROVAL) {
+      throw new BadRequestException('Only disputes pending manager approval can be confirmed by manager');
     }
     
     if (action === 'confirm') {
+      dispute.status = DisputeStatus.APPROVED;
       dispute.resolutionComment = reason || `Confirmed by Payroll Manager ${managerId}`;
       await dispute.save();
       
@@ -1385,7 +1387,7 @@ async getLeaveCompensation(employeeId: string) {
         }
       }
     } else {
-      dispute.status = DisputeStatus.UNDER_REVIEW;
+      dispute.status = DisputeStatus.REJECTED;
       dispute.rejectionReason = reason || 'Rejected by Payroll Manager';
       await dispute.save();
     }
@@ -1457,7 +1459,8 @@ async getLeaveCompensation(employeeId: string) {
     }
     
     if (action === 'approve') {
-      claim.status = ClaimStatus.APPROVED;
+      // When specialist approves, set status to PENDING_MANAGER_APPROVAL (escalates to manager)
+      claim.status = ClaimStatus.PENDING_MANAGER_APPROVAL;
       claim.approvedAmount = approvedAmount || claim.amount;
       claim.resolutionComment = reason || 'Approved by Payroll Specialist';
     } else {
@@ -1475,11 +1478,12 @@ async getLeaveCompensation(employeeId: string) {
       throw new NotFoundException('Claim not found');
     }
     
-    if (claim.status !== ClaimStatus.APPROVED) {
-      throw new BadRequestException('Only approved claims can be confirmed by manager');
+    if (claim.status !== ClaimStatus.PENDING_MANAGER_APPROVAL) {
+      throw new BadRequestException('Only claims pending manager approval can be confirmed by manager');
     }
     
     if (action === 'confirm') {
+      claim.status = ClaimStatus.APPROVED;
       claim.resolutionComment = reason || `Confirmed by Payroll Manager ${managerId}`;
       await claim.save();
       
@@ -1497,7 +1501,7 @@ async getLeaveCompensation(employeeId: string) {
         }
       }
     } else {
-      claim.status = ClaimStatus.UNDER_REVIEW;
+      claim.status = ClaimStatus.REJECTED;
       claim.rejectionReason = reason || 'Rejected by Payroll Manager';
       await claim.save();
     }

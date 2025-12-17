@@ -9,7 +9,7 @@ export interface DisputeConfirmation {
   description: string;
   amount?: number;
   priority: 'critical' | 'high' | 'medium' | 'low';
-  status: 'pending_confirmation' | 'confirmed' | 'rejected_by_manager' | 'under review';
+  status: 'pending payroll Manager approval' | 'approved' | 'rejected';
   specialistName: string;
   specialistNotes?: string;
   submittedAt: string;
@@ -25,7 +25,7 @@ export interface ClaimConfirmation {
   amount: number;
   approvedAmount?: number;
   priority: 'critical' | 'high' | 'medium' | 'low';
-  status: 'pending_confirmation' | 'confirmed' | 'rejected_by_manager' | 'under review';
+  status: 'pending payroll Manager approval' | 'approved' | 'rejected';
   specialistName: string;
   specialistNotes?: string;
   submittedAt: string;

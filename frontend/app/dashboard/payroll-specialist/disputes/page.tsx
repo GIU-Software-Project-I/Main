@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { payrollSpecialistService, PayrollDispute, DisputeReviewAction, DisputeFilters } from '@/app/services/payroll-specialist';
+import { payrollSpecialistService, PayrollDispute, DisputeFilters } from '@/app/services/payroll-specialist';
 import { useAuth } from '@/app/context/AuthContext';
 import { SystemRole } from '@/app/types';
 
@@ -14,7 +14,6 @@ export default function DisputesPage() {
   const [reviewAction, setReviewAction] = useState<'approve' | 'reject'>('approve');
   const [reviewNotes, setReviewNotes] = useState('');
   const [rejectionRemarks, setRejectionRemarks] = useState('');
-  const [escalateToManager, setEscalateToManager] = useState(false);
   const [filters, setFilters] = useState<DisputeFilters>({
     status: 'all',
     type: 'all',
@@ -40,7 +39,7 @@ export default function DisputesPage() {
       
       // Map backend data to frontend format
       if (response.data) {
-        const mappedDisputes = response.data.map((dispute: any) => {
+        const mappedDisputes: PayrollDispute[] = response.data.map((dispute: any) => {
           console.log('Mapping dispute:', dispute.disputeId, 'Status:', dispute.status);
           return {
             id: dispute._id,
@@ -60,9 +59,10 @@ export default function DisputesPage() {
             notes: dispute.resolutionComment,
             rejectionRemarks: dispute.rejectionReason,
             priority: dispute.priority || 'medium'
-          };
+          } as PayrollDispute;
         });
         console.log('Mapped disputes:', mappedDisputes);
+        // Show all disputes to specialists (including escalated for visibility)
         setDisputes(mappedDisputes);
       }
     } catch (error) {
@@ -75,8 +75,8 @@ export default function DisputesPage() {
 
   const handleReviewDispute = async () => {
     if (!selectedDispute) return;
-    if (selectedDispute.status !== 'pending_review' && selectedDispute.status !== 'under_review') {
-      setError('Only disputes with "Pending Review" or "Under Review" status can be acted upon');
+    if (!isUnderReview(selectedDispute.status)) {
+      setError('Only disputes with "Under Review" status can be acted upon');
       return;
     }
 
@@ -91,7 +91,7 @@ export default function DisputesPage() {
       if (reviewAction === 'approve') {
         response = await payrollSpecialistService.approveDispute(
           selectedDispute.id,
-          escalateToManager,
+          false,
           reviewNotes
         );
       } else {
@@ -105,17 +105,16 @@ export default function DisputesPage() {
       const updatedDispute = response.data || response;
       console.log('Updated dispute status:', updatedDispute?.status);
       
-      setSuccessMessage(`Dispute ${reviewAction === 'approve' ? 'approved' : 'rejected'} successfully`);
-      setShowReviewModal(false);
-      setSelectedDispute(null);
-      setReviewNotes('');
-      setRejectionRemarks('');
-      setEscalateToManager(false);
-      
-      // Small delay to ensure DB write completes, then reload disputes
-      setTimeout(async () => {
+      if (updatedDispute) {
+        setSuccessMessage(`Dispute ${reviewAction === 'approve' ? 'approved and escalated to payroll manager' : 'rejected'} successfully`);
+        setShowReviewModal(false);
+        setSelectedDispute(null);
+        setReviewNotes('');
+        setRejectionRemarks('');
+        
+        // Reload disputes to get fresh data
         await loadDisputes();
-      }, 500);
+      }
     } catch (error) {
       console.error('Failed to review dispute:', error);
       setError(`Failed to ${reviewAction} dispute`);
@@ -128,7 +127,6 @@ export default function DisputesPage() {
     setSelectedDispute(dispute);
     setReviewAction(action);
     setReviewNotes('');
-    setEscalateToManager(false);
     setShowReviewModal(true);
   };
 
@@ -144,13 +142,18 @@ export default function DisputesPage() {
 
   const getStatusColor = (status: PayrollDispute['status']) => {
     switch (status) {
-      case 'pending_review': return 'bg-yellow-100 text-yellow-800';
       case 'under_review': return 'bg-blue-100 text-blue-800';
-      case 'approved_by_specialist': return 'bg-green-100 text-green-800';
+      case 'pending payroll Manager approval': return 'bg-orange-100 text-orange-800';
+      case 'approved': return 'bg-green-100 text-green-800';
       case 'rejected': return 'bg-red-100 text-red-800';
-      case 'escalated': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const isUnderReview = (status?: string) => {
+    if (!status) return false;
+    // Compare directly without normalization - status comes as 'under review' from backend
+    return status === 'under review';
   };
 
   if (!hasAccess) {
@@ -181,11 +184,10 @@ export default function DisputesPage() {
               onChange={(e) => setFilters((prev: DisputeFilters) => ({ ...prev, status: e.target.value as DisputeFilters['status'] }))}
             >
               <option value="all">All Status</option>
-              <option value="pending_review">Pending Review</option>
-              <option value="under_review">Under Review</option>
-              <option value="approved_by_specialist">Approved by Specialist</option>
+              <option value="under review">Under Review</option>
+              <option value="pending payroll Manager approval">Pending Manager Approval</option>
+              <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
-              <option value="escalated">Escalated</option>
             </select>
           </div>
           <div>
@@ -265,7 +267,6 @@ export default function DisputesPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Employee</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Description</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Priority</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
@@ -285,11 +286,6 @@ export default function DisputesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-slate-600 capitalize">{dispute.type}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-slate-600 max-w-xs truncate">
-                        {dispute.description}
-                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                       {dispute.amount ? `$${dispute.amount.toLocaleString()}` : 'N/A'}
@@ -315,7 +311,7 @@ export default function DisputesPage() {
                         >
                           View
                         </button>
-                        {(dispute.status === 'pending_review' || dispute.status === 'under_review') && (
+                        {isUnderReview(dispute.status) && (
                           <>
                             <button
                               onClick={() => openReviewModal(dispute, 'approve')}
@@ -415,7 +411,7 @@ export default function DisputesPage() {
                 <div>
                   <label className="text-sm font-medium text-slate-500">Attachments</label>
                   <div className="mt-1 space-y-1">
-                    {selectedDispute.attachments.map((attachment: string, index: number) => (
+                    {selectedDispute.attachments.map((attachment, index) => (
                       <div key={index} className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
                         {attachment}
                       </div>
@@ -424,7 +420,7 @@ export default function DisputesPage() {
                 </div>
               )}
             </div>
-            {selectedDispute.status === 'pending_review' && (
+            {isUnderReview(selectedDispute.status) && (
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   onClick={() => openReviewModal(selectedDispute, 'reject')}
@@ -469,20 +465,6 @@ export default function DisputesPage() {
                   onChange={(e) => reviewAction === 'approve' ? setReviewNotes(e.target.value) : setRejectionRemarks(e.target.value)}
                 />
               </div>
-              {reviewAction === 'approve' && (
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="escalate"
-                    className="mr-2"
-                    checked={escalateToManager}
-                    onChange={(e) => setEscalateToManager(e.target.checked)}
-                  />
-                  <label htmlFor="escalate" className="text-sm text-slate-700">
-                    Escalate to Payroll Manager
-                  </label>
-                </div>
-              )}
             </div>
             <div className="flex justify-end space-x-3 mt-6">
               <button
