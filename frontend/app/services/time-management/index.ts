@@ -405,7 +405,7 @@ export const timeManagementService = {
 
     // Get employee's corrections - GET /attendance-correction/:employeeId
     getEmployeeCorrections: async (employeeId: string) => {
-        return apiService.get(`/attendance-correction/${employeeId}`);
+        return apiService.get<AttendanceCorrectionRequest[]>(`/attendance-correction/${employeeId}`);
     },
 
     // Get all corrections (manager) - GET /attendance-correction/all

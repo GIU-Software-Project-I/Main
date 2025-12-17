@@ -228,7 +228,7 @@ export default function CorrectionRequestsPage() {
                     </Dialog>
                 )}
                 {activeTab === 'profile' && (
-                    <Link href="/portal/my-profile/edit">
+                    <Link href="/dashboard/department-employee/employee-profile/edit">
                         <Button className="bg-slate-900 text-white hover:bg-slate-800 shadow-sm">
                             + New Profile Correction
                         </Button>
@@ -264,25 +264,17 @@ export default function CorrectionRequestsPage() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {profileRequests.map((req) => {
-                                                // Handle different possible field structures from backend
-                                                const description = req.requestDescription ||
-                                                    req.fieldName ||
-                                                    `${req.fieldName || 'Field'}: ${req.oldValue || ''} → ${req.newValue || ''}` ||
-                                                    'No description';
-
-                                                return (
-                                                    <TableRow key={req._id || req.requestId}>
-                                                        <TableCell>
-                                                            {req.createdAt ? new Date(req.createdAt).toLocaleDateString() : '-'}
-                                                        </TableCell>
-                                                        <TableCell className="max-w-[300px] truncate" title={description}>
-                                                            {description}
-                                                        </TableCell>
-                                                        <TableCell>{getStatusBadge(req.status)}</TableCell>
-                                                    </TableRow>
-                                                );
-                                            })}
+                                            {profileRequests.map((req) => (
+                                                <TableRow key={req._id}>
+                                                    <TableCell>
+                                                        {req.createdAt ? new Date(req.createdAt).toLocaleDateString() : '-'}
+                                                    </TableCell>
+                                                    <TableCell className="max-w-[300px] truncate" title={req.requestDescription}>
+                                                        {req.requestDescription || "No description"}
+                                                    </TableCell>
+                                                    <TableCell>{getStatusBadge(req.status)}</TableCell>
+                                                </TableRow>
+                                            ))}
                                         </TableBody>
                                     </Table>
                                 </div>

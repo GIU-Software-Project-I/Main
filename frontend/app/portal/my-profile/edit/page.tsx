@@ -249,7 +249,7 @@ export default function EditProfilePage() {
             setCorrectionRequest({ requestDescription: '', reason: '' });
             setTimeout(() => {
                 setSuccessMessage(null);
-                router.push('/dashboard/department-employee/employee-profile');
+                router.push('/portal/my-profile');
             }, 2000);
         } catch (err: any) {
             setError(err.message || 'Failed to submit correction request');
@@ -285,7 +285,7 @@ export default function EditProfilePage() {
                     <h1 className="text-3xl font-bold text-slate-900">Edit Profile</h1>
                     <p className="text-slate-600 mt-2">Update your personal information</p>
                 </div>
-                <Link href="/dashboard/department-employee/employee-profile">
+                <Link href="/portal/my-profile">
                     <Button variant="outline">
                         ← Back to Profile
                     </Button>
@@ -327,7 +327,7 @@ export default function EditProfilePage() {
                     className={`px-4 py-3 font-medium transition-colors ${activeTab === 'contact'
                         ? 'border-b-2 border-blue-600 text-blue-600'
                         : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                        }`}
                 >
                     📞 Contact Information
                 </button>
@@ -336,7 +336,7 @@ export default function EditProfilePage() {
                     className={`px-4 py-3 font-medium transition-colors ${activeTab === 'bio'
                         ? 'border-b-2 border-blue-600 text-blue-600'
                         : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                        }`}
                 >
                     ✍️ Biography & Photo
                 </button>
@@ -345,7 +345,7 @@ export default function EditProfilePage() {
                     className={`px-4 py-3 font-medium transition-colors ${activeTab === 'emergency'
                         ? 'border-b-2 border-blue-600 text-blue-600'
                         : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                        }`}
                 >
                     🚨 Emergency Contacts
                 </button>
@@ -354,7 +354,7 @@ export default function EditProfilePage() {
                     className={`px-4 py-3 font-medium transition-colors ${activeTab === 'correction'
                         ? 'border-b-2 border-blue-600 text-blue-600'
                         : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                        }`}
                 >
                     📝 Request Correction
                 </button>
@@ -432,7 +432,7 @@ export default function EditProfilePage() {
                         <LoadingButton type="submit" isLoading={saving}>
                             💾 Save Contact Information
                         </LoadingButton>
-                        <Link href="/dashboard/department-employee/employee-profile">
+                        <Link href="/portal/my-profile">
                             <Button type="button" variant="outline">
                                 Cancel
                             </Button>
@@ -549,7 +549,7 @@ export default function EditProfilePage() {
                         <LoadingButton type="submit" isLoading={saving}>
                             💾 Save Biography
                         </LoadingButton>
-                        <Link href="/dashboard/department-employee/employee-profile">
+                        <Link href="/portal/my-profile">
                             <Button type="button" variant="outline">
                                 Cancel
                             </Button>
@@ -593,8 +593,8 @@ export default function EditProfilePage() {
                                         <div key={index} className={`relative p-6 rounded-lg border ${contact.isPrimary ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white'}`}>
                                             {contact.isPrimary && (
                                                 <span className="absolute top-4 right-4 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
-                          Primary
-                        </span>
+                                                    Primary
+                                                </span>
                                             )}
                                             <div className="mb-4">
                                                 <h4 className="font-bold text-lg text-slate-900">{contact.name}</h4>
@@ -758,7 +758,7 @@ export default function EditProfilePage() {
                         <p className="text-slate-600 text-sm mb-4">
                             Want to see the status of your previous correction requests?
                         </p>
-                        <Link href="/dashboard/department-employee/employee-profile/correction-requests">
+                        <Link href="/portal/my-profile/correction-requests">
                             <Button variant="outline" size="sm">
                                 View My Correction Requests →
                             </Button>
