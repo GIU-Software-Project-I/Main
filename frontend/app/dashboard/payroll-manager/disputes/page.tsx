@@ -1,0 +1,298 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { payrollManagerService, DisputeConfirmation } from '@/app/services/payroll-manager';
+import { useAuth } from '@/app/context/AuthContext';
+import { SystemRole } from '@/app/types';
+
+export default function PayrollManagerDisputesPage() {
+  const { user } = useAuth();
+  const allowedRoles = [SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN];
+  const hasAccess = !!user && allowedRoles.includes(user.role);
+  const [disputes, setDisputes] = useState<DisputeConfirmation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDispute, setSelectedDispute] = useState<DisputeConfirmation | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState<'approve' | 'reject'>('approve');
+  const [confirmationNotes, setConfirmationNotes] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hasAccess) return;
+    loadDisputes();
+  }, [user, hasAccess]);
+
+  const loadDisputes = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const response = await payrollManagerService.getPendingDisputeConfirmations();
+      
+      if (response.error) {
+        setError(`Failed to load disputes: ${response.error}`);
+        setDisputes([]);
+        return;
+      }
+      
+      if (response.data) {
+        setDisputes(response.data);
+      }
+    } catch (err) {
+      console.error('Error loading disputes:', err);
+      setError('Failed to load disputes. Please try again.');
+      setDisputes([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+      
+  const openConfirmModal = (dispute: DisputeConfirmation, action: 'approve' | 'reject') => {
+    setSelectedDispute(dispute);
+    setConfirmationAction(action);
+    setConfirmationNotes('');
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmation = async () => {
+    if (!selectedDispute) return;
+
+    setLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const response = await payrollManagerService.confirmDispute({
+        disputeId: selectedDispute.id,
+        confirmed: confirmationAction === 'approve',
+        notes: confirmationNotes,
+      });
+
+      if (response.error) {
+        setError(`Failed to ${confirmationAction} dispute: ${response.error}`);
+        return;
+      }
+
+      if (response.data) {
+        setSuccessMessage(`Dispute ${confirmationAction === 'approve' ? 'approved' : 'rejected'} successfully`);
+        setShowConfirmModal(false);
+        setSelectedDispute(null);
+        setConfirmationNotes('');
+        
+        // Reload disputes
+        await loadDisputes();
+      }
+    } catch (error) {
+      console.error('Failed to process dispute:', error);
+      setError(`Failed to ${confirmationAction} dispute. Please try again.`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending payroll Manager approval': return 'bg-orange-100 text-orange-800';
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleRejectDispute = async () => {
+    if (!selectedDispute) return;
+
+    try {
+      const response = await payrollManagerService.confirmDispute({
+        disputeId: selectedDispute.id,
+        confirmed: false,
+        notes: confirmationNotes,
+      });
+
+      if (response.error) {
+        console.error('Failed to reject dispute:', response.error);
+        alert(`Error: ${response.error}`);
+        return;
+      }
+
+      if (response.data) {
+        setShowConfirmModal(false);
+        setSelectedDispute(null);
+        setConfirmationNotes('');
+        // Reload disputes to get updated list
+        await loadDisputes();
+      }
+    } catch (error) {
+      console.error('Failed to reject dispute:', error);
+      alert('Failed to reject dispute. Please try again.');
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'critical': return 'bg-red-100 text-red-800';
+      case 'high': return 'bg-orange-100 text-orange-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'low': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-slate-500">Access denied. Payroll Manager role required.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Disputes Approval</h1>
+          <p className="text-slate-600 mt-1">Disputes approved by Payroll Specialists awaiting your confirmation</p>
+        </div>
+      </div>
+
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <p className="text-green-800 text-sm">{successMessage}</p>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800 text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Disputes List */}
+      <div className="bg-white rounded-lg border border-slate-200">
+        <div className="p-6 border-b border-slate-200">
+          <h2 className="text-lg font-semibold text-slate-900">Pending Disputes Approval ({disputes.length})</h2>
+          <p className="text-sm text-slate-600 mt-1">Disputes approved by specialists awaiting your confirmation</p>
+        </div>
+        {loading ? (
+          <div className="p-6 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="text-slate-500 mt-2">Loading disputes...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Employee</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-slate-200">
+                {disputes.map((dispute) => (
+                  <tr key={dispute.id} className="hover:bg-slate-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">{dispute.employeeName}</div>
+                        <div className="text-xs text-slate-500">{dispute.employeeNumber}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-slate-600 max-w-xs truncate">
+                        {dispute.description}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                      {dispute.amount ? `$${dispute.amount.toLocaleString()}` : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(dispute.status)}`}>
+                        {dispute.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => openConfirmModal(dispute, 'approve')}
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => openConfirmModal(dispute, 'reject')}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {disputes.length === 0 && (
+              <div className="p-6 text-center text-slate-500">
+                No disputes pending confirmation
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && selectedDispute && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">
+              {confirmationAction === 'approve' ? 'Approve' : 'Reject'} Dispute
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-slate-500">Dispute</label>
+                <p className="text-slate-900">{selectedDispute.description}</p>
+                <p className="text-sm text-slate-600">{selectedDispute.employeeName}</p>
+                <p className="text-sm text-slate-600">Amount: {selectedDispute.amount ? `$${selectedDispute.amount.toLocaleString()}` : 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+                <textarea
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                  placeholder="Add your notes..."
+                  value={confirmationNotes}
+                  onChange={(e) => setConfirmationNotes(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setSelectedDispute(null);
+                }}
+                className="px-4 py-2 text-slate-600 hover:text-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmation}
+                className={`px-4 py-2 text-white rounded-lg ${
+                  confirmationAction === 'approve'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {confirmationAction === 'approve' ? 'Approve' : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

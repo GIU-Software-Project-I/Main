@@ -1,4 +1,4 @@
-import { IsMongoId, IsNotEmpty, IsString} from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 /**
  * PHASE 1 — DEFINE STRUCTURE

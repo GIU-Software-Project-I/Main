@@ -1,8 +1,7 @@
+
 import { Prop, Schema, SchemaFactory, } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
-// import schemas from employee subsystem
-import { EmployeeProfile as Employee } from '../../../employee/models/employee/employee-profile.schema';
-// import enums
+import {  EmployeeProfile as Employee} from '../../../employee/models/employee/employee-profile.schema';
 import { DisputeStatus } from '../enums/payroll-tracking-enum';
 
 export type disputesDocument = HydratedDocument<disputes>
@@ -23,17 +22,29 @@ export class disputes {
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Employee.name })
     financeStaffId?: mongoose.Types.ObjectId;
 
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Employee.name })
+    payrollSpecialistId?: mongoose.Types.ObjectId;
+
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Employee.name })
+    payrollManagerId?: mongoose.Types.ObjectId;
+
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'paySlip', required: true })
     payslipId: mongoose.Types.ObjectId;
 
     @Prop({ required: true, type: String, enum: DisputeStatus, default: DisputeStatus.UNDER_REVIEW })
-    status: DisputeStatus;// under review, approved, rejected
+    status: DisputeStatus;// under review,pending_manager_approval, approved, rejected
 
     @Prop()
     rejectionReason?: string;
 
     @Prop()
     resolutionComment?: string;
+
+    @Prop()
+    refundStatus?: string; // 'processed' when refund is initiated
+
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'refunds' })
+    refundId?: mongoose.Types.ObjectId;
 }
 
 export const disputesSchema = SchemaFactory.createForClass(disputes);

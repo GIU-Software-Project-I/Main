@@ -55,6 +55,34 @@ export const payrollConfigurationService = {
     return apiService.delete(`/payroll-configuration-requirements/tax-rules/${id}`);
   },
 
+   getTaxBrackets: async () => {
+    return apiService.get('/payroll-configuration-requirements/tax-brackets');
+  },
+
+  getTaxBracketById: async (id: string) => {
+    return apiService.get(`/payroll-configuration-requirements/tax-brackets/${id}`);
+  },
+
+  createTaxBracket: async (data: any) => {
+    return apiService.post('/payroll-configuration-requirements/tax-brackets', data);
+  },
+
+  updateTaxBracket: async (id: string, data: any) => {
+    return apiService.patch(`/payroll-configuration-requirements/tax-brackets/${id}`, data);
+  },
+
+  deleteTaxBracket: async (id: string) => {
+    return apiService.delete(`/payroll-configuration-requirements/tax-brackets/${id}`);
+  },
+
+  approveTaxBracket: async (id: string, data: any) => {
+    return apiService.patch(`/payroll-configuration-requirements/tax-brackets/${id}/approve`, data);
+  },
+
+  rejectTaxBracket: async (id: string, data: any) => {
+    return apiService.patch(`/payroll-configuration-requirements/tax-brackets/${id}/reject`, data);
+  },
+
   // ========== INSURANCE BRACKETS ==========
   getInsuranceBrackets: async () => {
     return apiService.get('/payroll-configuration-requirements/insurance-brackets');
@@ -88,6 +116,8 @@ export const payrollConfigurationService = {
     const url = `/payroll-configuration-requirements/insurance-brackets/${id}/calculate-contributions?salary=${salary}`;
     return apiService.get(url);
   },
+
+  
 
   // ========== PAYROLL POLICIES ==========
   getPayrollPolicies: async (queryParams?: any) => {
@@ -287,4 +317,5 @@ export const payrollConfigurationService = {
   updateCompanyWideSettings: async (data: any) => {
     return apiService.put('/payroll-configuration-requirements/company-settings', data);
   },
+
 };

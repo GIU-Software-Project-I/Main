@@ -445,6 +445,18 @@ export class UnifiedLeaveService {
     const created = new this.leaveRequestModel(payload);
     await created.save();
 
+    // Update pending count in entitlement when request is created
+    if (leaveType.deductible) {
+      const ent = await this.entitlementModel.findOne({
+        employeeId: new Types.ObjectId(dto.employeeId),
+        leaveTypeId: new Types.ObjectId(dto.leaveTypeId),
+      });
+      if (ent) {
+        ent.pending = (ent.pending || 0) + duration;
+        await ent.save();
+      }
+    }
+
     const employeeProfile = await this.sharedLeavesService.getEmployeeProfile(dto.employeeId);
     const employeeName = employeeProfile?.fullName || 'Employee';
     await this.sharedLeavesService.sendLeaveRequestSubmittedNotification(
@@ -650,6 +662,109 @@ export class UnifiedLeaveService {
     throw new BadRequestException('Request cannot be cancelled in current state');
   }
 
+  async returnForCorrection(id: string, reviewerId: string, reason: string) {
+    this.validateObjectId(id, 'id');
+    this.validateObjectId(reviewerId, 'reviewerId');
+
+    const leave = await this.leaveRequestModel.findById(id);
+    if (!leave) throw new NotFoundException('Leave request not found');
+
+    if (leave.status !== LeaveStatus.PENDING) {
+      throw new BadRequestException('Only pending requests can be returned for correction');
+    }
+
+    leave.status = LeaveStatus.RETURNED_FOR_CORRECTION;
+
+    // Add to approval flow history
+    if (!leave.approvalFlow || !Array.isArray(leave.approvalFlow)) {
+      leave.approvalFlow = [] as any;
+    }
+
+    leave.approvalFlow.push({
+      role: 'reviewer',
+      status: 'returned_for_correction',
+      decidedBy: new Types.ObjectId(reviewerId),
+      decidedAt: new Date(),
+      reason: reason,
+    } as any);
+
+    await leave.save();
+
+    const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
+    await this.sharedLeavesService.sendLeaveRequestReturnedForCorrectionNotification(
+      leave.employeeId.toString(),
+      leaveType?.name || 'Leave',
+      leave.dates.from,
+      leave.dates.to,
+      reason
+    );
+
+    return leave;
+  }
+
+  async resubmitCorrectedRequest(id: string, employeeId: string, corrections: Partial<{
+    from: string;
+    to: string;
+    justification: string;
+    attachmentId: string;
+  }>) {
+    this.validateObjectId(id, 'id');
+    this.validateObjectId(employeeId, 'employeeId');
+
+    const leave = await this.leaveRequestModel.findById(id);
+    if (!leave) throw new NotFoundException('Leave request not found');
+
+    if (leave.employeeId.toString() !== employeeId) {
+      throw new BadRequestException('Unauthorized');
+    }
+
+    if (leave.status !== LeaveStatus.RETURNED_FOR_CORRECTION) {
+      throw new BadRequestException('Only requests returned for correction can be resubmitted');
+    }
+
+    // Apply corrections
+    if (corrections.from && corrections.to) {
+      const from = new Date(corrections.from);
+      const to = new Date(corrections.to);
+
+      const duration = await this._calculateWorkingDuration(employeeId, from, to);
+      leave.dates = { from, to };
+      leave.durationDays = duration;
+    }
+
+    if (corrections.justification) {
+      leave.justification = corrections.justification;
+    }
+
+    if (corrections.attachmentId) {
+      leave.attachmentId = new Types.ObjectId(corrections.attachmentId);
+    }
+
+    // Reset status to pending
+    leave.status = LeaveStatus.PENDING;
+
+    // Reset approval flow
+    leave.approvalFlow = [
+      { role: 'manager', status: 'pending' },
+      { role: 'hr', status: 'pending' },
+    ] as any;
+
+    await leave.save();
+
+    const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
+    const employeeProfile = await this.sharedLeavesService.getEmployeeProfile(employeeId);
+
+    await this.sharedLeavesService.sendLeaveRequestSubmittedNotification(
+      employeeId,
+      employeeProfile?.fullName || 'Employee',
+      leaveType?.name || 'Leave',
+      leave.dates.from,
+      leave.dates.to
+    );
+
+    return leave;
+  }
+
   async managerApprove(id: string, managerId: string) {
     this.validateObjectId(id, 'id');
     this.validateObjectId(managerId, 'managerId');
@@ -674,8 +789,42 @@ export class UnifiedLeaveService {
       decidedAt: new Date(),
     } as any;
 
-    leave.status = LeaveStatus.PENDING;
+    // Set status to APPROVED (manager approval is final)
+    leave.status = LeaveStatus.APPROVED;
+
+    // Update entitlement balance
+    const ent = await this.entitlementModel.findOne({
+      employeeId: leave.employeeId,
+      leaveTypeId: leave.leaveTypeId,
+    });
+
+    const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
+    const isDeductible = leaveType?.deductible ?? true;
+
+    if (isDeductible && ent) {
+      // Move from pending to taken
+      const durationDays = leave.durationDays || 0;
+      ent.pending = Math.max(0, (ent.pending || 0) - durationDays);
+      ent.taken = (ent.taken || 0) + durationDays;
+
+      // Calculate remaining properly: yearly + carryForward - taken
+      const yearly = ent.yearlyEntitlement || 0;
+      const carryForward = ent.carryForward || 0;
+      ent.remaining = yearly + carryForward - ent.taken;
+
+      await ent.save();
+    }
+
     await leave.save();
+
+    // Send approval notification to employee
+    await this.sharedLeavesService.sendLeaveRequestApprovedNotification(
+      leave.employeeId.toString(),
+      leaveType?.name || 'Leave',
+      leave.dates.from,
+      leave.dates.to
+    );
+
     return leave;
   }
 
@@ -699,10 +848,22 @@ export class UnifiedLeaveService {
       status: 'rejected',
       decidedBy: new Types.ObjectId(managerId),
       decidedAt: new Date(),
+      reason: reason,
     } as any;
 
     leave.status = LeaveStatus.REJECTED;
     await leave.save();
+
+    // Update entitlement - remove from pending
+    const ent = await this.entitlementModel.findOne({
+      employeeId: leave.employeeId,
+      leaveTypeId: leave.leaveTypeId,
+    });
+
+    if (ent) {
+      ent.pending = Math.max(0, (ent.pending || 0) - (leave.durationDays || 0));
+      await ent.save();
+    }
 
     const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
     await this.sharedLeavesService.sendLeaveRequestRejectedNotification(
@@ -721,9 +882,10 @@ export class UnifiedLeaveService {
     hrId: string,
     decision: 'approve' | 'reject',
     allowNegative: boolean = false,
+    reason?: string,
   ) {
     const leave = await this.leaveRequestModel.findById(id);
-    if (!leave) throw new NotFoundException('Not found');
+    if (!leave) throw new NotFoundException('Leave request not found');
 
     // Allow override of REJECTED status if decision is approve
     // Also allow PENDING
@@ -763,13 +925,18 @@ export class UnifiedLeaveService {
 
     if (decision === 'reject') {
       await leave.save();
-      const leaveTypeForReject = await this.leaveTypeModel.findById(leave.leaveTypeId);
-      await this.sharedLeavesService.sendLeaveRequestRejectedNotification(
-        leave.employeeId.toString(),
-        leaveTypeForReject?.name || 'Leave',
-        leave.dates.from,
-        leave.dates.to
-      );
+      try {
+        const leaveTypeForReject = await this.leaveTypeModel.findById(leave.leaveTypeId);
+        await this.sharedLeavesService.sendLeaveRequestRejectedNotification(
+          leave.employeeId.toString(),
+          leaveTypeForReject?.name || 'Leave',
+          leave.dates.from,
+          leave.dates.to,
+          reason
+        );
+      } catch (notifError) {
+        this.logger.warn('Failed to send rejection notification:', notifError);
+      }
       return leave;
     }
 
@@ -791,7 +958,7 @@ export class UnifiedLeaveService {
         }
 
         ent.taken = (ent.taken || 0) + (leave.durationDays || 0);
-        ent.remaining = (ent.remaining || 0) - (leave.durationDays || 0); // Allow going negative if allowNegative is true (or if logic passed above)
+        ent.remaining = (ent.remaining || 0) - (leave.durationDays || 0);
         await ent.save();
       } else {
         // No entitlement exists
@@ -817,21 +984,25 @@ export class UnifiedLeaveService {
     await this.payrollNotifyAfterApproval(leave);
     await leave.save();
 
-    const leaveTypeForNotify = await this.leaveTypeModel.findById(leave.leaveTypeId);
-    await this.sharedLeavesService.sendLeaveRequestApprovedNotification(
-      leave.employeeId.toString(),
-      leaveTypeForNotify?.name || 'Leave',
-      leave.dates.from,
-      leave.dates.to
-    );
+    try {
+      const leaveTypeForNotify = await this.leaveTypeModel.findById(leave.leaveTypeId);
+      await this.sharedLeavesService.sendLeaveRequestApprovedNotification(
+        leave.employeeId.toString(),
+        leaveTypeForNotify?.name || 'Leave',
+        leave.dates.from,
+        leave.dates.to
+      );
 
-    await this.sharedLeavesService.syncLeaveWithTimeManagement(
-      leave.employeeId.toString(),
-      leave.dates.from,
-      leave.dates.to,
-      leaveTypeForNotify?.name || 'Leave',
-      'approved'
-    );
+      await this.sharedLeavesService.syncLeaveWithTimeManagement(
+        leave.employeeId.toString(),
+        leave.dates.from,
+        leave.dates.to,
+        leaveTypeForNotify?.name || 'Leave',
+        'approved'
+      );
+    } catch (notifError) {
+      this.logger.warn('Failed to send approval notification or sync:', notifError);
+    }
 
     return leave;
   }
@@ -964,18 +1135,63 @@ export class UnifiedLeaveService {
   async getEmployeeBalances(employeeId: string) {
     if (!employeeId) throw new BadRequestException('employeeId required');
 
-    const entitlements = await this.entitlementModel
+    let entitlements = await this.entitlementModel
       .find({ employeeId: new Types.ObjectId(employeeId) })
       .lean();
 
+    // If employee has no entitlements, auto-create default entitlements for all leave types
+    if (entitlements.length === 0) {
+      const allLeaveTypes = await this.leaveTypeModel.find().lean();
+
+      for (const leaveType of allLeaveTypes) {
+        // Default entitlement values based on leave type
+        let defaultEntitlement = 0;
+        const typeName = (leaveType.name || '').toLowerCase();
+        const typeCode = (leaveType.code || '').toLowerCase();
+
+        if (typeName.includes('annual') || typeCode.includes('annual')) {
+          defaultEntitlement = 21; // 21 days annual leave
+        } else if (typeName.includes('sick') || typeCode.includes('sick')) {
+          defaultEntitlement = 14; // 14 days sick leave
+        } else if (typeName.includes('personal') || typeCode.includes('personal')) {
+          defaultEntitlement = 5; // 5 days personal leave
+        } else {
+          defaultEntitlement = 5; // Default for other types
+        }
+
+        await this.entitlementModel.create({
+          employeeId: new Types.ObjectId(employeeId),
+          leaveTypeId: leaveType._id,
+          yearlyEntitlement: defaultEntitlement,
+          accruedActual: defaultEntitlement,
+          accruedRounded: defaultEntitlement,
+          carryForward: 0,
+          taken: 0,
+          pending: 0,
+          remaining: defaultEntitlement,
+          lastAccrualDate: new Date(),
+        });
+      }
+
+      // Re-fetch entitlements after creation
+      entitlements = await this.entitlementModel
+        .find({ employeeId: new Types.ObjectId(employeeId) })
+        .lean();
+    }
+
+    // Fetch all leave types to enrich the response
+    const allLeaveTypes = await this.leaveTypeModel.find().lean();
+    const leaveTypeMap = new Map(allLeaveTypes.map(lt => [lt._id.toString(), lt]));
+
     const results = await Promise.all(
       entitlements.map(async (ent: any) => {
+        // Match both uppercase and lowercase status values for compatibility
         const takenAgg = await this.leaveRequestModel.aggregate([
           {
             $match: {
               employeeId: new Types.ObjectId(employeeId),
               leaveTypeId: new Types.ObjectId(ent.leaveTypeId),
-              status: { $in: [LeaveStatus.APPROVED] },
+              status: { $in: ['approved', 'APPROVED'] },
             },
           },
           { $group: { _id: null, takenDays: { $sum: '$durationDays' } } },
@@ -986,7 +1202,7 @@ export class UnifiedLeaveService {
             $match: {
               employeeId: new Types.ObjectId(employeeId),
               leaveTypeId: new Types.ObjectId(ent.leaveTypeId),
-              status: LeaveStatus.PENDING,
+              status: { $in: ['pending', 'PENDING'] },
             },
           },
           { $group: { _id: null, pendingDays: { $sum: '$durationDays' } } },
@@ -995,21 +1211,26 @@ export class UnifiedLeaveService {
         const takenFromRequests = takenAgg[0]?.takenDays ?? 0;
         const pendingFromRequests = pendingAgg[0]?.pendingDays ?? 0;
 
-        const taken = (ent.taken ?? 0) + takenFromRequests;
-        const pending = Math.max(ent.pending ?? 0, pendingFromRequests);
-        const accrued =
-          ent.accruedRounded ??
-          ent.accruedActual ??
-          ent.yearlyEntitlement ??
-          0;
+        // Use aggregated values from actual requests for accuracy
+        // This ensures we always have the correct count from approved/pending requests
+        const taken = takenFromRequests;
+        const pending = pendingFromRequests;
+        const yearly = ent.yearlyEntitlement ?? 0;
         const carryForward = ent.carryForward ?? 0;
-        const remaining =
-          ent.remaining ?? accrued + carryForward - taken - pending;
+
+        // Always calculate remaining from source values: yearly + carryForward - taken
+        // This ensures accuracy even if stored values are stale
+        const remaining = yearly + carryForward - taken;
+
+        // Get leave type info
+        const leaveType = leaveTypeMap.get(ent.leaveTypeId.toString());
 
         return {
           leaveTypeId: ent.leaveTypeId,
-          yearlyEntitlement: ent.yearlyEntitlement ?? 0,
-          accrued,
+          leaveTypeName: leaveType?.name || '',
+          leaveTypeCode: leaveType?.code || '',
+          yearlyEntitlement: yearly,
+          accrued: yearly,
           taken,
           pending,
           carryForward,
@@ -1179,10 +1400,87 @@ export class UnifiedLeaveService {
     roundingRule: RoundingRule = RoundingRule.ROUND,
   ) {
     const ref = referenceDate ? new Date(referenceDate) : new Date();
+    let processedCount = 0;
+    let createdCount = 0;
 
+    // Get all leave types
+    const allLeaveTypes = await this.leaveTypeModel.find().lean();
+
+    if (allLeaveTypes.length === 0) {
+      return {
+        ok: false,
+        message: 'No leave types found. Please create leave types first.',
+        processed: 0,
+        created: 0,
+      };
+    }
+
+    // Get all unique employee IDs from existing entitlements and leave requests
+    const entitlementEmployees = await this.entitlementModel.distinct('employeeId');
+    const requestEmployees = await this.leaveRequestModel.distinct('employeeId');
+
+    // Combine and deduplicate
+    const allEmployeeIds = new Set([
+      ...entitlementEmployees.map(id => id.toString()),
+      ...requestEmployees.map(id => id.toString()),
+    ]);
+
+    this.logger.log(`Found ${allEmployeeIds.size} employees for accrual processing`);
+
+    // Create missing entitlements for each employee
+    for (const employeeIdStr of allEmployeeIds) {
+      const employeeId = new Types.ObjectId(employeeIdStr);
+      const existingEntitlements = await this.entitlementModel.find({ employeeId }).lean();
+      const existingTypeIds = new Set(existingEntitlements.map(e => e.leaveTypeId?.toString()));
+
+      for (const leaveType of allLeaveTypes) {
+        if (existingTypeIds.has(leaveType._id.toString())) continue;
+
+        // Determine default entitlement based on leave type
+        let defaultEntitlement = 0;
+        const typeName = (leaveType.name || '').toLowerCase();
+        const typeCode = (leaveType.code || '').toLowerCase();
+
+        if (typeName.includes('annual') || typeCode.includes('annual')) {
+          defaultEntitlement = 21;
+        } else if (typeName.includes('sick') || typeCode.includes('sick')) {
+          defaultEntitlement = 21; // Sick leave days
+        } else if (typeName.includes('personal') || typeCode.includes('personal')) {
+          defaultEntitlement = 5;
+        } else if (typeName.includes('paternity') || typeCode.includes('paternity')) {
+          defaultEntitlement = 5;
+        } else if (typeName.includes('maternity') || typeCode.includes('maternity')) {
+          defaultEntitlement = 90;
+        } else {
+          defaultEntitlement = 5;
+        }
+
+        await this.entitlementModel.create({
+          employeeId,
+          leaveTypeId: leaveType._id,
+          yearlyEntitlement: defaultEntitlement,
+          accruedActual: 0,
+          accruedRounded: 0,
+          carryForward: 0,
+          taken: 0,
+          pending: 0,
+          remaining: 0,
+          lastAccrualDate: null,
+        });
+        createdCount++;
+        this.logger.log(`Created entitlement for employee ${employeeIdStr}, type ${leaveType.name}`);
+      }
+    }
+
+    // Now run the actual accrual on all entitlements
     const entitlements = await this.entitlementModel.find();
+    this.logger.log(`Processing ${entitlements.length} entitlements for accrual`);
+
     for (const e of entitlements) {
-      if (!e.yearlyEntitlement) continue;
+      if (!e.yearlyEntitlement || e.yearlyEntitlement <= 0) {
+        this.logger.log(`Skipping entitlement ${e._id} - no yearly entitlement`);
+        continue;
+      }
 
       let delta = 0;
       const yearly = e.yearlyEntitlement || 0;
@@ -1201,67 +1499,427 @@ export class UnifiedLeaveService {
           delta = yearly / 12;
       }
 
-      const serviceDays = await this.calculateServiceDays(
-        e.employeeId.toString(),
-        e.lastAccrualDate ?? new Date(ref.getFullYear(), 0, 1),
-        ref,
-      );
-      if (serviceDays <= 0) continue;
+      // For first-time accrual or if method is YEARLY, just add the delta
+      const lastAccrual = e.lastAccrualDate;
 
-      e.accruedActual = (e.accruedActual || 0) + delta;
+      // Skip if already accrued today (prevent duplicate runs)
+      if (lastAccrual) {
+        const lastDate = new Date(lastAccrual);
+        const refDate = new Date(ref);
+        if (lastDate.toDateString() === refDate.toDateString()) {
+          this.logger.log(`Skipping entitlement ${e._id} - already accrued today`);
+          continue;
+        }
+      }
+
+      // Add the accrual
+      const previousAccrued = e.accruedActual || 0;
+      e.accruedActual = previousAccrued + delta;
       e.accruedRounded = this.applyRounding(e.accruedActual, roundingRule);
 
-      const taken = e.taken || 0;
-      const pending = e.pending || 0;
+      // Recalculate taken and pending from actual requests for accuracy
+      const takenAgg = await this.leaveRequestModel.aggregate([
+        {
+          $match: {
+            employeeId: e.employeeId,
+            leaveTypeId: e.leaveTypeId,
+            status: { $in: ['approved', 'APPROVED'] },
+          },
+        },
+        { $group: { _id: null, total: { $sum: '$durationDays' } } },
+      ]);
+
+      const pendingAgg = await this.leaveRequestModel.aggregate([
+        {
+          $match: {
+            employeeId: e.employeeId,
+            leaveTypeId: e.leaveTypeId,
+            status: { $in: ['pending', 'PENDING'] },
+          },
+        },
+        { $group: { _id: null, total: { $sum: '$durationDays' } } },
+      ]);
+
+      const taken = takenAgg[0]?.total ?? 0;
+      const pending = pendingAgg[0]?.total ?? 0;
       const carryForward = e.carryForward || 0;
+
+      e.taken = taken;
+      e.pending = pending;
       e.remaining = e.accruedRounded + carryForward - taken - pending;
       e.lastAccrualDate = ref;
+
       await e.save();
+      processedCount++;
+      this.logger.log(`Accrued ${delta} days for entitlement ${e._id}. New accrued: ${e.accruedActual}, remaining: ${e.remaining}`);
     }
 
     return {
       ok: true,
-      processed: entitlements.length,
+      processed: processedCount,
+      created: createdCount,
+      totalEntitlements: entitlements.length,
       referenceDate: ref,
       method,
       roundingRule,
     };
   }
 
+  /**
+   * Year-End / Period Carry-Forward System
+   * REQ: Automated carry-forward with caps, expiry rules, and audit logging
+   *
+   * Default rules per leave type:
+   * - Annual Leave: Up to 10 days, expires after 6 months
+   * - Sick Leave: Cannot be carried forward (resets)
+   * - Personal/Paternity: Up to 5 days, expires after 3 months
+   * - Other: Up to 5 days, expires after 6 months
+   */
   async carryForward(
     referenceDate?: string,
-    capDays?: number,
-    expiryMonths?: number,
+    options?: {
+      capDays?: number;
+      expiryMonths?: number;
+      leaveTypeRules?: Record<string, { cap: number; expiryMonths: number; canCarryForward: boolean }>;
+      dryRun?: boolean; // Preview changes without saving
+    },
   ) {
     const ref = referenceDate ? new Date(referenceDate) : new Date();
-    const entitlements = await this.entitlementModel.find();
+    const dryRun = options?.dryRun ?? false;
 
-    const defaultCap = 45;
-    const defaultExpiryMonths = 12;
+    // Get all leave types for rule mapping
+    const leaveTypes = await this.leaveTypeModel.find().lean();
+    const leaveTypeMap = new Map(leaveTypes.map(lt => [lt._id.toString(), lt]));
+
+    // Define default carry-forward rules per leave type
+    const defaultRules: Record<string, { cap: number; expiryMonths: number; canCarryForward: boolean }> = {
+      annual: { cap: 10, expiryMonths: 6, canCarryForward: true },
+      sick: { cap: 0, expiryMonths: 0, canCarryForward: false },
+      personal: { cap: 5, expiryMonths: 3, canCarryForward: true },
+      paternity: { cap: 5, expiryMonths: 3, canCarryForward: true },
+      maternity: { cap: 0, expiryMonths: 0, canCarryForward: false },
+      unpaid: { cap: 0, expiryMonths: 0, canCarryForward: false },
+      default: { cap: 5, expiryMonths: 6, canCarryForward: true },
+    };
+
+    // Merge with custom rules if provided
+    const rules = { ...defaultRules, ...options?.leaveTypeRules };
+
+    // Get rule for a leave type
+    const getRuleForType = (leaveTypeId: string): { cap: number; expiryMonths: number; canCarryForward: boolean } => {
+      const leaveType = leaveTypeMap.get(leaveTypeId);
+      if (!leaveType) return rules.default;
+
+      const name = (leaveType.name || '').toLowerCase();
+      const code = (leaveType.code || '').toLowerCase();
+
+      if (name.includes('annual') || code.includes('annual')) return rules.annual;
+      if (name.includes('sick') || code.includes('sick')) return rules.sick;
+      if (name.includes('personal') || code.includes('personal')) return rules.personal;
+      if (name.includes('paternity') || code.includes('paternity')) return rules.paternity;
+      if (name.includes('maternity') || code.includes('maternity')) return rules.maternity;
+      if (name.includes('unpaid') || code.includes('unpaid')) return rules.unpaid;
+
+      // Use global override if provided
+      if (options?.capDays !== undefined) {
+        return {
+          cap: options.capDays,
+          expiryMonths: options.expiryMonths ?? 6,
+          canCarryForward: options.capDays > 0
+        };
+      }
+
+      return rules.default;
+    };
+
+    const entitlements = await this.entitlementModel.find();
+    const results: Array<{
+      employeeId: string;
+      leaveTypeId: string;
+      leaveTypeName: string;
+      previousRemaining: number;
+      eligibleToCarry: number;
+      cappedAmount: number;
+      carriedForward: number;
+      expired: number;
+      expiryDate: Date | null;
+      newBalance: number;
+      rule: { cap: number; expiryMonths: number; canCarryForward: boolean };
+    }> = [];
+
+    let processedCount = 0;
+    let totalCarriedForward = 0;
+    let totalExpired = 0;
 
     for (const e of entitlements) {
-      if (!e.carryForward || e.carryForward <= 0) continue;
+      const leaveType = leaveTypeMap.get(e.leaveTypeId?.toString());
+      const leaveTypeName = leaveType?.name || 'Unknown';
+      const rule = getRuleForType(e.leaveTypeId?.toString() || '');
 
-      const cap = capDays ?? defaultCap;
-      const monthsToAdd = expiryMonths ?? defaultExpiryMonths;
+      // Calculate current remaining balance (unused days from previous year)
+      const yearlyEntitlement = e.yearlyEntitlement || 0;
+      const taken = e.taken || 0;
+      const pending = e.pending || 0;
+      const previousCarryForward = e.carryForward || 0;
 
-      const toCarry = Math.min(e.carryForward, cap);
-      e.remaining = (e.remaining || 0) + toCarry;
-      e.carryForward = 0;
+      // Current remaining = what was entitled + carry forward - taken - pending
+      const currentRemaining = Math.max(0, yearlyEntitlement + previousCarryForward - taken - pending);
 
-      const expiryDate = new Date(ref);
-      expiryDate.setMonth(expiryDate.getMonth() + monthsToAdd);
-      (e as any).carryForwardExpiry = expiryDate;
+      // Calculate carry-forward amount
+      let eligibleToCarry = currentRemaining;
+      let carriedForward = 0;
+      let expired = 0;
+      let expiryDate: Date | null = null;
 
-      await e.save();
+      if (rule.canCarryForward && rule.cap > 0) {
+        // Apply cap
+        carriedForward = Math.min(eligibleToCarry, rule.cap);
+        expired = Math.max(0, eligibleToCarry - carriedForward);
+
+        // Calculate expiry date
+        if (carriedForward > 0 && rule.expiryMonths > 0) {
+          expiryDate = new Date(ref);
+          expiryDate.setMonth(expiryDate.getMonth() + rule.expiryMonths);
+        }
+      } else {
+        // Leave type cannot be carried forward - all unused expires
+        expired = eligibleToCarry;
+        carriedForward = 0;
+      }
+
+      // Calculate new balance for new year
+      // New year starts with: new yearly entitlement + carried forward amount
+      const newBalance = yearlyEntitlement + carriedForward;
+
+      // Store result
+      results.push({
+        employeeId: e.employeeId?.toString() || '',
+        leaveTypeId: e.leaveTypeId?.toString() || '',
+        leaveTypeName,
+        previousRemaining: currentRemaining,
+        eligibleToCarry,
+        cappedAmount: rule.cap,
+        carriedForward,
+        expired,
+        expiryDate,
+        newBalance,
+        rule,
+      });
+
+      totalCarriedForward += carriedForward;
+      totalExpired += expired;
+
+      // Update entitlement if not dry run
+      if (!dryRun) {
+        e.carryForward = carriedForward;
+        e.taken = 0; // Reset taken for new year
+        e.pending = 0; // Reset pending count (actual pending requests remain)
+        e.accruedActual = yearlyEntitlement;
+        e.accruedRounded = yearlyEntitlement;
+        e.remaining = newBalance;
+        e.lastAccrualDate = ref;
+
+        // Store expiry information
+        (e as any).carryForwardExpiry = expiryDate;
+        (e as any).carryForwardProcessedAt = ref;
+
+        await e.save();
+        processedCount++;
+
+        this.logger.log(
+          `Carry-forward for employee ${e.employeeId}, ${leaveTypeName}: ` +
+          `${currentRemaining} remaining -> ${carriedForward} carried (cap: ${rule.cap}), ` +
+          `${expired} expired, new balance: ${newBalance}`
+        );
+      }
+    }
+
+    // Group results by employee for reporting
+    const employeeSummaries = new Map<string, {
+      employeeId: string;
+      totalCarried: number;
+      totalExpired: number;
+      details: typeof results;
+    }>();
+
+    for (const result of results) {
+      const existing = employeeSummaries.get(result.employeeId);
+      if (existing) {
+        existing.totalCarried += result.carriedForward;
+        existing.totalExpired += result.expired;
+        existing.details.push(result);
+      } else {
+        employeeSummaries.set(result.employeeId, {
+          employeeId: result.employeeId,
+          totalCarried: result.carriedForward,
+          totalExpired: result.expired,
+          details: [result],
+        });
+      }
     }
 
     return {
       ok: true,
-      processed: entitlements.length,
+      dryRun,
       referenceDate: ref,
-      capDays: capDays ?? defaultCap,
-      expiryMonths: expiryMonths ?? defaultExpiryMonths,
+      processed: processedCount,
+      totalEntitlements: entitlements.length,
+      totalCarriedForward,
+      totalExpired,
+      rules: {
+        annual: rules.annual,
+        sick: rules.sick,
+        personal: rules.personal,
+        default: rules.default,
+      },
+      summary: {
+        employeesProcessed: employeeSummaries.size,
+        byLeaveType: leaveTypes.map(lt => {
+          const typeResults = results.filter(r => r.leaveTypeId === lt._id.toString());
+          return {
+            leaveTypeId: lt._id.toString(),
+            leaveTypeName: lt.name,
+            totalCarried: typeResults.reduce((sum, r) => sum + r.carriedForward, 0),
+            totalExpired: typeResults.reduce((sum, r) => sum + r.expired, 0),
+            employeesAffected: typeResults.length,
+          };
+        }),
+      },
+      details: dryRun ? results : undefined, // Only include details for dry run
+      auditLog: {
+        action: dryRun ? 'CARRY_FORWARD_PREVIEW' : 'CARRY_FORWARD_EXECUTED',
+        timestamp: new Date(),
+        referenceDate: ref,
+        totalProcessed: processedCount,
+        totalCarriedForward,
+        totalExpired,
+      },
+    };
+  }
+
+  /**
+   * Get carry-forward preview without making changes
+   */
+  async previewCarryForward(
+    referenceDate?: string,
+    options?: {
+      capDays?: number;
+      expiryMonths?: number;
+      leaveTypeRules?: Record<string, { cap: number; expiryMonths: number; canCarryForward: boolean }>;
+    },
+  ) {
+    return this.carryForward(referenceDate, { ...options, dryRun: true });
+  }
+
+  /**
+   * Override carry-forward for specific employee
+   */
+  async overrideCarryForward(
+    employeeId: string,
+    leaveTypeId: string,
+    carryForwardDays: number,
+    expiryDate?: string,
+    reason?: string,
+  ) {
+    const entitlement = await this.entitlementModel.findOne({
+      employeeId: new Types.ObjectId(employeeId),
+      leaveTypeId: new Types.ObjectId(leaveTypeId),
+    });
+
+    if (!entitlement) {
+      throw new NotFoundException('Entitlement not found');
+    }
+
+    const previousCarryForward = entitlement.carryForward || 0;
+    const previousRemaining = entitlement.remaining || 0;
+
+    // Update carry forward
+    entitlement.carryForward = carryForwardDays;
+    entitlement.remaining = (entitlement.yearlyEntitlement || 0) + carryForwardDays - (entitlement.taken || 0) - (entitlement.pending || 0);
+
+    if (expiryDate) {
+      (entitlement as any).carryForwardExpiry = new Date(expiryDate);
+    }
+    (entitlement as any).carryForwardOverrideReason = reason;
+    (entitlement as any).carryForwardOverrideAt = new Date();
+
+    await entitlement.save();
+
+    this.logger.log(
+      `Carry-forward override for employee ${employeeId}, type ${leaveTypeId}: ` +
+      `${previousCarryForward} -> ${carryForwardDays} days. Reason: ${reason}`
+    );
+
+    return {
+      ok: true,
+      employeeId,
+      leaveTypeId,
+      previousCarryForward,
+      newCarryForward: carryForwardDays,
+      previousRemaining,
+      newRemaining: entitlement.remaining,
+      expiryDate: (entitlement as any).carryForwardExpiry,
+      reason,
+    };
+  }
+
+  /**
+   * Get carry-forward report for all employees
+   */
+  async getCarryForwardReport(options?: {
+    employeeId?: string;
+    leaveTypeId?: string;
+    year?: number;
+  }) {
+    const query: any = {};
+
+    if (options?.employeeId) {
+      query.employeeId = new Types.ObjectId(options.employeeId);
+    }
+    if (options?.leaveTypeId) {
+      query.leaveTypeId = new Types.ObjectId(options.leaveTypeId);
+    }
+
+    const entitlements = await this.entitlementModel.find(query).lean();
+    const leaveTypes = await this.leaveTypeModel.find().lean();
+    const leaveTypeMap = new Map(leaveTypes.map(lt => [lt._id.toString(), lt]));
+
+    const report = entitlements.map(e => {
+      const leaveType = leaveTypeMap.get(e.leaveTypeId?.toString() || '');
+      return {
+        employeeId: e.employeeId?.toString(),
+        leaveTypeId: e.leaveTypeId?.toString(),
+        leaveTypeName: leaveType?.name || 'Unknown',
+        yearlyEntitlement: e.yearlyEntitlement || 0,
+        carryForward: e.carryForward || 0,
+        carryForwardExpiry: (e as any).carryForwardExpiry,
+        taken: e.taken || 0,
+        pending: e.pending || 0,
+        remaining: e.remaining || 0,
+        lastAccrualDate: e.lastAccrualDate,
+        overrideReason: (e as any).carryForwardOverrideReason,
+      };
+    });
+
+    // Summary statistics
+    const summary = {
+      totalEmployees: new Set(report.map(r => r.employeeId)).size,
+      totalCarryForward: report.reduce((sum, r) => sum + r.carryForward, 0),
+      byLeaveType: leaveTypes.map(lt => {
+        const typeEntitlements = report.filter(r => r.leaveTypeId === lt._id.toString());
+        return {
+          leaveTypeId: lt._id.toString(),
+          leaveTypeName: lt.name,
+          totalCarryForward: typeEntitlements.reduce((sum, r) => sum + r.carryForward, 0),
+          employeesWithCarryForward: typeEntitlements.filter(r => r.carryForward > 0).length,
+        };
+      }),
+    };
+
+    return {
+      ok: true,
+      report,
+      summary,
     };
   }
 

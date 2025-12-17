@@ -38,7 +38,7 @@ export class CreateShiftDto {
     name: string = 'Morning Shift 9-5';
 
     @ApiProperty({
-        description: 'Shift Type ID (ObjectId)',
+        description: 'ShiftType ID (ObjectId)',
         example: '674c1a1b2c3d4e5f6a7b8c9d',
         default: '674c1a1b2c3d4e5f6a7b8c9d'
     })
@@ -146,7 +146,7 @@ export class UpdateScheduleRuleDto {
     active?: boolean;
 }
 
-// src/time-management/shift-management/dtos/shift-assignment.dtos.ts
+// src/time-management/time-management/dtos/shift-assignment.dtos.ts
 export class AssignShiftDto {
     @ApiPropertyOptional({
         description: 'Target specific employee by their ID (MongoDB ObjectId). Use this for individual assignment.',
@@ -307,7 +307,7 @@ export class UpdateHolidayDto {
     name?: string;
     active?: boolean;
 }
-// src/time-management/shift-management/dtos/lateness-rule.dtos.ts
+// src/time-management/time-management/dtos/lateness-rule.dtos.ts
 export class CreateLatenessRuleDto {
     @ApiProperty({
         description: 'Name of the lateness rule',
@@ -374,7 +374,7 @@ export class UpdateLatenessRuleDto {
     })
     active?: boolean;
 }
-// src/time-management/shift-management/dtos/overtime-rule.dtos.ts
+// src/time-management/time-management/dtos/overtime-rule.dtos.ts
 export class CreateOvertimeRuleDto {
     @ApiProperty({
         description: 'Name of the overtime rule',

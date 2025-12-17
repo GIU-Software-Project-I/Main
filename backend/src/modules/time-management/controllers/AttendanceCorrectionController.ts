@@ -4,6 +4,7 @@ import { ApiOperation, ApiBody, ApiResponse, ApiExtraModels, getSchemaPath } fro
 import {
     RequestCorrectionDto,
     ReviewCorrectionDto,
+    CorrectionType,
 } from '../dto/AttendanceCorrectionDtos';
 import { AttendanceCorrectionService } from "../services/AttendanceCorrectionService";
 
@@ -14,69 +15,135 @@ export class AttendanceCorrectionController {
         private readonly correctionService: AttendanceCorrectionService,
     ) {}
 
-    // employee submits incorrect-punch correction only
+    // employee submits correction request (missing punch or incorrect punch)
     @Post('request')
-    @ApiOperation({ summary: 'Create an INCORRECT_PUNCH attendance correction request' })
+    @ApiOperation({ summary: 'Create an attendance correction request (missing punch or incorrect punch)' })
     @ApiBody({ schema: { $ref: getSchemaPath(RequestCorrectionDto) }, examples: {
-        'IncorrectPunch': { summary: 'Incorrect punch request', value: {
+        'MissingPunchOut': { summary: 'Missing punch out request', value: {
             employeeId: '674c1a1b2c3d4e5f6a7b8c9d',
             attendanceRecordId: '674c1a1b2c3d4e5f6a7b8d01',
-            // correctedPunchDate (dd/MM/yyyy) + correctedPunchLocalTime (HH:mm)
+            correctionType: 'MISSING_PUNCH_OUT',
             correctedPunchDate: '10/12/2025',
             correctedPunchLocalTime: '17:00',
+            reason: 'Forgot to punch out'
+        } },
+        'MissingPunchIn': { summary: 'Missing punch in request', value: {
+            employeeId: '674c1a1b2c3d4e5f6a7b8c9d',
+            attendanceRecordId: '674c1a1b2c3d4e5f6a7b8d01',
+            correctionType: 'MISSING_PUNCH_IN',
+            correctedPunchDate: '10/12/2025',
+            correctedPunchLocalTime: '09:00',
+            reason: 'Forgot to punch in'
+        } },
+        'IncorrectPunchOut': { summary: 'Incorrect punch out request', value: {
+            employeeId: '674c1a1b2c3d4e5f6a7b8c9d',
+            attendanceRecordId: '674c1a1b2c3d4e5f6a7b8d01',
+            correctionType: 'INCORRECT_PUNCH_OUT',
+            correctedPunchDate: '10/12/2025',
+            correctedPunchLocalTime: '17:00',
+            reason: 'Wrong timestamp recorded'
+        } },
+        'IncorrectPunchIn': { summary: 'Incorrect punch in request', value: {
+            employeeId: '674c1a1b2c3d4e5f6a7b8c9d',
+            attendanceRecordId: '674c1a1b2c3d4e5f6a7b8d01',
+            correctionType: 'INCORRECT_PUNCH_IN',
+            correctedPunchDate: '10/12/2025',
+            correctedPunchLocalTime: '09:00',
             reason: 'Wrong timestamp recorded'
         } }
     } })
     @ApiResponse({ status: 201, description: 'Request created' })
     @ApiResponse({ status: 400, description: 'Invalid request' })
     async request(@Body() dto: RequestCorrectionDto) {
-        // This endpoint only handles INCORRECT_PUNCH requests (represented by providing correctedPunchDate/local time)
+        if (!dto.attendanceRecordId) {
+            throw new BadRequestException('attendanceRecordId is required');
+        }
 
-        if (!dto.attendanceRecordId) throw new BadRequestException('attendanceRecordId required for punch-related requests');
-
-        // Require correctedPunchDate and correctedPunchLocalTime per schema
+        // Require correctedPunchDate and correctedPunchLocalTime
         if (!dto.correctedPunchDate || !dto.correctedPunchLocalTime) {
             throw new BadRequestException('Provide correctedPunchDate (dd/MM/yyyy) and correctedPunchLocalTime (HH:mm)');
         }
 
-        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dto.correctedPunchDate)) throw new BadRequestException('correctedPunchDate must be in dd/MM/yyyy format');
-        if (!/^\d{2}:\d{2}$/.test(dto.correctedPunchLocalTime)) throw new BadRequestException('correctedPunchLocalTime must be in HH:mm format');
+        // Validate date/time format
+        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dto.correctedPunchDate)) {
+            throw new BadRequestException('correctedPunchDate must be in dd/MM/yyyy format');
+        }
+        if (!/^\d{2}:\d{2}$/.test(dto.correctedPunchLocalTime)) {
+            throw new BadRequestException('correctedPunchLocalTime must be in HH:mm format');
+        }
+
+        // Parse date/time
         const [cDay, cMonth, cYear] = dto.correctedPunchDate.split('/').map(s => parseInt(s, 10));
         const [cHour, cMinute] = dto.correctedPunchLocalTime.split(':').map(s => parseInt(s, 10));
         const ct = new Date(cYear, cMonth - 1, cDay, cHour, cMinute, 0, 0);
-        if (isNaN(ct.getTime())) throw new BadRequestException('Invalid corrected punch date/time');
+        if (isNaN(ct.getTime())) {
+            throw new BadRequestException('Invalid corrected punch date/time');
+        }
         const correctedIso = ct.toISOString();
 
-        // Check the attendance record via service helper
-        const check = await this.correctionService.checkIncorrectPunch(dto.attendanceRecordId, correctedIso);
-        if (!check.ok) {
-            if (check.reason === 'ATTENDANCE_NOT_FOUND') throw new BadRequestException('Attendance record not found');
-            if (check.reason === 'NO_OUT_PUNCH') return { ok: false, message: 'No punch OUT found on this attendance record. Consider using Missing Punch request.' };
-            if (check.reason === 'INVALID_CORRECTED_TIME') throw new BadRequestException('correctedPunchTime must be a valid ISO 8601 timestamp');
-            return { ok: false, message: 'Unable to process request' };
+        // Determine correction type
+        const correctionType = dto.correctionType || CorrectionType.INCORRECT_PUNCH_OUT;
+        const isMissingPunch = correctionType === CorrectionType.MISSING_PUNCH_IN || correctionType === CorrectionType.MISSING_PUNCH_OUT;
+        const punchType = correctionType.includes('IN') ? 'IN' : 'OUT';
+
+        // For incorrect punch corrections, validate the attendance record
+        if (!isMissingPunch) {
+            const check = await this.correctionService.checkPunchExists(dto.attendanceRecordId, punchType);
+            if (!check.ok) {
+                if (check.reason === 'ATTENDANCE_NOT_FOUND') {
+                    throw new BadRequestException('Attendance record not found');
+                }
+                if (check.reason === 'NO_PUNCH_FOUND') {
+                    return {
+                        ok: false,
+                        message: `No punch ${punchType} found on this attendance record. Consider using Missing Punch request.`
+                    };
+                }
+                return { ok: false, message: 'Unable to process request' };
+            }
+
+            // Check if correction time is same as recorded time (redundant)
+            if (check.same) {
+                return {
+                    ok: false,
+                    message: `Redundant correction: entered time equals the recorded ${punchType} time`,
+                    recordedTime: check.recordedTime,
+                    correctedTime: correctedIso,
+                };
+            }
+        } else {
+            // For missing punch, just verify attendance record exists
+            const check = await this.correctionService.checkAttendanceExists(dto.attendanceRecordId);
+            if (!check.ok) {
+                throw new BadRequestException('Attendance record not found');
+            }
         }
 
-        // If recorded out equals corrected time (within tolerance), report redundant
-        if (check.same) {
-            return {
-                ok: false,
-                message: 'Redundant correction: entered correctedPunchTime equals the recorded OUT time',
-                recordedOut: check.recordedOut,
-                correctedTime: check.correctedTime,
-            };
-        }
-
-        // Otherwise create correction request
-        const created = await this.correctionService.requestCorrection({ employeeId: dto.employeeId, attendanceRecordId: dto.attendanceRecordId, reason: dto.reason || 'Incorrect punch submitted' });
-        await this.correctionService.recordCorrectionDetails((created as any)._id?.toString() || String((created as any)._id), {
-            type: 'INCORRECT_PUNCH',
-            correctedIso,
-            correctedPunchDate: dto.correctedPunchDate || null,
-            correctedPunchLocalTime: dto.correctedPunchLocalTime || null,
-            recordedOut: check.recordedOut,
+        // Create correction request
+        const created = await this.correctionService.requestCorrection({
+            employeeId: dto.employeeId,
+            attendanceRecordId: dto.attendanceRecordId,
+            reason: dto.reason || `${isMissingPunch ? 'Missing' : 'Incorrect'} punch ${punchType} submitted`
         });
 
-        return created;
+        // Record correction details
+        await this.correctionService.recordCorrectionDetails(
+            (created as any)._id?.toString() || String((created as any)._id),
+            {
+                type: correctionType,
+                punchType: punchType,
+                correctedIso,
+                correctedPunchDate: dto.correctedPunchDate,
+                correctedPunchLocalTime: dto.correctedPunchLocalTime,
+                isMissingPunch,
+            }
+        );
+
+        return {
+            ok: true,
+            message: `Correction request submitted successfully`,
+            data: created
+        };
     }
 
     // Manager reviews (approve/reject)
@@ -87,19 +154,27 @@ export class AttendanceCorrectionController {
         return this.correctionService.reviewCorrection(dto);
     }
 
+    // Manager sees all corrections (including history)
+    @Get('all')
+    @ApiOperation({ summary: 'Get all correction requests (including approved/rejected history)' })
+    @ApiResponse({ status: 200, description: 'List of all correction requests' })
+    async allCorrections() {
+        return this.correctionService.getAllCorrections();
+    }
+
+    // Manager sees all pending
+    @Get('pending')
+    @ApiOperation({ summary: 'Get all pending correction requests' })
+    @ApiResponse({ status: 200, description: 'List of pending corrections' })
+    async pending() {
+        return this.correctionService.getPendingCorrections();
+    }
+
     // employee sees all his requests
     @Get(':employeeId')
     @ApiOperation({ summary: "Get all correction requests for an employee" })
     @ApiResponse({ status: 200, description: 'List of correction requests' })
     async employeeRequests(@Param('employeeId') id: string) {
         return this.correctionService.getEmployeeCorrections(id);
-    }
-
-    // Manager sees all pending
-    @Get()
-    @ApiOperation({ summary: 'Get all pending correction requests' })
-    @ApiResponse({ status: 200, description: 'List of pending corrections' })
-    async pending() {
-        return this.correctionService.getPendingCorrections();
     }
 }

@@ -1,4 +1,4 @@
-import { IsDateString, IsString, IsOptional, IsNotEmpty } from 'class-validator';
+import { IsDateString, IsString, IsOptional } from 'class-validator';
 
 export class UpdateCompanyWideSettingsDto {
   @IsDateString()
@@ -13,4 +13,3 @@ export class UpdateCompanyWideSettingsDto {
   @IsOptional()
   currency?: string;
 }
-

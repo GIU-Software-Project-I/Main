@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService, BackendUser } from '@/app/services/auth';
-import { removeAccessToken } from '@/app/services/api';
+import { removeAccessToken, getAccessToken } from '@/app/services/api';
 
 // System roles enum
 export enum SystemRole {
@@ -120,9 +120,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem(USER_STORAGE_KEY);
-      if (storedUser) {
+      const token = getAccessToken();
+
+      if (storedUser && token) {
         const parsed = JSON.parse(storedUser);
         setUser(parsed);
+      } else if (storedUser && !token) {
+        // Token missing but user data exists - session expired
+        console.warn('User data found but no access token. Clearing session.');
+        localStorage.removeItem(USER_STORAGE_KEY);
+        setUser(null);
       }
     } catch (e) {
       console.error('Failed to parse stored user:', e);

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { leavesService } from '@/app/services/leaves';
+import { notificationsService, type Notification } from '@/app/services/notifications';
 import { useAuth } from '@/app/context/AuthContext';
 import type { LeaveBalanceSummary } from '@/app/types/leaves';
 
@@ -15,7 +16,7 @@ interface LeaveRequest {
   endDate: string;
   days: number;
   reason: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'RETURNED_FOR_CORRECTION';
   createdAt: string;
   approvedBy?: string;
   rejectionReason?: string;
@@ -43,25 +44,155 @@ export default function MyLeavesPage() {
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<LeaveBalance>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [thirdLeaveTypeName, setThirdLeaveTypeName] = useState<string>('Personal');
+
+  // Filter and sort state
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterLeaveType, setFilterLeaveType] = useState<string>('all');
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('-dates.from'); // Default: newest first
+  const [leaveTypes, setLeaveTypes] = useState<Array<{ _id: string; name: string; code?: string }>>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [totalRequests, setTotalRequests] = useState(0);
 
   useEffect(() => {
     if (!user) return;
     fetchData(user.id);
+
+    // Auto-refresh every 30 seconds to get latest status updates
+    const interval = setInterval(() => {
+      fetchData(user.id, true); // silent refresh
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [user]);
 
-  const fetchData = async (employeeId: string) => {
+  // Refetch when filters or sort changes
+  useEffect(() => {
+    if (!user) return;
+    fetchRequests(user.id);
+  }, [user, filterStatus, filterLeaveType, filterDateFrom, filterDateTo, sortBy]);
+
+  const manualRefresh = async () => {
+    if (!user) return;
+    setIsRefreshing(true);
+    await fetchData(user.id);
+    setIsRefreshing(false);
+  };
+
+  const dismissNotification = (notificationId: string) => {
+    setDismissedNotifications((prev) => new Set([...prev, notificationId]));
+  };
+
+  const visibleNotifications = notifications.filter(
+    (n) => !dismissedNotifications.has(n._id)
+  );
+
+  // Fetch only leave requests with current filters
+  const fetchRequests = async (employeeId: string) => {
     try {
-      setLoading(true);
+      const params: {
+        status?: string;
+        leaveTypeId?: string;
+        from?: string;
+        to?: string;
+        sort?: string;
+        limit?: number;
+      } = {
+        sort: sortBy,
+        limit: 100,
+      };
+
+      // Only add filter params if they're not 'all'
+      if (filterStatus !== 'all') {
+        params.status = filterStatus.toLowerCase();
+      }
+      if (filterLeaveType !== 'all') {
+        params.leaveTypeId = filterLeaveType;
+      }
+      if (filterDateFrom) {
+        params.from = filterDateFrom;
+      }
+      if (filterDateTo) {
+        params.to = filterDateTo;
+      }
+
+      const requestsRes = await leavesService.getMyRequests(employeeId, params);
+
+      // Transform backend leave requests to frontend format
+      let backendRequests: BackendLeaveRequest[] = [];
+      let total = 0;
+
+      if (requestsRes.data) {
+        const resData = requestsRes.data as { data?: BackendLeaveRequest[]; total?: number };
+        if (Array.isArray(resData.data)) {
+          backendRequests = resData.data;
+          total = resData.total ?? resData.data.length;
+        } else if (Array.isArray(requestsRes.data)) {
+          backendRequests = requestsRes.data as BackendLeaveRequest[];
+          total = backendRequests.length;
+        }
+      }
+
+      // Map backend structure to frontend structure
+      const mappedRequests: LeaveRequest[] = backendRequests.map((req) => {
+        const formatDate = (date: string | Date | undefined): string => {
+          if (!date) return '';
+          if (typeof date === 'string') {
+            const d = new Date(date);
+            return isNaN(d.getTime()) ? date : d.toISOString().split('T')[0];
+          }
+          return date.toISOString().split('T')[0];
+        };
+
+        // Find leave type name from leaveTypes
+        const leaveType = leaveTypes.find(lt => lt._id === req.leaveTypeId);
+        const normalizedStatus = (req.status || 'pending').toUpperCase() as LeaveRequest['status'];
+
+        return {
+          _id: req._id,
+          type: leaveType?.name || req.leaveTypeName || 'Unknown',
+          startDate: formatDate(req.dates?.from),
+          endDate: formatDate(req.dates?.to),
+          days: req.durationDays || 0,
+          reason: req.justification || '',
+          status: normalizedStatus,
+          createdAt: req.createdAt || new Date().toISOString(),
+        };
+      });
+
+      setRequests(mappedRequests);
+      setTotalRequests(total);
+    } catch (err) {
+      console.error('Failed to fetch requests:', err);
+    }
+  };
+
+  const fetchData = async (employeeId: string, silent = false) => {
+    try {
+      if (!silent) setLoading(true);
       setError(null);
 
-      const [balanceRes, requestsRes, leaveTypesRes] = await Promise.all([
+      const [balanceRes, leaveTypesRes, notificationsRes] = await Promise.all([
         leavesService.getBalance(employeeId),
-        leavesService.getMyRequests(employeeId),
         leavesService.getLeaveTypes(),
+        notificationsService.getLeaveNotifications(employeeId),
       ]);
 
-      // Get leave types to enrich balance data
+      console.log('Notifications response:', notificationsRes);
+      console.log('Balance response:', balanceRes);
+
+      // Set notifications
+      if (Array.isArray(notificationsRes.data)) {
+        setNotifications(notificationsRes.data);
+      }
+
+      // Get leave types to enrich balance data and for filtering
       interface BackendLeaveType {
         _id?: string;
         id?: string;
@@ -69,8 +200,49 @@ export default function MyLeavesPage() {
         code?: string;
       }
       
-      const leaveTypes: BackendLeaveType[] = Array.isArray(leaveTypesRes.data) ? leaveTypesRes.data : [];
-      
+      const fetchedLeaveTypes: BackendLeaveType[] = Array.isArray(leaveTypesRes.data) ? leaveTypesRes.data : [];
+
+      // Store leave types for filter dropdown
+      setLeaveTypes(fetchedLeaveTypes.map(lt => ({
+        _id: lt._id || lt.id || '',
+        name: lt.name || '',
+        code: lt.code,
+      })));
+
+      // Detect the third leave type name (personal, paternity, maternity, etc.)
+      let foundThirdType = 'Personal';
+      for (const lt of fetchedLeaveTypes) {
+        const name = (lt.name || '').toLowerCase();
+        const code = (lt.code || '').toLowerCase();
+
+        // Skip annual and sick
+        if (name.includes('annual') || code.includes('annual')) continue;
+        if (name.includes('sick') || code.includes('sick')) continue;
+
+        // Use the first matching type
+        if (name.includes('personal') || code.includes('personal')) {
+          foundThirdType = 'Personal';
+          break;
+        } else if (name.includes('paternity') || code.includes('paternity')) {
+          foundThirdType = 'Paternity';
+          break;
+        } else if (name.includes('maternity') || code.includes('maternity')) {
+          foundThirdType = 'Maternity';
+          break;
+        } else if (name.includes('compassionate') || code.includes('compassionate')) {
+          foundThirdType = 'Compassionate';
+          break;
+        } else if (name.includes('unpaid') || code.includes('unpaid')) {
+          foundThirdType = 'Unpaid';
+          break;
+        } else if (lt.name) {
+          // Use the first non-annual/non-sick type found
+          foundThirdType = lt.name.replace(' Leave', '');
+          break;
+        }
+      }
+      setThirdLeaveTypeName(foundThirdType);
+
       // Backend balance response structure
       interface BackendBalance {
         leaveTypeId: string;
@@ -88,29 +260,47 @@ export default function MyLeavesPage() {
       // Enrich balance data with leave type names and codes
       let enrichedBalances: LeaveBalanceSummary[] = [];
       if (Array.isArray(balanceRes.data)) {
+        console.log('Raw balance data from backend:', balanceRes.data);
+
         enrichedBalances = (balanceRes.data as BackendBalance[]).map((bal) => {
-          const leaveType = leaveTypes.find((lt) => 
+          const leaveType = fetchedLeaveTypes.find((lt) =>
             (lt._id && lt._id === bal.leaveTypeId) || (lt.id && lt.id === bal.leaveTypeId)
           );
+
+          const entitled = bal.yearlyEntitlement ?? bal.entitled ?? 0;
+          const taken = bal.taken ?? 0;
+          const pending = bal.pending ?? 0;
+          const carryForward = bal.carryForward ?? 0;
+          // Use backend's remaining value directly
+          const remaining = bal.remaining ?? 0;
+
+          console.log(`Balance for ${leaveType?.name || bal.leaveTypeName}:`, {
+            entitled,
+            taken,
+            pending,
+            carryForward,
+            remaining,
+          });
+
           return {
             leaveTypeId: bal.leaveTypeId,
             leaveTypeName: leaveType?.name || bal.leaveTypeName || '',
             leaveTypeCode: leaveType?.code || bal.leaveTypeCode || '',
-            entitled: bal.yearlyEntitlement ?? bal.entitled ?? 0,
-            accrued: bal.accrued ?? 0,
-            taken: bal.taken ?? 0,
-            pending: bal.pending ?? 0,
-            remaining: bal.remaining ?? 0,
-            carryForward: bal.carryForward ?? 0,
+            entitled,
+            accrued: bal.accrued ?? entitled,
+            taken,
+            pending,
+            remaining,
+            carryForward,
           };
         });
       }
 
       // If no balances exist, create default entries for common leave types
-      if (enrichedBalances.length === 0 && leaveTypes.length > 0) {
+      if (enrichedBalances.length === 0 && fetchedLeaveTypes.length > 0) {
         const commonTypes = ['annual', 'sick', 'personal'];
         commonTypes.forEach((typeName) => {
-          const type = leaveTypes.find((lt) => 
+          const type = fetchedLeaveTypes.find((lt) =>
             lt.name?.toLowerCase().includes(typeName) || lt.code?.toLowerCase().includes(typeName)
           );
           if (type) {
@@ -131,46 +321,15 @@ export default function MyLeavesPage() {
 
       setBalance(enrichedBalances);
       
-      // Transform backend leave requests to frontend format
-      let backendRequests: BackendLeaveRequest[] = [];
-      if (requestsRes.data && Array.isArray((requestsRes.data as { data?: unknown }).data)) {
-        const typed = requestsRes.data as { data?: BackendLeaveRequest[] };
-        backendRequests = typed.data ?? [];
-      } else if (Array.isArray(requestsRes.data)) {
-        backendRequests = requestsRes.data as BackendLeaveRequest[];
-      }
+      // Fetch requests with current filters
+      await fetchRequests(employeeId);
 
-      // Map backend structure to frontend structure
-      const mappedRequests: LeaveRequest[] = backendRequests.map((req) => {
-        const formatDate = (date: string | Date | undefined): string => {
-          if (!date) return '';
-          if (typeof date === 'string') {
-            // If it's already a date string, try to format it
-            const d = new Date(date);
-            return isNaN(d.getTime()) ? date : d.toISOString().split('T')[0];
-          }
-          // It's a Date object
-          return date.toISOString().split('T')[0];
-        };
-
-        return {
-          _id: req._id,
-          type: req.leaveTypeName || 'Unknown',
-          startDate: formatDate(req.dates?.from),
-          endDate: formatDate(req.dates?.to),
-          days: req.durationDays || 0,
-          reason: req.justification || '',
-          status: req.status as LeaveRequest['status'],
-          createdAt: req.createdAt || new Date().toISOString(),
-        };
-      });
-
-      setRequests(mappedRequests);
+      setLastUpdated(new Date());
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load leave data';
       setError(message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -201,6 +360,9 @@ export default function MyLeavesPage() {
         return { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' };
       case 'CANCELLED':
         return { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Cancelled' };
+      case 'RETURNED_FOR_CORRECTION':
+      case 'returned_for_correction':
+        return { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Needs Correction' };
       default:
         return { bg: 'bg-gray-100', text: 'text-gray-800', label: status };
     }
@@ -223,10 +385,6 @@ export default function MyLeavesPage() {
     }
   };
 
-  const filteredRequests = requests.filter((req) => {
-    if (filterStatus === 'all') return true;
-    return req.status === filterStatus;
-  });
 
   const getBalanceSummary = (kind: 'annual' | 'sick' | 'personal') => {
     const match = balance.find((item) => {
@@ -240,7 +398,12 @@ export default function MyLeavesPage() {
         return name.includes('sick') || code.includes('sick');
       }
       if (kind === 'personal') {
-        return name.includes('personal') || code.includes('personal');
+        // Check for personal, paternity, maternity, compassionate, or other third types
+        return name.includes('personal') || code.includes('personal') ||
+               name.includes('paternity') || code.includes('paternity') ||
+               name.includes('maternity') || code.includes('maternity') ||
+               name.includes('compassionate') || code.includes('compassionate') ||
+               name.includes('unpaid') || code.includes('unpaid');
       }
       return false;
     });
@@ -252,6 +415,7 @@ export default function MyLeavesPage() {
         taken: 0,
         pending: 0,
         remaining: 0,
+        carryForward: 0,
       };
     }
 
@@ -260,6 +424,7 @@ export default function MyLeavesPage() {
       taken: match.taken ?? 0,
       pending: match.pending ?? 0,
       remaining: match.remaining ?? 0,
+      carryForward: match.carryForward ?? 0,
     };
   };
 
@@ -288,22 +453,110 @@ export default function MyLeavesPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl lg:text-3xl font-semibold text-gray-900">My Leaves</h1>
-            <p className="text-gray-500 mt-1">View your leave balance and manage requests</p>
+            <p className="text-gray-500 mt-1">
+              View your leave balance and manage requests
+              {lastUpdated && (
+                <span className="ml-2 text-xs text-gray-400">
+                  • Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </p>
           </div>
-          <Link
-            href="/portal/my-leaves/request"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Request Leave
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={manualRefresh}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-2 px-3 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              title="Refresh data"
+            >
+              <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+            <Link
+              href="/portal/my-leaves/request"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Request Leave
+            </Link>
+          </div>
         </div>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             {error}
+          </div>
+        )}
+
+        {/* Leave Notifications */}
+        {visibleNotifications.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                Recent Updates
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">{visibleNotifications.length} notification{visibleNotifications.length !== 1 ? 's' : ''}</span>
+                {visibleNotifications.length > 0 && (
+                  <button
+                    onClick={() => setDismissedNotifications(new Set(notifications.map(n => n._id)))}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Dismiss all
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {visibleNotifications.slice(0, 10).map((notification) => {
+                const style = notificationsService.getNotificationStyle(notification);
+                const parsed = notificationsService.parseLeaveNotification(notification);
+
+                return (
+                  <div
+                    key={notification._id}
+                    className={`p-3 rounded-lg border ${style.bgColor} ${style.borderColor} relative group`}
+                  >
+                    <button
+                      onClick={() => dismissNotification(notification._id)}
+                      className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Dismiss"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl flex-shrink-0">{style.icon}</span>
+                      <div className="flex-1 min-w-0 pr-6">
+                        <p className={`text-sm font-medium ${style.textColor}`}>
+                          {parsed.action === 'approved' && '🎉 Leave Approved!'}
+                          {parsed.action === 'rejected' && '❌ Leave Rejected'}
+                          {parsed.action === 'submitted' && '📝 Request Submitted'}
+                          {parsed.action === 'cancelled' && '🚫 Leave Cancelled'}
+                          {parsed.action === 'modified' && '✏️ Needs Correction'}
+                          {parsed.action === 'balance_adjusted' && '⚖️ Balance Updated'}
+                          {parsed.action === 'other' && 'ℹ️ Update'}
+                        </p>
+                        <p className={`text-sm ${style.textColor} mt-1`}>{notification.message}</p>
+                        {notification.createdAt && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(notification.createdAt).toLocaleDateString()} at{' '}
+                            {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -322,6 +575,7 @@ export default function MyLeavesPage() {
                   taken={annual.taken}
                   pending={annual.pending}
                   remaining={annual.remaining}
+                  carryForward={annual.carryForward}
                   color="blue"
                 />
                 <BalanceCard
@@ -330,14 +584,16 @@ export default function MyLeavesPage() {
                   taken={sick.taken}
                   pending={sick.pending}
                   remaining={sick.remaining}
+                  carryForward={sick.carryForward}
                   color="red"
                 />
                 <BalanceCard
-                  title="Personal Leave"
+                  title={`${thirdLeaveTypeName} Leave`}
                   entitled={personal.entitled}
                   taken={personal.taken}
                   pending={personal.pending}
                   remaining={personal.remaining}
+                  carryForward={personal.carryForward}
                   color="purple"
                 />
               </>
@@ -366,10 +622,23 @@ export default function MyLeavesPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Approved (This Year)</p>
-                <p className="font-semibold text-gray-900">{requests.filter(r => r.status === 'APPROVED').length}</p>
+                <p className="text-sm text-gray-500">Approved</p>
+                <p className="font-semibold text-green-600">{requests.filter(r => r.status === 'APPROVED').length}</p>
               </div>
             </div>
+            {requests.filter(r => r.status === 'REJECTED').length > 0 && (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Rejected</p>
+                  <p className="font-semibold text-red-600">{requests.filter(r => r.status === 'REJECTED').length}</p>
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -381,15 +650,51 @@ export default function MyLeavesPage() {
                 <p className="font-semibold text-gray-900">{requests.length}</p>
               </div>
             </div>
+            {requests.filter(r => r.status === 'RETURNED_FOR_CORRECTION').length > 0 && (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Needs Correction</p>
+                  <p className="font-semibold text-orange-600">{requests.filter(r => r.status === 'RETURNED_FOR_CORRECTION').length}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Leave Requests */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 className="font-semibold text-gray-900">Leave Requests</h2>
-            <div className="flex gap-2">
-              {['all', 'PENDING', 'APPROVED', 'REJECTED'].map((status) => (
+          <div className="px-6 py-4 border-b border-gray-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <h2 className="font-semibold text-gray-900">Leave Requests</h2>
+                <span className="text-sm text-gray-500">({totalRequests} total)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                    showFilters ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                  Filters
+                  {(filterLeaveType !== 'all' || filterDateFrom || filterDateTo) && (
+                    <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Status Filter Tabs */}
+            <div className="flex flex-wrap gap-2 mt-4">
+              {['all', 'PENDING', 'APPROVED', 'REJECTED', 'RETURNED_FOR_CORRECTION'].map((status) => (
                 <button
                   key={status}
                   onClick={() => setFilterStatus(status)}
@@ -399,30 +704,127 @@ export default function MyLeavesPage() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
+                  {status === 'all' ? 'All' : status === 'RETURNED_FOR_CORRECTION' ? 'Needs Correction' : status.charAt(0) + status.slice(1).toLowerCase()}
                 </button>
               ))}
             </div>
+
+            {/* Advanced Filters Panel */}
+            {showFilters && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Leave Type Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Leave Type</label>
+                    <select
+                      value={filterLeaveType}
+                      onChange={(e) => setFilterLeaveType(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="all">All Types</option>
+                      {leaveTypes.map((type) => (
+                        <option key={type._id} value={type._id}>
+                          {type.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Date From Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                    <input
+                      type="date"
+                      value={filterDateFrom}
+                      onChange={(e) => setFilterDateFrom(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Date To Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                    <input
+                      type="date"
+                      value={filterDateTo}
+                      onChange={(e) => setFilterDateTo(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Sort By */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="-dates.from">Date (Newest First)</option>
+                      <option value="dates.from">Date (Oldest First)</option>
+                      <option value="-createdAt">Submitted (Newest First)</option>
+                      <option value="createdAt">Submitted (Oldest First)</option>
+                      <option value="-durationDays">Duration (Longest First)</option>
+                      <option value="durationDays">Duration (Shortest First)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Clear Filters Button */}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => {
+                      setFilterLeaveType('all');
+                      setFilterDateFrom('');
+                      setFilterDateTo('');
+                      setSortBy('-dates.from');
+                    }}
+                    className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {filteredRequests.length === 0 ? (
+          {requests.length === 0 ? (
             <div className="p-12 text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <p className="text-gray-500">No leave requests found</p>
-              <Link
-                href="/portal/my-leaves/request"
-                className="inline-block mt-4 text-sm font-medium text-blue-600 hover:text-blue-700"
-              >
-                Submit a Leave Request
-              </Link>
+              <p className="text-gray-500">
+                {filterStatus !== 'all' || filterLeaveType !== 'all' || filterDateFrom || filterDateTo
+                  ? 'No leave requests match your filters'
+                  : 'No leave requests found'}
+              </p>
+              {filterStatus === 'all' && filterLeaveType === 'all' && !filterDateFrom && !filterDateTo && (
+                <Link
+                  href="/portal/my-leaves/request"
+                  className="inline-block mt-4 text-sm font-medium text-blue-600 hover:text-blue-700"
+                >
+                  Submit a Leave Request
+                </Link>
+              )}
+              {(filterStatus !== 'all' || filterLeaveType !== 'all' || filterDateFrom || filterDateTo) && (
+                <button
+                  onClick={() => {
+                    setFilterStatus('all');
+                    setFilterLeaveType('all');
+                    setFilterDateFrom('');
+                    setFilterDateTo('');
+                  }}
+                  className="inline-block mt-4 text-sm font-medium text-blue-600 hover:text-blue-700"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {filteredRequests.map((request) => {
+              {requests.map((request) => {
                 const statusConfig = getStatusConfig(request.status);
                 return (
                   <div key={request._id} className="p-4 sm:p-5 hover:bg-gray-50 transition-colors">
@@ -461,6 +863,14 @@ export default function MyLeavesPage() {
                           >
                             Cancel
                           </button>
+                        )}
+                        {request.status === 'RETURNED_FOR_CORRECTION' && (
+                          <Link
+                            href={`/portal/my-leaves/request/${request._id}/edit`}
+                            className="px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                          >
+                            Resubmit
+                          </Link>
                         )}
                         <Link
                           href={`/portal/my-leaves/request/${request._id}`}
@@ -505,6 +915,7 @@ function BalanceCard({
   taken,
   pending,
   remaining,
+  carryForward = 0,
   color,
 }: {
   title: string;
@@ -512,10 +923,13 @@ function BalanceCard({
   taken: number;
   pending: number;
   remaining: number;
+  carryForward?: number;
   color: 'blue' | 'red' | 'purple';
 }) {
+  // Total available = yearly entitlement + carryForward
+  const totalEntitled = entitled + carryForward;
   const available = remaining;
-  const percentage = entitled > 0 ? ((taken / entitled) * 100) : 0;
+  const percentage = totalEntitled > 0 ? ((taken / totalEntitled) * 100) : 0;
 
   const colorClasses = {
     blue: { bg: 'bg-blue-500', light: 'bg-blue-100', text: 'text-blue-600' },
@@ -538,13 +952,13 @@ function BalanceCard({
 
       <div className="mb-3">
         <span className="text-3xl font-bold text-gray-900">{available}</span>
-        <span className="text-gray-500 ml-1">/ {entitled} days</span>
+        <span className="text-gray-500 ml-1">/ {totalEntitled} days</span>
       </div>
 
       <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
         <div
           className={`h-2 rounded-full ${colors.bg}`}
-          style={{ width: `${percentage}%` }}
+          style={{ width: `${Math.min(percentage, 100)}%` }}
         ></div>
       </div>
 

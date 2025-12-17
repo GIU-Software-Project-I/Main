@@ -6,15 +6,18 @@ export class PayrollInitiationCreateDto {
   @ApiProperty({ description: 'Payroll period (ISO date representing period end)' })
   payrollPeriod: string;
 
-  @ApiProperty({ description: 'Entity/company name' })
+  @ApiProperty({ description: 'Entity/department name' })
   entity: string;
 
-  @ApiProperty({ description: 'Number of employees included in run' })
-  employees: number;
+  @ApiProperty({ required: false, description: 'Entity/department ID for filtering employees' })
+  entityId?: string;
 
-  @ApiProperty({ description: 'Number of exceptions detected' })
-  exceptions: number;
+  @ApiProperty({ required: false, description: 'Number of employees (estimated, actual count determined during processing)' })
+  employees?: number;
 
-  @ApiProperty({ description: 'Total net pay for the run' })
-  totalnetpay: number;
+  @ApiProperty({ required: false, description: 'Number of exceptions (calculated during processing)' })
+  exceptions?: number;
+
+  @ApiProperty({ required: false, description: 'Total net pay (calculated during processing)' })
+  totalnetpay?: number;
 }

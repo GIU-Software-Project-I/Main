@@ -94,6 +94,64 @@ export interface UpdateScheduleRuleDto {
     active?: boolean;
 }
 
+// Overtime Rule interfaces
+export interface OvertimeRule {
+    _id: string;
+    name: string;
+    description?: string;
+    active: boolean;
+    approved: boolean;
+}
+
+export interface CreateOvertimeRuleDto {
+    name: string;
+    description?: string;
+    active?: boolean;
+    approved?: boolean;
+}
+
+export interface UpdateOvertimeRuleDto {
+    name?: string;
+    description?: string;
+    active?: boolean;
+    approved?: boolean;
+}
+
+// Short-time Rule interfaces
+export interface ShortTimeRule {
+    _id: string;
+    name: string;
+    description?: string;
+    requiresPreApproval: boolean;
+    ignoreWeekends: boolean;
+    ignoreHolidays: boolean;
+    minShortMinutes: number;
+    active: boolean;
+    approved: boolean;
+}
+
+export interface CreateShortTimeRuleDto {
+    name: string;
+    description?: string;
+    requiresPreApproval?: boolean;
+    ignoreWeekends?: boolean;
+    ignoreHolidays?: boolean;
+    minShortMinutes?: number;
+    active?: boolean;
+    approved?: boolean;
+}
+
+export interface UpdateShortTimeRuleDto {
+    name?: string;
+    description?: string;
+    requiresPreApproval?: boolean;
+    ignoreWeekends?: boolean;
+    ignoreHolidays?: boolean;
+    minShortMinutes?: number;
+    active?: boolean;
+    approved?: boolean;
+}
+
 // Attendance Record interfaces
 export enum PunchType {
     IN = 'IN',
@@ -187,8 +245,29 @@ export const timeManagementService = {
         return apiService.get(`/attendance/today/${employeeId}`);
     },
 
+    // Submit correction request - POST /attendance-correction/request
     requestCorrection: async (data: any) => {
-        return apiService.post('/attendance/correction', data);
+        return apiService.post('/attendance-correction/request', data);
+    },
+
+    // Get employee's corrections - GET /attendance-correction/:employeeId
+    getEmployeeCorrections: async (employeeId: string) => {
+        return apiService.get(`/attendance-correction/${employeeId}`);
+    },
+
+    // Get all corrections (manager) - GET /attendance-correction/all
+    getAllCorrections: async () => {
+        return apiService.get('/attendance-correction/all');
+    },
+
+    // Get pending corrections (manager) - GET /attendance-correction/pending
+    getPendingCorrections: async () => {
+        return apiService.get('/attendance-correction/pending');
+    },
+
+    // Review correction (approve/reject) - PUT /attendance-correction/review
+    reviewCorrection: async (data: { correctionRequestId: string; action: 'APPROVE' | 'REJECT'; reviewerId: string; note?: string }) => {
+        return apiService.put('/attendance-correction/review', data);
     },
 
     getAttendanceRecord: async () => {
@@ -199,12 +278,12 @@ export const timeManagementService = {
         return apiService.get('/attendance/team');
     },
 
-    approveCorrection: async (id: string) => {
-        return apiService.patch(`/attendance/correction/${id}/approve`);
+    approveCorrection: async (id: string, reviewerId: string, note?: string) => {
+        return apiService.put('/attendance-correction/review', { correctionRequestId: id, action: 'APPROVE', reviewerId, note });
     },
 
-    rejectCorrection: async (id: string) => {
-        return apiService.patch(`/attendance/correction/${id}/reject`);
+    rejectCorrection: async (id: string, reviewerId: string, note?: string) => {
+        return apiService.put('/attendance-correction/review', { correctionRequestId: id, action: 'REJECT', reviewerId, note });
     },
 
     // ============================================================
@@ -213,22 +292,22 @@ export const timeManagementService = {
 
     // Create shift type - POST /time-management/shift-types
     createShiftType: async (data: CreateShiftTypeDto) => {
-        return apiService.post<ShiftType>('/shift-management/shift-types', data);
+        return apiService.post<ShiftType>('/time-management/shift-types', data);
     },
 
     // Get all shift types - GET /time-management/shift-types
     getShiftTypes: async () => {
-        return apiService.get<ShiftType[]>('/shift-management/shift-types');
+        return apiService.get<ShiftType[]>('/time-management/shift-types');
     },
 
     // Update shift type - PATCH /time-management/shift-types/:id
     updateShiftType: async (id: string, data: UpdateShiftTypeDto) => {
-        return apiService.patch<ShiftType>(`/shift-management/shift-types/${id}`, data);
+        return apiService.patch<ShiftType>(`/time-management/shift-types/${id}`, data);
     },
 
     // Deactivate shift type - DELETE /time-management/shift-types/:id
     deactivateShiftType: async (id: string) => {
-        return apiService.delete(`/shift-management/shift-types/${id}`);
+        return apiService.delete(`/time-management/shift-types/${id}`);
     },
 
     // ============================================================
@@ -237,46 +316,94 @@ export const timeManagementService = {
 
     // Create shift - POST /time-management/shifts
     createShift: async (data: CreateShiftDto) => {
-        return apiService.post<Shift>('/shift-management/shifts', data);
+        return apiService.post<Shift>('/time-management/shifts', data);
     },
 
     // Get all shifts - GET /time-management/shifts
     getShifts: async () => {
-        return apiService.get<Shift[]>('/shift-management/shifts');
+        return apiService.get<Shift[]>('/time-management/shifts');
     },
 
     // Update shift - PATCH /time-management/shifts/:id
     updateShift: async (id: string, data: UpdateShiftDto) => {
-        return apiService.patch<Shift>(`/shift-management/shifts/${id}`, data);
+        return apiService.patch<Shift>(`/time-management/shifts/${id}`, data);
     },
 
-    // Deactivate shift - DELETE /shift-management/shifts/:id
+    // Deactivate shift - DELETE /time-management/shifts/:id
     deactivateShift: async (id: string) => {
-        return apiService.delete(`/shift-management/shifts/${id}`);
+        return apiService.delete(`/time-management/shifts/${id}`);
     },
 
     // ============================================================
     // SCHEDULE RULE OPERATIONS
     // ============================================================
 
-    // Create schedule rule - POST /shift-management/schedule-rules
+    // Create schedule rule - POST /time-management/schedule-rules
     createScheduleRule: async (data: CreateScheduleRuleDto) => {
-        return apiService.post<ScheduleRule>('/shift-management/schedule-rules', data);
+        return apiService.post<ScheduleRule>('/time-management/schedule-rules', data);
     },
 
-    // Get all schedule rules - GET /shift-management/schedule-rules
+    // Get all schedule rules - GET /time-management/schedule-rules
     getScheduleRules: async () => {
-        return apiService.get<ScheduleRule[]>('/shift-management/schedule-rules');
+        return apiService.get<ScheduleRule[]>('/time-management/schedule-rules');
     },
 
-    // Update schedule rule - PATCH /shift-management/schedule-rules/:id
+    // Update schedule rule - PATCH /time-management/schedule-rules/:id
     updateScheduleRule: async (id: string, data: UpdateScheduleRuleDto) => {
-        return apiService.patch<ScheduleRule>(`/shift-management/schedule-rules/${id}`, data);
+        return apiService.patch<ScheduleRule>(`/time-management/schedule-rules/${id}`, data);
     },
 
-    // Deactivate schedule rule - DELETE /shift-management/schedule-rules/:id
+    // Deactivate schedule rule - DELETE /time-management/schedule-rules/:id
     deactivateScheduleRule: async (id: string) => {
-        return apiService.delete(`/shift-management/schedule-rules/${id}`);
+        return apiService.delete(`/time-management/schedule-rules/${id}`);
+    },
+
+    // ============================================================
+    // OVERTIME RULE OPERATIONS
+    // ============================================================
+
+    // Create overtime rule - POST /time-management/overtime-rules
+    createOvertimeRule: async (data: CreateOvertimeRuleDto) => {
+        return apiService.post<OvertimeRule>('/time-management/overtime-rules', data);
+    },
+
+    // Get all overtime rules - GET /time-management/overtime-rules
+    getOvertimeRules: async () => {
+        return apiService.get<OvertimeRule[]>('/time-management/overtime-rules');
+    },
+
+    // Update overtime rule - PATCH /time-management/overtime-rules/:id
+    updateOvertimeRule: async (id: string, data: UpdateOvertimeRuleDto) => {
+        return apiService.patch<OvertimeRule>(`/time-management/overtime-rules/${id}`, data);
+    },
+
+    // Approve overtime rule - POST /time-management/overtime-rules/:id/approve
+    approveOvertimeRule: async (id: string) => {
+        return apiService.post<OvertimeRule>(`/time-management/overtime-rules/${id}/approve`);
+    },
+
+    // ============================================================
+    // SHORT-TIME RULE OPERATIONS
+    // ============================================================
+
+    // Create short-time rule - POST /time-management/short-time-rules
+    createShortTimeRule: async (data: CreateShortTimeRuleDto) => {
+        return apiService.post<ShortTimeRule>('/time-management/short-time-rules', data);
+    },
+
+    // Get all short-time rules - GET /time-management/short-time-rules
+    getShortTimeRules: async () => {
+        return apiService.get<ShortTimeRule[]>('/time-management/short-time-rules');
+    },
+
+    // Update short-time rule - PATCH /time-management/short-time-rules/:id
+    updateShortTimeRule: async (id: string, data: UpdateShortTimeRuleDto) => {
+        return apiService.patch<ShortTimeRule>(`/time-management/short-time-rules/${id}`, data);
+    },
+
+    // Approve short-time rule - POST /time-management/short-time-rules/:id/approve
+    approveShortTimeRule: async (id: string) => {
+        return apiService.post<ShortTimeRule>(`/time-management/short-time-rules/${id}/approve`);
     },
 
     // ============================================================
@@ -332,9 +459,14 @@ export const timeManagementService = {
         return apiService.get<AttendanceCorrectionRequest[]>(`/attendance-correction/${employeeId}`);
     },
 
-    // Get all pending corrections - GET /attendance-correction
+    // Get all pending corrections - GET /attendance-correction/pending
     getPendingCorrections: async () => {
-        return apiService.get<AttendanceCorrectionRequest[]>('/attendance-correction');
+        return apiService.get<AttendanceCorrectionRequest[]>('/attendance-correction/pending');
+    },
+
+    // Get all corrections (including history) - GET /attendance-correction/all
+    getAllCorrections: async () => {
+        return apiService.get<AttendanceCorrectionRequest[]>('/attendance-correction/all');
     },
 };
 
