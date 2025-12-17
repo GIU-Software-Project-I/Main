@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { financeStaffService, RefundGeneration, PayrollCycle, RefundRequest } from '@/app/services/finance-staff';
+import { employeeProfileService } from '@/app/services/employee-profile';
 import { useAuth } from '@/app/context/AuthContext';
 import { SystemRole } from '@/app/types';
 
@@ -9,6 +10,9 @@ export default function RefundsPage() {
   const { user } = useAuth();
   const [refunds, setRefunds] = useState<RefundGeneration[]>([]);
   const [payrollCycles, setPayrollCycles] = useState<PayrollCycle[]>([]);
+  const [approvedDisputes, setApprovedDisputes] = useState<any[]>([]);
+  const [approvedClaims, setApprovedClaims] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Helper to safely convert any value to string (NEVER returns objects)
@@ -39,17 +43,46 @@ export default function RefundsPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [refundsResponse, cyclesResponse] = await Promise.all([
+      const [refundsResponse, cyclesResponse, disputesResponse, claimsResponse, employeesResponse] = await Promise.all([
         financeStaffService.getRefunds(),
         financeStaffService.getPayrollCycles(),
+        financeStaffService.getApprovedDisputes(),
+        financeStaffService.getApprovedClaims(),
+        employeeProfileService.getAllEmployees(1, 500),
       ]);
       
       if (refundsResponse.data) setRefunds(refundsResponse.data);
       if (cyclesResponse.data) setPayrollCycles(cyclesResponse.data);
+      if (disputesResponse.data) setApprovedDisputes(disputesResponse.data);
+      if (claimsResponse.data) setApprovedClaims(claimsResponse.data);
+      const empData = employeesResponse.data as any;
+      if (empData?.data) setEmployees(empData.data);
+      else if (empData) setEmployees(Array.isArray(empData) ? empData : []);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSourceSelection = (sourceId: string) => {
+    setSelectedSourceId(sourceId);
+    
+    // Auto-populate employee ID and other details from selected dispute/claim
+    if (refundType === 'dispute') {
+      const dispute = approvedDisputes.find(d => d.id === sourceId);
+      if (dispute) {
+        setRefundEmployeeId(dispute.employeeId);
+        setRefundDescription(dispute.description || '');
+        setRefundAmount(dispute.amount?.toString() || '');
+      }
+    } else {
+      const claim = approvedClaims.find(c => c.id === sourceId);
+      if (claim) {
+        setRefundEmployeeId(claim.employeeId);
+        setRefundDescription(claim.description || claim.title || '');
+        setRefundAmount(claim.amount?.toString() || '');
+      }
     }
   };
 
@@ -69,6 +102,14 @@ export default function RefundsPage() {
       const response = await financeStaffService.generateRefund(refundRequest, user?.id || '');
       if (response.data) {
         setRefunds(prev => [response.data!, ...prev]);
+        
+        // Remove the selected dispute/claim from dropdown
+        if (refundType === 'dispute') {
+          setApprovedDisputes(prev => prev.filter(d => d.id !== selectedSourceId));
+        } else {
+          setApprovedClaims(prev => prev.filter(c => c.id !== selectedSourceId));
+        }
+        
         setShowGenerateModal(false);
         resetForm();
       }
@@ -249,18 +290,10 @@ export default function RefundsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
                         onClick={() => setSelectedRefund(refund)}
-                        className="text-blue-600 hover:text-blue-800 mr-3"
+                        className="text-blue-600 hover:text-blue-800"
                       >
                         View
                       </button>
-                      {refund.status === 'pending' && (
-                        <button
-                          onClick={() => handleProcessRefund(refund._id)}
-                          className="text-green-600 hover:text-green-800"
-                        >
-                          Process
-                        </button>
-                      )}
                     </td>
                   </tr>
                 ))}
@@ -286,7 +319,14 @@ export default function RefundsPage() {
                 <select
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={refundType}
-                  onChange={(e) => setRefundType(e.target.value as any)}
+                  onChange={(e) => {
+                    setRefundType(e.target.value as any);
+                    // Reset form when changing type
+                    setSelectedSourceId('');
+                    setRefundEmployeeId('');
+                    setRefundDescription('');
+                    setRefundAmount('');
+                  }}
                 >
                   <option value="dispute">Dispute Refund</option>
                   <option value="claim">Expense Claim Refund</option>
@@ -294,49 +334,56 @@ export default function RefundsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  {refundType === 'dispute' ? 'Dispute ID' : 'Claim ID'}
+                  {refundType === 'dispute' ? 'Select Approved Dispute' : 'Select Approved Claim'}
                 </label>
-                <input
-                  type="text"
+                <select
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={selectedSourceId}
-                  onChange={(e) => setSelectedSourceId(e.target.value)}
-                  placeholder={`Enter ${refundType === 'dispute' ? 'dispute' : 'claim'} ID`}
-                />
+                  onChange={(e) => handleSourceSelection(e.target.value)}
+                  required
+                >
+                  <option value="">-- Select {refundType === 'dispute' ? 'a dispute' : 'a claim'} --</option>
+                  {refundType === 'dispute' 
+                    ? approvedDisputes.map((dispute) => (
+                        <option key={dispute.id} value={dispute.id}>
+                          {dispute.employeeName} - {dispute.description?.substring(0, 50)}{dispute.description?.length > 50 ? '...' : ''} (${dispute.amount})
+                        </option>
+                      ))
+                    : approvedClaims.map((claim) => (
+                        <option key={claim.id} value={claim.id}>
+                          {claim.employeeName} - {claim.title || claim.description} (${claim.amount})
+                        </option>
+                      ))
+                  }
+                </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Employee ID</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Employee</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={refundEmployeeId}
-                  onChange={(e) => setRefundEmployeeId(e.target.value)}
-                  placeholder="Enter employee ID"
-                  required
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700"
+                  value={
+                    refundEmployeeId 
+                      ? employees.find((e: any) => (e._id || e.id) === refundEmployeeId)
+                          ? `${employees.find((e: any) => (e._id || e.id) === refundEmployeeId)?.firstName} ${employees.find((e: any) => (e._id || e.id) === refundEmployeeId)?.lastName}`
+                          : refundEmployeeId
+                      : ''
+                  }
+                  readOnly
+                  placeholder="Select a dispute/claim above"
                 />
+                {selectedSourceId && (
+                  <p className="text-xs text-green-600 mt-1">✓ Auto-populated from selected {refundType}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                 <textarea
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700"
                   value={refundDescription}
-                  onChange={(e) => setRefundDescription(e.target.value)}
+                  readOnly
                   rows={3}
-                  placeholder="Enter refund description"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Amount</label>
-                <input
-                  type="number"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={refundAmount}
-                  onChange={(e) => setRefundAmount(e.target.value)}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                  required
+                  placeholder="Select a dispute/claim above"
                 />
               </div>
             </div>
@@ -420,22 +467,14 @@ export default function RefundsPage() {
                   <p className="text-slate-900">{safeString(selectedRefund.paidInPayrollRunId)}</p>
                 </div>
               )}
-              {selectedRefund.status === 'pending' && (
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => handleUpdateRefundStatus(selectedRefund._id, 'processed')}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    Mark as Processed
-                  </button>
-                  <button
-                    onClick={() => setSelectedRefund(null)}
-                    className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200"
-                  >
-                    Close
-                  </button>
-                </div>
-              )}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setSelectedRefund(null)}
+                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -301,6 +301,17 @@ export class PayrollTrackingController {
     );
   }
 
+
+  @Post('reports/payroll-summary/generate')
+  @HttpCode(HttpStatus.CREATED)
+  // @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER, SystemRole.FINANCE_STAFF)
+  async generatePayrollSummaryPost(
+    @Body() body: { type: 'monthly' | 'yearly'; period: string }
+  ) {
+    const { type, period } = body;
+    return this.payrollTrackingService.generatePayrollSummary(type, period);
+  }
+
   @Get('reports/payroll-summary')
   // @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER, SystemRole.FINANCE_STAFF)
   async generatePayrollSummary(
@@ -314,9 +325,20 @@ export class PayrollTrackingController {
   // @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER, SystemRole.FINANCE_STAFF)
   async generateComplianceReport(
     @Query('type') type: string,
-    @Query('year') year?: number
+    @Query('year') year?: number,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string
   ) {
-    return this.payrollTrackingService.generateComplianceReport(type, year);
+    return this.payrollTrackingService.generateComplianceReport(type, year, startDate, endDate);
+  }
+
+  @Get('reports/payslip-history')
+  // @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER, SystemRole.FINANCE_STAFF)
+  async generatePayslipHistoryReport(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string
+  ) {
+    return this.payrollTrackingService.generatePayslipHistoryReport(startDate, endDate);
   }
 
   // ========== Disputes and Claims Approval Endpoints ==========
