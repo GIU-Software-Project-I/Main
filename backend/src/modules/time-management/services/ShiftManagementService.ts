@@ -415,6 +415,10 @@ export class ShiftManagementService {
         return Array.from(map.values());
     }
 
+    async getAllAssignments(): Promise<ShiftAssignment[]> {
+        return this.shiftAssignmentModel.find().lean() as Promise<ShiftAssignment[]>;
+    }
+
     async renewAssignment(id: string, dto: RenewAssignmentDto): Promise<ShiftAssignment> {
         const assignment = await this.shiftAssignmentModel.findById(id);
         if (!assignment) throw new NotFoundException('Assignment not found');

@@ -363,6 +363,10 @@ const HR_ADMIN_SECTIONS: NavSection[] = [
             icon: 'clock',
             children: [
                 { label: 'Attendance Records', href: '/dashboard/department-head/time-management/attendance-records', icon: 'clipboard-list' },
+                { label: 'Break Permissions', href: '/dashboard/hr-admin/time-management/breakPermissions', icon: 'clipboard-list' },
+                { label: 'Holidays', href: '/dashboard/hr-admin/time-management/Holidays', icon: 'clipboard-list' },
+              { label: 'Shift Assignments', href: '/dashboard/hr-admin/time-management/ShiftAssignments', icon: 'clipboard-list' },
+
             ],
         },
       {
@@ -453,6 +457,11 @@ const SYSTEM_ADMIN_SECTIONS: NavSection[] = [
             icon: 'clock',
             children: [
                 { label: 'Shift Types', href: '/dashboard/system-admin/time-management/ShiftType', icon: 'clock' },
+                { label: 'Shift Assignments', href: '/dashboard/system-admin/time-management/ShiftAssignments', icon: 'clipboard-list' },
+              { label: 'Holidays', href: '/dashboard/system-admin/time-management/Holidays', icon: 'clipboard-list' },
+              { label: 'Shift Creation', href: '/dashboard/system-admin/time-management/ShiftCreation', icon: 'clipboard-list' },
+
+
             ],
         },
       {
