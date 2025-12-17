@@ -233,6 +233,41 @@ export enum ShiftAssignmentStatus {
     EXPIRED = 'EXPIRED',
 }
 
+// Break Permission interfaces
+export interface BreakPermission {
+    _id: string;
+    employeeId: string;
+    attendanceRecordId: string;
+    startTime: string;
+    endTime: string;
+    duration: number;
+    reason: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface BreakPermissionDto {
+    employeeId: string;
+    attendanceRecordId: string;
+    startTime: Date | string;
+    endTime: Date | string;
+    reason: string;
+}
+
+export interface ApproveBreakPermissionDto {
+    approvedBy: string;
+}
+
+export interface RejectBreakPermissionDto {
+    rejectionReason: string;
+}
+
+export interface PermissionLimitDto {
+    maxMinutes: number;
+    setBy?: string;
+}
+
 // Holiday Type enum
 export enum HolidayType {
     NATIONAL = 'NATIONAL',
@@ -306,6 +341,41 @@ export interface UpdateShiftAssignmentStatusDto {
     status: ShiftAssignmentStatus;
     reason?: string;
     updatedBy?: string;
+}
+
+// Break Permission interfaces
+export interface BreakPermission {
+    _id: string;
+    employeeId: string;
+    attendanceRecordId: string;
+    startTime: string;
+    endTime: string;
+    duration: number;
+    reason: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface BreakPermissionDto {
+    employeeId: string;
+    attendanceRecordId: string;
+    startTime: Date | string;
+    endTime: Date | string;
+    reason: string;
+}
+
+export interface ApproveBreakPermissionDto {
+    approvedBy: string;
+}
+
+export interface RejectBreakPermissionDto {
+    rejectionReason: string;
+}
+
+export interface PermissionLimitDto {
+    maxMinutes: number;
+    setBy?: string;
 }
 
 export const timeManagementService = {
