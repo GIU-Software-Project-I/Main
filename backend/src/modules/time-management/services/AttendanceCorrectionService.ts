@@ -133,9 +133,21 @@ export class AttendanceCorrectionService {
 
                     if (details && details.type) {
                         attendance.punches = attendance.punches || [];
+                        const correctedIso = details.correctedIso || null;
+                        const punchType = details.punchType || 'OUT';
 
+                        // Handle MISSING_PUNCH_IN and MISSING_PUNCH_OUT
+                        if (details.type === 'MISSING_PUNCH_IN' || details.type === 'MISSING_PUNCH_OUT' || details.isMissingPunch) {
+                            if (correctedIso) {
+                                const newPunchType = details.type === 'MISSING_PUNCH_IN' ? 'IN' : (details.type === 'MISSING_PUNCH_OUT' ? 'OUT' : punchType);
+                                attendance.punches.push({ type: newPunchType, time: new Date(correctedIso) } as any);
+                                try { (attendance as any).markModified && (attendance as any).markModified('punches'); } catch (e) {}
+                            }
+                        }
+
+                        // Handle legacy MISSING_PUNCH type
                         if (details.type === 'MISSING_PUNCH') {
-                            const iso = details.missingPunchIso || null;
+                            const iso = details.missingPunchIso || correctedIso || null;
                             const t = details.missingPunchType || 'OUT';
                             if (iso) {
                                 attendance.punches.push({ type: String(t), time: new Date(iso) } as any);
@@ -143,21 +155,26 @@ export class AttendanceCorrectionService {
                             }
                         }
 
-                        if (details.type === 'INCORRECT_PUNCH') {
-                            const correctedIso = details.correctedIso || details.correctedPunchTime || null;
-                            const recordedOut = details.recordedOut || null;
+                        // Handle INCORRECT_PUNCH_IN and INCORRECT_PUNCH_OUT
+                        if (details.type === 'INCORRECT_PUNCH_IN' || details.type === 'INCORRECT_PUNCH_OUT' || details.type === 'INCORRECT_PUNCH') {
+                            const targetType = details.type === 'INCORRECT_PUNCH_IN' ? 'IN' : (details.type === 'INCORRECT_PUNCH_OUT' ? 'OUT' : punchType);
+                            const recordedTime = details.recordedOut || details.recordedTime || null;
+
                             if (correctedIso) {
-                                // try exact match by recordedOut
+                                // try exact match by recorded time
                                 let foundIndex = -1;
-                                if (recordedOut) {
-                                    foundIndex = attendance.punches.findIndex((p: any) => p && p.type && String(p.type).toUpperCase() === 'OUT' && new Date(p.time).toISOString() === new Date(recordedOut).toISOString());
+                                if (recordedTime) {
+                                    foundIndex = attendance.punches.findIndex((p: any) =>
+                                        p && p.type && String(p.type).toUpperCase() === targetType &&
+                                        new Date(p.time).toISOString() === new Date(recordedTime).toISOString()
+                                    );
                                 }
 
-                                // fallback: last OUT
+                                // fallback: last punch of target type
                                 if (foundIndex === -1) {
                                     for (let i = attendance.punches.length - 1; i >= 0; i--) {
                                         const p = attendance.punches[i];
-                                        if (p && p.type && String(p.type).toUpperCase() === 'OUT') { foundIndex = i; break; }
+                                        if (p && p.type && String(p.type).toUpperCase() === targetType) { foundIndex = i; break; }
                                     }
                                 }
 
@@ -169,11 +186,11 @@ export class AttendanceCorrectionService {
                                     const tolMs = 2 * 60 * 1000; // 2 minutes
                                     let bestIdx = -1;
                                     let bestDiff = Number.MAX_SAFE_INTEGER;
-                                    const recordedDate = recordedOut ? new Date(recordedOut) : null;
+                                    const recordedDate = recordedTime ? new Date(recordedTime) : null;
                                     if (recordedDate && !isNaN(recordedDate.getTime())) {
                                         for (let i = 0; i < attendance.punches.length; i++) {
                                             const p = attendance.punches[i];
-                                            if (p && p.type && String(p.type).toUpperCase() === 'OUT' && p.time) {
+                                            if (p && p.type && String(p.type).toUpperCase() === targetType && p.time) {
                                                 const pt = new Date(p.time);
                                                 const diff = Math.abs(pt.getTime() - recordedDate.getTime());
                                                 if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
@@ -185,7 +202,8 @@ export class AttendanceCorrectionService {
                                         attendance.punches[bestIdx].time = new Date(correctedIso);
                                         try { (attendance as any).markModified && (attendance as any).markModified('punches'); } catch (e) {}
                                     } else {
-                                        attendance.punches.push({ type: 'OUT', time: new Date(correctedIso) } as any);
+                                        // If no match found, add as new punch
+                                        attendance.punches.push({ type: targetType, time: new Date(correctedIso) } as any);
                                         try { (attendance as any).markModified && (attendance as any).markModified('punches'); } catch (e) {}
                                     }
                                 }
@@ -259,7 +277,12 @@ export class AttendanceCorrectionService {
 
     // 4) Get pending corrections
     async getPendingCorrections() {
-        return await this.correctionModel.find({ status: { $in: [CorrectionRequestStatus.SUBMITTED, CorrectionRequestStatus.IN_REVIEW] } });
+        return await this.correctionModel.find({ status: { $in: [CorrectionRequestStatus.SUBMITTED, CorrectionRequestStatus.IN_REVIEW] } }).sort({ createdAt: -1 });
+    }
+
+    // 5) Get all corrections (including history)
+    async getAllCorrections() {
+        return await this.correctionModel.find().sort({ createdAt: -1 });
     }
 
     // Permission & Overtime (via NotificationLog)
@@ -361,6 +384,57 @@ export class AttendanceCorrectionService {
         const same = diffMs <= 60 * 1000; // within 1 minute
 
         return { ok: true, hasOut: true, recordedOut: recordedTime.toISOString(), correctedTime: correctedTime.toISOString(), same };
+    }
+
+    // Check if a specific punch type exists in the attendance record
+    async checkPunchExists(attendanceRecordId: string, punchType: 'IN' | 'OUT', correctedTimeIso?: string) {
+        const att = await this.attendanceModel.findById(attendanceRecordId).lean();
+        if (!att) return { ok: false, reason: 'ATTENDANCE_NOT_FOUND' };
+
+        const punches = att.punches || [];
+        const matchingPunches = punches.filter((p: any) =>
+            p.type && p.type.toString().toUpperCase() === punchType.toUpperCase()
+        );
+
+        if (!matchingPunches || matchingPunches.length === 0) {
+            return { ok: false, reason: 'NO_PUNCH_FOUND' };
+        }
+
+        // Get the last punch of the specified type
+        const lastPunch = matchingPunches
+            .slice()
+            .sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime())
+            .pop();
+
+        if (!lastPunch) {
+            return { ok: false, reason: 'NO_PUNCH_FOUND' };
+        }
+
+        const recordedTime = new Date(lastPunch.time);
+
+        // Check if corrected time is same as recorded time
+        let same = false;
+        if (correctedTimeIso) {
+            const correctedTime = new Date(correctedTimeIso);
+            if (!isNaN(correctedTime.getTime())) {
+                const diffMs = Math.abs(recordedTime.getTime() - correctedTime.getTime());
+                same = diffMs <= 60 * 1000; // within 1 minute
+            }
+        }
+
+        return {
+            ok: true,
+            punchType,
+            recordedTime: recordedTime.toISOString(),
+            same
+        };
+    }
+
+    // Check if attendance record exists
+    async checkAttendanceExists(attendanceRecordId: string) {
+        const att = await this.attendanceModel.findById(attendanceRecordId).lean();
+        if (!att) return { ok: false, reason: 'ATTENDANCE_NOT_FOUND' };
+        return { ok: true, attendanceRecord: att };
     }
 
     async recordCorrectionDetails(correctionRequestId: string, details: any) {

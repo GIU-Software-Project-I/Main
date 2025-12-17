@@ -1,111 +1,36 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { timeManagementService } from '@/app/services/time-management';
+import { timeManagementService, PunchInRequest, PunchOutRequest } from '@/app/services/time-management';
+import { useAuth } from '@/app/context/AuthContext';
+import { PunchType } from '@/app/types/enums';
 
-interface AttendanceRecord {
-  _id: string;
-  date: string;
-  clockIn?: string;
-  clockOut?: string;
-  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EARLY_LEAVE' | 'ON_LEAVE';
-  workHours?: number;
-  overtime?: number;
-  notes?: string;
-}
-
-interface CorrectionRequest {
-  _id: string;
-  date: string;
-  type: string;
-  reason: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  createdAt: string;
-}
+// Force log on module load
+console.log('[MyAttendance] Module loaded at:', new Date().toISOString());
 
 export default function MyAttendancePage() {
-  const [loading, setLoading] = useState(true);
+  // Force log on every render
+  console.log('[MyAttendance] Component rendering at:', new Date().toISOString());
+
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [records, setRecords] = useState<AttendanceRecord[]>([]);
-  const [todayRecord, setTodayRecord] = useState<AttendanceRecord | null>(null);
-  const [clockingIn, setClockingIn] = useState(false);
-  const [clockingOut, setClockingOut] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isClockedIn, setIsClockedIn] = useState(false);
+  const [clockInTime, setClockInTime] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [todayRecord, setTodayRecord] = useState<any>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Use ref to prevent duplicate API calls
+  const fetchingRef = useRef(false);
+  const punchingRef = useRef(false);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await timeManagementService.getAttendanceRecord();
-      if (response.data) {
-        const data = response.data as any;
-        setRecords(Array.isArray(data.records) ? data.records : []);
-        setTodayRecord(data.today || null);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load attendance data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleClockIn = async () => {
-    try {
-      setClockingIn(true);
-      setError(null);
-      await timeManagementService.clockIn({ timestamp: new Date().toISOString() });
-      await fetchData();
-    } catch (err: any) {
-      setError(err.message || 'Failed to clock in');
-    } finally {
-      setClockingIn(false);
-    }
-  };
-
-  const handleClockOut = async () => {
-    try {
-      setClockingOut(true);
-      setError(null);
-      await timeManagementService.clockOut({ timestamp: new Date().toISOString() });
-      await fetchData();
-    } catch (err: any) {
-      setError(err.message || 'Failed to clock out');
-    } finally {
-      setClockingOut(false);
-    }
-  };
-
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'PRESENT':
-        return { bg: 'bg-green-100', text: 'text-green-800', label: 'Present' };
-      case 'ABSENT':
-        return { bg: 'bg-red-100', text: 'text-red-800', label: 'Absent' };
-      case 'LATE':
-        return { bg: 'bg-amber-100', text: 'text-amber-800', label: 'Late' };
-      case 'EARLY_LEAVE':
-        return { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Early Leave' };
-      case 'ON_LEAVE':
-        return { bg: 'bg-blue-100', text: 'text-blue-800', label: 'On Leave' };
-      default:
-        return { bg: 'bg-gray-100', text: 'text-gray-800', label: status };
-    }
-  };
-
-  const formatTime = (dateString?: string) => {
-    if (!dateString) return '--:--';
-    return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
+  // Current time display
   const getCurrentTime = () => {
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
-
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
 
   useEffect(() => {
@@ -115,88 +40,332 @@ export default function MyAttendancePage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Calculate stats
-  const thisMonthRecords = records.filter(r => {
-    const date = new Date(r.date);
-    const now = new Date();
-    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-  });
+  // Memoized fetch function - exact logic from punch/page.tsx
+  const fetchTodayRecord = useCallback(async () => {
+    if (!user?.id || fetchingRef.current) return;
 
-  const stats = {
-    present: thisMonthRecords.filter(r => r.status === 'PRESENT').length,
-    late: thisMonthRecords.filter(r => r.status === 'LATE').length,
-    absent: thisMonthRecords.filter(r => r.status === 'ABSENT').length,
-    totalHours: thisMonthRecords.reduce((sum, r) => sum + (r.workHours || 0), 0),
+    fetchingRef.current = true;
+    console.log('[MyAttendance] Fetching today record for user:', user.id);
+
+    try {
+      const response = await timeManagementService.getTodayRecord(user.id);
+      console.log('[MyAttendance] API Response:', response);
+
+      // Check if we got valid data with punches
+      const record = response.data as any;
+      const hasPunches = record && record.punches && Array.isArray(record.punches) && record.punches.length > 0;
+
+      console.log('[MyAttendance] Has valid punches:', hasPunches, 'Punches:', record?.punches);
+
+      if (hasPunches) {
+        setTodayRecord(record);
+        const punches = record.punches;
+        const lastPunch = punches[punches.length - 1];
+
+        console.log('[MyAttendance] Last punch:', lastPunch);
+
+        const isIn = lastPunch.type === PunchType.IN || lastPunch.type === 'IN';
+        setIsClockedIn(isIn);
+        if (isIn) {
+          setClockInTime(new Date(lastPunch.time).toLocaleTimeString());
+        } else {
+          setClockInTime(null);
+        }
+      } else {
+        // No record or no punches - reset state
+        console.log('[MyAttendance] No valid record, resetting state');
+        setIsClockedIn(false);
+        setClockInTime(null);
+        setTodayRecord(null);
+      }
+    } catch (err) {
+      console.log('[MyAttendance] Error fetching record:', err);
+      setIsClockedIn(false);
+      setClockInTime(null);
+      setTodayRecord(null);
+    } finally {
+      fetchingRef.current = false;
+      setIsInitialized(true);
+      setInitialLoading(false);
+    }
+  }, [user?.id]);
+
+  // Fetch on mount - only once
+  useEffect(() => {
+    if (!user?.id || isInitialized) return;
+    fetchTodayRecord();
+  }, [user?.id, isInitialized, fetchTodayRecord]);
+
+  // Exact handleClockIn from punch/page.tsx
+  const handleClockIn = async () => {
+    // Prevent duplicate calls
+    if (!user?.id || loading || isClockedIn || punchingRef.current) return;
+
+    punchingRef.current = true;
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const request: PunchInRequest = {
+        employeeId: user.id,
+        source: 'web-app',
+      };
+
+      const response = await timeManagementService.punchIn(request);
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      if (response.data) {
+        const record = response.data as any;
+        setTodayRecord(record);
+        const lastPunch = record.punches?.[record.punches.length - 1];
+
+        if (lastPunch && lastPunch.type === PunchType.IN) {
+          setIsClockedIn(true);
+          setClockInTime(new Date(lastPunch.time).toLocaleTimeString());
+          setSuccess('Successfully clocked in!');
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to clock in');
+      console.error('Clock-in error:', err);
+    } finally {
+      setLoading(false);
+      punchingRef.current = false;
+    }
   };
 
-  if (loading) {
+  // Exact handleClockOut from punch/page.tsx
+  const handleClockOut = async () => {
+    // Prevent duplicate calls
+    if (!user?.id || loading || !isClockedIn || punchingRef.current) return;
+
+    punchingRef.current = true;
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const request: PunchOutRequest = {
+        employeeId: user.id,
+        source: 'web-app',
+      };
+
+      const response = await timeManagementService.punchOut(request);
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      if (response.data) {
+        const record = response.data as any;
+        setTodayRecord(record);
+        setIsClockedIn(false);
+        setClockInTime(null);
+        setSuccess('Successfully clocked out!');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to clock out');
+      console.error('Clock-out error:', err);
+    } finally {
+      setLoading(false);
+      punchingRef.current = false;
+    }
+  };
+
+  const formatTime = (dateString?: string) => {
+    if (!dateString) return '--:--';
+    return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatWorkTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  };
+
+  // Get first IN punch and last OUT punch for today's display
+  const getFirstClockIn = () => {
+    if (!todayRecord?.punches?.length) return null;
+    const firstIn = todayRecord.punches.find((p: any) => p.type === PunchType.IN);
+    return firstIn ? formatTime(firstIn.time) : null;
+  };
+
+  const getLastClockOut = () => {
+    if (!todayRecord?.punches?.length) return null;
+    const outPunches = todayRecord.punches.filter((p: any) => p.type === PunchType.OUT);
+    if (outPunches.length === 0) return null;
+    return formatTime(outPunches[outPunches.length - 1].time);
+  };
+
+  // Force refresh function - must be defined before any returns
+  const handleRefresh = useCallback(async () => {
+    console.log('[MyAttendance] === REFRESH TRIGGERED ===');
+
+    // Reset all refs and state
+    fetchingRef.current = false;
+    punchingRef.current = false;
+    setIsInitialized(false);
+    setIsClockedIn(false);
+    setClockInTime(null);
+    setTodayRecord(null);
+    setError(null);
+    setSuccess(null);
+    setInitialLoading(true);
+
+    // Small delay to ensure state is reset
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Fetch fresh data
+    if (user?.id) {
+      console.log('[MyAttendance] Fetching fresh data for user:', user.id);
+      fetchingRef.current = true;
+      try {
+        const response = await timeManagementService.getTodayRecord(user.id);
+        console.log('[MyAttendance] Refresh API Response:', response);
+
+        const record = response.data as any;
+        const hasPunches = record && record.punches && Array.isArray(record.punches) && record.punches.length > 0;
+
+        console.log('[MyAttendance] Refresh - Has valid punches:', hasPunches);
+
+        if (hasPunches) {
+          setTodayRecord(record);
+          const punches = record.punches;
+          const lastPunch = punches[punches.length - 1];
+          const isIn = lastPunch.type === PunchType.IN || lastPunch.type === 'IN';
+          console.log('[MyAttendance] Refresh - Setting isClockedIn to:', isIn);
+          setIsClockedIn(isIn);
+          if (isIn) {
+            setClockInTime(new Date(lastPunch.time).toLocaleTimeString());
+          }
+        } else {
+          // No valid record
+          console.log('[MyAttendance] Refresh - No valid record, setting isClockedIn to false');
+          setIsClockedIn(false);
+          setClockInTime(null);
+          setTodayRecord(null);
+        }
+      } catch (err) {
+        console.log('[MyAttendance] Refresh error:', err);
+        setIsClockedIn(false);
+        setClockInTime(null);
+        setTodayRecord(null);
+      } finally {
+        fetchingRef.current = false;
+        setIsInitialized(true);
+        setInitialLoading(false);
+      }
+    } else {
+      console.log('[MyAttendance] No user id, skipping fetch');
+      setInitialLoading(false);
+      setIsInitialized(true);
+    }
+  }, [user?.id]);
+
+  if (initialLoading) {
     return (
       <div className="p-6 lg:p-8">
         <div className="max-w-5xl mx-auto">
           <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-48 bg-white rounded-xl shadow-sm"></div>
-            <div className="grid grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-24 bg-white rounded-xl shadow-sm"></div>
-              ))}
-            </div>
-            <div className="h-64 bg-white rounded-xl shadow-sm"></div>
+            <div className="h-8 bg-muted rounded w-1/3"></div>
+            <div className="h-48 bg-card rounded-xl shadow-sm border border-border"></div>
+            <div className="h-64 bg-card rounded-xl shadow-sm border border-border"></div>
           </div>
         </div>
       </div>
     );
   }
 
+
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-6 lg:p-8 bg-background min-h-screen">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-semibold text-gray-900">My Attendance</h1>
-            <p className="text-gray-500 mt-1">Track your daily attendance and work hours</p>
+            <h1 className="text-2xl lg:text-3xl font-semibold text-foreground">My Attendance</h1>
+            <p className="text-muted-foreground mt-1">Track your daily attendance and work hours</p>
           </div>
-          <Link
-            href="/portal/my-attendance/corrections"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Request Correction
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
+              title="Refresh attendance data"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+            <Link
+              href="/portal/my-attendance/corrections"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-lg hover:bg-accent transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Request Correction
+            </Link>
+          </div>
         </div>
 
+        {/* Alerts */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error}
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg flex items-center justify-between">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="text-destructive/70 hover:text-destructive">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {success && (
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 px-4 py-3 rounded-lg">
+            {success}
           </div>
         )}
 
         {/* Clock In/Out Card */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
+        <div className="bg-gradient-to-r from-primary to-primary/80 rounded-xl shadow-lg p-6 text-primary-foreground">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div>
-              <p className="text-blue-100 text-sm">Current Time</p>
+              <p className="text-primary-foreground/70 text-sm">Current Time</p>
               <p className="text-4xl font-bold mt-1">{currentTime}</p>
-              <p className="text-blue-100 mt-2">{new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <p className="text-primary-foreground/70 mt-2">{new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               {/* Today's Status */}
               <div className="bg-white/10 rounded-lg px-4 py-3">
-                <p className="text-blue-100 text-sm">Today's Status</p>
+                <p className="text-primary-foreground/70 text-sm">Today's Status</p>
                 <div className="flex items-center gap-4 mt-2">
                   <div>
-                    <p className="text-xs text-blue-200">Clock In</p>
-                    <p className="text-lg font-semibold">{formatTime(todayRecord?.clockIn)}</p>
+                    <p className="text-xs text-primary-foreground/60">Clock In</p>
+                    <p className="text-lg font-semibold">{getFirstClockIn() || '--:--'}</p>
                   </div>
                   <div className="w-px h-8 bg-white/20"></div>
                   <div>
-                    <p className="text-xs text-blue-200">Clock Out</p>
-                    <p className="text-lg font-semibold">{formatTime(todayRecord?.clockOut)}</p>
+                    <p className="text-xs text-primary-foreground/60">Clock Out</p>
+                    <p className="text-lg font-semibold">{getLastClockOut() || '--:--'}</p>
                   </div>
+                  {todayRecord && (
+                    <>
+                      <div className="w-px h-8 bg-white/20"></div>
+                      <div>
+                        <p className="text-xs text-primary-foreground/60">Work Time</p>
+                        <p className="text-lg font-semibold">{formatWorkTime(todayRecord.totalWorkMinutes || 0)}</p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -204,144 +373,99 @@ export default function MyAttendancePage() {
               <div className="flex gap-3">
                 <button
                   onClick={handleClockIn}
-                  disabled={clockingIn || !!todayRecord?.clockIn}
+                  disabled={loading || isClockedIn}
                   className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                    todayRecord?.clockIn
-                      ? 'bg-white/20 text-white/60 cursor-not-allowed'
-                      : 'bg-white text-blue-600 hover:bg-blue-50'
+                    isClockedIn
+                      ? 'bg-white/20 text-primary-foreground/60 cursor-not-allowed'
+                      : 'bg-white text-primary hover:bg-white/90'
                   }`}
                 >
-                  {clockingIn ? 'Clocking In...' : todayRecord?.clockIn ? 'Clocked In' : 'Clock In'}
+                  {loading && !isClockedIn ? 'Processing...' : isClockedIn ? 'Clocked In' : 'Clock In'}
                 </button>
                 <button
                   onClick={handleClockOut}
-                  disabled={clockingOut || !todayRecord?.clockIn || !!todayRecord?.clockOut}
+                  disabled={loading || !isClockedIn}
                   className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                    !todayRecord?.clockIn || todayRecord?.clockOut
-                      ? 'bg-white/20 text-white/60 cursor-not-allowed'
-                      : 'bg-white text-blue-600 hover:bg-blue-50'
+                    !isClockedIn
+                      ? 'bg-white/20 text-primary-foreground/60 cursor-not-allowed'
+                      : 'bg-white text-primary hover:bg-white/90'
                   }`}
                 >
-                  {clockingOut ? 'Clocking Out...' : todayRecord?.clockOut ? 'Clocked Out' : 'Clock Out'}
+                  {loading && isClockedIn ? 'Processing...' : 'Clock Out'}
                 </button>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard
-            title="Days Present"
-            value={stats.present}
-            icon="check"
-            color="green"
-          />
-          <StatCard
-            title="Days Late"
-            value={stats.late}
-            icon="clock"
-            color="amber"
-          />
-          <StatCard
-            title="Days Absent"
-            value={stats.absent}
-            icon="x"
-            color="red"
-          />
-          <StatCard
-            title="Total Hours"
-            value={`${stats.totalHours.toFixed(1)}h`}
-            icon="time"
-            color="blue"
-          />
-        </div>
-
-        {/* Attendance History */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Attendance History</h2>
-            <Link
-              href="/portal/my-attendance/history"
-              className="text-sm font-medium text-blue-600 hover:text-blue-700"
-            >
-              View All
-            </Link>
+          {/* Current Status Indicator */}
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${isClockedIn ? 'bg-green-400 animate-pulse' : 'bg-white/40'}`}></div>
+              <span className="text-sm">
+                {isClockedIn
+                  ? `Currently clocked in${clockInTime ? ` since ${clockInTime}` : ''}`
+                  : 'Not clocked in'}
+              </span>
+            </div>
           </div>
-
-          {records.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <p className="text-gray-500">No attendance records found</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Clock In</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Clock Out</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hours</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {records.slice(0, 10).map((record) => {
-                    const statusConfig = getStatusConfig(record.status);
-                    return (
-                      <tr key={record._id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {new Date(record.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {formatTime(record.clockIn)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {formatTime(record.clockOut)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {record.workHours ? `${record.workHours.toFixed(1)}h` : '--'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
-                            {statusConfig.label}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
+
+        {/* Today's Punches */}
+        {todayRecord && todayRecord.punches && todayRecord.punches.length > 0 && (
+          <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+            <h2 className="font-semibold text-foreground mb-4">Today's Punches</h2>
+            <div className="flex flex-wrap gap-3">
+              {todayRecord.punches.map((punch: any, idx: number) => (
+                <div
+                  key={idx}
+                  className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+                    punch.type === PunchType.IN
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {punch.type === PunchType.IN ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    )}
+                  </svg>
+                  <span className="font-medium">{punch.type}</span>
+                  <span>{formatTime(punch.time)}</span>
+                </div>
+              ))}
+            </div>
+            {todayRecord.hasMissedPunch && (
+              <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span className="text-sm font-medium">Missing punch detected. Please submit a correction request.</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Help Card */}
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 p-6">
+        <div className="bg-muted/50 rounded-xl border border-border p-6">
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 bg-card rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">Need to Correct an Entry?</h3>
-              <p className="text-gray-600 mt-1 text-sm">
+              <h3 className="font-semibold text-foreground">Need to Correct an Entry?</h3>
+              <p className="text-muted-foreground mt-1 text-sm">
                 If you missed a clock in/out or need to make corrections to your attendance record,
                 submit a correction request for manager approval.
               </p>
               <Link
                 href="/portal/my-attendance/corrections"
-                className="inline-flex items-center gap-1 mt-3 text-sm font-medium text-blue-600 hover:text-blue-700"
+                className="inline-flex items-center gap-1 mt-3 text-sm font-medium text-primary hover:text-primary/80"
               >
                 Submit Correction Request
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -350,56 +474,6 @@ export default function MyAttendancePage() {
               </Link>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-  icon,
-  color,
-}: {
-  title: string;
-  value: number | string;
-  icon: string;
-  color: 'green' | 'amber' | 'red' | 'blue';
-}) {
-  const colorClasses = {
-    green: { bg: 'bg-green-100', text: 'text-green-600' },
-    amber: { bg: 'bg-amber-100', text: 'text-amber-600' },
-    red: { bg: 'bg-red-100', text: 'text-red-600' },
-    blue: { bg: 'bg-blue-100', text: 'text-blue-600' },
-  };
-
-  const colors = colorClasses[color];
-
-  const getIcon = () => {
-    switch (icon) {
-      case 'check':
-        return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-      case 'clock':
-        return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-      case 'x':
-        return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-      case 'time':
-        return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-        </div>
-        <div className={`w-10 h-10 ${colors.bg} rounded-lg flex items-center justify-center ${colors.text}`}>
-          {getIcon()}
         </div>
       </div>
     </div>

@@ -41,11 +41,6 @@ const SELF_SERVICE_SECTION: NavSection = {
       href: '/portal/my-attendance',
       icon: 'clock',
     },
-      {
-          label: 'Punches',
-          href: '/portal/punch',
-          icon: 'log-out',
-      },
     {
       label: 'My Leaves',
       href: '/portal/my-leaves',
@@ -209,6 +204,8 @@ const HR_MANAGER_SECTIONS: NavSection[] = [
             children: [
                 { label: 'Shift Types', href: '/dashboard/hr-manager/time-management/ShiftType', icon: 'clock' },
                 { label: 'Schedule Rules', href: '/dashboard/hr-manager/time-management/schedule-rules', icon: 'calendar' },
+                { label: 'Attendance Records', href: '/dashboard/hr-manager/time-management/attendance-records', icon: 'clipboard-list' },
+                { label: 'Configure Rules', href: '/dashboard/hr-manager/time-management/ConfigureRules', icon: 'settings' },
             ],
         },
       {
@@ -338,6 +335,14 @@ const HR_ADMIN_SECTIONS: NavSection[] = [
         icon: 'edit',
         badge: 'New',
       },
+        {
+            label: 'Time Management',
+            href: '/dashboard/hr-manager/time-management',
+            icon: 'clock',
+            children: [
+                { label: 'Attendance Records', href: '/dashboard/department-head/time-management/attendance-records', icon: 'clipboard-list' },
+            ],
+        },
       {
         label: 'Role Assignment',
         href: '/dashboard/hr-admin/role-assignment',

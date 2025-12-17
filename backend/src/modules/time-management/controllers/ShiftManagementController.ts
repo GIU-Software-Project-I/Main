@@ -19,7 +19,7 @@ import {Roles} from "../../auth/decorators/roles-decorator";
 import {SystemRole} from "../../employee/enums/employee-profile.enums";
 
 @ApiTags('Shift Management')
-@Controller('shift-management')
+@Controller('time-management')
 export class ShiftManagementController {
     constructor(
         private readonly service: ShiftManagementService,
@@ -34,7 +34,7 @@ export class ShiftManagementController {
     @Roles(SystemRole.HR_MANAGER, SystemRole.SYSTEM_ADMIN)
     @ApiBearerAuth('access-token')
     @ApiOperation({
-        summary: 'Create Shift Type',
+        summary: 'Create ShiftType',
         description: 'HR Manager/Admin defines standardized shift configurations'
     })
     @ApiBody({
@@ -75,8 +75,8 @@ export class ShiftManagementController {
     @UseGuards(AuthenticationGuard,AuthorizationGuard)
     @Roles(SystemRole.HR_MANAGER, SystemRole.SYSTEM_ADMIN)
     @ApiBearerAuth('access-token')
-    @ApiOperation({ summary: 'Update Shift Type' })
-    @ApiParam({ name: 'id', description: 'Shift Type ID' })
+    @ApiOperation({ summary: 'Update ShiftType' })
+    @ApiParam({ name: 'id', description: 'ShiftType ID' })
     @ApiBody({ type: UpdateShiftTypeDto })
     @ApiResponse({ status: 200, description: 'Shift type updated' })
     @ApiResponse({ status: 404, description: 'Shift type not found' })
@@ -91,8 +91,8 @@ export class ShiftManagementController {
     @UseGuards(AuthenticationGuard,AuthorizationGuard)
     @Roles(SystemRole.HR_MANAGER, SystemRole.SYSTEM_ADMIN)
     @ApiBearerAuth('access-token')
-    @ApiOperation({ summary: 'Deactivate Shift Type' })
-    @ApiParam({ name: 'id', description: 'Shift Type ID' })
+    @ApiOperation({ summary: 'Deactivate ShiftType' })
+    @ApiParam({ name: 'id', description: 'ShiftType ID' })
     @ApiResponse({ status: 200, description: 'Shift type deactivated' })
     @ApiResponse({ status: 404, description: 'Shift type not found' })
     deactivateShiftType(@Param('id') id: string) {
@@ -920,6 +920,15 @@ export class ShiftManagementController {
     })
     createOvertimeRule(@Body() dto: CreateOvertimeRuleDto) {
         return this.service.createOvertimeRule(dto);
+    }
+
+    ///////////////////////////////////////////////////////////////////////
+
+    @Get('overtime-rules')
+    @ApiOperation({ summary: 'Get All Overtime Rules' })
+    @ApiResponse({ status: 200, description: 'List of overtime rules' })
+    getOvertimeRules() {
+        return this.service.getOvertimeRules();
     }
 
     ///////////////////////////////////////////////////////////////////////
