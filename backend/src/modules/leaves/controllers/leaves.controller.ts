@@ -249,9 +249,10 @@ export class UnifiedLeaveController {
     @Query('hrId') hrId: string,
     @Query('decision') decision: 'approve' | 'reject',
     @Query('allowNegative') allowNegative?: string,
+    @Query('reason') reason?: string,
   ) {
     const allow = allowNegative === 'true';
-    return this.service.hrFinalize(id, hrId, decision, allow);
+    return this.service.hrFinalize(id, hrId, decision, allow, reason);
   }
 
   // -------------------------
@@ -429,11 +430,60 @@ export class UnifiedLeaveController {
     body?: {
       capDays?: number;
       expiryMonths?: number;
+      leaveTypeRules?: Record<string, { cap: number; expiryMonths: number; canCarryForward: boolean }>;
+      dryRun?: boolean;
     },
   ) {
-    const capDays = body?.capDays;
-    const expiryMonths = body?.expiryMonths;
-    return this.service.carryForward(referenceDate, capDays, expiryMonths);
+    return this.service.carryForward(referenceDate, body);
+  }
+
+  @Post('accruals/carryforward/preview')
+  @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  async previewCarryForward(
+    @Query('referenceDate') referenceDate?: string,
+    @Body()
+    body?: {
+      capDays?: number;
+      expiryMonths?: number;
+      leaveTypeRules?: Record<string, { cap: number; expiryMonths: number; canCarryForward: boolean }>;
+    },
+  ) {
+    return this.service.previewCarryForward(referenceDate, body);
+  }
+
+  @Post('accruals/carryforward/override')
+  @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  async overrideCarryForward(
+    @Body()
+    body: {
+      employeeId: string;
+      leaveTypeId: string;
+      carryForwardDays: number;
+      expiryDate?: string;
+      reason?: string;
+    },
+  ) {
+    return this.service.overrideCarryForward(
+      body.employeeId,
+      body.leaveTypeId,
+      body.carryForwardDays,
+      body.expiryDate,
+      body.reason,
+    );
+  }
+
+  @Get('accruals/carryforward/report')
+  @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  async getCarryForwardReport(
+    @Query('employeeId') employeeId?: string,
+    @Query('leaveTypeId') leaveTypeId?: string,
+    @Query('year') year?: string,
+  ) {
+    return this.service.getCarryForwardReport({
+      employeeId,
+      leaveTypeId,
+      year: year ? parseInt(year) : undefined,
+    });
   }
 
   @Get('accruals/employee/:id/recalc')

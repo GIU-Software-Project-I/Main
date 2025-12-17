@@ -36,11 +36,9 @@ export interface SummaryFilters {
 export interface TaxReport {
   id: string;
   period: string;
-  name?: string;
   title: string;
   totalTaxWithheld: number;
   taxTypes: TaxTypeBreakdown[];
-  taxRules?: any[];
   employeeCount: number;
   generatedAt: string;
   status: 'draft' | 'final' | 'archived';
@@ -96,13 +94,11 @@ export interface BenefitTypeBreakdown {
 export interface PayslipHistoryReport {
   id: string;
   period: string;
-  name?: string;
   title: string;
   totalPayslips: number;
   employeeCount: number;
   totalGrossPay: number;
   totalNetPay: number;
-  payslips?: any[];
   departmentBreakdown: DepartmentBreakdown[];
   generatedAt: string;
   status: 'draft' | 'final' | 'archived';
@@ -224,19 +220,7 @@ export const financeStaffService = {
   },
 
   async generateTaxReport(period: string) {
-    // Period can be YYYY-MM (monthly) or YYYY (yearly)
-    let year: number;
-    if (period.includes('-')) {
-      year = parseInt(period.split('-')[0]);
-    } else {
-      year = parseInt(period);
-    }
-    
-    const params = new URLSearchParams({
-      type: 'tax',
-      year: year.toString()
-    });
-    const response = await api.get<TaxReport>(`/payroll/tracking/reports/compliance?${params.toString()}`);
+    const response = await api.post<TaxReport>('/finance/tax-reports/generate', { period });
     return response;
   },
 
@@ -247,63 +231,8 @@ export const financeStaffService = {
   },
 
   async generateInsuranceReport(period: string) {
-    // Fetch insurance brackets from the database
-    const response = await api.get<any>('/payroll-configuration-requirements/insurance-brackets');
-    console.log('Insurance brackets API response:', response);
-    
-    // Transform response to match InsuranceReport format
-    // response.data contains the brackets array from the backend
-    const brackets = response.data ? (Array.isArray(response.data) ? response.data : [response.data]) : [];
-    console.log('Insurance brackets:', brackets);
-    
-    // Calculate totals and group by insurance type
-    const insuranceTypes: { [key: string]: any } = {};
-    
-    brackets.forEach((bracket: any) => {
-      const type = bracket.name || 'Unknown';
-      if (!insuranceTypes[type]) {
-        insuranceTypes[type] = {
-          insuranceType: type,
-          brackets: [],
-          totalAmount: 0,
-          employeeContribution: 0,
-          employerContribution: 0,
-          employeeCount: 0
-        };
-      }
-      insuranceTypes[type].brackets.push(bracket);
-      insuranceTypes[type].employeeCount++;
-    });
-    
-    return {
-      data: {
-        id: `insurance_${Date.now()}`,
-        title: 'Insurance Brackets Report',
-        period: period,
-        generatedAt: new Date().toISOString(),
-        insuranceBrackets: brackets.map((b: any) => ({
-          id: b._id || b.id,
-          name: b.name,
-          amount: b.amount,
-          status: b.status,
-          minSalary: b.minSalary,
-          maxSalary: b.maxSalary,
-          employeeRate: b.employeeRate,
-          employerRate: b.employerRate,
-          createdBy: b.createdBy,
-          approvedBy: b.approvedBy,
-          approvedAt: b.approvedAt,
-          createdAt: b.createdAt,
-          updatedAt: b.updatedAt
-        })),
-        totalContributions: 0,
-        totalEmployeeContributions: 0,
-        totalEmployerContributions: 0,
-        employeeCount: brackets.length,
-        insuranceTypes: Object.values(insuranceTypes),
-        status: 'final'
-      }
-    };
+    const response = await api.post<InsuranceReport>('/finance/insurance-reports/generate', { period });
+    return response;
   },
 
   async getBenefitsReports(period?: string) {
@@ -313,42 +242,8 @@ export const financeStaffService = {
   },
 
   async generateBenefitsReport(period: string) {
-    // Fetch termination/resignation benefits from the database
-    const response = await api.get<any>('/payroll-configuration-requirements/termination-benefits/all');
-    
-    console.log('Termination benefits API response:', response);
-    
-    // Get benefits data from response
-    const benefitsData = response.data?.data || response.data || [];
-    console.log('Benefits data:', benefitsData);
-    
-    // Transform response to match BenefitsReport format
-    const benefitTypes: BenefitTypeBreakdown[] = benefitsData.map((benefit: any) => ({
-      benefitType: benefit.name,
-      amount: benefit.amount || 0,
-      terms: benefit.terms || '',
-      status: benefit.status,
-      createdAt: benefit.createdAt,
-      updatedAt: benefit.updatedAt,
-      approvedAt: benefit.approvedAt,
-      id: benefit._id || benefit.id
-    }));
-    
-    const totalBenefits = benefitsData.reduce((sum: number, b: any) => sum + (b.amount || 0), 0);
-    
-    return {
-      data: {
-        id: `benefits_report_${Date.now()}`,
-        title: 'Termination & Resignation Benefits Report',
-        period: period,
-        generatedAt: new Date().toISOString(),
-        totalBenefits,
-        employeeCount: benefitsData.length,
-        status: 'final' as const,
-        benefitTypes,
-        benefits: benefitsData
-      }
-    };
+    const response = await api.post<BenefitsReport>('/finance/benefits-reports/generate', { period });
+    return response;
   },
 
   async getPayslipHistory(period?: string) {
@@ -358,42 +253,7 @@ export const financeStaffService = {
   },
 
   async generatePayslipHistoryReport(period: string) {
-    // Period can be YYYY-MM (monthly) or YYYY (yearly)
-    let startDate: string;
-    let endDate: string;
-    
-    if (period.includes('-')) {
-      // Monthly: YYYY-MM format
-      const [year, month] = period.split('-');
-      startDate = `${year}-${month}-01`;
-      endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
-    } else {
-      // Yearly: YYYY format
-      startDate = `${period}-01-01`;
-      endDate = `${period}-12-31`;
-    }
-    
-    const response = await api.get<any>(`/payroll/tracking/reports/payslip-history?startDate=${startDate}&endDate=${endDate}`);
-    
-    // Transform response to match PayslipHistoryReport format
-    if (response.data) {
-      const data = response.data;
-      return {
-        data: {
-          id: `payslip_history_${Date.now()}`,
-          title: 'Payslip History Report',
-          period: period,
-          generatedAt: data.generatedDate || new Date().toISOString(),
-          totalPayslips: data.summary?.totalPayslips || 0,
-          employeeCount: data.summary?.uniqueEmployees || 0,
-          totalGrossPay: data.summary?.totalGrossSalary || 0,
-          totalNetPay: data.summary?.totalNetPay || 0,
-          totalDeductions: data.summary?.totalDeductions || 0,
-          payslips: data.payslips || [],
-          departmentBreakdown: []
-        }
-      };
-    }
+    const response = await api.post<PayslipHistoryReport>('/finance/payslip-history/generate', { period });
     return response;
   },
 

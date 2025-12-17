@@ -23,11 +23,6 @@ export default function TaxInsuranceBenefitsPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedTaxReport, setSelectedTaxReport] = useState<any>(null);
-  const [selectedPayslipReport, setSelectedPayslipReport] = useState<any>(null);
-  const [selectedInsuranceReport, setSelectedInsuranceReport] = useState<any>(null);
-  const [selectedBenefitsReport, setSelectedBenefitsReport] = useState<any>(null);
-
   // Load from localStorage on mount
   useEffect(() => {
     const savedTaxReports = localStorage.getItem('taxReports');
@@ -140,21 +135,9 @@ export default function TaxInsuranceBenefitsPage() {
           response = await financeStaffService.generateTaxReport(generatePeriod);
           console.log('Tax report response:', response);
           if (response?.data) {
-            // Transform the taxRules response into a report format
-            const taxData = response.data;
-            const newReport = {
-              id: `tax_${Date.now()}`,
-              title: 'Tax Rules Report',
-              period: generatePeriod,
-              generatedAt: new Date().toISOString(),
-              taxRules: taxData.taxRules || [],
-              totalEmployees: taxData.totalEmployees || 0,
-              totalTaxCollected: taxData.totalTaxCollected || 0,
-              reportType: taxData.reportType || 'TAX_COMPLIANCE_REPORT',
-              year: taxData.year || new Date().getFullYear(),
-            };
+            const newReport = response.data as TaxReport;
             const updatedReports = [newReport, ...taxReports];
-            setTaxReports(updatedReports as any);
+            setTaxReports(updatedReports);
             localStorage.setItem('taxReports', JSON.stringify(updatedReports));
             console.log('Tax report added:', newReport);
             setSuccessMessage('Tax report generated successfully');
@@ -255,34 +238,6 @@ export default function TaxInsuranceBenefitsPage() {
     }
   };
 
-  const handleDeleteTaxReport = (reportId: string) => {
-    const updatedReports = taxReports.filter((r: any) => r.id !== reportId);
-    setTaxReports(updatedReports);
-    localStorage.setItem('taxReports', JSON.stringify(updatedReports));
-    setSelectedTaxReport(null);
-  };
-
-  const handleDeletePayslipReport = (reportId: string) => {
-    const updatedReports = payslipHistoryReports.filter((r: any) => r.id !== reportId);
-    setPayslipHistoryReports(updatedReports);
-    localStorage.setItem('payslipHistoryReports', JSON.stringify(updatedReports));
-    setSelectedPayslipReport(null);
-  };
-
-  const handleDeleteInsuranceReport = (reportId: string) => {
-    const updatedReports = insuranceReports.filter((r: any) => r.id !== reportId);
-    setInsuranceReports(updatedReports);
-    localStorage.setItem('insuranceReports', JSON.stringify(updatedReports));
-    setSelectedInsuranceReport(null);
-  };
-
-  const handleDeleteBenefitsReport = (reportId: string) => {
-    const updatedReports = benefitsReports.filter((r: any) => r.id !== reportId);
-    setBenefitsReports(updatedReports);
-    localStorage.setItem('benefitsReports', JSON.stringify(updatedReports));
-    setSelectedBenefitsReport(null);
-  };
-
   if (!user?.role || ![SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN].includes(user.role as SystemRole)) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -293,24 +248,47 @@ export default function TaxInsuranceBenefitsPage() {
 
   const renderTaxReports = () => (
     <div className="space-y-4">
-      {taxReports.map((report: any) => (
+      {taxReports.map((report) => (
         <div key={report.id} className="bg-white border border-slate-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
-              <h3 className="font-medium text-slate-900">{report.title || 'Tax Rules Report'}</h3>
-              <p className="text-sm text-slate-600 mt-1">Period: {report.period}</p>
-              <p className="text-xs text-slate-500">Generated: {report.generatedAt ? new Date(report.generatedAt).toLocaleString() : 'N/A'}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm text-slate-500">Tax Rules</p>
-                <p className="text-xl font-bold text-blue-600">{report.taxRules?.length || 0}</p>
+              <h3 className="font-medium text-slate-900">{report.title}</h3>
+              <p className="text-sm text-slate-600 mt-1">{report.period}</p>
+              <div className="mt-2 grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500">Total Tax Withheld</p>
+                  <p className="text-lg font-semibold text-slate-900">${report.totalTaxWithheld.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Employees</p>
+                  <p className="text-lg font-semibold text-slate-900">{report.employeeCount}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Status</p>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    report.status === 'final' ? 'bg-green-100 text-green-800' :
+                    report.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {report.status}
+                  </span>
+                </div>
               </div>
+              <div className="mt-3 space-y-1">
+                {report.taxTypes.map((taxType, index) => (
+                  <div key={index} className="flex justify-between text-sm">
+                    <span className="text-slate-600">{taxType.taxType}</span>
+                    <span className="text-slate-900">${taxType.amount.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex space-x-2">
               <button
-                onClick={() => setSelectedTaxReport(report)}
-                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                onClick={() => handleDownloadReport(report.id, 'tax')}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
               >
-                View
+                Download
               </button>
             </div>
           </div>
@@ -318,7 +296,7 @@ export default function TaxInsuranceBenefitsPage() {
       ))}
       {taxReports.length === 0 && (
         <div className="text-center py-8 text-slate-500">
-          No tax reports found. Click "Generate Report" to create one.
+          No tax reports found
         </div>
       )}
     </div>
@@ -326,24 +304,71 @@ export default function TaxInsuranceBenefitsPage() {
 
   const renderInsuranceReports = () => (
     <div className="space-y-4">
-      {insuranceReports.map((report: any) => (
+      {insuranceReports.map((report) => (
         <div key={report.id} className="bg-white border border-slate-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
-              <h3 className="font-medium text-slate-900">{report.title || 'Insurance Brackets Report'}</h3>
-              <p className="text-sm text-slate-600 mt-1">Period: {report.period}</p>
-              <p className="text-xs text-slate-500">Generated: {report.generatedAt ? new Date(report.generatedAt).toLocaleString() : 'N/A'}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm text-slate-500">Insurance Brackets</p>
-                <p className="text-xl font-bold text-blue-600">{report.insuranceBrackets?.length || report.insuranceTypes?.length || 0}</p>
+              <h3 className="font-medium text-slate-900">{report.title}</h3>
+              <p className="text-sm text-slate-600 mt-1">{report.period}</p>
+              <div className="mt-2 grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500">Total Contributions</p>
+                  <p className="text-lg font-semibold text-slate-900">${report.totalContributions.toLocaleString()}</p>
+                </div>
+                {report.totalEmployeeContributions !== undefined && (
+                  <div>
+                    <p className="text-xs text-slate-500">Employee Contributions</p>
+                    <p className="text-lg font-semibold text-blue-600">${report.totalEmployeeContributions.toLocaleString()}</p>
+                  </div>
+                )}
+                {report.totalEmployerContributions !== undefined && (
+                  <div>
+                    <p className="text-xs text-slate-500">Employer Contributions</p>
+                    <p className="text-lg font-semibold text-green-600">${report.totalEmployerContributions.toLocaleString()}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs text-slate-500">Employees</p>
+                  <p className="text-lg font-semibold text-slate-900">{report.employeeCount}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Status</p>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    report.status === 'final' ? 'bg-green-100 text-green-800' :
+                    report.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {report.status}
+                  </span>
+                </div>
               </div>
+              <div className="mt-3 space-y-1">
+                {report.insuranceTypes.map((insuranceType, index) => (
+                  <div key={index} className="space-y-1">
+                    <div className="flex justify-between text-sm font-medium">
+                      <span className="text-slate-700">{insuranceType.insuranceType}</span>
+                      <span className="text-slate-900">${insuranceType.amount.toLocaleString()}</span>
+                    </div>
+                    {(insuranceType.employeeContribution !== undefined || insuranceType.employerContribution !== undefined) && (
+                      <div className="ml-4 flex justify-between text-xs text-slate-500">
+                        {insuranceType.employeeContribution !== undefined && (
+                          <span>Employee: ${insuranceType.employeeContribution.toLocaleString()}</span>
+                        )}
+                        {insuranceType.employerContribution !== undefined && (
+                          <span>Employer: ${insuranceType.employerContribution.toLocaleString()}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex space-x-2">
               <button
-                onClick={() => setSelectedInsuranceReport(report)}
-                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                onClick={() => handleDownloadReport(report.id, 'insurance')}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
               >
-                View
+                Download
               </button>
             </div>
           </div>
@@ -351,7 +376,7 @@ export default function TaxInsuranceBenefitsPage() {
       ))}
       {insuranceReports.length === 0 && (
         <div className="text-center py-8 text-slate-500">
-          No insurance reports found. Click "Generate Report" to create one.
+          No insurance reports found
         </div>
       )}
     </div>
@@ -359,24 +384,47 @@ export default function TaxInsuranceBenefitsPage() {
 
   const renderBenefitsReports = () => (
     <div className="space-y-4">
-      {benefitsReports.map((report: any) => (
+      {benefitsReports.map((report) => (
         <div key={report.id} className="bg-white border border-slate-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
-              <h3 className="font-medium text-slate-900">{report.title || 'Termination & Resignation Benefits Report'}</h3>
-              <p className="text-sm text-slate-600 mt-1">Period: {report.period}</p>
-              <p className="text-xs text-slate-500">Generated: {report.generatedAt ? new Date(report.generatedAt).toLocaleString() : 'N/A'}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm text-slate-500">Benefits</p>
-                <p className="text-xl font-bold text-blue-600">{report.benefits?.length || report.benefitTypes?.length || 0}</p>
+              <h3 className="font-medium text-slate-900">{report.title}</h3>
+              <p className="text-sm text-slate-600 mt-1">{report.period}</p>
+              <div className="mt-2 grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500">Total Benefits</p>
+                  <p className="text-lg font-semibold text-slate-900">${report.totalBenefits.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Employees</p>
+                  <p className="text-lg font-semibold text-slate-900">{report.employeeCount}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Status</p>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    report.status === 'final' ? 'bg-green-100 text-green-800' :
+                    report.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {report.status}
+                  </span>
+                </div>
               </div>
+              <div className="mt-3 space-y-1">
+                {report.benefitTypes.map((benefitType, index) => (
+                  <div key={index} className="flex justify-between text-sm">
+                    <span className="text-slate-600">{benefitType.benefitType}</span>
+                    <span className="text-slate-900">${benefitType.amount.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex space-x-2">
               <button
-                onClick={() => setSelectedBenefitsReport(report)}
-                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                onClick={() => handleDownloadReport(report.id, 'benefits')}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
               >
-                View
+                Download
               </button>
             </div>
           </div>
@@ -384,7 +432,7 @@ export default function TaxInsuranceBenefitsPage() {
       ))}
       {benefitsReports.length === 0 && (
         <div className="text-center py-8 text-slate-500">
-          No benefits reports found. Click "Generate Report" to create one.
+          No benefits reports found
         </div>
       )}
     </div>
@@ -392,24 +440,50 @@ export default function TaxInsuranceBenefitsPage() {
 
   const renderPayslipHistoryReports = () => (
     <div className="space-y-4">
-      {payslipHistoryReports.map((report: any) => (
+      {payslipHistoryReports.map((report) => (
         <div key={report.id} className="bg-white border border-slate-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium text-slate-900">{report.title || 'Payslip History Report'}</h3>
-              <p className="text-sm text-slate-600 mt-1">Period: {report.period}</p>
-              <p className="text-xs text-slate-500">Generated: {report.generatedAt ? new Date(report.generatedAt).toLocaleString() : 'N/A'}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm text-slate-500">Payslips</p>
-                <p className="text-xl font-bold text-blue-600">{report.totalPayslips || report.payslips?.length || 0}</p>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h3 className="font-medium text-slate-900">{report.title}</h3>
+              <p className="text-sm text-slate-600 mt-1">{report.period}</p>
+              <div className="mt-2 grid grid-cols-4 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500">Total Payslips</p>
+                  <p className="text-lg font-semibold text-slate-900">{report.totalPayslips}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Employees</p>
+                  <p className="text-lg font-semibold text-slate-900">{report.employeeCount}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Total Gross Pay</p>
+                  <p className="text-lg font-semibold text-slate-900">${report.totalGrossPay.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Total Net Pay</p>
+                  <p className="text-lg font-semibold text-green-600">${report.totalNetPay.toLocaleString()}</p>
+                </div>
               </div>
+              {report.departmentBreakdown && report.departmentBreakdown.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs text-slate-500 mb-2">Department Breakdown</p>
+                  <div className="space-y-1">
+                    {report.departmentBreakdown.map((dept, index) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span className="text-slate-600">{dept.departmentName}</span>
+                        <span className="text-slate-900">{dept.employeeCount} employees - ${dept.totalNetPay.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex space-x-2">
               <button
-                onClick={() => setSelectedPayslipReport(report)}
-                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                onClick={() => handleDownloadReport(report.id, 'payslip-history')}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
               >
-                View
+                Download
               </button>
             </div>
           </div>
@@ -417,7 +491,7 @@ export default function TaxInsuranceBenefitsPage() {
       ))}
       {payslipHistoryReports.length === 0 && (
         <div className="text-center py-8 text-slate-500">
-          No payslip history reports found. Click "Generate Report" to create one.
+          No payslip history reports found
         </div>
       )}
     </div>
@@ -532,6 +606,7 @@ export default function TaxInsuranceBenefitsPage() {
                   <option value="tax">Tax Report</option>
                   <option value="insurance">Insurance Report</option>
                   <option value="benefits">Benefits Report</option>
+                  <option value="payroll-summary">Payroll Summary</option>
                   <option value="payslip-history">Payslip History</option>
                 </select>
               </div>
@@ -562,584 +637,6 @@ export default function TaxInsuranceBenefitsPage() {
               >
                 Generate
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tax Report Detail Modal */}
-      {selectedTaxReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">{selectedTaxReport.title || 'Tax Rules Report'}</h3>
-                <p className="text-sm text-slate-600">Period: {selectedTaxReport.period}</p>
-                <p className="text-xs text-slate-500">Generated: {selectedTaxReport.generatedAt ? new Date(selectedTaxReport.generatedAt).toLocaleString() : 'N/A'}</p>
-              </div>
-              <button
-                onClick={() => setSelectedTaxReport(null)}
-                className="text-slate-400 hover:text-slate-600 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Tax Rules Display */}
-            {selectedTaxReport.taxRules && selectedTaxReport.taxRules.length > 0 ? (
-              <div className="space-y-3 mb-6">
-                <h4 className="font-medium text-slate-800">Tax Rules ({selectedTaxReport.taxRules.length})</h4>
-                {selectedTaxReport.taxRules.map((rule: any, idx: number) => (
-                  <div key={idx} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h5 className="font-semibold text-slate-900">{rule.name}</h5>
-                        <p className="text-sm text-slate-600">{rule.description}</p>
-                      </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        rule.status === 'ACTIVE' || rule.status === 'active' ? 'bg-green-100 text-green-700' : 
-                        rule.status === 'APPROVED' || rule.status === 'approved' ? 'bg-blue-100 text-blue-700' : 
-                        rule.status === 'DRAFT' || rule.status === 'draft' ? 'bg-yellow-100 text-yellow-700' : 
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {rule.status}
-                      </span>
-                    </div>
-                    
-                    {/* Rule Details */}
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-3">
-                      <div><span className="font-medium">ID:</span> {rule.id || rule._id}</div>
-                      <div><span className="font-medium">Created:</span> {rule.createdAt ? new Date(rule.createdAt).toLocaleString() : 'N/A'}</div>
-                      <div><span className="font-medium">Updated:</span> {rule.updatedAt ? new Date(rule.updatedAt).toLocaleString() : 'N/A'}</div>
-                      {rule.approvedAt && <div><span className="font-medium">Approved:</span> {new Date(rule.approvedAt).toLocaleString()}</div>}
-                    </div>
-                    
-                    {/* Tax Components */}
-                    {rule.taxComponents && rule.taxComponents.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium text-slate-700 mb-2">Tax Components ({rule.taxComponents.length}):</p>
-                        <div className="grid gap-2">
-                          {rule.taxComponents.map((comp: any, cIdx: number) => (
-                            <div key={cIdx} className="bg-white p-3 rounded border border-slate-200">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="font-medium text-slate-900">{comp.name}</span>
-                                <span className="text-lg font-bold text-blue-600">{comp.rate}%</span>
-                              </div>
-                              <p className="text-xs text-slate-600 mb-2">{comp.description}</p>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                                <div><span className="font-medium">Type:</span> {comp.type}</div>
-                                <div><span className="font-medium">Min:</span> ${comp.minAmount || 0}</div>
-                                <div><span className="font-medium">Max:</span> ${comp.maxAmount || 0}</div>
-                                <div><span className="font-medium">Active:</span> {comp.isActive ? 'Yes' : 'No'}</div>
-                              </div>
-                              {comp.formula && (
-                                <div className="mt-1 text-xs text-slate-500"><span className="font-medium">Formula:</span> {comp.formula}</div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4 text-slate-500 mb-6">
-                No tax rules found for this period
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex justify-between border-t pt-4">
-              <button
-                onClick={() => handleDeleteTaxReport(selectedTaxReport.id)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Delete Report
-              </button>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    // Download CSV
-                    let csv = 'TAX RULES REPORT\n\n';
-                    csv += `Period,${selectedTaxReport.period}\n`;
-                    csv += `Generated,${selectedTaxReport.generatedAt ? new Date(selectedTaxReport.generatedAt).toLocaleString() : 'N/A'}\n\n`;
-                    
-                    csv += 'TAX RULES\n';
-                    csv += 'ID,Name,Description,Status,Created At,Updated At\n';
-                    (selectedTaxReport.taxRules || []).forEach((rule: any) => {
-                      csv += `"${rule.id || rule._id || ''}","${rule.name || ''}","${rule.description || ''}","${rule.status || ''}","${rule.createdAt ? new Date(rule.createdAt).toLocaleString() : ''}","${rule.updatedAt ? new Date(rule.updatedAt).toLocaleString() : ''}"\n`;
-                    });
-                    csv += '\n';
-                    
-                    csv += 'TAX COMPONENTS\n';
-                    csv += 'Rule Name,Component Name,Type,Description,Rate (%),Min Amount,Max Amount,Is Active,Formula\n';
-                    (selectedTaxReport.taxRules || []).forEach((rule: any) => {
-                      if (rule.taxComponents && rule.taxComponents.length > 0) {
-                        rule.taxComponents.forEach((comp: any) => {
-                          csv += `"${rule.name || ''}","${comp.name || ''}","${comp.type || ''}","${comp.description || ''}",${comp.rate || 0},${comp.minAmount || 0},${comp.maxAmount || 0},${comp.isActive ? 'Yes' : 'No'},"${comp.formula || ''}"\n`;
-                        });
-                      }
-                    });
-                    
-                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `tax-rules-report-${Date.now()}.csv`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  Download CSV
-                </button>
-                <button
-                  onClick={() => setSelectedTaxReport(null)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Payslip History Report Detail Modal */}
-      {selectedPayslipReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">{selectedPayslipReport.title || 'Payslip History Report'}</h3>
-                <p className="text-sm text-slate-600">Period: {selectedPayslipReport.period}</p>
-                <p className="text-xs text-slate-500">Generated: {selectedPayslipReport.generatedAt ? new Date(selectedPayslipReport.generatedAt).toLocaleString() : 'N/A'}</p>
-              </div>
-              <button
-                onClick={() => setSelectedPayslipReport(null)}
-                className="text-slate-400 hover:text-slate-600 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Summary Section */}
-            <div className="grid grid-cols-4 gap-4 mb-6 bg-slate-50 rounded-lg p-4">
-              <div>
-                <p className="text-xs text-slate-500">Total Payslips</p>
-                <p className="text-xl font-bold text-slate-900">{selectedPayslipReport.totalPayslips || selectedPayslipReport.payslips?.length || 0}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Employees</p>
-                <p className="text-xl font-bold text-slate-900">{selectedPayslipReport.employeeCount || 0}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Total Gross Pay</p>
-                <p className="text-xl font-bold text-slate-900">${(selectedPayslipReport.totalGrossPay || 0).toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Total Net Pay</p>
-                <p className="text-xl font-bold text-green-600">${(selectedPayslipReport.totalNetPay || 0).toLocaleString()}</p>
-              </div>
-            </div>
-
-            {/* Department Breakdown */}
-            {selectedPayslipReport.departmentBreakdown && selectedPayslipReport.departmentBreakdown.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-medium text-slate-800 mb-3">Department Breakdown</h4>
-                <div className="bg-slate-50 rounded-lg p-4">
-                  <div className="grid gap-2">
-                    {selectedPayslipReport.departmentBreakdown.map((dept: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center py-2 border-b border-slate-200 last:border-0">
-                        <span className="font-medium text-slate-700">{dept.departmentName}</span>
-                        <div className="flex gap-6 text-sm">
-                          <span className="text-slate-600">{dept.employeeCount} employees</span>
-                          <span className="text-green-600 font-semibold">${(dept.totalNetPay || 0).toLocaleString()}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Payslips Detail */}
-            {selectedPayslipReport.payslips && selectedPayslipReport.payslips.length > 0 ? (
-              <div className="mb-6">
-                <h4 className="font-medium text-slate-800 mb-3">Payslips ({selectedPayslipReport.payslips.length})</h4>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {selectedPayslipReport.payslips.map((payslip: any, idx: number) => (
-                    <div key={idx} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h5 className="font-semibold text-slate-900">
-                            {payslip.employeeName || payslip.employeeId?.firstName + ' ' + payslip.employeeId?.lastName || `Employee ${payslip.employeeId}`}
-                          </h5>
-                          <p className="text-sm text-slate-600">{payslip.employeeId?.email || ''}</p>
-                        </div>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          payslip.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' :
-                          payslip.paymentStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {payslip.paymentStatus || 'N/A'}
-                        </span>
-                      </div>
-                      
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <span className="text-slate-500">Gross Salary:</span>
-                          <span className="ml-2 font-semibold text-slate-900">${(payslip.totalGrossSalary || 0).toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">Deductions:</span>
-                          <span className="ml-2 font-semibold text-red-600">${(payslip.totaDeductions || payslip.totalDeductions || 0).toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">Net Pay:</span>
-                          <span className="ml-2 font-semibold text-green-600">${(payslip.netPay || 0).toLocaleString()}</span>
-                        </div>
-                      </div>
-
-                      {/* Earnings Details */}
-                      {payslip.earningsDetails && (
-                        <div className="mt-3 pt-3 border-t border-slate-200">
-                          <p className="text-xs font-medium text-slate-700 mb-2">Earnings:</p>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div><span className="text-slate-500">Base Salary:</span> ${(payslip.earningsDetails.baseSalary || 0).toLocaleString()}</div>
-                            {payslip.earningsDetails.allowances?.length > 0 && (
-                              <div><span className="text-slate-500">Allowances:</span> {payslip.earningsDetails.allowances.length} items</div>
-                            )}
-                            {payslip.earningsDetails.bonuses?.length > 0 && (
-                              <div><span className="text-slate-500">Bonuses:</span> {payslip.earningsDetails.bonuses.length} items</div>
-                            )}
-                            {payslip.earningsDetails.benefits?.length > 0 && (
-                              <div><span className="text-slate-500">Benefits:</span> {payslip.earningsDetails.benefits.length} items</div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Deductions Details */}
-                      {payslip.deductionsDetails && (
-                        <div className="mt-2 pt-2 border-t border-slate-200">
-                          <p className="text-xs font-medium text-slate-700 mb-2">Deductions:</p>
-                          <div className="grid grid-cols-3 gap-2 text-xs">
-                            <div><span className="text-slate-500">Tax:</span> ${(payslip.deductionsDetails.taxAmount || 0).toLocaleString()}</div>
-                            <div><span className="text-slate-500">Insurance:</span> ${(payslip.deductionsDetails.insuranceAmount || 0).toLocaleString()}</div>
-                            <div><span className="text-slate-500">Penalties:</span> ${(payslip.deductionsDetails.penaltiesAmount || 0).toLocaleString()}</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-4 text-slate-500 mb-6">
-                No payslips found for this period
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex justify-between border-t pt-4">
-              <button
-                onClick={() => handleDeletePayslipReport(selectedPayslipReport.id)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Delete Report
-              </button>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    // Download CSV
-                    let csv = 'PAYSLIP HISTORY REPORT\n\n';
-                    csv += `Period,${selectedPayslipReport.period}\n`;
-                    csv += `Generated,${selectedPayslipReport.generatedAt ? new Date(selectedPayslipReport.generatedAt).toLocaleString() : 'N/A'}\n`;
-                    csv += `Total Payslips,${selectedPayslipReport.totalPayslips || 0}\n`;
-                    csv += `Total Employees,${selectedPayslipReport.employeeCount || 0}\n`;
-                    csv += `Total Gross Pay,$${(selectedPayslipReport.totalGrossPay || 0).toLocaleString()}\n`;
-                    csv += `Total Net Pay,$${(selectedPayslipReport.totalNetPay || 0).toLocaleString()}\n\n`;
-                    
-                    if (selectedPayslipReport.departmentBreakdown?.length > 0) {
-                      csv += 'DEPARTMENT BREAKDOWN\n';
-                      csv += 'Department,Employees,Total Net Pay\n';
-                      selectedPayslipReport.departmentBreakdown.forEach((dept: any) => {
-                        csv += `"${dept.departmentName}",${dept.employeeCount},$${(dept.totalNetPay || 0).toLocaleString()}\n`;
-                      });
-                      csv += '\n';
-                    }
-                    
-                    csv += 'PAYSLIPS\n';
-                    csv += 'Employee ID,Employee Name,Email,Gross Salary,Deductions,Net Pay,Status\n';
-                    (selectedPayslipReport.payslips || []).forEach((p: any) => {
-                      const empName = p.employeeName || (p.employeeId?.firstName ? p.employeeId.firstName + ' ' + p.employeeId.lastName : 'N/A');
-                      csv += `"${p.employeeId?._id || p.employeeId || ''}","${empName}","${p.employeeId?.email || ''}",${p.totalGrossSalary || 0},${p.totaDeductions || p.totalDeductions || 0},${p.netPay || 0},"${p.paymentStatus || ''}"\n`;
-                    });
-                    
-                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `payslip-history-report-${Date.now()}.csv`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  Download CSV
-                </button>
-                <button
-                  onClick={() => setSelectedPayslipReport(null)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Insurance Report Detail Modal */}
-      {selectedInsuranceReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">{selectedInsuranceReport.title || 'Insurance Brackets Report'}</h3>
-                <p className="text-sm text-slate-600">Period: {selectedInsuranceReport.period}</p>
-                <p className="text-xs text-slate-500">Generated: {selectedInsuranceReport.generatedAt ? new Date(selectedInsuranceReport.generatedAt).toLocaleString() : 'N/A'}</p>
-              </div>
-              <button
-                onClick={() => setSelectedInsuranceReport(null)}
-                className="text-slate-400 hover:text-slate-600 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Insurance Brackets Display */}
-            {selectedInsuranceReport.insuranceBrackets && selectedInsuranceReport.insuranceBrackets.length > 0 ? (
-              <div className="space-y-3 mb-6">
-                <h4 className="font-medium text-slate-800">Insurance Brackets ({selectedInsuranceReport.insuranceBrackets.length})</h4>
-                {selectedInsuranceReport.insuranceBrackets.map((bracket: any, idx: number) => (
-                  <div key={idx} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h5 className="font-semibold text-slate-900">{bracket.name}</h5>
-                        <p className="text-sm text-slate-600">Amount: ${(bracket.amount || 0).toLocaleString()}</p>
-                      </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        bracket.status === 'APPROVED' || bracket.status === 'approved' ? 'bg-green-100 text-green-700' : 
-                        bracket.status === 'ACTIVE' || bracket.status === 'active' ? 'bg-blue-100 text-blue-700' : 
-                        bracket.status === 'DRAFT' || bracket.status === 'draft' ? 'bg-yellow-100 text-yellow-700' : 
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {bracket.status}
-                      </span>
-                    </div>
-                    
-                    {/* Bracket Details */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                      <div className="bg-white p-2 rounded border border-slate-200">
-                        <p className="text-xs text-slate-500">Min Salary</p>
-                        <p className="font-semibold text-slate-900">${(bracket.minSalary || 0).toLocaleString()}</p>
-                      </div>
-                      <div className="bg-white p-2 rounded border border-slate-200">
-                        <p className="text-xs text-slate-500">Max Salary</p>
-                        <p className="font-semibold text-slate-900">${(bracket.maxSalary || 0).toLocaleString()}</p>
-                      </div>
-                      <div className="bg-white p-2 rounded border border-slate-200">
-                        <p className="text-xs text-slate-500">Employee Rate</p>
-                        <p className="font-semibold text-blue-600">{bracket.employeeRate || 0}%</p>
-                      </div>
-                      <div className="bg-white p-2 rounded border border-slate-200">
-                        <p className="text-xs text-slate-500">Employer Rate</p>
-                        <p className="font-semibold text-green-600">{bracket.employerRate || 0}%</p>
-                      </div>
-                    </div>
-
-                    {/* Timestamps */}
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200">
-                      <div><span className="font-medium">ID:</span> {bracket.id || bracket._id}</div>
-                      <div><span className="font-medium">Created:</span> {bracket.createdAt ? new Date(bracket.createdAt).toLocaleString() : 'N/A'}</div>
-                      <div><span className="font-medium">Updated:</span> {bracket.updatedAt ? new Date(bracket.updatedAt).toLocaleString() : 'N/A'}</div>
-                      {bracket.approvedAt && <div><span className="font-medium">Approved:</span> {new Date(bracket.approvedAt).toLocaleString()}</div>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4 text-slate-500 mb-6">
-                No insurance brackets found for this period
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex justify-between border-t pt-4">
-              <button
-                onClick={() => handleDeleteInsuranceReport(selectedInsuranceReport.id)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Delete Report
-              </button>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    // Download CSV
-                    let csv = 'INSURANCE BRACKETS REPORT\n\n';
-                    csv += `Period,${selectedInsuranceReport.period}\n`;
-                    csv += `Generated,${selectedInsuranceReport.generatedAt ? new Date(selectedInsuranceReport.generatedAt).toLocaleString() : 'N/A'}\n\n`;
-                    
-                    csv += 'INSURANCE BRACKETS\n';
-                    csv += 'ID,Name,Amount,Status,Min Salary,Max Salary,Employee Rate (%),Employer Rate (%),Created At,Updated At,Approved At\n';
-                    (selectedInsuranceReport.insuranceBrackets || []).forEach((bracket: any) => {
-                      csv += `"${bracket.id || bracket._id || ''}","${bracket.name || ''}",${bracket.amount || 0},"${bracket.status || ''}",${bracket.minSalary || 0},${bracket.maxSalary || 0},${bracket.employeeRate || 0},${bracket.employerRate || 0},"${bracket.createdAt ? new Date(bracket.createdAt).toLocaleString() : ''}","${bracket.updatedAt ? new Date(bracket.updatedAt).toLocaleString() : ''}","${bracket.approvedAt ? new Date(bracket.approvedAt).toLocaleString() : ''}"\n`;
-                    });
-                    
-                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `insurance-brackets-report-${Date.now()}.csv`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  Download CSV
-                </button>
-                <button
-                  onClick={() => setSelectedInsuranceReport(null)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Benefits Report Detail Modal */}
-      {selectedBenefitsReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">{selectedBenefitsReport.title || 'Termination & Resignation Benefits Report'}</h3>
-                <p className="text-sm text-slate-600">Period: {selectedBenefitsReport.period}</p>
-                <p className="text-xs text-slate-500">Generated: {selectedBenefitsReport.generatedAt ? new Date(selectedBenefitsReport.generatedAt).toLocaleString() : 'N/A'}</p>
-              </div>
-              <button
-                onClick={() => setSelectedBenefitsReport(null)}
-                className="text-slate-400 hover:text-slate-600 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Summary */}
-            <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-slate-50 rounded-lg">
-              <div>
-                <p className="text-sm text-slate-500">Total Benefits</p>
-                <p className="text-2xl font-bold text-green-600">${(selectedBenefitsReport.totalBenefits || 0).toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-sm text-slate-500">Number of Benefit Types</p>
-                <p className="text-2xl font-bold text-blue-600">{selectedBenefitsReport.benefits?.length || selectedBenefitsReport.benefitTypes?.length || 0}</p>
-              </div>
-            </div>
-
-            {/* Benefits Display */}
-            {(selectedBenefitsReport.benefits || selectedBenefitsReport.benefitTypes) && (selectedBenefitsReport.benefits || selectedBenefitsReport.benefitTypes).length > 0 ? (
-              <div className="space-y-3 mb-6">
-                <h4 className="font-medium text-slate-800">Benefits ({(selectedBenefitsReport.benefits || selectedBenefitsReport.benefitTypes).length})</h4>
-                {(selectedBenefitsReport.benefits || selectedBenefitsReport.benefitTypes).map((benefit: any, idx: number) => (
-                  <div key={idx} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h5 className="font-semibold text-slate-900">{benefit.name || benefit.benefitType}</h5>
-                        <p className="text-sm text-slate-600">Amount: ${(benefit.amount || 0).toLocaleString()}</p>
-                      </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        benefit.status === 'APPROVED' || benefit.status === 'approved' ? 'bg-green-100 text-green-700' : 
-                        benefit.status === 'ACTIVE' || benefit.status === 'active' ? 'bg-blue-100 text-blue-700' : 
-                        benefit.status === 'DRAFT' || benefit.status === 'draft' ? 'bg-yellow-100 text-yellow-700' : 
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {benefit.status || 'N/A'}
-                      </span>
-                    </div>
-                    
-                    {/* Benefit Details */}
-                    {benefit.terms && (
-                      <div className="mt-2 p-2 bg-white rounded border border-slate-200">
-                        <p className="text-xs text-slate-500">Terms</p>
-                        <p className="text-sm text-slate-700">{benefit.terms}</p>
-                      </div>
-                    )}
-
-                    {/* Timestamps */}
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200">
-                      <div><span className="font-medium">ID:</span> {benefit.id || benefit._id}</div>
-                      <div><span className="font-medium">Created:</span> {benefit.createdAt ? new Date(benefit.createdAt).toLocaleString() : 'N/A'}</div>
-                      <div><span className="font-medium">Updated:</span> {benefit.updatedAt ? new Date(benefit.updatedAt).toLocaleString() : 'N/A'}</div>
-                      {benefit.approvedAt && <div><span className="font-medium">Approved:</span> {new Date(benefit.approvedAt).toLocaleString()}</div>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4 text-slate-500 mb-6">
-                No benefits found for this period
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex justify-between border-t pt-4">
-              <button
-                onClick={() => handleDeleteBenefitsReport(selectedBenefitsReport.id)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Delete Report
-              </button>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    // Download CSV
-                    let csv = 'TERMINATION & RESIGNATION BENEFITS REPORT\n\n';
-                    csv += `Period,${selectedBenefitsReport.period}\n`;
-                    csv += `Generated,${selectedBenefitsReport.generatedAt ? new Date(selectedBenefitsReport.generatedAt).toLocaleString() : 'N/A'}\n`;
-                    csv += `Total Benefits,$${(selectedBenefitsReport.totalBenefits || 0).toLocaleString()}\n\n`;
-                    
-                    csv += 'BENEFITS\n';
-                    csv += 'ID,Name,Amount,Status,Terms,Created At,Updated At,Approved At\n';
-                    (selectedBenefitsReport.benefits || selectedBenefitsReport.benefitTypes || []).forEach((benefit: any) => {
-                      csv += `"${benefit.id || benefit._id || ''}","${benefit.name || benefit.benefitType || ''}",${benefit.amount || 0},"${benefit.status || ''}","${benefit.terms || ''}","${benefit.createdAt ? new Date(benefit.createdAt).toLocaleString() : ''}","${benefit.updatedAt ? new Date(benefit.updatedAt).toLocaleString() : ''}","${benefit.approvedAt ? new Date(benefit.approvedAt).toLocaleString() : ''}"\n`;
-                    });
-                    
-                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `benefits-report-${Date.now()}.csv`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  Download CSV
-                </button>
-                <button
-                  onClick={() => setSelectedBenefitsReport(null)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200"
-                >
-                  Close
-                </button>
-              </div>
             </div>
           </div>
         </div>

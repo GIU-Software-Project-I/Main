@@ -449,29 +449,59 @@ export default function MyAttendancePage() {
           </div>
         )}
 
-        {/* Help Card */}
-        <div className="bg-muted/50 rounded-xl border border-border p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 bg-card rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground">Need to Correct an Entry?</h3>
-              <p className="text-muted-foreground mt-1 text-sm">
-                If you missed a clock in/out or need to make corrections to your attendance record,
-                submit a correction request for manager approval.
-              </p>
-              <Link
-                href="/portal/my-attendance/corrections"
-                className="inline-flex items-center gap-1 mt-3 text-sm font-medium text-primary hover:text-primary/80"
-              >
-                Submit Correction Request
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        {/* Help Cards */}
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Correction Help Card */}
+          <div className="bg-muted/50 rounded-xl border border-border p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-card rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-              </Link>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Need to Correct an Entry?</h3>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  If you missed a clock in/out or need to make corrections to your attendance record,
+                  submit a correction request for manager approval.
+                </p>
+                <Link
+                  href="/portal/my-attendance/corrections"
+                  className="inline-flex items-center gap-1 mt-3 text-sm font-medium text-primary hover:text-primary/80"
+                >
+                  Submit Correction Request
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Break Permissions Help Card */}
+          <div className="bg-muted/50 rounded-xl border border-border p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-card rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Request Break Time?</h3>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Need a break during your shift? Request break permission to be tracked and approved
+                  by your manager. Approved breaks won't count toward your working hours.
+                </p>
+                <Link
+                  href="/portal/my-attendance/break-permissions"
+                  className="inline-flex items-center gap-1 mt-3 text-sm font-medium text-primary hover:text-primary/80"
+                >
+                  Request Break Permission
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

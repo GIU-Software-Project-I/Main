@@ -231,32 +231,12 @@ export const payrollSpecialistService = {
   },
 
   async generateTaxReport(filters: ReportFilters) {
-    const year = filters.startDate ? new Date(filters.startDate).getFullYear() : new Date().getFullYear();
-    const params = new URLSearchParams({
-      type: 'tax',
-      year: year.toString()
-    });
-    
-    if (filters.startDate) {
-      params.append('startDate', filters.startDate);
-    }
-    if (filters.endDate) {
-      params.append('endDate', filters.endDate);
-    }
-    
-    const response = await api.get<TaxReport>(`/payroll/reports/compliance?${params.toString()}`);
+    const response = await api.post<TaxReport>('/payroll/reports/tax/generate', filters);
     return response;
   },
 
   async generatePaySlipHistoryReport(filters: ReportFilters) {
-    const params = new URLSearchParams();
-    if (filters.startDate) {
-      params.append('startDate', filters.startDate);
-    }
-    if (filters.endDate) {
-      params.append('endDate', filters.endDate);
-    }
-    const response = await api.get<PaySlipHistoryReport>(`/payroll/tracking/reports/payslip-history?${params.toString()}`);
+    const response = await api.post<PaySlipHistoryReport>('/payroll/reports/payslip/generate', filters);
     return response;
   },
 

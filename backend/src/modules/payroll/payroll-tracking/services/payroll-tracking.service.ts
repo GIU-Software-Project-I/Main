@@ -20,8 +20,6 @@ import { TimeException, TimeExceptionDocument } from "../../../time-management/m
 import { ShiftAssignment, ShiftAssignmentDocument } from "../../../time-management/models/shift-assignment.schema";
 import { Shift, ShiftDocument } from "../../../time-management/models/shift.schema";
 import { TimeExceptionType, TimeExceptionStatus } from "../../../time-management/models/enums";
-import { taxBrackets, taxBracketsDocument } from "../../payroll-configuration/models/taxBrackets.schema";
-import { taxRules, taxRulesDocument } from "../../payroll-configuration/models/taxRules.schema";
 
 @Injectable()
 export class PayrollTrackingService {
@@ -38,8 +36,6 @@ export class PayrollTrackingService {
     @InjectModel(TimeException.name) private timeExceptionModel: Model<TimeExceptionDocument>,
     @InjectModel(ShiftAssignment.name) private shiftAssignmentModel: Model<ShiftAssignmentDocument>,
     @InjectModel(Shift.name) private shiftModel: Model<ShiftDocument>,
-    @InjectModel(taxBrackets.name) private taxBracketsModel: Model<taxBracketsDocument>,
-    @InjectModel(taxRules.name) private taxRulesModel: Model<taxRulesDocument>,
     private readonly payrollConfigService: PayrollConfigurationService,
     private readonly leavesService: UnifiedLeaveService,
     private readonly notificationService: NotificationService,
@@ -563,7 +559,7 @@ async getLeaveCompensation(employeeId: string) {
     return payslips.map(payslip => ({
       payslipId: payslip._id,
       insuranceDeductions: payslip.deductionsDetails?.insurances || [],
-      totalInsurance: payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + (i.amount || 0), 0) || 0,
+      totalInsurance: payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + ((i as any).amount || 0), 0) || 0,
       // Additional insurance details
     }));
   }
@@ -1286,18 +1282,10 @@ async getLeaveCompensation(employeeId: string) {
   }
 
   // REQ-PY-25: Generate tax/insurance/benefits reports
-  async generateComplianceReport(reportType: string, year?: number, startDateParam?: string, endDateParam?: string) {
+  async generateComplianceReport(reportType: string, year?: number) {
     const targetYear = year || new Date().getFullYear();
-    let startDate: Date;
-    let endDate: Date;
-    
-    if (startDateParam && endDateParam) {
-      startDate = new Date(startDateParam);
-      endDate = new Date(endDateParam);
-    } else {
-      startDate = new Date(targetYear, 0, 1);
-      endDate = new Date(targetYear, 11, 31);
-    }
+    const startDate = new Date(targetYear, 0, 1);
+    const endDate = new Date(targetYear, 11, 31);
     
     const payslips = await this.payslipModel.find({
       createdAt: {
@@ -1310,7 +1298,7 @@ async getLeaveCompensation(employeeId: string) {
     
     switch (reportType.toLowerCase()) {
       case 'tax':
-        reportData = await this.generateTaxReport(payslips, targetYear, startDate, endDate);
+        reportData = this.generateTaxReport(payslips, targetYear);
         break;
       case 'insurance':
         reportData = this.generateInsuranceReport(payslips, targetYear);
@@ -1696,107 +1684,6 @@ async getLeaveCompensation(employeeId: string) {
     return refund.save();
   }
 
-  // Generate Payslip History Report - fetches from payslips collection
-  async generatePayslipHistoryReport(startDate?: string, endDate?: string) {
-    const query: any = {};
-    
-    // Filter by date range if provided
-    if (startDate || endDate) {
-      query.createdAt = {};
-      if (startDate) {
-        query.createdAt.$gte = new Date(startDate);
-      }
-      if (endDate) {
-        query.createdAt.$lte = new Date(endDate);
-      }
-    }
-    
-    // Fetch payslips with employee details
-    const payslips = await this.payslipModel
-      .find(query)
-      .populate('employeeId', 'firstName lastName employeeId email departmentId')
-      .populate('payrollRunId', 'payrollPeriod status')
-      .sort({ createdAt: -1 })
-      .exec();
-    
-    console.log('Payslips fetched:', payslips.length);
-    
-    // Map payslips to report format with all attributes
-    const payslipHistory = payslips.map((payslip: any) => ({
-      id: payslip._id,
-      employeeId: payslip.employeeId?._id || payslip.employeeId,
-      employeeName: payslip.employeeId?.firstName && payslip.employeeId?.lastName 
-        ? `${payslip.employeeId.firstName} ${payslip.employeeId.lastName}` 
-        : 'Unknown',
-      employeeCode: payslip.employeeId?.employeeId || 'N/A',
-      email: payslip.employeeId?.email || 'N/A',
-      payrollRunId: payslip.payrollRunId?._id || payslip.payrollRunId,
-      payrollPeriod: payslip.payrollRunId?.payrollPeriod || 'N/A',
-      // Earnings
-      baseSalary: payslip.earningsDetails?.baseSalary || 0,
-      allowances: payslip.earningsDetails?.allowances?.map((a: any) => ({
-        name: a.name,
-        amount: a.amount,
-        type: a.type
-      })) || [],
-      bonuses: payslip.earningsDetails?.bonuses?.map((b: any) => ({
-        name: b.name,
-        amount: b.amount
-      })) || [],
-      benefits: payslip.earningsDetails?.benefits?.map((b: any) => ({
-        name: b.name,
-        amount: b.amount
-      })) || [],
-      // Deductions
-      taxes: payslip.deductionsDetails?.taxes?.map((t: any) => ({
-        name: t.name,
-        amount: t.amount || t.taxAmount,
-        rate: t.rate
-      })) || [],
-      insurances: payslip.deductionsDetails?.insurances?.map((i: any) => ({
-        name: i.name,
-        amount: i.amount,
-        type: i.type
-      })) || [],
-      penalties: payslip.deductionsDetails?.penalties || null,
-      taxAmount: payslip.deductionsDetails?.taxAmount || 0,
-      insuranceAmount: payslip.deductionsDetails?.insuranceAmount || 0,
-      penaltiesAmount: payslip.deductionsDetails?.penaltiesAmount || 0,
-      // Totals
-      totalGrossSalary: payslip.totalGrossSalary || 0,
-      totalDeductions: payslip.totaDeductions || payslip.totalDeductions || 0,
-      netPay: payslip.netPay || 0,
-      paymentStatus: payslip.paymentStatus,
-      createdAt: payslip.createdAt,
-      updatedAt: payslip.updatedAt
-    }));
-    
-    // Calculate summary statistics
-    const totalGross = payslipHistory.reduce((sum, p) => sum + p.totalGrossSalary, 0);
-    const totalNet = payslipHistory.reduce((sum, p) => sum + p.netPay, 0);
-    const totalDeductions = payslipHistory.reduce((sum, p) => sum + p.totalDeductions, 0);
-    const uniqueEmployees = new Set(payslipHistory.map(p => p.employeeId?.toString())).size;
-    
-    return {
-      reportType: 'PAYSLIP_HISTORY_REPORT',
-      generatedDate: new Date().toISOString(),
-      period: {
-        startDate: startDate || 'All time',
-        endDate: endDate || 'Present'
-      },
-      summary: {
-        totalPayslips: payslipHistory.length,
-        uniqueEmployees,
-        totalGrossSalary: totalGross,
-        totalNetPay: totalNet,
-        totalDeductions,
-        averageGrossSalary: payslipHistory.length > 0 ? totalGross / payslipHistory.length : 0,
-        averageNetPay: payslipHistory.length > 0 ? totalNet / payslipHistory.length : 0
-      },
-      payslips: payslipHistory
-    };
-  }
-
   // ========== Helper Methods ==========
 
   private groupByDepartment(payslips: any[]) {
@@ -1818,7 +1705,7 @@ async getLeaveCompensation(employeeId: string) {
     }, {});
   }
 
-  private async generateTaxReport(payslips: any[], year: number, startDate: Date, endDate: Date) {
+  private generateTaxReport(payslips: any[], year: number) {
     const taxSummary = payslips.reduce((acc, payslip) => {
       const employeeId = payslip.employeeId.toString();
       if (!acc[employeeId]) {
@@ -1847,40 +1734,13 @@ async getLeaveCompensation(employeeId: string) {
       return acc;
     }, {});
     
-    // Fetch ALL tax rules (remove date filtering to show all rules)
-    const taxRules = await this.taxRulesModel.find({}).exec();
-    
-    console.log('Tax Rules fetched:', taxRules.length);
-    console.log('Tax Rules data:', JSON.stringify(taxRules, null, 2));
-    
     return {
       reportType: 'TAX_COMPLIANCE_REPORT',
       year,
       generatedDate: new Date().toISOString(),
       totalEmployees: Object.keys(taxSummary).length,
       totalTaxCollected: Object.values(taxSummary).reduce((sum: number, emp: any) => sum + emp.totalTax, 0),
-      employeeTaxDetails: taxSummary,
-      taxRules: taxRules.map(rule => ({
-        id: rule._id,
-        name: rule.name,
-        description: rule.description,
-        taxComponents: rule.taxComponents?.map((comp: any) => ({
-          _id: comp._id,
-          type: comp.type,
-          name: comp.name,
-          description: comp.description,
-          rate: comp.rate,
-          maxAmount: comp.maxAmount,
-          minAmount: comp.minAmount,
-          isActive: comp.isActive,
-          createdAt: comp.createdAt,
-          updatedAt: comp.updatedAt
-        })) || [],
-        status: rule.status,
-        approvedAt: rule.approvedAt,
-        createdAt: rule['createdAt'],
-        updatedAt: rule['updatedAt']
-      }))
+      employeeTaxDetails: taxSummary
     };
   }
 
@@ -1895,7 +1755,7 @@ async getLeaveCompensation(employeeId: string) {
         };
       }
       
-      const totalInsurance = payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + (i.amount || 0), 0) || 0;
+      const totalInsurance = payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + ((i as any).amount || 0), 0) || 0;
       acc[employeeId].employeeContribution += totalInsurance;
       acc[employeeId].payslipsCount++;
       

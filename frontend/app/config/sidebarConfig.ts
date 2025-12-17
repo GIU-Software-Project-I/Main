@@ -30,6 +30,11 @@ const SELF_SERVICE_SECTION: NavSection = {
       label: 'My Profile',
       href: '/portal/my-profile',
       icon: 'user',
+      children: [
+        { label: 'View Profile', href: '/portal/my-profile', icon: 'user' },
+        { label: 'Edit Profile', href: '/portal/my-profile/edit', icon: 'edit' },
+        { label: 'Correction Requests', href: '/portal/my-profile/correction-requests', icon: 'file-text' },
+      ],
     },
     {
       label: 'My Schedule',
@@ -40,11 +45,19 @@ const SELF_SERVICE_SECTION: NavSection = {
       label: 'My Attendance',
       href: '/portal/my-attendance',
       icon: 'clock',
+      children: [
+        { label: 'Attendance Records', href: '/portal/my-attendance', icon: 'clock' },
+        { label: 'Corrections', href: '/portal/my-attendance/corrections', icon: 'edit-3' },
+      ],
     },
     {
       label: 'My Leaves',
       href: '/portal/my-leaves',
       icon: 'briefcase',
+      children: [
+        { label: 'Leave Balance', href: '/portal/my-leaves', icon: 'briefcase' },
+        { label: 'Request Leave', href: '/portal/my-leaves/request', icon: 'plus-circle' },
+      ],
     },
     {
       label: 'My Performance',
@@ -137,6 +150,11 @@ const DEPARTMENT_HEAD_SECTIONS: NavSection[] = [
         href: '/dashboard/department-head',
         icon: 'home',
       },
+    ],
+  },
+  {
+    title: 'Team Management',
+    items: [
       {
         label: 'My Team',
         href: '/dashboard/department-head/team-profiles',
@@ -152,16 +170,13 @@ const DEPARTMENT_HEAD_SECTIONS: NavSection[] = [
         href: '/dashboard/department-head/performance',
         icon: 'bar-chart',
       },
-        {
-            label: 'Time Management',
-            href: '/dashboard/hr-manager/time-management',
-            icon: 'clock',
-            children: [
-                { label: 'Attendance Records', href: '/dashboard/department-head/time-management/attendance-records', icon: 'clipboard-list' },
-            ],
-        },
+    ],
+  },
+  {
+    title: 'Approvals',
+    items: [
       {
-        label: 'Leave Approvals',
+        label: 'Leave Requests',
         href: '/dashboard/department-head',
         icon: 'calendar-check',
         children: [
@@ -173,6 +188,9 @@ const DEPARTMENT_HEAD_SECTIONS: NavSection[] = [
         label: 'Time Approvals',
         href: '/dashboard/department-head/time-management',
         icon: 'clock',
+        children: [
+          { label: 'Attendance Records', href: '/dashboard/department-head/time-management/attendance-records', icon: 'clipboard-list' },
+        ],
       },
     ],
   },
@@ -345,6 +363,10 @@ const HR_ADMIN_SECTIONS: NavSection[] = [
             icon: 'clock',
             children: [
                 { label: 'Attendance Records', href: '/dashboard/department-head/time-management/attendance-records', icon: 'clipboard-list' },
+                { label: 'Break Permissions', href: '/dashboard/hr-admin/time-management/break-permissions', icon: 'clipboard-list' },
+                { label: 'Holidays', href: '/dashboard/hr-admin/time-management/Holidays', icon: 'clipboard-list' },
+              { label: 'Shift Assignments', href: '/dashboard/hr-admin/time-management/ShiftAssignments', icon: 'clipboard-list' },
+
             ],
         },
       {
@@ -435,6 +457,11 @@ const SYSTEM_ADMIN_SECTIONS: NavSection[] = [
             icon: 'clock',
             children: [
                 { label: 'Shift Types', href: '/dashboard/system-admin/time-management/ShiftType', icon: 'clock' },
+                { label: 'Shift Assignments', href: '/dashboard/system-admin/time-management/ShiftAssignments', icon: 'clipboard-list' },
+              { label: 'Holidays', href: '/dashboard/system-admin/time-management/Holidays', icon: 'clipboard-list' },
+              { label: 'Shift Creation', href: '/dashboard/system-admin/time-management/ShiftCreation', icon: 'clipboard-list' },
+
+
             ],
         },
       {

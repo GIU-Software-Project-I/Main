@@ -23,8 +23,6 @@ import {AttendanceRecord, AttendanceRecordSchema} from "../../time-management/mo
 import {TimeException, TimeExceptionSchema} from "../../time-management/models/time-exception.schema";
 import {ShiftAssignment, ShiftAssignmentSchema} from "../../time-management/models/shift-assignment.schema";
 import {Shift, ShiftSchema} from "../../time-management/models/shift.schema";
-import {taxBrackets, taxBracketsSchema} from "../payroll-configuration/models/taxBrackets.schema";
-import {taxRules, taxRulesSchema} from "../payroll-configuration/models/taxRules.schema";
 // import payroll-execution module & schemas
 
 
@@ -49,8 +47,6 @@ import {taxRules, taxRulesSchema} from "../payroll-configuration/models/taxRules
       { name: TimeException.name, schema: TimeExceptionSchema },
       { name: ShiftAssignment.name, schema: ShiftAssignmentSchema },
       { name: Shift.name, schema: ShiftSchema },
-      { name: taxBrackets.name, schema: taxBracketsSchema },
-      { name: taxRules.name, schema: taxRulesSchema },
     ]),
   ],
   controllers: [PayrollTrackingController, PayrollManagerController],
