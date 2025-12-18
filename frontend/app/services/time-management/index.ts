@@ -818,6 +818,129 @@ export const timeManagementService = {
     deleteHoliday: async (id: string) => {
         return apiService.delete<{ ok: boolean }>(`/holidays/${id}`);
     },
+
+    // ============================================================
+    // BREAK PERMISSION OPERATIONS
+    // ============================================================
+
+    // Create break permission - POST /break-permissions
+    createBreakPermission: async (data: {
+        employeeId: string;
+        attendanceRecordId: string;
+        startTime: Date | string;
+        endTime: Date | string;
+        reason: string;
+    }) => {
+        return apiService.post('/break-permissions', data);
+    },
+
+    // Get break permissions for employee - GET /break-permissions/employee/:employeeId
+    getEmployeeBreakPermissions: async (employeeId: string) => {
+        return apiService.get(`/break-permissions/employee/${employeeId}`);
+    },
+
+    // Get all break permissions - GET /break-permissions
+    getAllBreakPermissions: async (employeeId?: string, status?: string) => {
+        let query = '';
+        if (employeeId || status) {
+            const params = new URLSearchParams();
+            if (employeeId) params.set('employeeId', employeeId);
+            if (status) params.set('status', status);
+            query = `?${params.toString()}`;
+        }
+        return apiService.get(`/break-permissions${query}`);
+    },
+
+    // Approve break permission - POST /break-permissions/:permissionId/approve
+    approveBreakPermission: async (permissionId: string, approvedBy: string) => {
+        return apiService.post(`/break-permissions/${permissionId}/approve`, { approvedBy });
+    },
+
+    // Reject break permission - POST /break-permissions/:permissionId/reject
+    rejectBreakPermission: async (permissionId: string, rejectionReason: string) => {
+        return apiService.post(`/break-permissions/${permissionId}/reject`, { rejectionReason });
+    },
+
+    // Delete break permission - DELETE /break-permissions/:employeeId/:permissionId
+    deleteBreakPermission: async (employeeId: string, permissionId: string) => {
+        return apiService.delete(`/break-permissions/${employeeId}/${permissionId}`);
+    },
+
+    // Get break permission max limit - GET /break-permissions/limit
+    getBreakPermissionLimit: async () => {
+        return apiService.get('/break-permissions/limit');
+    },
+
+    // ============================================================
+    // TIME EXCEPTION OPERATIONS
+    // ============================================================
+
+    // Create time exception - POST /time-exceptions
+    createTimeException: async (data: {
+        employeeId: string;
+        attendanceRecordId: string;
+        type: string; // MISSED_PUNCH, LATE, EARLY_LEAVE, SHORT_TIME, OVERTIME_REQUEST, MANUAL_ADJUSTMENT
+        reason: string;
+        assignedTo?: string;
+    }) => {
+        return apiService.post('/time-exceptions', data);
+    },
+
+    // Get all time exceptions - GET /time-exceptions
+    getAllTimeExceptions: async () => {
+        return apiService.get('/time-exceptions');
+    },
+
+    // Get single time exception - GET /time-exceptions/:id
+    getTimeException: async (id: string) => {
+        return apiService.get(`/time-exceptions/${id}`);
+    },
+
+    // Update time exception status - PUT /time-exceptions/status
+    updateTimeExceptionStatus: async (data: {
+        exceptionId: string;
+        status: string; // OPEN, PENDING, APPROVED, REJECTED, ESCALATED, RESOLVED
+        comment?: string;
+    }) => {
+        return apiService.put('/time-exceptions/status', data);
+    },
+
+    // Assign time exception - PUT /time-exceptions/assign
+    assignTimeException: async (data: {
+        exceptionId: string;
+        assigneeId: string;
+    }) => {
+        return apiService.put('/time-exceptions/assign', data);
+    },
+
+    // List time exceptions with filters - GET /time-exceptions?status=X&type=Y
+    listTimeExceptions: async (filters?: {
+        status?: string;
+        type?: string;
+        employeeId?: string;
+        assignedTo?: string;
+    }) => {
+        let query = '';
+        if (filters) {
+            const params = new URLSearchParams();
+            if (filters.status) params.set('status', filters.status);
+            if (filters.type) params.set('type', filters.type);
+            if (filters.employeeId) params.set('employeeId', filters.employeeId);
+            if (filters.assignedTo) params.set('assignedTo', filters.assignedTo);
+            query = `?${params.toString()}`;
+        }
+        return apiService.get(`/time-exceptions${query}`);
+    },
+
+    // Export time exceptions to CSV - GET /time-exceptions/export/csv
+    exportTimeExceptionsCSV: async () => {
+        return apiService.get('/time-exceptions/export/csv');
+    },
+
+    // Export time exceptions to JSON - GET /time-exceptions/export/json
+    exportTimeExceptionsJSON: async () => {
+        return apiService.get('/time-exceptions/export/json');
+    },
 };
 
 export default timeManagementService;
