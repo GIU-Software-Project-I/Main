@@ -25,6 +25,97 @@ export class PayrollManagerController {
     return { message: 'PayrollManagerController is working', timestamp: new Date().toISOString() };
   }
 
+  // Get all disputes for manager (pending, approved, rejected)
+  @Public()
+  @Get('disputes/all')
+  async getAllDisputes() {
+    try {
+      const allDisputes = await this.disputesModel
+        .find({
+          $or: [
+            { status: DisputeStatus.PENDING_MANAGER_APPROVAL },
+            { status: DisputeStatus.APPROVED },
+            { status: DisputeStatus.REJECTED }
+          ]
+        })
+        .populate('employeeId', 'firstName lastName employeeNumber')
+        .populate('payslipId', 'payPeriod netSalary')
+        .sort({ createdAt: -1 })
+        .lean()
+        .exec();
+      
+      return allDisputes.map((d: any) => {
+        const employee = (d.employeeId && typeof d.employeeId === 'object') ? d.employeeId : {};
+        // Extract specialist and manager comments separately
+        let specialistComment = '';
+        let managerComment = '';
+        const resolutionComment = d.resolutionComment || '';
+        const rejectionReason = d.rejectionReason || '';
+        
+        // For rejected items, check if rejectionReason is from specialist or manager
+        if (d.status === DisputeStatus.REJECTED) {
+          // If there's no resolutionComment, it means specialist rejected it directly (never approved)
+          // If there's a resolutionComment, it means specialist approved it first, then manager rejected it
+          if (!resolutionComment || resolutionComment.trim() === '') {
+            // Specialist rejected it directly - rejectionReason is specialist comment
+            specialistComment = rejectionReason;
+            managerComment = ''; // Manager didn't reject it
+          } else {
+            // Manager rejected it after specialist approved - rejectionReason is manager comment
+            managerComment = rejectionReason;
+            // Specialist comment is in resolutionComment (set when specialist approved it before manager rejected)
+            specialistComment = resolutionComment;
+          }
+        } else if (resolutionComment.includes(' | Manager:')) {
+          // If resolutionComment contains "| Manager:", split them - this is the new format
+          const parts = resolutionComment.split(' | Manager:');
+          specialistComment = parts[0].trim();
+          managerComment = parts[1] ? parts[1].trim() : '';
+        } else if (resolutionComment.toLowerCase().includes('confirmed by payroll manager') || 
+                   resolutionComment.toLowerCase().startsWith('confirmed by payroll manager')) {
+          // If it's a manager confirmation message without separator, it's manager comment only
+          // This handles old data where manager confirmed without preserving specialist comment
+          managerComment = resolutionComment;
+          specialistComment = ''; // Specialist comment was not preserved in old data
+        } else if (d.status === DisputeStatus.APPROVED && !resolutionComment.toLowerCase().includes('approved by payroll specialist')) {
+          // If item is APPROVED and doesn't contain "Approved by Payroll Specialist", 
+          // it means manager confirmed with custom note and no specialist comment was preserved
+          managerComment = resolutionComment;
+          specialistComment = '';
+        } else if (resolutionComment.toLowerCase().includes('rejected by payroll manager')) {
+          // Manager rejection in resolutionComment (shouldn't happen, but handle it)
+          managerComment = resolutionComment;
+          specialistComment = '';
+        } else {
+          // Otherwise, it's the specialist comment (for pending items or approved items where format is correct)
+          // This includes "Approved by Payroll Specialist" or custom specialist comments
+          specialistComment = resolutionComment;
+          managerComment = '';
+        }
+        
+        return {
+          id: d._id?.toString() || String(d._id) || 'unknown',
+          employeeName: (employee.firstName && employee.lastName) 
+            ? `${employee.firstName} ${employee.lastName}` 
+            : 'Unknown',
+          employeeNumber: employee.employeeNumber || 'N/A',
+          description: d.description || 'No description',
+          amount: (d as any).disputedAmount || (d as any).amount || 0,
+          priority: (d as any).priority || 'medium',
+          status: d.status || DisputeStatus.PENDING_MANAGER_APPROVAL,
+          specialistName: 'Payroll Specialist',
+          specialistNotes: specialistComment,
+          managerNotes: managerComment,
+          submittedAt: d.createdAt ? new Date(d.createdAt).toISOString() : new Date().toISOString(),
+          reviewedAt: d.updatedAt ? new Date(d.updatedAt).toISOString() : new Date().toISOString(),
+        };
+      });
+    } catch (error) {
+      console.error('[PayrollManager] Error fetching all disputes:', error);
+      return [];
+    }
+  }
+
   // Get pending dispute confirmations
   @Public()
   @Get('disputes/pending-confirmation')
@@ -129,6 +220,38 @@ export class PayrollManagerController {
       
       return disputesList.map((d: any) => {
         const employee = (d.employeeId && typeof d.employeeId === 'object') ? d.employeeId : {};
+        // Extract specialist and manager comments separately
+        let specialistComment = '';
+        let managerComment = '';
+        const resolutionComment = d.resolutionComment || '';
+        
+        if (resolutionComment.includes(' | Manager:')) {
+          // If resolutionComment contains "| Manager:", split them - this is the new format
+          const parts = resolutionComment.split(' | Manager:');
+          specialistComment = parts[0].trim();
+          managerComment = parts[1] ? parts[1].trim() : '';
+        } else if (resolutionComment.toLowerCase().includes('confirmed by payroll manager') || 
+                   resolutionComment.toLowerCase().startsWith('confirmed by payroll manager')) {
+          // If it's a manager confirmation message without separator, it's manager comment only
+          // This handles old data where manager confirmed without preserving specialist comment
+          managerComment = resolutionComment;
+          specialistComment = ''; // Specialist comment was not preserved in old data
+        } else if (d.status === DisputeStatus.APPROVED && !resolutionComment.toLowerCase().includes('approved by payroll specialist')) {
+          // If item is APPROVED and doesn't contain "Approved by Payroll Specialist", 
+          // it means manager confirmed with custom note and no specialist comment was preserved
+          managerComment = resolutionComment;
+          specialistComment = '';
+        } else if (resolutionComment.toLowerCase().includes('rejected by payroll manager')) {
+          // Manager rejection in resolutionComment (shouldn't happen, but handle it)
+          managerComment = resolutionComment;
+          specialistComment = '';
+        } else {
+          // Otherwise, it's the specialist comment
+          // This includes "Approved by Payroll Specialist" or custom specialist comments
+          specialistComment = resolutionComment;
+          managerComment = '';
+        }
+        
         return {
           id: d._id?.toString() || String(d._id) || 'unknown',
           employeeName: (employee.firstName && employee.lastName) 
@@ -140,7 +263,8 @@ export class PayrollManagerController {
           priority: (d as any).priority || 'medium',
           status: 'confirmed',
           specialistName: 'Payroll Specialist',
-          specialistNotes: d.resolutionComment || '',
+          specialistNotes: specialistComment,
+          managerNotes: managerComment,
           submittedAt: d.createdAt ? new Date(d.createdAt).toISOString() : new Date().toISOString(),
           reviewedAt: d.updatedAt ? new Date(d.updatedAt).toISOString() : new Date().toISOString(),
         };
@@ -176,6 +300,42 @@ export class PayrollManagerController {
       );
 
       const employee = (result as any).employeeId || {};
+      // Extract specialist and manager comments separately
+      let specialistComment = '';
+      let managerComment = '';
+      const resolutionComment = (result as any).resolutionComment || '';
+      
+      // For rejected items, check if rejectionReason is from specialist or manager
+      if (!confirmed && (result as any).rejectionReason) {
+        const rejectionReason = (result as any).rejectionReason || '';
+        // If there's no resolutionComment, it means specialist rejected it directly (never approved)
+        // If there's a resolutionComment, it means specialist approved it first, then manager rejected it
+        if (!resolutionComment || resolutionComment.trim() === '') {
+          // Specialist rejected it directly - rejectionReason is specialist comment
+          specialistComment = rejectionReason;
+          managerComment = ''; // Manager didn't reject it
+        } else {
+          // Manager rejected it after specialist approved - rejectionReason is manager comment
+          managerComment = rejectionReason;
+          // Specialist comment is in resolutionComment (set when specialist approved it before manager rejected)
+          specialistComment = resolutionComment;
+        }
+      } else if (resolutionComment.includes(' | Manager:')) {
+        // If resolutionComment contains "| Manager:", split them
+        const parts = resolutionComment.split(' | Manager:');
+        specialistComment = parts[0].trim();
+        managerComment = parts[1] ? parts[1].trim() : '';
+      } else if (resolutionComment.toLowerCase().includes('confirmed by payroll manager') || 
+                 resolutionComment.toLowerCase().includes('rejected by payroll manager')) {
+        // If it's a manager confirmation/rejection message without separator, it's manager comment only
+        managerComment = resolutionComment;
+        specialistComment = ''; // No specialist comment preserved
+      } else {
+        // Otherwise, it's the specialist comment
+        specialistComment = resolutionComment;
+        managerComment = '';
+      }
+      
       return {
         id: (result as any)._id?.toString() || disputeId,
         employeeName: employee.firstName && employee.lastName 
@@ -187,7 +347,8 @@ export class PayrollManagerController {
         priority: (result as any).priority || 'medium',
         status: (result as any).status || (confirmed ? 'approved' : 'rejected'),
         specialistName: 'Payroll Specialist',
-        specialistNotes: (result as any).resolutionComment || '',
+        specialistNotes: specialistComment,
+        managerNotes: managerComment,
         submittedAt: (result as any).createdAt ? new Date((result as any).createdAt).toISOString() : new Date().toISOString(),
         reviewedAt: (result as any).updatedAt ? new Date((result as any).updatedAt).toISOString() : new Date().toISOString(),
       };
@@ -197,6 +358,97 @@ export class PayrollManagerController {
         error instanceof HttpException ? error.message : 'Failed to confirm dispute',
         error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR
       );
+    }
+  }
+
+  // Get all claims for manager (pending, approved, rejected)
+  @Public()
+  @Get('claims/all')
+  async getAllClaims() {
+    try {
+      const allClaims = await this.claimsModel
+        .find({
+          $or: [
+            { status: ClaimStatus.PENDING_MANAGER_APPROVAL },
+            { status: ClaimStatus.APPROVED },
+            { status: ClaimStatus.REJECTED }
+          ]
+        })
+        .populate('employeeId', 'firstName lastName employeeNumber')
+        .sort({ createdAt: -1 })
+        .lean()
+        .exec();
+      
+      return allClaims.map((c: any) => {
+        const employee = (c.employeeId && typeof c.employeeId === 'object') ? c.employeeId : {};
+        // Extract specialist and manager comments separately
+        let specialistComment = '';
+        let managerComment = '';
+        const resolutionComment = c.resolutionComment || '';
+        const rejectionReason = c.rejectionReason || '';
+        
+        // For rejected items, check if rejectionReason is from specialist or manager
+        if (c.status === ClaimStatus.REJECTED) {
+          // Check if rejectionReason contains "Rejected by Payroll Specialist" - if so, it's specialist comment
+          if (rejectionReason.toLowerCase().includes('rejected by payroll specialist')) {
+            // Specialist rejected it - rejectionReason is specialist comment
+            specialistComment = rejectionReason;
+            managerComment = ''; // Manager didn't reject it
+          } else {
+            // Manager rejected it - rejectionReason is manager comment
+            managerComment = rejectionReason;
+            // Specialist comment is in resolutionComment (set when specialist approved it before manager rejected)
+            specialistComment = resolutionComment;
+          }
+        } else if (resolutionComment.includes(' | Manager:')) {
+          // If resolutionComment contains "| Manager:", split them - this is the new format
+          const parts = resolutionComment.split(' | Manager:');
+          specialistComment = parts[0].trim();
+          managerComment = parts[1] ? parts[1].trim() : '';
+        } else if (resolutionComment.toLowerCase().includes('confirmed by payroll manager') || 
+                   resolutionComment.toLowerCase().startsWith('confirmed by payroll manager')) {
+          // If it's a manager confirmation message without separator, it's manager comment only
+          // This handles old data where manager confirmed without preserving specialist comment
+          managerComment = resolutionComment;
+          specialistComment = ''; // Specialist comment was not preserved in old data
+        } else if (c.status === ClaimStatus.APPROVED && !resolutionComment.toLowerCase().includes('approved by payroll specialist')) {
+          // If item is APPROVED and doesn't contain "Approved by Payroll Specialist", 
+          // it means manager confirmed with custom note and no specialist comment was preserved
+          managerComment = resolutionComment;
+          specialistComment = '';
+        } else if (resolutionComment.toLowerCase().includes('rejected by payroll manager')) {
+          // Manager rejection in resolutionComment (shouldn't happen, but handle it)
+          managerComment = resolutionComment;
+          specialistComment = '';
+        } else {
+          // Otherwise, it's the specialist comment (for pending items or approved items where format is correct)
+          // This includes "Approved by Payroll Specialist" or custom specialist comments
+          specialistComment = resolutionComment;
+          managerComment = '';
+        }
+        
+        return {
+          id: c._id?.toString() || String(c._id) || 'unknown',
+          employeeName: (employee.firstName && employee.lastName) 
+            ? `${employee.firstName} ${employee.lastName}` 
+            : 'Unknown',
+          employeeNumber: employee.employeeNumber || 'N/A',
+          claimType: c.claimType || 'Expense',
+          description: c.description || 'No description',
+          amount: c.amount || 0,
+          approvedAmount: c.approvedAmount || c.amount || 0,
+          priority: (c as any).priority || 'medium',
+          status: c.status || ClaimStatus.PENDING_MANAGER_APPROVAL,
+          specialistName: 'Payroll Specialist',
+          specialistNotes: specialistComment,
+          managerNotes: managerComment,
+          submittedAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
+          reviewedAt: c.updatedAt ? new Date(c.updatedAt).toISOString() : new Date().toISOString(),
+        };
+      });
+    } catch (error) {
+      console.error('[PayrollManager] Error fetching all claims:', error);
+      return [];
     }
   }
 
@@ -305,6 +557,38 @@ export class PayrollManagerController {
       
       return claimsList.map((c: any) => {
         const employee = (c.employeeId && typeof c.employeeId === 'object') ? c.employeeId : {};
+        // Extract specialist and manager comments separately
+        let specialistComment = '';
+        let managerComment = '';
+        const resolutionComment = c.resolutionComment || '';
+        
+        if (resolutionComment.includes(' | Manager:')) {
+          // If resolutionComment contains "| Manager:", split them - this is the new format
+          const parts = resolutionComment.split(' | Manager:');
+          specialistComment = parts[0].trim();
+          managerComment = parts[1] ? parts[1].trim() : '';
+        } else if (resolutionComment.toLowerCase().includes('confirmed by payroll manager') || 
+                   resolutionComment.toLowerCase().startsWith('confirmed by payroll manager')) {
+          // If it's a manager confirmation message without separator, it's manager comment only
+          // This handles old data where manager confirmed without preserving specialist comment
+          managerComment = resolutionComment;
+          specialistComment = ''; // Specialist comment was not preserved in old data
+        } else if (c.status === ClaimStatus.APPROVED && !resolutionComment.toLowerCase().includes('approved by payroll specialist')) {
+          // If item is APPROVED and doesn't contain "Approved by Payroll Specialist", 
+          // it means manager confirmed with custom note and no specialist comment was preserved
+          managerComment = resolutionComment;
+          specialistComment = '';
+        } else if (resolutionComment.toLowerCase().includes('rejected by payroll manager')) {
+          // Manager rejection in resolutionComment (shouldn't happen, but handle it)
+          managerComment = resolutionComment;
+          specialistComment = '';
+        } else {
+          // Otherwise, it's the specialist comment
+          // This includes "Approved by Payroll Specialist" or custom specialist comments
+          specialistComment = resolutionComment;
+          managerComment = '';
+        }
+        
         return {
           id: c._id?.toString() || String(c._id) || 'unknown',
           employeeName: (employee.firstName && employee.lastName) 
@@ -318,7 +602,8 @@ export class PayrollManagerController {
           priority: (c as any).priority || 'medium',
           status: 'confirmed',
           specialistName: 'Payroll Specialist',
-          specialistNotes: c.resolutionComment || '',
+          specialistNotes: specialistComment,
+          managerNotes: managerComment,
           submittedAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
           reviewedAt: c.updatedAt ? new Date(c.updatedAt).toISOString() : new Date().toISOString(),
         };
@@ -354,6 +639,42 @@ export class PayrollManagerController {
       );
 
       const employee = (result as any).employeeId || {};
+      // Extract specialist and manager comments separately
+      let specialistComment = '';
+      let managerComment = '';
+      const resolutionComment = (result as any).resolutionComment || '';
+      
+      // For rejected items, check if rejectionReason is from specialist or manager
+      if (!confirmed && (result as any).rejectionReason) {
+        const rejectionReason = (result as any).rejectionReason || '';
+        // If there's no resolutionComment, it means specialist rejected it directly (never approved)
+        // If there's a resolutionComment, it means specialist approved it first, then manager rejected it
+        if (!resolutionComment || resolutionComment.trim() === '') {
+          // Specialist rejected it directly - rejectionReason is specialist comment
+          specialistComment = rejectionReason;
+          managerComment = ''; // Manager didn't reject it
+        } else {
+          // Manager rejected it after specialist approved - rejectionReason is manager comment
+          managerComment = rejectionReason;
+          // Specialist comment is in resolutionComment (set when specialist approved it before manager rejected)
+          specialistComment = resolutionComment;
+        }
+      } else if (resolutionComment.includes(' | Manager:')) {
+        // If resolutionComment contains "| Manager:", split them
+        const parts = resolutionComment.split(' | Manager:');
+        specialistComment = parts[0].trim();
+        managerComment = parts[1] ? parts[1].trim() : '';
+      } else if (resolutionComment.toLowerCase().includes('confirmed by payroll manager') || 
+                 resolutionComment.toLowerCase().includes('rejected by payroll manager')) {
+        // If it's a manager confirmation/rejection message without separator, it's manager comment only
+        managerComment = resolutionComment;
+        specialistComment = ''; // No specialist comment preserved
+      } else {
+        // Otherwise, it's the specialist comment
+        specialistComment = resolutionComment;
+        managerComment = '';
+      }
+      
       return {
         id: (result as any)._id?.toString() || claimId,
         employeeName: employee.firstName && employee.lastName 
@@ -367,7 +688,8 @@ export class PayrollManagerController {
         priority: (result as any).priority || 'medium',
         status: (result as any).status || (confirmed ? 'approved' : 'rejected'),
         specialistName: 'Payroll Specialist',
-        specialistNotes: (result as any).resolutionComment || '',
+        specialistNotes: specialistComment,
+        managerNotes: managerComment,
         submittedAt: (result as any).createdAt ? new Date((result as any).createdAt).toISOString() : new Date().toISOString(),
         reviewedAt: (result as any).updatedAt ? new Date((result as any).updatedAt).toISOString() : new Date().toISOString(),
       };

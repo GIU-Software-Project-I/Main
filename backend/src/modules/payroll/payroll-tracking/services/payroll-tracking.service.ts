@@ -1449,7 +1449,13 @@ async getLeaveCompensation(employeeId: string) {
     
     if (action === 'confirm') {
       dispute.status = DisputeStatus.APPROVED;
-      dispute.resolutionComment = reason || `Confirmed by Payroll Manager ${managerId}`;
+      // Preserve original specialist comment - store it before overwriting
+      const originalSpecialistComment = dispute.resolutionComment || '';
+      // Append manager confirmation, preserving original comment
+      const managerNote = reason || `Confirmed by Payroll Manager ${managerId}`;
+      dispute.resolutionComment = originalSpecialistComment ? 
+        `${originalSpecialistComment} | Manager: ${managerNote}` : 
+        managerNote;
       await dispute.save();
       
       // Find finance users to notify (REQ-PY-41)
@@ -1569,7 +1575,13 @@ async getLeaveCompensation(employeeId: string) {
     
     if (action === 'confirm') {
       claim.status = ClaimStatus.APPROVED;
-      claim.resolutionComment = reason || `Confirmed by Payroll Manager ${managerId}`;
+      // Preserve original specialist comment - store it before overwriting
+      const originalSpecialistComment = claim.resolutionComment || '';
+      // Append manager confirmation, preserving original comment
+      const managerNote = reason || `Confirmed by Payroll Manager ${managerId}`;
+      claim.resolutionComment = originalSpecialistComment ? 
+        `${originalSpecialistComment} | Manager: ${managerNote}` : 
+        managerNote;
       await claim.save();
       
       // Find finance users to notify (REQ-PY-44)
