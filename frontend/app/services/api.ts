@@ -137,7 +137,6 @@ class ApiService {
     return this.request<T>(endpoint, { method: 'DELETE', headers });
   }
 
-<<<<<<<<< Temporary merge branch 1
   async postFormData<T>(endpoint: string, formData: FormData): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
     
@@ -165,7 +164,24 @@ class ApiService {
       if (!response.ok) {
         return {
           error: data?.message || `HTTP error! status: ${response.status}`,
-=========
+          status: response.status,
+        };
+      }
+
+      return {
+        data,
+        status: response.status,
+      };
+    } catch (error) {
+      console.error('[API] FormData request failed:', url);
+      console.error('[API] Error:', error);
+      return {
+        error: error instanceof Error ? error.message : 'Network error - Is the backend running?',
+        status: 0,
+      };
+    }
+  }
+
   async downloadFile(endpoint: string): Promise<{ blob?: Blob; filename?: string; error?: string; status: number }> {
     const url = `${this.baseUrl}${endpoint}`;
 
@@ -187,19 +203,10 @@ class ApiService {
       if (!response.ok) {
         return {
           error: `HTTP error! status: ${response.status}`,
->>>>>>>>> Temporary merge branch 2
           status: response.status,
         };
       }
 
-<<<<<<<<< Temporary merge branch 1
-      return {
-        data,
-        status: response.status,
-      };
-    } catch (error) {
-      console.error('[API] FormData request failed:', url);
-=========
       // Extract filename from Content-Disposition header if available
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename: string | undefined;
@@ -218,7 +225,6 @@ class ApiService {
       };
     } catch (error) {
       console.error('[API] Download failed:', url);
->>>>>>>>> Temporary merge branch 2
       console.error('[API] Error:', error);
       return {
         error: error instanceof Error ? error.message : 'Network error - Is the backend running?',
