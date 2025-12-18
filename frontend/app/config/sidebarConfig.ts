@@ -175,7 +175,7 @@ const DEPARTMENT_HEAD_SECTIONS: NavSection[] = [
       },
       {
         label: 'Team Structure',
-        href: '/dashboard/department-head/organization',
+        href: '/dashboard/department-head/team-structure',
         icon: 'building',
       },
       {
@@ -223,11 +223,6 @@ const HR_MANAGER_SECTIONS: NavSection[] = [
         icon: 'home',
       },
       {
-        label: 'Employees',
-        href: '/dashboard/hr-manager/employee-management',
-        icon: 'users',
-      },
-      {
         label: 'Organization',
         href: '/dashboard/hr-manager/organization',
         icon: 'building',
@@ -245,13 +240,19 @@ const HR_MANAGER_SECTIONS: NavSection[] = [
         },
       {
         label: 'Recruitment',
-        href: '/dashboard/hr-manager/recruitment',
+        href: '/dashboard/recruiter',
         icon: 'user-plus',
       },
       {
         label: 'Onboarding',
         href: '/dashboard/hr-manager/onboarding',
         icon: 'clipboard-check',
+        children: [
+          { label: 'Dashboard', href: '/dashboard/hr-manager/onboarding', icon: 'layout' },
+          { label: 'Checklists', href: '/dashboard/hr-manager/onboarding/checklists', icon: 'check-square' },
+          { label: 'Create Employee', href: '/dashboard/hr-manager/onboarding/employee', icon: 'user-plus' },
+          { label: 'Payroll Setup', href: '/dashboard/hr-manager/onboarding/payroll', icon: 'dollar-sign' },
+        ],
       },
       {
         label: 'Performance',
@@ -482,12 +483,12 @@ const SYSTEM_ADMIN_SECTIONS: NavSection[] = [
       },
       {
         label: 'Organization',
-        href: '/dashboard/system-admin/organization',
+        href: '/dashboard/system-admin/organization-structure',
         icon: 'building',
         children: [
-          { label: 'Overview', href: '/dashboard/system-admin/organization', icon: 'eye' },
-          { label: 'Departments', href: '/dashboard/system-admin/departments', icon: 'folder' },
-          { label: 'Positions', href: '/dashboard/system-admin/positions', icon: 'briefcase' },
+          { label: 'Overview', href: '/dashboard/system-admin/organization-structure', icon: 'eye' },
+          { label: 'Org Chart', href: '/dashboard/system-admin/organization-structure/org-chart', icon: 'git-branch' },
+          { label: 'Change Requests', href: '/dashboard/system-admin/organization-structure/change-requests', icon: 'git-pull-request' },
         ],
       },
         {

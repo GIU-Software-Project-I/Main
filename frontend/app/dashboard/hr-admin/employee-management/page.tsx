@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { employeeProfileService } from '@/app/services/employee-profile';
 import {
@@ -44,6 +44,11 @@ export default function EmployeeManagementPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Reset page when status filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
+
   // Fetch employees
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -51,11 +56,15 @@ export default function EmployeeManagementPage() {
         setLoading(true);
         setError(null);
 
+        // Pass status filter to backend (server-side filtering)
+        const status = statusFilter !== 'all' ? statusFilter : undefined;
+
         let response;
         if (debouncedSearch) {
-          response = await employeeProfileService.searchEmployees(debouncedSearch, page, limit);
+          // Pass status to search as well for combined filtering
+          response = await employeeProfileService.searchEmployees(debouncedSearch, page, limit, status);
         } else {
-          response = await employeeProfileService.getAllEmployees(page, limit);
+          response = await employeeProfileService.getAllEmployees(page, limit, status);
         }
 
         if (response.error) {
@@ -82,7 +91,7 @@ export default function EmployeeManagementPage() {
     };
 
     fetchEmployees();
-  }, [page, limit, debouncedSearch]);
+  }, [page, limit, debouncedSearch, statusFilter]);
 
   // Fetch stats
   useEffect(() => {
@@ -97,13 +106,7 @@ export default function EmployeeManagementPage() {
       }
     };
     fetchStats();
-  }, []);
-
-  // Filter by status (client-side)
-  const filteredEmployees = useMemo(() => {
-    if (statusFilter === 'all') return employees;
-    return employees.filter((emp) => emp.status === statusFilter);
-  }, [employees, statusFilter]);
+  }, [employees]); // Refresh stats when employees change (e.g., after deactivation)
 
   // Handlers
   const handleEditSave = async (employeeId: string, data: any) => {
@@ -261,7 +264,8 @@ export default function EmployeeManagementPage() {
           </div>
 
           <div className="mt-3 text-sm text-muted-foreground">
-            Showing {filteredEmployees.length} of {totalCount} employees
+            Showing {employees.length} of {totalCount} employees
+            {totalCount > limit && ` (Page ${page} of ${totalPages})`}
           </div>
         </div>
 
@@ -296,7 +300,7 @@ export default function EmployeeManagementPage() {
                       </td>
                     </tr>
                   ))
-                ) : filteredEmployees.length === 0 ? (
+                ) : employees.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center">
                       <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
@@ -309,7 +313,7 @@ export default function EmployeeManagementPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredEmployees.map((employee) => (
+                  employees.map((employee) => (
                     <EmployeeTableRow
                       key={employee._id}
                       employee={employee}
