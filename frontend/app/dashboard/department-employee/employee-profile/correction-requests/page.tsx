@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { employeeProfileService } from '@/app/services/employee-profile';
 import { timeManagementService, AttendanceCorrectionRequest, AttendanceRecord } from '@/app/services/time-management';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
@@ -16,6 +15,8 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
 import Link from 'next/link';
+import { GlassCard } from '@/app/components/ui/glass-card';
+import { ArrowLeft, Clock, FileText, CheckCircle2, XCircle, AlertCircle, Calendar, Plus } from 'lucide-react';
 
 export default function CorrectionRequestsPage() {
     const [employeeId, setEmployeeId] = useState<string | null>(null);
@@ -49,7 +50,6 @@ export default function CorrectionRequestsPage() {
                 const attendanceRes = await timeManagementService.getEmployeeCorrections(empId);
                 setRequests(attendanceRes.data || []);
 
-                // Fetch Profile Corrections
                 // Fetch Profile Corrections
                 const profileReqRes = await employeeProfileService.getMyCorrectionRequests(empId);
                 const profileData = profileReqRes.data;
@@ -127,203 +127,259 @@ export default function CorrectionRequestsPage() {
 
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case 'APPROVED': return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Approved</Badge>;
-            case 'REJECTED': return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Rejected</Badge>;
-            case 'SUBMITTED': return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Submitted</Badge>;
-            case 'IN_REVIEW': return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">In Review</Badge>;
-            default: return <Badge variant="outline">{status}</Badge>;
+            case 'APPROVED': return <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 shadow-none border-green-500/20 text-[10px] px-1.5 py-0 h-5"><CheckCircle2 className="w-3 h-3 mr-1" /> Approved</Badge>;
+            case 'REJECTED': return <Badge className="bg-red-500/10 text-red-600 hover:bg-red-500/20 shadow-none border-red-500/20 text-[10px] px-1.5 py-0 h-5"><XCircle className="w-3 h-3 mr-1" /> Rejected</Badge>;
+            case 'SUBMITTED': return <Badge className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 shadow-none border-yellow-500/20 text-[10px] px-1.5 py-0 h-5"><Clock className="w-3 h-3 mr-1" /> Submitted</Badge>;
+            case 'IN_REVIEW': return <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 shadow-none border-blue-500/20 text-[10px] px-1.5 py-0 h-5"><AlertCircle className="w-3 h-3 mr-1" /> In Review</Badge>;
+            default: return <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5">{status}</Badge>;
         }
     };
 
     if (loading) {
-        return <div className="p-8 flex justify-center">Loading...</div>;
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                    <p className="text-muted-foreground animate-pulse font-medium">Loading requests...</p>
+                </div>
+            </div>
+        );
     }
 
     return (
-        <div className="space-y-6 max-w-6xl mx-auto p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">Correction Requests</h1>
-                    <p className="text-slate-500 mt-2">Manage your profile and attendance correction requests.</p>
-                </div>
-                {activeTab === 'attendance' && (
-                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button className="bg-slate-900 text-white hover:bg-slate-800 shadow-sm">
-                                + New Attendance Request
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px]">
-                            <DialogHeader>
-                                <DialogTitle>Submit Correction Request</DialogTitle>
-                                <DialogDescription>
-                                    Request a correction for an incorrect or missing punch.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="record">Attendance Record</Label>
-                                    <Select value={selectedRecordId} onValueChange={setSelectedRecordId}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a date" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {attendanceRecords.map((record) => {
-                                                const dateStr = record.createdAt ? new Date(record.createdAt).toLocaleDateString() : 'Unknown Date';
-                                                const punches = record.punches || [];
-                                                const punchesStr = punches.map(p => `${p.type} ${new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`).join(', ');
+        <div className="min-h-screen pb-10 relative">
+            <div className="absolute top-0 right-0 w-1/3 h-96 bg-blue-500/5 rounded-bl-[100px] -z-10 blur-3xl pointer-events-none" />
 
-                                                return (
-                                                    <SelectItem key={record._id} value={record._id}>
-                                                        {dateStr} - {punchesStr || 'No Punches'}
-                                                    </SelectItem>
-                                                );
-                                            })}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+            <div className="space-y-6 max-w-5xl mx-auto px-4 sm:px-6 py-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                            <Link href="/dashboard/department-employee/employee-profile" className="hover:text-primary transition-colors flex items-center gap-1 text-xs">
+                                <ArrowLeft className="w-3 h-3" /> Back to Profile
+                            </Link>
+                        </div>
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Correction Requests</h1>
+                        <p className="text-xs text-muted-foreground mt-0.5">Track and manage your profile and attendance changes</p>
+                    </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="date">Corrected Date</Label>
-                                        <Input
-                                            id="date"
-                                            type="date"
-                                            value={correctedDate}
-                                            onChange={(e) => setCorrectedDate(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="time">Corrected Time</Label>
-                                        <Input
-                                            id="time"
-                                            type="time"
-                                            value={correctedTime}
-                                            onChange={(e) => setCorrectedTime(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="reason">Reason</Label>
-                                    <Textarea
-                                        id="reason"
-                                        placeholder="Explain why this correction is needed..."
-                                        value={reason}
-                                        onChange={(e) => setReason(e.target.value)}
-                                        required
-                                    />
-                                </div>
-
-                                <DialogFooter>
-                                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                                    <Button type="submit" disabled={submitting}>
-                                        {submitting ? 'Submitting...' : 'Submit Request'}
+                    <div className="flex gap-2">
+                        {activeTab === 'attendance' && (
+                            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button size="sm" className="shadow-sm shadow-primary/20 h-9 text-xs">
+                                        <Plus className="w-3.5 h-3.5 mr-2" /> New Attendance Request
                                     </Button>
-                                </DialogFooter>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
-                )}
-                {activeTab === 'profile' && (
-                    <Link href="/dashboard/department-employee/employee-profile/edit">
-                        <Button className="bg-slate-900 text-white hover:bg-slate-800 shadow-sm">
-                            + New Profile Correction
-                        </Button>
-                    </Link>
-                )}
-            </div>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[450px]">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-lg">Submit Correction Request</DialogTitle>
+                                        <DialogDescription className="text-xs">
+                                            Request a correction for an incorrect or missing punch.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <form onSubmit={handleSubmit} className="space-y-4 py-2">
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="record" className="text-xs font-semibold">Attendance Record</Label>
+                                            <Select value={selectedRecordId} onValueChange={setSelectedRecordId}>
+                                                <SelectTrigger className="h-9 text-sm">
+                                                    <SelectValue placeholder="Select a date" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {attendanceRecords.map((record) => {
+                                                        const dateStr = record.createdAt ? new Date(record.createdAt).toLocaleDateString() : 'Unknown Date';
+                                                        const punches = record.punches || [];
+                                                        const punchesStr = punches.map(p => `${p.type} ${new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`).join(', ');
 
-            <Tabs defaultValue="profile" className="w-full" onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
-                    <TabsTrigger value="profile">Profile Data</TabsTrigger>
-                    <TabsTrigger value="attendance">Attendance</TabsTrigger>
-                </TabsList>
+                                                        return (
+                                                            <SelectItem key={record._id} value={record._id} className="text-sm">
+                                                                {dateStr} - {punchesStr || 'No Punches'}
+                                                            </SelectItem>
+                                                        );
+                                                    })}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
 
-                <TabsContent value="profile" className="mt-6">
-                    <Card className="border-slate-200 shadow-sm">
-                        <CardHeader>
-                            <CardTitle>Profile Data Corrections</CardTitle>
-                            <CardDescription>Requests to change your personal or employment details.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="date" className="text-xs font-semibold">Corrected Date</Label>
+                                                <Input
+                                                    id="date"
+                                                    type="date"
+                                                    value={correctedDate}
+                                                    onChange={(e) => setCorrectedDate(e.target.value)}
+                                                    required
+                                                    className="h-9 text-sm"
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="time" className="text-xs font-semibold">Corrected Time</Label>
+                                                <Input
+                                                    id="time"
+                                                    type="time"
+                                                    value={correctedTime}
+                                                    onChange={(e) => setCorrectedTime(e.target.value)}
+                                                    required
+                                                    className="h-9 text-sm"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="reason" className="text-xs font-semibold">Reason</Label>
+                                            <Textarea
+                                                id="reason"
+                                                placeholder="Explain why this correction is needed..."
+                                                value={reason}
+                                                onChange={(e) => setReason(e.target.value)}
+                                                required
+                                                className="text-sm min-h-[80px]"
+                                            />
+                                        </div>
+
+                                        <DialogFooter className="pt-2">
+                                            <Button type="button" variant="outline" size="sm" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                                            <Button type="submit" size="sm" disabled={submitting}>
+                                                {submitting ? 'Submitting...' : 'Submit Request'}
+                                            </Button>
+                                        </DialogFooter>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
+                        )}
+                        {activeTab === 'profile' && (
+                            <Link href="/dashboard/department-employee/employee-profile/edit?tab=correction">
+                                <Button size="sm" className="shadow-sm shadow-primary/20 h-9 text-xs">
+                                    <Plus className="w-3.5 h-3.5 mr-2" /> New Profile Correction
+                                </Button>
+                            </Link>
+                        )}
+                    </div>
+                </div>
+
+                <Tabs defaultValue="profile" className="w-full" onValueChange={setActiveTab}>
+                    <div className="border-b border-border/50 mb-5">
+                        <TabsList className="bg-transparent h-auto p-0 gap-6">
+                            <TabsTrigger
+                                value="profile"
+                                className="bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-2 py-2.5 text-muted-foreground data-[state=active]:text-foreground transition-all text-sm"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <FileText className="w-3.5 h-3.5" />
+                                    Profile Corrections
+                                </div>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="attendance"
+                                className="bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-2 py-2.5 text-muted-foreground data-[state=active]:text-foreground transition-all text-sm"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    Attendance Corrections
+                                </div>
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
+
+                    <TabsContent value="profile" className="focus-visible:outline-none animate-in fade-in slide-in-from-right-4 duration-300">
+                        <GlassCard className="overflow-hidden">
+                            <div className="p-4 border-b border-border/50">
+                                <h3 className="font-semibold text-base">Profile Data Corrections</h3>
+                                <p className="text-xs text-muted-foreground mt-0.5">Requests to change your personal or employment details.</p>
+                            </div>
+
                             {profileRequests.length === 0 ? (
-                                <div className="text-center py-10 text-slate-500">
-                                    No profile correction requests found.
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <div className="w-12 h-12 bg-muted/30 rounded-full flex items-center justify-center mb-3">
+                                        <FileText className="w-6 h-6 text-muted-foreground/50" />
+                                    </div>
+                                    <h4 className="text-foreground font-medium text-sm">No Request History</h4>
+                                    <p className="text-xs text-muted-foreground mt-0.5 max-w-xs">
+                                        You haven't submitted any profile correction requests yet.
+                                    </p>
                                 </div>
                             ) : (
-                                <div className="rounded-md border border-slate-200 overflow-hidden">
+                                <div className="relative overflow-x-auto">
                                     <Table>
-                                        <TableHeader className="bg-slate-50">
+                                        <TableHeader className="bg-muted/50">
                                             <TableRow>
-                                                <TableHead>Date Requested</TableHead>
-                                                <TableHead>Description</TableHead>
-                                                <TableHead>Status</TableHead>
+                                                <TableHead className="text-xs h-9">Date Requested</TableHead>
+                                                <TableHead className="text-xs h-9">Description</TableHead>
+                                                <TableHead className="text-xs h-9">Status</TableHead>
                                             </TableRow>
                                         </TableHeader>
-                                        <TableBody>
+                                        <TableBody className="text-sm">
                                             {profileRequests.map((req) => (
-                                                <TableRow key={req._id}>
-                                                    <TableCell>
+                                                <TableRow key={req._id} className="hover:bg-muted/10 transition-colors">
+                                                    <TableCell className="font-medium text-foreground py-3">
                                                         {req.createdAt ? new Date(req.createdAt).toLocaleDateString() : '-'}
                                                     </TableCell>
-                                                    <TableCell className="max-w-[300px] truncate" title={req.requestDescription}>
+                                                    <TableCell className="max-w-[300px] truncate text-muted-foreground py-3" title={req.requestDescription}>
                                                         {req.requestDescription || "No description"}
                                                     </TableCell>
-                                                    <TableCell>{getStatusBadge(req.status)}</TableCell>
+                                                    <TableCell className="py-3">{getStatusBadge(req.status)}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
                                 </div>
                             )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
+                        </GlassCard>
+                    </TabsContent>
 
-                <TabsContent value="attendance" className="mt-6">
-                    <Card className="border-slate-200 shadow-sm">
-                        <CardHeader>
-                            <CardTitle>Attendance Correction History</CardTitle>
-                            <CardDescription>View the status of your submitted attendance requests.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
+                    <TabsContent value="attendance" className="focus-visible:outline-none animate-in fade-in slide-in-from-right-4 duration-300">
+                        <GlassCard className="overflow-hidden">
+                            <div className="p-4 border-b border-border/50">
+                                <h3 className="font-semibold text-base">Attendance Correction History</h3>
+                                <p className="text-xs text-muted-foreground mt-0.5">Status of your submitted attendance punch corrections.</p>
+                            </div>
+
                             {requests.length === 0 ? (
-                                <div className="text-center py-10 text-slate-500">
-                                    No attendance correction requests found.
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <div className="w-12 h-12 bg-muted/30 rounded-full flex items-center justify-center mb-3">
+                                        <Clock className="w-6 h-6 text-muted-foreground/50" />
+                                    </div>
+                                    <h4 className="text-foreground font-medium text-sm">No Request History</h4>
+                                    <p className="text-xs text-muted-foreground mt-0.5 max-w-xs">
+                                        You haven't submitted any attendance correction requests yet.
+                                    </p>
                                 </div>
                             ) : (
-                                <div className="rounded-md border border-slate-200 overflow-hidden">
+                                <div className="relative overflow-x-auto">
                                     <Table>
-                                        <TableHeader className="bg-slate-50">
+                                        <TableHeader className="bg-muted/50">
                                             <TableRow>
-                                                <TableHead>Date Created</TableHead>
-                                                <TableHead>Attendance Date</TableHead>
-                                                <TableHead>Reason</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead className="text-right">Action</TableHead>
+                                                <TableHead className="text-xs h-9">Created Date</TableHead>
+                                                <TableHead className="text-xs h-9">Attendance Record</TableHead>
+                                                <TableHead className="text-xs h-9">Reason</TableHead>
+                                                <TableHead className="text-xs h-9">Status</TableHead>
+                                                <TableHead className="text-right text-xs h-9">Action</TableHead>
                                             </TableRow>
                                         </TableHeader>
-                                        <TableBody>
+                                        <TableBody className="text-sm">
                                             {requests.map((req) => (
-                                                <TableRow key={req._id}>
-                                                    <TableCell>
+                                                <TableRow key={req._id} className="hover:bg-muted/10 transition-colors">
+                                                    <TableCell className="font-medium text-foreground py-3">
                                                         {req.createdAt ? new Date(req.createdAt).toLocaleDateString() : '-'}
                                                     </TableCell>
-                                                    <TableCell>
+                                                    <TableCell className="text-muted-foreground py-3">
                                                         {typeof req.attendanceRecord === 'string'
-                                                            ? <span className="text-slate-400 text-xs">{req.attendanceRecord.substring(0, 8)}...</span>
-                                                            : (req.attendanceRecord as any)?.createdAt ? new Date((req.attendanceRecord as any).createdAt).toLocaleDateString() : 'N/A'
+                                                            ? <span className="font-mono text-xs">{req.attendanceRecord.substring(0, 8)}...</span>
+                                                            : (req.attendanceRecord as any)?.createdAt ?
+                                                                <div className="flex items-center gap-2">
+                                                                    <Calendar className="w-3.5 h-3.5" />
+                                                                    {new Date((req.attendanceRecord as any).createdAt).toLocaleDateString()}
+                                                                </div>
+                                                                : 'N/A'
                                                         }
                                                     </TableCell>
-                                                    <TableCell className="max-w-[200px] truncate" title={req.reason}>
+                                                    <TableCell className="max-w-[200px] truncate text-muted-foreground py-3" title={req.reason}>
                                                         {req.reason}
                                                     </TableCell>
-                                                    <TableCell>{getStatusBadge(req.status)}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button variant="ghost" size="sm" onClick={() => setViewRequest(req)}>
+                                                    <TableCell className="py-3">{getStatusBadge(req.status)}</TableCell>
+                                                    <TableCell className="text-right py-3">
+                                                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setViewRequest(req)}>
                                                             View
                                                         </Button>
                                                     </TableCell>
@@ -333,69 +389,70 @@ export default function CorrectionRequestsPage() {
                                     </Table>
                                 </div>
                             )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                        </GlassCard>
+                    </TabsContent>
+                </Tabs>
 
-            {/* View Request Details Dialog */}
-            <Dialog open={!!viewRequest} onOpenChange={(open) => !open && setViewRequest(null)}>
-                <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                        <DialogTitle>Request Details</DialogTitle>
-                        <DialogDescription>
-                            Review the details of your correction request.
-                        </DialogDescription>
-                    </DialogHeader>
-                    {viewRequest && (
-                        <div className="space-y-4 py-2">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label className="text-xs text-slate-500 uppercase">Status</Label>
-                                    <div className="mt-1">{getStatusBadge(viewRequest.status)}</div>
-                                </div>
-                                <div>
-                                    <Label className="text-xs text-slate-500 uppercase">Created At</Label>
-                                    <div className="text-sm font-medium mt-1">
-                                        {viewRequest.createdAt ? new Date(viewRequest.createdAt).toLocaleString() : '-'}
+                {/* View Request Details Dialog */}
+                <Dialog open={!!viewRequest} onOpenChange={(open) => !open && setViewRequest(null)}>
+                    <DialogContent className="sm:max-w-[450px]">
+                        <DialogHeader>
+                            <DialogTitle className="text-lg">Request Details</DialogTitle>
+                            <DialogDescription className="text-xs">
+                                Review the details of your correction request.
+                            </DialogDescription>
+                        </DialogHeader>
+                        {viewRequest && (
+                            <div className="space-y-4 py-2">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <Label className="text-[10px] text-muted-foreground uppercase font-semibold">Status</Label>
+                                        <div className="mt-1">{getStatusBadge(viewRequest.status)}</div>
+                                    </div>
+                                    <div>
+                                        <Label className="text-[10px] text-muted-foreground uppercase font-semibold">Created At</Label>
+                                        <div className="text-xs font-medium mt-1 flex items-center gap-1.5">
+                                            <Calendar className="w-3.5 h-3.5" />
+                                            {viewRequest.createdAt ? new Date(viewRequest.createdAt).toLocaleString() : '-'}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div>
-                                <Label className="text-xs text-slate-500 uppercase">Attendance Record</Label>
-                                <div className="text-sm font-medium mt-1 p-2 bg-slate-50 rounded border border-slate-100">
-                                    {typeof viewRequest.attendanceRecord === 'string'
-                                        ? viewRequest.attendanceRecord
-                                        : (viewRequest.attendanceRecord as any)?.createdAt
-                                            ? new Date((viewRequest.attendanceRecord as any).createdAt).toLocaleDateString()
-                                            : 'ID: ' + (viewRequest.attendanceRecord as any)?._id
-                                    }
-                                </div>
-                            </div>
-
-                            <div>
-                                <Label className="text-xs text-slate-500 uppercase">Reason</Label>
-                                <div className="text-sm mt-1 p-3 bg-slate-50 rounded border border-slate-100 whitespace-pre-wrap">
-                                    {viewRequest.reason}
-                                </div>
-                            </div>
-
-                            {(viewRequest as any).reviewerId && (
-                                <div className="border-t pt-4 mt-4">
-                                    <Label className="text-xs text-slate-500 uppercase">Reviewer Note</Label>
-                                    <div className="text-sm mt-1">
-                                        {(viewRequest as any).reviewNote || <span className="text-slate-400 italic">No notes provided.</span>}
+                                <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
+                                    <Label className="text-[10px] text-muted-foreground uppercase font-semibold">Attendance Record</Label>
+                                    <div className="text-xs font-medium mt-1">
+                                        {typeof viewRequest.attendanceRecord === 'string'
+                                            ? viewRequest.attendanceRecord
+                                            : (viewRequest.attendanceRecord as any)?.createdAt
+                                                ? new Date((viewRequest.attendanceRecord as any).createdAt).toLocaleDateString()
+                                                : 'ID: ' + (viewRequest.attendanceRecord as any)?._id
+                                        }
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    )}
-                    <DialogFooter>
-                        <Button onClick={() => setViewRequest(null)}>Close</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+
+                                <div>
+                                    <Label className="text-[10px] text-muted-foreground uppercase font-semibold">Reason</Label>
+                                    <div className="text-xs mt-1 p-2.5 bg-muted/30 rounded-lg border border-border/50 whitespace-pre-wrap leading-relaxed">
+                                        {viewRequest.reason}
+                                    </div>
+                                </div>
+
+                                {(viewRequest as any).reviewerId && (
+                                    <div className="border-t border-border/50 pt-3 mt-2">
+                                        <Label className="text-[10px] text-muted-foreground uppercase font-semibold mb-1 block">Reviewer Note</Label>
+                                        <div className="text-xs p-2.5 bg-blue-500/5 border border-blue-500/10 rounded-lg text-foreground leading-relaxed">
+                                            {(viewRequest as any).reviewNote || <span className="text-muted-foreground italic">No notes provided.</span>}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        <DialogFooter>
+                            <Button size="sm" onClick={() => setViewRequest(null)} className="h-8">Close</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
         </div>
     );
 }
