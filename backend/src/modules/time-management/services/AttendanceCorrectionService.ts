@@ -48,6 +48,46 @@ export class AttendanceCorrectionService {
         private readonly notificationModel: Model<any>,
     ) {}
 
+    // 1.5) Mark correction as IN_REVIEW (when review button is clicked)
+    async startReview(correctionRequestId: string) {
+        console.log('[START_REVIEW] Called with correctionRequestId:', correctionRequestId);
+
+        const request = await this.correctionModel.findById(correctionRequestId);
+        console.log('[START_REVIEW] Found request:', request);
+
+        if (!request) {
+            throw new NotFoundException('Correction request not found');
+        }
+
+        console.log('[START_REVIEW] Current status:', request.status);
+
+        if (request.status !== CorrectionRequestStatus.SUBMITTED) {
+            throw new BadRequestException(`Only SUBMITTED corrections can be marked as IN_REVIEW. Current status: ${request.status}`);
+        }
+
+        // Update status
+        request.status = CorrectionRequestStatus.IN_REVIEW as any;
+        console.log('[START_REVIEW] Status set to:', request.status);
+
+        // Save to database
+        const saved = await request.save();
+        console.log('[START_REVIEW] Saved request with status:', saved.status);
+
+        // Notify employee that correction is being reviewed
+        try {
+            await this.notificationModel.create({
+                to: request.employeeId,
+                type: 'CORRECTION_UNDER_REVIEW',
+                message: `Your correction request is now being reviewed by HR`,
+            });
+            console.log('[START_REVIEW] Notification created for employee:', request.employeeId);
+        } catch (notifErr) {
+            console.warn('[START_REVIEW] Failed to create notification:', notifErr);
+        }
+
+        return saved;
+    }
+
     // 1) Submit correction request
     async requestCorrection(dto: RequestCorrectionDto): Promise<AttendanceCorrectionRequest> {
         const { employeeId, attendanceRecordId, reason } = dto;
@@ -272,7 +312,10 @@ export class AttendanceCorrectionService {
 
     // 3) Get all corrections for an employee
     async getEmployeeCorrections(employeeId: string) {
-        return await this.correctionModel.find({ employeeId: new Types.ObjectId(employeeId) }).sort({ createdAt: -1 });
+        return await this.correctionModel
+            .find({ employeeId: new Types.ObjectId(employeeId) })
+            .populate('attendanceRecord')
+            .sort({ createdAt: -1 });
     }
 
     // 4) Get pending corrections

@@ -1,0 +1,217 @@
+## ====================
+     ## ROLE: HR MANAGER
+     ## ====================
+
+     ### Subsystem: Template Definition
+     **Requirements:**
+     1. Template Definition
+        - **User Stories:**
+          - REQ-PP-01: As an HR Manager, I want to configure standardized appraisal templates and rating scales so that evaluations are consistent and fair.
+        - **Business Rules:**
+          - BR 14
+          - BR 20
+        - **Inputs from Other Sub-Systems:** None
+        - **Downstream Dependencies:** None
+
+     ### Subsystem: Cycle Creation
+     **Requirements:**
+     2. Cycle Creation
+        - **User Stories:**
+          - REQ-PP-02: As an HR Manager, I want to define and schedule appraisal cycles (annual, semi-annual, probationary) so that the process runs automatically and on time.
+        - **Business Rules:**
+          - BR 1
+          - BR 10
+          - BR 11
+        - **Inputs from Other Sub-Systems:**
+          - Employee Profile (EP): Probation dates, contract start/end dates for assignment
+          - Organizational Structure (OS): Job classifications and grade levels
+        - **Downstream Dependencies:**
+          - Notifications: System triggers alerts for cycle dates
+
+     ### Subsystem: HR Monitoring & Publication
+     **Requirements:**
+     3. HR Monitors Progress & Publishes
+        - **User Stories:**
+          - REQ-AE-10: As an HR Manager, I want a consolidated dashboard that tracks appraisal completion across departments and teams so I can quickly spot and act on department-level progress gaps.
+        - **Business Rules:**
+          - BR 11
+          - BR 46
+        - **Inputs from Other Sub-Systems:**
+          - Organizational Structure (OS): Departmental grouping
+        - **Downstream Dependencies:** None
+
+     ### Subsystem: Dispute Resolution
+     **Requirements:**
+     4. HR Manager Resolves Objection
+        - **User Stories:**
+          - REQ-OD-07: As an HR Manager, I want to resolve disputes between employees and managers about ratings so that the appraisal process remains fair and transparent.
+        - **Business Rules:**
+          - BR 31
+          - BR 32
+        - **Inputs from Other Sub-Systems:**
+          - Performance Management (PM): Dispute log
+        - **Downstream Dependencies:**
+          - Notifications: Dispute resolution notifications
+
+     **Actions/Processes:**
+     1. Template Definition
+        - **Actor:** HR Manager
+        - **Process:** Configures the standardized appraisal template, defining the rating scales, name, type, and assigning it to organizational units/departments
+        - **Supporting:**
+          - REQ-PP-01: Configure standardized appraisal templates and rating scales
+        - **Output:** Standardized templates are created and saved for re-use
+
+     7. HR Manager Dispute Resolution
+        - **Actor:** HR Manager
+        - **Process:** Resolves the dispute. Options: A) Deny Objection: The original rating is finalized and locked on the profile. B) Approve & Change: The rating is adjusted, and the new score is reflected on the profile.
+        - **Supporting:**
+          - REQ-OD-07: Resolve disputes between employees and managers about ratings
+          - BR 32: Appeals must be reviewed by HR and outcomes must be logged in the system
+        - **Output:** Final rating (original or changed) is officially logged in the PM module, updating the EP module accordingly
+
+     ## ====================
+     ## ROLE: HR EMPLOYEE
+     ## ====================
+
+     ### Subsystem: Assignment & Manager Access
+     **Requirements:**
+     5. Assignment & Manager Access
+        - **User Stories:**
+          - REQ-PP-05: As an HR Employee, I want to assign appraisal forms and templates to employees and managers in bulk so that setup is efficient.
+          - REQ-AE-06: As an HR Employee, I want to monitor appraisal progress and send reminders for pending forms so the cycle completes on time.
+        - **Business Rules:**
+          - BR 22
+          - BR 37(a)
+          - BR 23
+          - BR 36(b)
+        - **Inputs from Other Sub-Systems:**
+          - Employee Profile (EP): Employee list, Status
+          - Organizational Structure (OS): Reviewer chain, reporting lines
+        - **Downstream Dependencies:**
+          - Notifications: Assignment alerts and reminder alerts
+
+     **Actions/Processes:**
+     2. Cycle Creation & Setup
+        - **Actor:** HR Employee / HR Manager
+        - **Process:** Defines and schedules the appraisal cycle (Name, Start Date, End Date) and subsequently assigns appraisal forms and templates to the relevant employees and managers (e.g., Line Manager) in bulk for efficiency
+        - **Supporting:**
+          - REQ-PP-02: Define and schedule appraisal cycles (used for defining dates/scope)
+          - REQ-PP-05: Assign appraisal forms and templates to employees and managers in bulk
+          - Input: Organizational Structure (OS) is needed for reviewer chain/reporting lines
+        - **Output:** Cycle and template assignments are generated; notifications are sent to the assigned managers
+
+     4. HR Monitoring & Publication
+        - **Actor:** HR Employee / HR Manager
+        - **Process:** The HR Manager tracks appraisal completion via a consolidated dashboard (REQ-AE-10) and the HR Employee monitors progress (REQ-AE-06). Once the department manager completes the forms, the HR Employee takes the step to publish the final rating to all department employees.
+        - **Supporting:**
+          - REQ-AE-10: Consolidated dashboard that tracks appraisal completion
+          - REQ-AE-06: Monitor appraisal progress and send reminders
+        - **Output:** Finalized appraisal record is created; employee receives notification (N-022)
+
+     ## ====================
+     ## ROLE: LINE MANAGER (HEAD OF DEPARTMENT)
+     ## ====================
+
+     ### Subsystem: Manager Access
+     **Requirements:**
+     6. Manager Access
+        - **User Stories:**
+          - REQ-PP-13: As a Line manager, I want to be able to view assigned appraisal forms to be able to effectively put goals that match it.
+        - **Business Rules:**
+          - BR 41(d)
+        - **Inputs from Other Sub-Systems:**
+          - Performance Management (PM): Assigned appraisal forms
+        - **Downstream Dependencies:** None
+
+     ### Subsystem: Manager Evaluation
+     **Requirements:**
+     7. Manager Fills Form
+        - **User Stories:**
+          - REQ-AE-03: As a Line Manager, I want to access and complete structured appraisal ratings for my direct reports so performance is evaluated consistently.
+          - REQ-AE-04: As a Line Manager, I want to add comments, examples and development recommendations to each rating so feedback is contextual and actionable.
+        - **Business Rules:**
+          - BR 7(a), 8, 14, 21 (for REQ-AE-03)
+          - BR 26, 33(d) (for REQ-AE-04)
+        - **Inputs from Other Sub-Systems:**
+          - Time Management (TM): Attendance and punctuality data
+        - **Downstream Dependencies:**
+          - Performance Management (PM): Manager ratings and scores
+
+     **Actions/Processes:**
+     3. Manager Evaluation
+        - **Actor:** Line Manager aka Head of Department
+        - **Process:** Views the assigned appraisal forms (REQ-PP-13) and accesses the system to complete structured appraisal ratings for their direct reports. The manager adds comments, examples, and development recommendations to provide contextual feedback (REQ-AE-04).
+        - **Supporting:**
+          - REQ-AE-03: Access and complete structured appraisal ratings for my direct reports
+          - REQ-AE-04: Add comments, examples and development recommendations
+          - Input: Time Management (TM) data (attendance and punctuality) may inform ratings
+        - **Output:** Manager ratings and scores are recorded in the Performance Management (PM) module
+
+     ## ====================
+     ## ROLE: EMPLOYEE
+     ## ====================
+
+     ### Subsystem: Employee Receipt & Profile Update
+     **Requirements:**
+     8. Employee Receives Rating & Profile Update
+        - **User Stories:**
+          - REQ-OD-01: As an Employee, I want to view final ratings, feedback, and development notes so I understand my performance and next steps.
+        - **Business Rules:**
+          - BR 6, 27(a), 28
+        - **Inputs from Other Sub-Systems:**
+          - Performance Management (PM): Finalized appraisal record
+        - **Downstream Dependencies:**
+          - Employee Profile (EP): Record final score/rating
+        - **Supporting Rule:** Employee Appraisals are saved on the profile, where information like appraisal date, method, rating scale and score are recorded. (BR 6)
+
+     ### Subsystem: Objection Handling
+     **Requirements:**
+     9. Employee Objects
+        - **User Stories:**
+          - REQ-AE-07: As an Employee or HR Employee, I want to flag or raise a concern about a rating during the cycle so disputes can be recorded and handled timely.
+        - **Business Rules:**
+          - BR 31, 32
+        - **Inputs from Other Sub-Systems:** None
+        - **Downstream Dependencies:**
+          - Performance Management (PM): Dispute log
+
+     **Actions/Processes:**
+     5. Employee Receipt & Profile Update
+        - **Actor:** Employee
+        - **Process:** Employee views the final ratings, feedback, and development notes (REQ-OD-01). The system automatically saves the appraisal details (date, method, rating scale, and score) onto the employee's permanent profile data.
+        - **Supporting:**
+          - REQ-OD-01: View final ratings, feedback, and development notes
+          - BR 6: Employee Appraisals are saved on the profile, where information like appraisal date, method, rating scale and score are recorded
+        - **Output:** Final score/rating is recorded in the Employee Profile (EP) module
+
+     6. Objection Window (Decision Point)
+        - **Actor:** Employee
+        - **Process:** The employee may use the 7-day window to flag or raise a concern about the rating (REQ-AE-07) to record a dispute.
+        - **Supporting:**
+          - REQ-AE-07: Flag or raise a concern about a rating during the cycle
+          - BR 31: Employees have the right to file a formal appeal within a pre-set time window after receiving an appraisal's outcome
+        - **Output:** Dispute record is created in the PM module. If no objection is filed, the process proceeds to End (Final Log). If an objection is filed, the process proceeds to Step 7.
+
+     ## ====================
+     ## ROLE: SYSTEM
+     ## ====================
+
+     ### Subsystem: Final Archiving
+     **Requirements:**
+     10. Final Log
+        - **User Stories:**
+          - REQ-OD-08: Access past appraisal history and multi-cycle trend views.
+          - REQ-OD-06: Generate and export outcome reports.
+        - **Business Rules:** None specified (but implied historical record keeping)
+        - **Inputs from Other Sub-Systems:** None (uses internal PM data)
+        - **Downstream Dependencies:** None (archived record)
+
+     **Actions/Processes:**
+     8. End: Final Log
+        - **Actor:** System
+        - **Process:** Finalized appraisal record is archived and made available for historical trend analysis and outcome reports.
+        - **Supporting:**
+          - REQ-OD-08: Access past appraisal history and multi-cycle trend views
+          - REQ-OD-06: Generate and export outcome reports
+        - **Output:** Final historical record saved and archived
+

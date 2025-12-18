@@ -7,6 +7,7 @@ import {
   TerminationRequest,
   TerminationStatus,
 } from '@/app/services/offboarding';
+import { StatusBadge } from '@/app/components/ui/status-badge';
 
 export default function ResignationsPage() {
   const [loading, setLoading] = useState(true);
@@ -35,21 +36,6 @@ export default function ResignationsPage() {
     if (filterStatus === 'all') return true;
     return r.status === filterStatus;
   });
-
-  const getStatusBadge = (status: TerminationStatus) => {
-    switch (status) {
-      case TerminationStatus.PENDING:
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-      case TerminationStatus.UNDER_REVIEW:
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
-      case TerminationStatus.APPROVED:
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      case TerminationStatus.REJECTED:
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
 
   if (loading) {
     return (
@@ -124,9 +110,7 @@ export default function ResignationsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
                         <h3 className="font-medium text-foreground">{employeeName}</h3>
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusBadge(resignation.status)}`}>
-                          {resignation.status.replace('_', ' ').toUpperCase()}
-                        </span>
+                        <StatusBadge status={resignation.status} />
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">Reason: {resignation.reason}</p>
                       {resignation.terminationDate && (
@@ -148,4 +132,3 @@ export default function ResignationsPage() {
     </div>
   );
 }
-

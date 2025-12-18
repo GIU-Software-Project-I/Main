@@ -17,7 +17,7 @@ function InputWithLabel({ label, className, ...props }: InputWithLabelProps) {
     return (
         <div className="w-full">
             {label && (
-                <Label className="block text-sm font-medium text-slate-700 mb-1.5">
+                <Label className="block text-sm font-medium text-foreground mb-1.5">
                     {label}
                 </Label>
             )}
@@ -262,8 +262,8 @@ export default function EditProfilePage() {
         return (
             <div className="flex items-center justify-center h-96">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-slate-600">Loading your profile...</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Loading your profile...</p>
                 </div>
             </div>
         );
@@ -282,8 +282,8 @@ export default function EditProfilePage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900">Edit Profile</h1>
-                    <p className="text-slate-600 mt-2">Update your personal information</p>
+                    <h1 className="text-3xl font-bold text-foreground">Edit Profile</h1>
+                    <p className="text-muted-foreground mt-2">Update your personal information</p>
                 </div>
                 <Link href="/portal/my-profile">
                     <Button variant="outline">
@@ -307,26 +307,25 @@ export default function EditProfilePage() {
             )}
 
             {/* Profile Header Card */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-8 text-white">
+            <div className="bg-primary rounded-lg p-8 text-primary-foreground shadow-lg">
                 <div className="flex items-center gap-6">
                     <div className="text-8xl">👤</div>
                     <div>
                         <h2 className="text-3xl font-bold">
                             {profile.firstName} {profile.lastName}
                         </h2>
-                        <p className="text-blue-100 mt-2">{profile.positionName || 'N/A'}</p>
-                        <p className="text-blue-100">{profile.departmentName || 'N/A'}</p>
+                        <p className="text-primary-foreground/80 mt-2">{profile.positionName || 'N/A'}</p>
+                        <p className="text-primary-foreground/80">{profile.departmentName || 'N/A'}</p>
                     </div>
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-4 border-b border-slate-200">
+            <div className="flex gap-4 border-b border-border">
                 <button
                     onClick={() => setActiveTab('contact')}
                     className={`px-4 py-3 font-medium transition-colors ${activeTab === 'contact'
-                        ? 'border-b-2 border-blue-600 text-blue-600'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'border-b-2 border-primary text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
                         }`}
                 >
                     📞 Contact Information
@@ -334,8 +333,8 @@ export default function EditProfilePage() {
                 <button
                     onClick={() => setActiveTab('bio')}
                     className={`px-4 py-3 font-medium transition-colors ${activeTab === 'bio'
-                        ? 'border-b-2 border-blue-600 text-blue-600'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'border-b-2 border-primary text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
                         }`}
                 >
                     ✍️ Biography & Photo
@@ -343,8 +342,8 @@ export default function EditProfilePage() {
                 <button
                     onClick={() => setActiveTab('emergency')}
                     className={`px-4 py-3 font-medium transition-colors ${activeTab === 'emergency'
-                        ? 'border-b-2 border-blue-600 text-blue-600'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'border-b-2 border-primary text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
                         }`}
                 >
                     🚨 Emergency Contacts
@@ -352,19 +351,18 @@ export default function EditProfilePage() {
                 <button
                     onClick={() => setActiveTab('correction')}
                     className={`px-4 py-3 font-medium transition-colors ${activeTab === 'correction'
-                        ? 'border-b-2 border-blue-600 text-blue-600'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'border-b-2 border-primary text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
                         }`}
                 >
                     📝 Request Correction
                 </button>
             </div>
 
-            {/* Contact Information Tab */}
             {activeTab === 'contact' && (
-                <form onSubmit={handleUpdateContactInfo} className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-                    <h3 className="text-lg font-bold text-slate-900 mb-6">Update Contact Information</h3>
-                    <p className="text-sm text-slate-600 mb-6">
+                <form onSubmit={handleUpdateContactInfo} className="bg-card rounded-lg border border-border shadow-sm p-6">
+                    <h3 className="text-lg font-bold text-foreground mb-6">Update Contact Information</h3>
+                    <p className="text-sm text-muted-foreground mb-6">
                         These changes will be applied immediately without requiring approval.
                     </p>
 
@@ -395,7 +393,7 @@ export default function EditProfilePage() {
                         />
 
                         <div className="space-y-6">
-                            <h4 className="font-semibold text-slate-900">Address</h4>
+                            <h4 className="font-semibold text-foreground">Address</h4>
                             <InputWithLabel
                                 label="Street Address"
                                 value={contactInfo.address.streetAddress}
@@ -441,25 +439,24 @@ export default function EditProfilePage() {
                 </form>
             )}
 
-            {/* Biography & Photo Tab */}
             {activeTab === 'bio' && (
-                <form onSubmit={handleUpdateBio} className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-                    <h3 className="text-lg font-bold text-slate-900 mb-6">Update Biography & Photo</h3>
-                    <p className="text-sm text-slate-600 mb-6">
+                <form onSubmit={handleUpdateBio} className="bg-card rounded-lg border border-border shadow-sm p-6">
+                    <h3 className="text-lg font-bold text-foreground mb-6">Update Biography & Photo</h3>
+                    <p className="text-sm text-muted-foreground mb-6">
                         These changes will be applied immediately without requiring approval.
                     </p>
 
                     <div className="space-y-6">
                         {/* Profile Picture Upload */}
                         <div className="w-full">
-                            <label className="block text-sm font-medium text-slate-700 mb-3">
+                            <label className="block text-sm font-medium text-foreground mb-3">
                                 Profile Picture
                             </label>
 
                             <div className="flex flex-col md:flex-row gap-6 items-start">
                                 {/* Current/Preview Image */}
                                 <div className="flex-shrink-0">
-                                    <div className="w-32 h-32 rounded-full border-2 border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center">
+                                    <div className="w-32 h-32 rounded-full border-2 border-border overflow-hidden bg-muted flex items-center justify-center">
                                         {bioInfo.profilePictureUrl ? (
                                             <img
                                                 src={bioInfo.profilePictureUrl}
@@ -505,7 +502,7 @@ export default function EditProfilePage() {
 
                                         <label
                                             htmlFor="profile-picture-upload"
-                                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer font-medium"
+                                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors cursor-pointer font-medium"
                                         >
                                             📸 Choose Photo
                                         </label>
@@ -514,14 +511,14 @@ export default function EditProfilePage() {
                                             <button
                                                 type="button"
                                                 onClick={() => setBioInfo({ ...bioInfo, profilePictureUrl: '' })}
-                                                className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium ml-2"
+                                                className="inline-flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-colors font-medium ml-2"
                                             >
                                                 🗑️ Remove Photo
                                             </button>
                                         )}
                                     </div>
 
-                                    <p className="mt-3 text-sm text-slate-500">
+                                    <p className="mt-3 text-sm text-muted-foreground">
                                         Upload a profile picture (JPG, PNG, or GIF). Max size: 2MB
                                     </p>
                                 </div>
@@ -529,7 +526,7 @@ export default function EditProfilePage() {
                         </div>
 
                         <div className="w-full">
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                            <label className="block text-sm font-medium text-foreground mb-1.5">
                                 Biography
                             </label>
                             <textarea
@@ -537,9 +534,9 @@ export default function EditProfilePage() {
                                 onChange={(e) => setBioInfo({ ...bioInfo, biography: e.target.value })}
                                 placeholder="Tell us about yourself, your role, interests, and professional background..."
                                 rows={6}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                                className="w-full px-4 py-3 border border-input bg-background rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all resize-none"
                             />
-                            <p className="mt-1.5 text-sm text-slate-500">
+                            <p className="mt-1.5 text-sm text-muted-foreground">
                                 {bioInfo.biography.length} characters
                             </p>
                         </div>
@@ -558,13 +555,12 @@ export default function EditProfilePage() {
                 </form>
             )}
 
-            {/* Emergency Contacts Tab */}
             {activeTab === 'emergency' && (
                 <div className="space-y-6">
                     {!showContactForm ? (
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
-                                <h3 className="text-lg font-bold text-slate-900">Your Emergency Contacts</h3>
+                                <h3 className="text-lg font-bold text-foreground">Your Emergency Contacts</h3>
                                 <Button onClick={() => {
                                     setContactForm({
                                         name: '',
@@ -581,26 +577,26 @@ export default function EditProfilePage() {
                             </div>
 
                             {emergencyContacts.length === 0 ? (
-                                <div className="text-center py-12 bg-slate-50 rounded-lg border border-slate-200 border-dashed">
+                                <div className="text-center py-12 bg-muted/50 rounded-lg border border-border border-dashed">
                                     <div className="text-4xl mb-4">🚨</div>
-                                    <h4 className="text-lg font-medium text-slate-900">No Emergency Contacts</h4>
-                                    <p className="text-slate-600 mt-2 mb-6">You haven't added any emergency contacts yet.</p>
+                                    <h4 className="text-lg font-medium text-foreground">No Emergency Contacts</h4>
+                                    <p className="text-muted-foreground mt-2 mb-6">You haven't added any emergency contacts yet.</p>
                                     <Button onClick={() => setShowContactForm(true)}>Add Your First Contact</Button>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {emergencyContacts.map((contact, index) => (
-                                        <div key={index} className={`relative p-6 rounded-lg border ${contact.isPrimary ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white'}`}>
+                                        <div key={index} className={`relative p-6 rounded-lg border ${contact.isPrimary ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'}`}>
                                             {contact.isPrimary && (
-                                                <span className="absolute top-4 right-4 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
+                                                <span className="absolute top-4 right-4 bg-primary/10 text-primary text-xs px-2 py-1 rounded-full font-medium">
                                                     Primary
                                                 </span>
                                             )}
                                             <div className="mb-4">
-                                                <h4 className="font-bold text-lg text-slate-900">{contact.name}</h4>
-                                                <p className="text-slate-600 font-medium">{contact.relationship}</p>
+                                                <h4 className="font-bold text-lg text-foreground">{contact.name}</h4>
+                                                <p className="text-muted-foreground font-medium">{contact.relationship}</p>
                                             </div>
-                                            <div className="space-y-2 text-sm text-slate-700 mb-6">
+                                            <div className="space-y-2 text-sm text-foreground mb-6">
                                                 <div className="flex items-center gap-2">
                                                     <span>📞</span> {contact.phone}
                                                 </div>
@@ -614,7 +610,7 @@ export default function EditProfilePage() {
                                                 <Button variant="outline" size="sm" onClick={() => startEditContact(index)}>
                                                     Edit
                                                 </Button>
-                                                <Button variant="outline" size="sm" onClick={() => handleDeleteEmergencyContact(index)} className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
+                                                <Button variant="outline" size="sm" onClick={() => handleDeleteEmergencyContact(index)} className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20">
                                                     Delete
                                                 </Button>
                                             </div>
@@ -624,8 +620,8 @@ export default function EditProfilePage() {
                             )}
                         </div>
                     ) : (
-                        <form onSubmit={handleSaveEmergencyContact} className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-                            <h3 className="text-lg font-bold text-slate-900 mb-6">
+                        <form onSubmit={handleSaveEmergencyContact} className="bg-card rounded-lg border border-border shadow-sm p-6">
+                            <h3 className="text-lg font-bold text-foreground mb-6">
                                 {editingContactIndex !== null ? 'Edit Emergency Contact' : 'Add Emergency Contact'}
                             </h3>
 
@@ -671,9 +667,9 @@ export default function EditProfilePage() {
                                         id="isPrimary"
                                         checked={contactForm.isPrimary}
                                         onChange={(e) => setContactForm({ ...contactForm, isPrimary: e.target.checked })}
-                                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                        className="w-4 h-4 text-primary rounded border-input focus:ring-ring bg-background"
                                     />
-                                    <label htmlFor="isPrimary" className="text-sm font-medium text-slate-700">
+                                    <label htmlFor="isPrimary" className="text-sm font-medium text-foreground">
                                         Set as Primary Contact
                                     </label>
                                 </div>
@@ -692,24 +688,23 @@ export default function EditProfilePage() {
                 </div>
             )}
 
-            {/* Correction Request Tab */}
             {activeTab === 'correction' && (
                 <div className="space-y-6">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 className="font-semibold text-blue-900 mb-2">📋 About Correction Requests</h4>
-                        <p className="text-blue-800 text-sm">
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                        <h4 className="font-semibold text-primary mb-2">📋 About Correction Requests</h4>
+                        <p className="text-primary/80 text-sm">
                             Use this form to request changes to critical profile data such as name, date of birth,
                             national ID, or employment details. These requests require HR approval before being applied.
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmitCorrectionRequest} className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-                        <h3 className="text-lg font-bold text-slate-900 mb-6">Request Profile Correction</h3>
+                    <form onSubmit={handleSubmitCorrectionRequest} className="bg-card rounded-lg border border-border shadow-sm p-6">
+                        <h3 className="text-lg font-bold text-foreground mb-6">Request Profile Correction</h3>
 
                         <div className="space-y-6">
                             <div className="w-full">
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                                    Correction Description <span className="text-red-500">*</span>
+                                <label className="block text-sm font-medium text-foreground mb-1.5">
+                                    Correction Description <span className="text-destructive">*</span>
                                 </label>
                                 <textarea
                                     value={correctionRequest.requestDescription}
@@ -717,15 +712,15 @@ export default function EditProfilePage() {
                                     placeholder="Describe what needs to be corrected and what the correct information should be..."
                                     rows={5}
                                     required
-                                    className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                                    className="w-full px-4 py-3 border border-input bg-background rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all resize-none"
                                 />
-                                <p className="mt-1.5 text-sm text-slate-500">
+                                <p className="mt-1.5 text-sm text-muted-foreground">
                                     Be specific about what needs to be changed
                                 </p>
                             </div>
 
                             <div className="w-full">
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                <label className="block text-sm font-medium text-foreground mb-1.5">
                                     Reason (Optional)
                                 </label>
                                 <textarea
@@ -733,7 +728,7 @@ export default function EditProfilePage() {
                                     onChange={(e) => setCorrectionRequest({ ...correctionRequest, reason: e.target.value })}
                                     placeholder="Provide additional context or reason for this correction..."
                                     rows={3}
-                                    className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                                    className="w-full px-4 py-3 border border-input bg-background rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all resize-none"
                                 />
                             </div>
                         </div>
@@ -753,9 +748,9 @@ export default function EditProfilePage() {
                     </form>
 
                     {/* View My Requests Link */}
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-6">
-                        <h4 className="font-semibold text-slate-900 mb-2">Track Your Requests</h4>
-                        <p className="text-slate-600 text-sm mb-4">
+                    <div className="bg-muted/50 border border-border rounded-lg p-6">
+                        <h4 className="font-semibold text-foreground mb-2">Track Your Requests</h4>
+                        <p className="text-muted-foreground text-sm mb-4">
                             Want to see the status of your previous correction requests?
                         </p>
                         <Link href="/portal/my-profile/correction-requests">

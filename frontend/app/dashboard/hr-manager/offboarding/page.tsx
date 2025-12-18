@@ -8,6 +8,7 @@ import {
   TerminationStatus,
   TerminationInitiation,
 } from '@/app/services/offboarding';
+import { StatusBadge } from '@/app/components/ui/status-badge';
 
 export default function OffboardingDashboard() {
   const [loading, setLoading] = useState(true);
@@ -38,35 +39,26 @@ export default function OffboardingDashboard() {
     }
   };
 
+  // Helper to normalize status/initiator for case-insensitive comparison
+  const normalizeValue = (val: string) => val?.toLowerCase?.() || val;
+
   const filteredRequests = requests.filter((request) => {
-    if (filterStatus !== 'all' && request.status !== filterStatus) return false;
-    if (filterType === 'resignations' && request.initiator !== TerminationInitiation.EMPLOYEE) return false;
-    if (filterType === 'terminations' && request.initiator === TerminationInitiation.EMPLOYEE) return false;
+    const requestStatus = normalizeValue(request.status);
+    const requestInitiator = normalizeValue(request.initiator);
+
+    if (filterStatus !== 'all' && requestStatus !== normalizeValue(filterStatus)) return false;
+    if (filterType === 'resignations' && requestInitiator !== normalizeValue(TerminationInitiation.EMPLOYEE)) return false;
+    if (filterType === 'terminations' && requestInitiator === normalizeValue(TerminationInitiation.EMPLOYEE)) return false;
     return true;
   });
 
   const stats = {
     total: requests.length,
-    pending: requests.filter((r) => r.status === TerminationStatus.PENDING).length,
-    underReview: requests.filter((r) => r.status === TerminationStatus.UNDER_REVIEW).length,
-    approved: requests.filter((r) => r.status === TerminationStatus.APPROVED).length,
-    resignations: requests.filter((r) => r.initiator === TerminationInitiation.EMPLOYEE).length,
-    terminations: requests.filter((r) => r.initiator !== TerminationInitiation.EMPLOYEE).length,
-  };
-
-  const getStatusBadge = (status: TerminationStatus) => {
-    switch (status) {
-      case TerminationStatus.PENDING:
-        return 'bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800';
-      case TerminationStatus.UNDER_REVIEW:
-        return 'bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800';
-      case TerminationStatus.APPROVED:
-        return 'bg-green-100 text-green-800 border border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800';
-      case TerminationStatus.REJECTED:
-        return 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800';
-      default:
-        return 'bg-muted text-muted-foreground border border-border';
-    }
+    pending: requests.filter((r) => normalizeValue(r.status) === normalizeValue(TerminationStatus.PENDING)).length,
+    underReview: requests.filter((r) => normalizeValue(r.status) === normalizeValue(TerminationStatus.UNDER_REVIEW)).length,
+    approved: requests.filter((r) => normalizeValue(r.status) === normalizeValue(TerminationStatus.APPROVED)).length,
+    resignations: requests.filter((r) => normalizeValue(r.initiator) === normalizeValue(TerminationInitiation.EMPLOYEE)).length,
+    terminations: requests.filter((r) => normalizeValue(r.initiator) !== normalizeValue(TerminationInitiation.EMPLOYEE)).length,
   };
 
   const getInitiatorLabel = (initiator: TerminationInitiation) => {
@@ -244,9 +236,8 @@ export default function OffboardingDashboard() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          isResignation ? 'bg-blue-100 dark:bg-blue-900/20' : 'bg-orange-100 dark:bg-orange-900/20'
-                        }`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isResignation ? 'bg-blue-100 dark:bg-blue-900/20' : 'bg-orange-100 dark:bg-orange-900/20'
+                          }`}>
                           {isResignation ? (
                             <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -262,9 +253,7 @@ export default function OffboardingDashboard() {
                             <h3 className="font-medium text-foreground">
                               {employeeName}
                             </h3>
-                            <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full ${getStatusBadge(request.status)}`}>
-                              {request.status.replace('_', ' ')}
-                            </span>
+                            <StatusBadge status={request.status} />
                           </div>
                           <div className="flex items-center gap-4 mt-1">
                             <span className="text-sm text-muted-foreground">

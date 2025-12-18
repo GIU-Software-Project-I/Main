@@ -11,6 +11,7 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/app/components/ui/dialog';
+import { StatusBadge } from '@/app/components/ui/status-badge';
 import { Badge } from '@/app/components/ui/badge';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -126,13 +127,7 @@ export default function CorrectionRequestsPage() {
     };
 
     const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'APPROVED': return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Approved</Badge>;
-            case 'REJECTED': return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Rejected</Badge>;
-            case 'SUBMITTED': return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Submitted</Badge>;
-            case 'IN_REVIEW': return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">In Review</Badge>;
-            default: return <Badge variant="outline">{status}</Badge>;
-        }
+        return <StatusBadge status={status} />;
     };
 
     if (loading) {
@@ -143,8 +138,8 @@ export default function CorrectionRequestsPage() {
         <div className="space-y-6 max-w-6xl mx-auto p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">Correction Requests</h1>
-                    <p className="text-slate-500 mt-2">Manage your profile and attendance correction requests.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Correction Requests</h1>
+                    <p className="text-muted-foreground mt-2">Manage your profile and attendance correction requests.</p>
                 </div>
                 {activeTab === 'attendance' && (
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -229,7 +224,7 @@ export default function CorrectionRequestsPage() {
                 )}
                 {activeTab === 'profile' && (
                     <Link href="/portal/my-profile/edit">
-                        <Button className="bg-slate-900 text-white hover:bg-slate-800 shadow-sm">
+                        <Button>
                             + New Profile Correction
                         </Button>
                     </Link>
@@ -243,20 +238,20 @@ export default function CorrectionRequestsPage() {
                 </TabsList>
 
                 <TabsContent value="profile" className="mt-6">
-                    <Card className="border-slate-200 shadow-sm">
+                    <Card className="border-border shadow-sm">
                         <CardHeader>
                             <CardTitle>Profile Data Corrections</CardTitle>
                             <CardDescription>Requests to change your personal or employment details.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             {profileRequests.length === 0 ? (
-                                <div className="text-center py-10 text-slate-500">
+                                <div className="text-center py-10 text-muted-foreground">
                                     No profile correction requests found.
                                 </div>
                             ) : (
-                                <div className="rounded-md border border-slate-200 overflow-hidden">
+                                <div className="rounded-md border border-border overflow-hidden">
                                     <Table>
-                                        <TableHeader className="bg-slate-50">
+                                        <TableHeader className="bg-muted/50">
                                             <TableRow>
                                                 <TableHead>Date Requested</TableHead>
                                                 <TableHead>Description</TableHead>
@@ -292,20 +287,20 @@ export default function CorrectionRequestsPage() {
                 </TabsContent>
 
                 <TabsContent value="attendance" className="mt-6">
-                    <Card className="border-slate-200 shadow-sm">
+                    <Card className="border-border shadow-sm">
                         <CardHeader>
                             <CardTitle>Attendance Correction History</CardTitle>
                             <CardDescription>View the status of your submitted attendance requests.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             {requests.length === 0 ? (
-                                <div className="text-center py-10 text-slate-500">
+                                <div className="text-center py-10 text-muted-foreground">
                                     No attendance correction requests found.
                                 </div>
                             ) : (
-                                <div className="rounded-md border border-slate-200 overflow-hidden">
+                                <div className="rounded-md border border-border overflow-hidden">
                                     <Table>
-                                        <TableHeader className="bg-slate-50">
+                                        <TableHeader className="bg-muted/50">
                                             <TableRow>
                                                 <TableHead>Date Created</TableHead>
                                                 <TableHead>Attendance Date</TableHead>
@@ -322,7 +317,7 @@ export default function CorrectionRequestsPage() {
                                                     </TableCell>
                                                     <TableCell>
                                                         {typeof req.attendanceRecord === 'string'
-                                                            ? <span className="text-slate-400 text-xs">{req.attendanceRecord.substring(0, 8)}...</span>
+                                                            ? <span className="text-muted-foreground text-xs">{req.attendanceRecord.substring(0, 8)}...</span>
                                                             : (req.attendanceRecord as any)?.createdAt ? new Date((req.attendanceRecord as any).createdAt).toLocaleDateString() : 'N/A'
                                                         }
                                                     </TableCell>
@@ -359,11 +354,11 @@ export default function CorrectionRequestsPage() {
                         <div className="space-y-4 py-2">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <Label className="text-xs text-slate-500 uppercase">Status</Label>
+                                    <Label className="text-xs text-muted-foreground uppercase">Status</Label>
                                     <div className="mt-1">{getStatusBadge(viewRequest.status)}</div>
                                 </div>
                                 <div>
-                                    <Label className="text-xs text-slate-500 uppercase">Created At</Label>
+                                    <Label className="text-xs text-muted-foreground uppercase">Created At</Label>
                                     <div className="text-sm font-medium mt-1">
                                         {viewRequest.createdAt ? new Date(viewRequest.createdAt).toLocaleString() : '-'}
                                     </div>
@@ -371,8 +366,8 @@ export default function CorrectionRequestsPage() {
                             </div>
 
                             <div>
-                                <Label className="text-xs text-slate-500 uppercase">Attendance Record</Label>
-                                <div className="text-sm font-medium mt-1 p-2 bg-slate-50 rounded border border-slate-100">
+                                <Label className="text-xs text-muted-foreground uppercase">Attendance Record</Label>
+                                <div className="text-sm font-medium mt-1 p-2 bg-muted/50 rounded border border-border">
                                     {typeof viewRequest.attendanceRecord === 'string'
                                         ? viewRequest.attendanceRecord
                                         : (viewRequest.attendanceRecord as any)?.createdAt
@@ -383,17 +378,17 @@ export default function CorrectionRequestsPage() {
                             </div>
 
                             <div>
-                                <Label className="text-xs text-slate-500 uppercase">Reason</Label>
-                                <div className="text-sm mt-1 p-3 bg-slate-50 rounded border border-slate-100 whitespace-pre-wrap">
+                                <Label className="text-xs text-muted-foreground uppercase">Reason</Label>
+                                <div className="text-sm mt-1 p-3 bg-muted/50 rounded border border-border whitespace-pre-wrap">
                                     {viewRequest.reason}
                                 </div>
                             </div>
 
                             {(viewRequest as any).reviewerId && (
                                 <div className="border-t pt-4 mt-4">
-                                    <Label className="text-xs text-slate-500 uppercase">Reviewer Note</Label>
+                                    <Label className="text-xs text-muted-foreground uppercase">Reviewer Note</Label>
                                     <div className="text-sm mt-1">
-                                        {(viewRequest as any).reviewNote || <span className="text-slate-400 italic">No notes provided.</span>}
+                                        {(viewRequest as any).reviewNote || <span className="text-muted-foreground italic">No notes provided.</span>}
                                     </div>
                                 </div>
                             )}

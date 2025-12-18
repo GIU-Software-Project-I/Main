@@ -78,6 +78,69 @@ export class OffboardingService {
         }
     }
 
+    /**
+     * Normalize approval status to handle case-insensitive comparison
+     * DB might store 'APPROVED', 'Approved', or 'approved'
+     */
+    private normalizeApprovalStatus(status: string | undefined): ApprovalStatus {
+        if (!status) return ApprovalStatus.PENDING;
+        const lower = status.toLowerCase();
+        if (lower === 'approved') return ApprovalStatus.APPROVED;
+        if (lower === 'rejected') return ApprovalStatus.REJECTED;
+        return ApprovalStatus.PENDING;
+    }
+
+    /**
+     * Normalize all clearance checklist item statuses before saving
+     * Fixes case mismatch between DB data (uppercase) and schema enum (lowercase)
+     */
+    private normalizeAllClearanceItemStatuses(checklist: ClearanceChecklistDocument): void {
+        if (checklist.items && Array.isArray(checklist.items)) {
+            for (let i = 0; i < checklist.items.length; i++) {
+                if (checklist.items[i].status) {
+                    checklist.items[i].status = this.normalizeApprovalStatus(checklist.items[i].status);
+                }
+            }
+        }
+    }
+
+    /**
+     * Normalize termination status to handle case-insensitive comparison
+     * DB might store 'UNDER_REVIEW', 'Under_Review', or 'under_review'
+     */
+    private normalizeTerminationStatus(status: string | undefined): TerminationStatus {
+        if (!status) return TerminationStatus.PENDING;
+        const lower = status.toLowerCase();
+        if (lower === 'approved') return TerminationStatus.APPROVED;
+        if (lower === 'rejected') return TerminationStatus.REJECTED;
+        if (lower === 'under_review') return TerminationStatus.UNDER_REVIEW;
+        return TerminationStatus.PENDING;
+    }
+
+    /**
+     * Normalize termination initiator to handle case-insensitive comparison
+     * DB might store 'MANAGER', 'Manager', or 'manager'
+     */
+    private normalizeTerminationInitiator(initiator: string | undefined): TerminationInitiation {
+        if (!initiator) return TerminationInitiation.HR;
+        const lower = initiator.toLowerCase();
+        if (lower === 'employee') return TerminationInitiation.EMPLOYEE;
+        if (lower === 'manager') return TerminationInitiation.MANAGER;
+        return TerminationInitiation.HR;
+    }
+
+    /**
+     * Normalize all fields in a termination request before saving
+     */
+    private normalizeTerminationRequest(request: TerminationRequestDocument): void {
+        if (request.status) {
+            request.status = this.normalizeTerminationStatus(request.status);
+        }
+        if (request.initiator) {
+            request.initiator = this.normalizeTerminationInitiator(request.initiator);
+        }
+    }
+
     private readonly validStatusTransitions: Record<TerminationStatus, TerminationStatus[]> = {
         [TerminationStatus.PENDING]: [TerminationStatus.UNDER_REVIEW, TerminationStatus.REJECTED],
         [TerminationStatus.UNDER_REVIEW]: [TerminationStatus.APPROVED, TerminationStatus.REJECTED],
@@ -333,8 +396,10 @@ export class OffboardingService {
             throw new NotFoundException(`Termination request with ID ${id} not found`);
         }
 
-        const currentStatus = request.status;
-        const newStatus = dto.status;
+        // Normalize current status from DB (might be uppercase)
+        const currentStatus = this.normalizeTerminationStatus(request.status);
+        // Normalize new status from DTO
+        const newStatus = this.normalizeTerminationStatus(dto.status);
         const allowedTransitions = this.validStatusTransitions[currentStatus];
 
         if (!allowedTransitions || !allowedTransitions.includes(newStatus)) {
@@ -344,11 +409,15 @@ export class OffboardingService {
             );
         }
 
-        request.status = dto.status;
+        // Use normalized status when saving
+        request.status = newStatus;
 
         if (dto.hrComments) {
             request.hrComments = dto.hrComments;
         }
+
+        // Normalize all fields before saving to handle case mismatches from DB
+        this.normalizeTerminationRequest(request);
 
         const savedRequest = await request.save();
 
@@ -726,6 +795,9 @@ export class OffboardingService {
             updatedAt: dto.updatedAt ? new Date(dto.updatedAt) : new Date(),
         };
 
+        // Normalize all item statuses before saving (fix uppercase values from DB)
+        this.normalizeAllClearanceItemStatuses(checklist);
+
         const updated = await checklist.save();
 
         // Get employee details for notifications
@@ -804,6 +876,8 @@ export class OffboardingService {
     }
 
     async updateEquipmentItem(checklistId: string, equipmentName: string, dto: UpdateEquipmentItemDto): Promise<ClearanceChecklist> {
+        this.validateObjectId(checklistId, 'checklistId');
+
         const checklist = await this.clearanceChecklistModel.findById(checklistId).exec();
 
         if (!checklist) {
@@ -823,10 +897,15 @@ export class OffboardingService {
             condition: dto.condition || checklist.equipmentList[equipmentIndex].condition,
         };
 
+        // Normalize all item statuses before saving (fix uppercase values from DB)
+        this.normalizeAllClearanceItemStatuses(checklist);
+
         return checklist.save();
     }
 
     async addEquipmentToChecklist(checklistId: string, dto: UpdateEquipmentItemDto): Promise<ClearanceChecklist> {
+        this.validateObjectId(checklistId, 'checklistId');
+
         const checklist = await this.clearanceChecklistModel.findById(checklistId).exec();
 
         if (!checklist) {
@@ -840,10 +919,15 @@ export class OffboardingService {
             condition: dto.condition || '',
         });
 
+        // Normalize all item statuses before saving (fix uppercase values from DB)
+        this.normalizeAllClearanceItemStatuses(checklist);
+
         return checklist.save();
     }
 
     async updateCardReturn(checklistId: string, cardReturned: boolean): Promise<ClearanceChecklist> {
+        this.validateObjectId(checklistId, 'checklistId');
+
         const checklist = await this.clearanceChecklistModel.findById(checklistId).exec();
 
         if (!checklist) {
@@ -851,6 +935,9 @@ export class OffboardingService {
         }
 
         checklist.cardReturned = cardReturned;
+
+        // Normalize all item statuses before saving (fix uppercase values from DB)
+        this.normalizeAllClearanceItemStatuses(checklist);
 
         return checklist.save();
     }

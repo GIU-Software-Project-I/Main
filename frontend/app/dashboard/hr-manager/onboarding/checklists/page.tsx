@@ -138,7 +138,7 @@ export default function OnboardingChecklistsPage() {
         </div>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
         >
           {showCreateForm ? 'Cancel' : 'Create Onboarding'}
         </button>
@@ -235,14 +235,14 @@ export default function OnboardingChecklistsPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
                 {submitting ? 'Creating...' : 'Create Onboarding'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowCreateForm(false)}
-                className="px-4 py-2 border border-input text-foreground rounded-md hover:bg-accent"
+                className="px-4 py-2 border border-input text-foreground rounded-lg hover:bg-accent transition-colors"
               >
                 Cancel
               </button>
@@ -282,11 +282,10 @@ export default function OnboardingChecklistsPage() {
                       <div className="flex items-center gap-3">
                         <h3 className="font-medium text-foreground">Employee: {employeeIdDisplay}</h3>
                         <span
-                          className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                            onboarding.completed 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
-                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                          }`}
+                          className={`px-2 py-0.5 text-xs font-medium rounded-full ${onboarding.completed
+                              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                              : 'bg-primary/10 text-primary'
+                            }`}
                         >
                           {onboarding.completed ? 'Completed' : 'In Progress'}
                         </span>
@@ -298,7 +297,7 @@ export default function OnboardingChecklistsPage() {
                       <p className="text-sm font-medium text-foreground">{progress}%</p>
                       <div className="w-24 bg-muted rounded-full h-2 mt-1">
                         <div
-                          className={`h-2 rounded-full ${onboarding.completed ? 'bg-green-500' : 'bg-blue-500'}`}
+                          className={`h-2 rounded-full ${onboarding.completed ? 'bg-green-500' : 'bg-primary'}`}
                           style={{ width: `${progress}%` }}
                         ></div>
                       </div>

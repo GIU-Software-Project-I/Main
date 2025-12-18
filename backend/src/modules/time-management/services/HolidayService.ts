@@ -31,10 +31,16 @@ export class HolidayService {
      * Also handles WEEKLY_REST entries by weekday matching.
      */
     async getHolidayForDate(date: Date) {
-        const start = new Date(date);
-        start.setHours(0,0,0,0);
-        const end = new Date(date);
-        end.setHours(23,59,59,999);
+        // Normalize the input date to start of day for comparison
+        const checkDate = new Date(date);
+        checkDate.setUTCHours(0, 0, 0, 0);
+
+        const start = new Date(checkDate);
+        start.setUTCHours(0, 0, 0, 0);
+        const end = new Date(checkDate);
+        end.setUTCHours(23, 59, 59, 999);
+
+        this.logger.debug(`[HolidayService] Checking holiday for date: ${checkDate.toISOString()} (${checkDate.toDateString()})`);
 
         try {
             // First, try to find NATIONAL or ORGANIZATIONAL holidays that cover the date
@@ -44,38 +50,58 @@ export class HolidayService {
                 startDate: { $lte: end },
                 $or: [
                     { endDate: { $exists: false } },
+                    { endDate: null },
                     { endDate: { $gte: start } }
                 ]
             }).lean();
 
-            if (direct) return direct;
+            if (direct) {
+                this.logger.debug(`[HolidayService] Found direct holiday: ${direct.name || direct.type}`);
+                return direct;
+            }
 
             // Next, check for WEEKLY_REST entries (treated as recurring weekly by weekday)
-            const weeklyRows = await this.holidayModel.find({ active: true, type: HolidayType.WEEKLY_REST }).lean();
+            const weeklyRows = await this.holidayModel.find({
+                active: true,
+                type: HolidayType.WEEKLY_REST
+            }).lean();
+
             if (weeklyRows && weeklyRows.length) {
-                const targetWeekday = date.getDay(); // 0 (Sun) - 6 (Sat)
+                const targetWeekday = checkDate.getUTCDay(); // 0 (Sun) - 6 (Sat)
+                const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                this.logger.debug(`[HolidayService] Checking weekly rest for ${dayNames[targetWeekday]} (weekday index: ${targetWeekday})`);
+
                 for (const w of weeklyRows) {
                     if (!w.startDate) continue;
-                    const startWeekday = new Date(w.startDate).getDay();
+                    const startWeekday = new Date(w.startDate).getUTCDay();
+
+                    this.logger.debug(`[HolidayService] Weekly rest entry: ${w.name || w.type}, startWeekday: ${startWeekday}, targetWeekday: ${targetWeekday}`);
 
                     // Only consider entries that match the weekday
                     if (startWeekday !== targetWeekday) continue;
 
                     // If row has startDate/endDate constraints, ensure date falls within them
                     const rowStart = new Date(w.startDate);
-                    rowStart.setHours(0,0,0,0);
+                    rowStart.setUTCHours(0, 0, 0, 0);
 
                     if (w.endDate) {
                         const rowEnd = new Date(w.endDate);
-                        rowEnd.setHours(23,59,59,999);
-                        if (date >= rowStart && date <= rowEnd) return w;
+                        rowEnd.setUTCHours(23, 59, 59, 999);
+                        if (checkDate >= rowStart && checkDate <= rowEnd) {
+                            this.logger.debug(`[HolidayService] Found matching weekly rest within date range`);
+                            return w;
+                        }
                     } else {
                         // No endDate -> active from startDate forward
-                        if (date >= rowStart) return w;
+                        if (checkDate >= rowStart) {
+                            this.logger.debug(`[HolidayService] Found matching weekly rest (active from startDate forward)`);
+                            return w;
+                        }
                     }
                 }
             }
 
+            this.logger.debug(`[HolidayService] No holiday found for date: ${checkDate.toDateString()}`);
             return null;
         } catch (e) {
             this.logger.error('getHolidayForDate failed', e);

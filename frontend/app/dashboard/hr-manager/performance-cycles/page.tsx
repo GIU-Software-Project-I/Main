@@ -59,17 +59,25 @@ const cycleTypes = [
 ];
 
 const statusColors: Record<string, string> = {
-    PLANNED: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    ACTIVE: 'bg-green-100 text-green-700 border-green-200',
-    CLOSED: 'bg-slate-100 text-slate-700 border-slate-200',
-    ARCHIVED: 'bg-purple-100 text-purple-700 border-purple-200',
+    PLANNED: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+    ACTIVE: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20',
+    CLOSED: 'bg-muted text-muted-foreground border-border',
+    ARCHIVED: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
 };
 
-const statusIcons: Record<string, string> = {
-    PLANNED: '📋',
-    ACTIVE: '🔄',
-    CLOSED: '✅',
-    ARCHIVED: '📦',
+const getStatusIcon = (status: string) => {
+    switch (status) {
+        case 'PLANNED':
+            return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>;
+        case 'ACTIVE':
+            return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>;
+        case 'CLOSED':
+            return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        case 'ARCHIVED':
+            return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>;
+        default:
+            return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>;
+    }
 };
 
 export default function PerformanceCyclesPage() {
@@ -260,8 +268,8 @@ export default function PerformanceCyclesPage() {
         return (
             <div className="flex items-center justify-center h-96">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-slate-600">Loading cycles...</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Loading cycles...</p>
                 </div>
             </div>
         );
@@ -272,13 +280,13 @@ export default function PerformanceCyclesPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-                        <Link href="/dashboard/hr-manager" className="hover:text-slate-700">HR Manager</Link>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <Link href="/dashboard/hr-manager" className="hover:text-foreground">HR Manager</Link>
                         <span>/</span>
-                        <span className="text-slate-900">Performance Cycles</span>
+                        <span className="text-foreground">Performance Cycles</span>
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-900">Appraisal Cycles</h1>
-                    <p className="text-slate-600 mt-1">Manage performance review cycles and schedules</p>
+                    <h1 className="text-2xl font-bold text-foreground">Appraisal Cycles</h1>
+                    <p className="text-muted-foreground mt-1">Manage performance review cycles and schedules</p>
                 </div>
                 <Button onClick={() => setIsCreateDialogOpen(true)}>
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -290,55 +298,63 @@ export default function PerformanceCyclesPage() {
 
             {/* Error Message */}
             {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p className="text-sm font-medium text-red-800">{error}</p>
-                    <button onClick={() => setError(null)} className="text-sm text-red-600 underline mt-1">Dismiss</button>
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                    <p className="text-sm font-medium text-destructive">{error}</p>
+                    <button onClick={() => setError(null)} className="text-sm text-destructive underline mt-1 opacity-80 hover:opacity-100">Dismiss</button>
                 </div>
             )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                <div className="bg-card border border-border rounded-xl p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                            📊
+                        <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
-                            <p className="text-sm text-slate-500">Total Cycles</p>
+                            <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+                            <p className="text-sm text-muted-foreground">Total Cycles</p>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                <div className="bg-card border border-border rounded-xl p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            🔄
+                        <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-green-600">{stats.active}</p>
-                            <p className="text-sm text-slate-500">Active</p>
+                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.active}</p>
+                            <p className="text-sm text-muted-foreground">Active</p>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                <div className="bg-card border border-border rounded-xl p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                            📋
+                        <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-yellow-600">{stats.planned}</p>
-                            <p className="text-sm text-slate-500">Planned</p>
+                            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.planned}</p>
+                            <p className="text-sm text-muted-foreground">Planned</p>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                <div className="bg-card border border-border rounded-xl p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                            ✅
+                        <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-slate-600">{stats.closed}</p>
-                            <p className="text-sm text-slate-500">Closed</p>
+                            <p className="text-2xl font-bold text-foreground">{stats.closed}</p>
+                            <p className="text-sm text-muted-foreground">Closed</p>
                         </div>
                     </div>
                 </div>
@@ -380,22 +396,22 @@ export default function PerformanceCyclesPage() {
                     return (
                         <div
                             key={cycle._id}
-                            className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg hover:border-slate-300 transition-all"
+                            className="bg-card border border-border rounded-xl p-6 hover:shadow-lg hover:border-primary/50 transition-all group"
                         >
                             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
-                                        <span className="text-2xl">{statusIcons[cycle.status]}</span>
+                                        <div className="text-muted-foreground group-hover:text-primary transition-colors">{getStatusIcon(cycle.status)}</div>
                                         <div>
-                                            <h3 className="font-semibold text-lg text-slate-900">{cycle.name}</h3>
+                                            <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">{cycle.name}</h3>
                                             <div className="flex items-center gap-2 mt-1">
-                                                <Badge className={statusColors[cycle.status]}>
+                                                <Badge variant="outline" className={statusColors[cycle.status]}>
                                                     {cycle.status}
                                                 </Badge>
                                                 <Badge variant="outline">{cycle.cycleType.replace('_', ' ')}</Badge>
                                                 {cycle.templateId && (
-                                                    <Badge variant="secondary" className="text-xs">
-                                                        📄 {cycle.templateId.name}
+                                                    <Badge variant="secondary" className="text-xs bg-primary/5 text-primary border-primary/10">
+                                                        {cycle.templateId.name}
                                                     </Badge>
                                                 )}
                                             </div>
@@ -403,10 +419,10 @@ export default function PerformanceCyclesPage() {
                                     </div>
 
                                     {cycle.description && (
-                                        <p className="text-sm text-slate-600 mb-3 ml-11">{cycle.description}</p>
+                                        <p className="text-sm text-muted-foreground mb-3 ml-11 line-clamp-2">{cycle.description}</p>
                                     )}
 
-                                    <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600 ml-11">
+                                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground ml-11">
                                         <span className="flex items-center gap-1">
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -414,8 +430,11 @@ export default function PerformanceCyclesPage() {
                                             {formatDate(cycle.startDate)} - {formatDate(cycle.endDate)}
                                         </span>
                                         {cycle.status === 'ACTIVE' && (
-                                            <span className={`flex items-center gap-1 ${daysRemaining < 7 ? 'text-red-600 font-medium' : ''}`}>
-                                                ⏱️ {daysRemaining > 0 ? `${daysRemaining} days left` : 'Overdue'}
+                                            <span className={`flex items-center gap-1 ${daysRemaining < 7 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                {daysRemaining > 0 ? `${daysRemaining} days left` : 'Overdue'}
                                             </span>
                                         )}
                                     </div>
@@ -425,11 +444,11 @@ export default function PerformanceCyclesPage() {
                                 {cycle.status === 'ACTIVE' && cycle.totalAssignments && cycle.totalAssignments > 0 && (
                                     <div className="lg:w-64">
                                         <div className="flex items-center justify-between text-sm mb-2">
-                                            <span className="text-slate-600">Completion</span>
-                                            <span className="font-medium text-slate-900">{progress}%</span>
+                                            <span className="text-muted-foreground">Completion</span>
+                                            <span className="font-medium text-foreground">{progress}%</span>
                                         </div>
                                         <Progress value={progress} className="h-2" />
-                                        <p className="text-xs text-slate-500 mt-1">
+                                        <p className="text-xs text-muted-foreground mt-1">
                                             {cycle.completedAssignments || 0} of {cycle.totalAssignments} completed
                                         </p>
                                     </div>
@@ -468,12 +487,12 @@ export default function PerformanceCyclesPage() {
             </div>
 
             {filteredCycles.length === 0 && (
-                <div className="text-center py-12 bg-white border border-slate-200 rounded-xl">
-                    <svg className="w-12 h-12 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center py-12 bg-card border border-border rounded-xl">
+                    <svg className="w-12 h-12 text-muted-foreground opacity-30 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <h3 className="text-lg font-medium text-slate-900 mb-1">No cycles found</h3>
-                    <p className="text-slate-600">Create your first appraisal cycle to get started</p>
+                    <h3 className="text-lg font-medium text-foreground mb-1">No cycles found</h3>
+                    <p className="text-muted-foreground">Create your first appraisal cycle to get started</p>
                 </div>
             )}
 
@@ -591,7 +610,7 @@ export default function PerformanceCyclesPage() {
                 <DialogContent className="max-w-xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <span className="text-2xl">{statusIcons[selectedCycle?.status || 'PLANNED']}</span>
+                            <div className="text-gray-600">{getStatusIcon(selectedCycle?.status || 'PLANNED')}</div>
                             {selectedCycle?.name}
                         </DialogTitle>
                         <DialogDescription>
@@ -607,33 +626,33 @@ export default function PerformanceCyclesPage() {
                     {selectedCycle && (
                         <div className="space-y-4 py-4">
                             <div>
-                                <h4 className="font-medium text-slate-900 mb-1">Description</h4>
-                                <p className="text-slate-600">{selectedCycle.description || 'No description provided'}</p>
+                                <h4 className="font-medium text-foreground mb-1">Description</h4>
+                                <p className="text-muted-foreground">{selectedCycle.description || 'No description provided'}</p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <h4 className="font-medium text-slate-900 mb-1">Start Date</h4>
-                                    <p className="text-slate-600">{formatDate(selectedCycle.startDate)}</p>
+                                    <h4 className="font-medium text-foreground mb-1">Start Date</h4>
+                                    <p className="text-muted-foreground">{formatDate(selectedCycle.startDate)}</p>
                                 </div>
                                 <div>
-                                    <h4 className="font-medium text-slate-900 mb-1">End Date</h4>
-                                    <p className="text-slate-600">{formatDate(selectedCycle.endDate)}</p>
+                                    <h4 className="font-medium text-foreground mb-1">End Date</h4>
+                                    <p className="text-muted-foreground">{formatDate(selectedCycle.endDate)}</p>
                                 </div>
                             </div>
 
                             {selectedCycle.templateId && (
                                 <div>
-                                    <h4 className="font-medium text-slate-900 mb-1">Assigned Template</h4>
-                                    <Badge variant="secondary">{selectedCycle.templateId.name}</Badge>
+                                    <h4 className="font-medium text-foreground mb-1">Assigned Template</h4>
+                                    <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10">{selectedCycle.templateId.name}</Badge>
                                 </div>
                             )}
 
                             {selectedCycle.totalAssignments && selectedCycle.totalAssignments > 0 && (
                                 <div>
-                                    <h4 className="font-medium text-slate-900 mb-2">Progress</h4>
+                                    <h4 className="font-medium text-foreground mb-2">Progress</h4>
                                     <Progress value={getProgress(selectedCycle)} className="h-3" />
-                                    <p className="text-sm text-slate-500 mt-2">
+                                    <p className="text-sm text-muted-foreground mt-2">
                                         {selectedCycle.completedAssignments || 0} of {selectedCycle.totalAssignments} appraisals completed ({getProgress(selectedCycle)}%)
                                     </p>
                                 </div>

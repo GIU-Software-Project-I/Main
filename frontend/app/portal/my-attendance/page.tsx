@@ -64,12 +64,20 @@ export default function MyAttendancePage() {
 
         console.log('[MyAttendance] Last punch:', lastPunch);
 
+        // For FIRST_LAST policy: if last punch is IN, user is clocked in.
+        // If last punch is OUT, user CAN clock out again (to update the last punch time)
         const isIn = lastPunch.type === PunchType.IN || lastPunch.type === 'IN';
         setIsClockedIn(isIn);
         if (isIn) {
           setClockInTime(new Date(lastPunch.time).toLocaleTimeString());
         } else {
-          setClockInTime(null);
+          // Last punch is OUT - still set clockInTime to first IN punch time for display
+          const firstIn = punches.find((p: any) => p.type === PunchType.IN || p.type === 'IN');
+          if (firstIn) {
+            setClockInTime(new Date(firstIn.time).toLocaleTimeString());
+          } else {
+            setClockInTime(null);
+          }
         }
       } else {
         // No record or no punches - reset state
@@ -141,8 +149,8 @@ export default function MyAttendancePage() {
 
   // Exact handleClockOut from punch/page.tsx
   const handleClockOut = async () => {
-    // Prevent duplicate calls
-    if (!user?.id || loading || !isClockedIn || punchingRef.current) return;
+    // Prevent duplicate calls - allow clock out if there are any punches (for FIRST_LAST policy to update last punch)
+    if (!user?.id || loading || !todayRecord || !todayRecord.punches || todayRecord.punches.length === 0 || punchingRef.current) return;
 
     punchingRef.current = true;
     setLoading(true);
@@ -165,8 +173,27 @@ export default function MyAttendancePage() {
       if (response.data) {
         const record = response.data as any;
         setTodayRecord(record);
-        setIsClockedIn(false);
-        setClockInTime(null);
+
+        // Update isClockedIn based on last punch type
+        const punches = record.punches;
+        if (punches && punches.length > 0) {
+          const lastPunch = punches[punches.length - 1];
+          const isIn = lastPunch.type === PunchType.IN || lastPunch.type === 'IN';
+          setIsClockedIn(isIn);
+
+          if (isIn) {
+            setClockInTime(new Date(lastPunch.time).toLocaleTimeString());
+          } else {
+            // Last punch is OUT - keep clockInTime from first IN punch for display
+            const firstIn = punches.find((p: any) => p.type === PunchType.IN || p.type === 'IN');
+            if (firstIn) {
+              setClockInTime(new Date(firstIn.time).toLocaleTimeString());
+            } else {
+              setClockInTime(null);
+            }
+          }
+        }
+
         setSuccess('Successfully clocked out!');
       }
     } catch (err) {
@@ -243,6 +270,14 @@ export default function MyAttendancePage() {
           setIsClockedIn(isIn);
           if (isIn) {
             setClockInTime(new Date(lastPunch.time).toLocaleTimeString());
+          } else {
+            // Last punch is OUT - still set clockInTime to first IN punch time for display
+            const firstIn = punches.find((p: any) => p.type === PunchType.IN || p.type === 'IN');
+            if (firstIn) {
+              setClockInTime(new Date(firstIn.time).toLocaleTimeString());
+            } else {
+              setClockInTime(null);
+            }
           }
         } else {
           // No valid record
@@ -384,14 +419,14 @@ export default function MyAttendancePage() {
                 </button>
                 <button
                   onClick={handleClockOut}
-                  disabled={loading || !isClockedIn}
+                  disabled={loading || !todayRecord || todayRecord.punches?.length === 0}
                   className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                    !isClockedIn
+                    !todayRecord || todayRecord.punches?.length === 0
                       ? 'bg-white/20 text-primary-foreground/60 cursor-not-allowed'
                       : 'bg-white text-primary hover:bg-white/90'
                   }`}
                 >
-                  {loading && isClockedIn ? 'Processing...' : 'Clock Out'}
+                  {loading ? 'Processing...' : 'Clock Out'}
                 </button>
               </div>
             </div>
