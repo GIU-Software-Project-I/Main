@@ -39,6 +39,12 @@ export class TimeExceptionEscalationScheduler {
 
             // Get payroll cutoff day from active payroll run
             const payrollCutoffDay = await this.getPayrollCutoffDayFromActiveRun();
+
+            // Skip execution if no active payroll run found
+            if (payrollCutoffDay === null) {
+                this.logger.debug('No active payroll run found. Skipping time exception escalation.');
+                return;
+            }
             const escalationDaysBeforeCutoff = Number(process.env.TIME_EXCEPTION_ESCALATION_DAYS ?? 2);
 
             // Calculate days until payroll cut-off
@@ -145,12 +151,13 @@ export class TimeExceptionEscalationScheduler {
     /**
      * Get payroll cutoff day from the active payroll run
      * Queries payrollRuns collection and extracts the day from payrollPeriod
+     * Returns null if no active payroll run is found (instead of throwing error)
      */
-    private async getPayrollCutoffDayFromActiveRun(): Promise<number> {
+    private async getPayrollCutoffDayFromActiveRun(): Promise<number | null> {
         try {
             if (!this.connection.db) {
                 this.logger.error('Database connection not available - cannot get payroll cutoff');
-                throw new Error('Database connection unavailable');
+                return null;
             }
 
             // Query the most recent active payroll run from payrollRuns collection
@@ -165,15 +172,15 @@ export class TimeExceptionEscalationScheduler {
                 );
 
             if (!activePayroll) {
-                this.logger.error('No active payroll run found in database');
-                throw new Error('No active payroll run found - cannot determine cutoff date');
+                this.logger.debug('No active payroll run found in database');
+                return null;
             }
 
             // Extract cutoff day from payrollPeriod field
             // payrollPeriod is the actual payroll cutoff date (e.g., 31-01-2025)
             if (!activePayroll.payrollPeriod) {
                 this.logger.error('payrollPeriod not found in active payroll run');
-                throw new Error('payrollPeriod missing from active payroll run');
+                return null;
             }
 
             const period = new Date(activePayroll.payrollPeriod);
@@ -186,7 +193,7 @@ export class TimeExceptionEscalationScheduler {
             return cutoffDay;
         } catch (error) {
             this.logger.error('Failed to get payroll cutoff day from PayrollRuns', error);
-            throw error;
+            return null;
         }
     }
 
