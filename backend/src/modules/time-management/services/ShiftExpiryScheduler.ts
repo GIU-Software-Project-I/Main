@@ -14,20 +14,37 @@ import { NotificationLog, NotificationLogDocument } from '../models/notification
 @Injectable()
 export class ShiftExpiryScheduler {
     private readonly logger = new Logger(ShiftExpiryScheduler.name);
+    private lastRunDate: Date | null = null;
 
     constructor(
         @InjectModel(ShiftAssignment.name) private readonly shiftAssignmentModel: Model<ShiftAssignmentDocument>,
         @InjectModel(NotificationLog.name) private readonly notificationModel: Model<NotificationLogDocument>,
         @InjectConnection() private readonly connection: Connection,
-    ) {}
+    ) {
+        // Run catch-up on initialization
+        this.runCatchUp();
+    }
+
+    /**
+     * Runs on backend startup to catch up on any missed notifications
+     */
+    private async runCatchUp(): Promise<void> {
+        try {
+            this.logger.log('🔄 Running catch-up for missed shift expiry notifications...');
+            await this.runDaily();
+            this.logger.log('✓ Catch-up completed');
+        } catch (error) {
+            this.logger.error('Catch-up failed', error);
+        }
+    }
 
     /**
      * Runs daily at configured hour.
-     * CRON: default '0 8 * * *' (08:00 server time).
+     * CRON: default '0 10 * * *' (10:00 server time).
      * Automatically finds HR/Admin users to notify - no configuration required!
      */
-    // Run daily at 02:00 server time to notify about expiring shift assignments
-    @Cron('0 2 * * *')
+    // Run daily at 10:00 server time to notify about expiring shift assignments
+    @Cron('0 10 * * *')
     async runDaily() {
         try {
             const daysEnv = Number(process.env.SHIFT_EXPIRY_NOTIFICATION_DAYS ?? 7);
