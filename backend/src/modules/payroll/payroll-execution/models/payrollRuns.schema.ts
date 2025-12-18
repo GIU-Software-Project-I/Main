@@ -1,3 +1,4 @@
+
 import { Prop, Schema, SchemaFactory, } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
 import {  EmployeeProfile as Employee} from '../../../employee/models/employee/employee-profile.schema';
@@ -17,6 +18,9 @@ export class payrollRuns {
 
   @Prop({ required: true })
   entity: string; // name of the company
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId })
+  entityId?: mongoose.Types.ObjectId; // ID reference for the entity/department
 
   @Prop({ required: true })
   employees: number;
@@ -53,3 +57,7 @@ export class payrollRuns {
 
 
 export const payrollRunsSchema = SchemaFactory.createForClass(payrollRuns);
+
+
+
+

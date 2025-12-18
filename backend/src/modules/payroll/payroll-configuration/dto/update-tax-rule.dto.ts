@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsNumber, Min } from 'class-validator';
+import { IsOptional, IsString, IsNumber, Min, Max } from 'class-validator';
 
 export class UpdateTaxRuleDto {
   @IsOptional()
@@ -8,5 +8,6 @@ export class UpdateTaxRuleDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
+  @Max(100)
   rate?: number;
 }

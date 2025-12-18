@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { EmployeeProfile } from '../../../employee/models/employee/employee-profile.schema';
 import { taxRules, taxRulesDocument } from '../models/taxRules.schema';
 import { insuranceBrackets, insuranceBracketsDocument } from '../models/insuranceBrackets.schema';
@@ -8,9 +8,9 @@ import { ConfigStatus } from '../enums/payroll-configuration-enums';
 import { ApproveInsuranceDto } from '../dto/approve-insurance.dto';
 import { ApproveTaxRuleDto } from '../dto/approve-tax-rule.dto';
 import { CreateInsuranceDto } from '../dto/create-insurance.dto';
-import { CreateTaxRuleDto } from '../dto/create-tax-rule.dto';
 import { UpdateInsuranceDto } from '../dto/update-insurance.dto';
 import { UpdateTaxRuleDto } from '../dto/update-tax-rule.dto';
+import { CreateTaxRuleDto } from '../dto/create-tax-rule.dto';
 import { allowance, allowanceDocument } from '../models/allowance.schema';
 import { payType, payTypeDocument } from '../models/payType.schema';
 import { payGrade } from '../models/payGrades.schema';
@@ -51,7 +51,13 @@ export class PayrollConfigurationService {
         @InjectModel(terminationAndResignationBenefits.name) private terminationBenefitsModel: Model<terminationAndResignationBenefitsDocument>,
         @InjectModel(CompanyWideSettings.name) private companySettingsModel: Model<CompanyWideSettings>,
         @InjectModel(EmployeeProfile.name) private employeeModel: Model<EmployeeProfile>,
+        // private readonly orgStructureService: OrganizationStructureService,
+        // private readonly contractService: OnBoardingService,
+        // private readonly offboardingService: OffBoardingService,
     ) {}
+
+    // Ephemeral status for company-wide settings (no schema changes)
+    private companySettingsStatus: 'DRAFT' | 'APPROVED' | 'REJECTED' = 'DRAFT';
 
     // ========== HELPER METHODS ==========
     private async validateApprover(approverId: string, creatorId?: Types.ObjectId | string): Promise<void> {
@@ -63,13 +69,10 @@ export class PayrollConfigurationService {
             throw new BadRequestException('approvedBy must be a valid MongoDB ObjectId');
         }
 
-        // Validate approver exists and is active
+        // Validate approver exists (skip strict status check - allows all employee statuses)
         const approver = await this.employeeModel.findById(approverId).exec();
         if (!approver) {
             throw new BadRequestException('Approver employee not found');
-        }
-        if (approver.status !== 'ACTIVE') {
-            throw new BadRequestException('Approver must be an active employee');
         }
 
         // Prevent self-approval
@@ -81,14 +84,23 @@ export class PayrollConfigurationService {
     }
 
     // ========== LAMA'S TAX RULES METHODS ==========
-    async createTaxRule(dto: CreateTaxRuleDto) {
-        const exists = await this.taxRulesModel.findOne({ 
-            name: { $regex: new RegExp(`^${dto.name}$`, 'i') } 
-        }).exec();
-        if (exists) throw new BadRequestException(`Tax rule '${dto.name}' already exists`);
-        const taxRule = new this.taxRulesModel({ ...dto, status: ConfigStatus.DRAFT });
-        return await taxRule.save();
-    }
+async createTaxRule(dto: CreateTaxRuleDto) {
+    const exists = await this.taxRulesModel.findOne({ 
+        name: { $regex: new RegExp(`^${dto.name}$`, 'i') } 
+    }).exec();
+    if (exists) throw new BadRequestException(`Tax rule '${dto.name}' already exists`);
+
+    const taxRule = new this.taxRulesModel({
+        name: dto.name,
+        description: dto.description,
+        rate: dto.rate,
+        createdBy: dto.createdByEmployeeId,
+        status: ConfigStatus.DRAFT
+    });
+
+    return await taxRule.save();
+}
+
 
     async getTaxRules() {
         return await this.taxRulesModel.find().sort({ createdAt: -1 }).exec();
@@ -120,24 +132,25 @@ export class PayrollConfigurationService {
         return await taxRule.save();
     }
 
-    async updateLegalRule(id: string, dto: UpdateTaxRuleDto) {
-        const rule = await this.taxRulesModel.findById(id).exec();
-        if (!rule) throw new NotFoundException('Legal rule not found');
-        if (rule.status !== ConfigStatus.DRAFT)
-            throw new ForbiddenException('Only DRAFT rules can be edited');
+// Check this method in payroll-configuration.service.ts
+async updateLegalRule(id: string, dto: UpdateTaxRuleDto) {
+    const rule = await this.taxRulesModel.findById(id).exec();
+    if (!rule) throw new NotFoundException('Tax rule not found');
+    if (rule.status !== ConfigStatus.DRAFT)
+        throw new ForbiddenException('Only DRAFT rules can be edited');
 
-        return await this.taxRulesModel.findByIdAndUpdate(
-            id,
-            { $set: dto },
-            { new: true, runValidators: false },
-        );
-    }
+    // Check what happens with taxComponents here
+    return await this.taxRulesModel.findByIdAndUpdate(
+        id,
+        { $set: dto },
+        { new: true, runValidators: true } // ensure validators run
+    );
+}
+
 
     async deleteTaxRule(id: string) {
         const rule = await this.taxRulesModel.findById(id).exec();
         if (!rule) throw new NotFoundException(`Tax rule with ID ${id} not found`);
-        if (rule.status !== ConfigStatus.DRAFT)
-            throw new ForbiddenException('Only DRAFT rules can be deleted');
 
         await this.taxRulesModel.findByIdAndDelete(id).exec();
         return { message: `Tax rule '${rule.name}' successfully deleted` };
@@ -164,42 +177,43 @@ export class PayrollConfigurationService {
     }
 
     // ========== LAMA'S INSURANCE BRACKETS METHODS ==========
-    async createInsuranceBracket(dto: CreateInsuranceDto) {
-        // Case-insensitive duplicate check
-        const exists = await this.insuranceModel.findOne({ 
-            name: { $regex: new RegExp(`^${dto.name}$`, 'i') } 
-        }).exec();
-        if (exists) throw new BadRequestException(`Insurance bracket '${dto.name}' already exists`);
+async createInsuranceBracket(dto: CreateInsuranceDto) {
+    // Case-insensitive duplicate name check
+    const exists = await this.insuranceModel.findOne({
+        name: { $regex: new RegExp(`^${dto.name}$`, 'i') }
+    }).exec();
 
-        // Check for overlapping salary ranges
-        const overlapping = await this.insuranceModel.findOne({
-            $and: [
-                { status: { $in: [ConfigStatus.DRAFT, ConfigStatus.APPROVED] } }, // Only check active brackets
-                {
-                    $or: [
-                        // New range starts within existing range
-                        { minSalary: { $lte: dto.minSalary }, maxSalary: { $gte: dto.minSalary } },
-                        // New range ends within existing range
-                        { minSalary: { $lte: dto.maxSalary }, maxSalary: { $gte: dto.maxSalary } },
-                        // New range encompasses existing range
-                        { minSalary: { $gte: dto.minSalary }, maxSalary: { $lte: dto.maxSalary } }
-                    ]
-                }
-            ]
-        }).exec();
-
-        if (overlapping) {
-            throw new BadRequestException(
-                `Insurance bracket overlaps with existing bracket '${overlapping.name}' ` +
-                `(${overlapping.minSalary} - ${overlapping.maxSalary}). ` +
-                `Please adjust salary ranges to avoid overlap.`
-            );
-        }
-
-        const bracket = new this.insuranceModel({ ...dto, status: ConfigStatus.DRAFT });
-        return await bracket.save();
+    if (exists) {
+        throw new BadRequestException(
+            `Insurance bracket '${dto.name}' already exists`
+        );
     }
 
+    // Validate salary range
+    if (dto.minSalary >= dto.maxSalary) {
+        throw new BadRequestException(
+            'minSalary must be less than maxSalary'
+        );
+    }
+
+    // Create bracket data
+    const bracketData: any = {
+        name: dto.name,
+        minSalary: dto.minSalary,
+        maxSalary: dto.maxSalary,
+        employeeRate: dto.employeeRate,
+        employerRate: dto.employerRate,
+        status: ConfigStatus.DRAFT,
+    };
+
+    // Add createdBy if provided
+    if (dto.createdByEmployeeId) {
+        bracketData.createdBy = new mongoose.Types.ObjectId(dto.createdByEmployeeId);
+    }
+
+    const bracket = new this.insuranceModel(bracketData);
+    return await bracket.save();
+}
     async getInsuranceBrackets() {
         return await this.insuranceModel.find().sort({ createdAt: -1 }).exec();
     }
@@ -210,45 +224,31 @@ export class PayrollConfigurationService {
         return bracket;
     }
 
-    async updateInsuranceBracket(id: string, dto: UpdateInsuranceDto) {
-        const bracket = await this.insuranceModel.findById(id).exec();
-        if (!bracket) throw new NotFoundException('Insurance bracket not found');
-        if (bracket.status !== ConfigStatus.DRAFT)
-            throw new ForbiddenException('Only DRAFT brackets can be edited');
+async updateInsuranceBracket(id: string, dto: UpdateInsuranceDto) {
+    const bracket = await this.insuranceModel.findById(id).exec();
+    if (!bracket) throw new NotFoundException('Insurance bracket not found');
+    
+    if (bracket.status !== ConfigStatus.DRAFT)
+        throw new ForbiddenException('Only DRAFT brackets can be edited');
 
-        // If salary range is being updated, check for overlaps
-        if (dto.minSalary !== undefined || dto.maxSalary !== undefined) {
-            const newMinSalary = dto.minSalary ?? bracket.minSalary;
-            const newMaxSalary = dto.maxSalary ?? bracket.maxSalary;
-
-            const overlapping = await this.insuranceModel.findOne({
-                _id: { $ne: id }, // Exclude current bracket
-                $and: [
-                    { status: { $in: [ConfigStatus.DRAFT, ConfigStatus.APPROVED] } },
-                    {
-                        $or: [
-                            { minSalary: { $lte: newMinSalary }, maxSalary: { $gte: newMinSalary } },
-                            { minSalary: { $lte: newMaxSalary }, maxSalary: { $gte: newMaxSalary } },
-                            { minSalary: { $gte: newMinSalary }, maxSalary: { $lte: newMaxSalary } }
-                        ]
-                    }
-                ]
-            }).exec();
-
-            if (overlapping) {
-                throw new BadRequestException(
-                    `Updated salary range overlaps with bracket '${overlapping.name}' ` +
-                    `(${overlapping.minSalary} - ${overlapping.maxSalary})`
-                );
-            }
+    // Validate salary range if both are being updated
+    if (dto.minSalary !== undefined && dto.maxSalary !== undefined) {
+        if (dto.minSalary >= dto.maxSalary) {
+            throw new BadRequestException('minSalary must be less than maxSalary');
         }
-
-        return await this.insuranceModel.findByIdAndUpdate(
-            id,
-            { $set: dto },
-            { new: true, runValidators: false },
-        );
+    } else if (dto.minSalary !== undefined && dto.minSalary >= bracket.maxSalary) {
+        throw new BadRequestException('minSalary must be less than current maxSalary');
+    } else if (dto.maxSalary !== undefined && dto.maxSalary <= bracket.minSalary) {
+        throw new BadRequestException('maxSalary must be greater than current minSalary');
     }
+
+    // Update the bracket
+    return await this.insuranceModel.findByIdAndUpdate(
+        id,
+        { $set: dto },
+        { new: true, runValidators: true }
+    );
+}
 
     async approveInsuranceBracket(id: string, dto: ApproveInsuranceDto) {
         const bracket = await this.insuranceModel.findById(id).exec();
@@ -301,14 +301,22 @@ export class PayrollConfigurationService {
     }
 
     // ========== DAREEN'S PAYROLL POLICIES METHODS ==========
-    async create(createDto: CreatePayrollPolicyDto): Promise<payrollPolicies> {
-        const newPolicy = new this.payrollPolicyModel({
-            ...createDto,
-            status: ConfigStatus.DRAFT,
-            effectiveDate: new Date(createDto.effectiveDate),
-        });
-        return await newPolicy.save();
-    }
+   async create(createDto: CreatePayrollPolicyDto): Promise<payrollPolicies> {
+    const policyData = {
+        policyName: createDto.policyName,
+        policyType: createDto.policyType,
+        description: createDto.description,
+        effectiveDate: new Date(createDto.effectiveDate),
+        ruleDefinition: createDto.ruleDefinition,
+        applicability: createDto.applicability,
+        status: ConfigStatus.DRAFT,
+        createdBy: createDto.createdByEmployeeId 
+            ? new mongoose.Types.ObjectId(createDto.createdByEmployeeId) 
+            : undefined,
+    };
+    const newPolicy = new this.payrollPolicyModel(policyData);
+    return await newPolicy.save();
+}
 
     async findAll(queryDto: QueryPayrollPolicyDto): Promise<{
         data: payrollPolicies[];
@@ -377,12 +385,6 @@ export class PayrollConfigurationService {
 
     async remove(id: string): Promise<{ message: string }> {
         const policy = await this.findOne(id);
-
-        if (policy.status !== ConfigStatus.DRAFT) {
-            throw new ForbiddenException(
-                `Cannot delete policy with status '${policy.status}'. Only DRAFT policies can be deleted.`
-            );
-        }
 
         await this.payrollPolicyModel.findByIdAndDelete(id).exec();
         return { message: `Payroll policy '${policy.policyName}' has been successfully deleted` };
@@ -525,12 +527,6 @@ export class PayrollConfigurationService {
     async removePayType(id: string): Promise<{ message: string }> {
         const payType = await this.findOnePayType(id);
 
-        if (payType.status !== ConfigStatus.DRAFT) {
-            throw new ForbiddenException(
-                `Cannot delete pay type with status '${payType.status}'. Only DRAFT pay types can be deleted.`
-            );
-        }
-
         await this.payTypeModel.findByIdAndDelete(id).exec();
         return { message: `Pay type '${payType.type}' has been successfully deleted` };
     }
@@ -586,22 +582,27 @@ export class PayrollConfigurationService {
     }
 
     // ========== DAREEN'S ALLOWANCE METHODS ==========
-    async createAllowance(createDto: CreateAllowanceDto): Promise<allowance> {
-        const existingAllowance = await this.allowanceModel.findOne({
-            name: { $regex: new RegExp(`^${createDto.name}$`, 'i') }
-        }).exec();
+async createAllowance(createDto: CreateAllowanceDto): Promise<allowance> {
+    const existingAllowance = await this.allowanceModel.findOne({
+        name: { $regex: new RegExp(`^${createDto.name}$`, 'i') }
+    }).exec();
 
-        if (existingAllowance) {
-            throw new BadRequestException(`Allowance '${createDto.name}' already exists`);
-        }
-
-        const newAllowance = new this.allowanceModel({
-            ...createDto,
-            status: ConfigStatus.DRAFT,
-        });
-
-        return await newAllowance.save();
+    if (existingAllowance) {
+        throw new BadRequestException(`Allowance '${createDto.name}' already exists`);
     }
+
+    const allowanceData = {
+        name: createDto.name,
+        amount: createDto.amount,
+        status: ConfigStatus.DRAFT,
+        ...(createDto.createdByEmployeeId && {
+            createdBy: new mongoose.Types.ObjectId(createDto.createdByEmployeeId)
+        })
+    };
+    const newAllowance = new this.allowanceModel(allowanceData);
+
+    return await newAllowance.save();
+}
 
     async findAllAllowances(queryDto: QueryAllowanceDto): Promise<{
         data: allowance[];
@@ -663,12 +664,6 @@ export class PayrollConfigurationService {
     async removeAllowance(id: string): Promise<{ message: string }> {
         const allowance = await this.findOneAllowance(id);
 
-        if (allowance.status !== ConfigStatus.DRAFT) {
-            throw new ForbiddenException(
-                `Cannot delete allowance with status '${allowance.status}'. Only DRAFT allowances can be deleted.`
-            );
-        }
-
         await this.allowanceModel.findByIdAndDelete(id).exec();
         return { message: `Allowance '${allowance.name}' has been successfully deleted` };
     }
@@ -724,22 +719,27 @@ export class PayrollConfigurationService {
     }
 
     // ========== DAREEN'S SIGNING BONUS METHODS ==========
-    async createSigningBonus(createDto: CreateSigningBonusDto): Promise<signingBonus> {
-        const existingSigningBonus = await this.signingBonusModel.findOne({
-            positionName: { $regex: new RegExp(`^${createDto.positionName}$`, 'i') }
-        }).exec();
+  async createSigningBonus(createDto: CreateSigningBonusDto): Promise<signingBonus> {
+    const existingSigningBonus = await this.signingBonusModel.findOne({
+        positionName: { $regex: new RegExp(`^${createDto.positionName}$`, 'i') }
+    }).exec();
 
-        if (existingSigningBonus) {
-            throw new BadRequestException(`Signing bonus for position '${createDto.positionName}' already exists`);
-        }
-
-        const newSigningBonus = new this.signingBonusModel({
-            ...createDto,
-            status: ConfigStatus.DRAFT,
-        });
-
-        return await newSigningBonus.save();
+    if (existingSigningBonus) {
+        throw new BadRequestException(`Signing bonus for position '${createDto.positionName}' already exists`);
     }
+
+    const signingBonusData = {
+        positionName: createDto.positionName,
+        amount: createDto.amount,
+        status: ConfigStatus.DRAFT,
+        ...(createDto.createdByEmployeeId && {
+            createdBy: new mongoose.Types.ObjectId(createDto.createdByEmployeeId)
+        })
+    };
+    const newSigningBonus = new this.signingBonusModel(signingBonusData);
+
+    return await newSigningBonus.save();
+}
 
     async findAllSigningBonuses(queryDto: QuerySigningBonusDto): Promise<{
         data: signingBonus[];
@@ -810,12 +810,6 @@ export class PayrollConfigurationService {
     async removeSigningBonus(id: string): Promise<{ message: string }> {
         const signingBonus = await this.findOneSigningBonus(id);
 
-        if (signingBonus.status !== ConfigStatus.DRAFT) {
-            throw new ForbiddenException(
-                `Cannot delete signing bonus with status '${signingBonus.status}'. Only DRAFT signing bonuses can be deleted.`
-            );
-        }
-
         await this.signingBonusModel.findByIdAndDelete(id).exec();
         return { message: `Signing bonus for position '${signingBonus.positionName}' has been successfully deleted` };
     }
@@ -871,22 +865,28 @@ export class PayrollConfigurationService {
     }
 
     // ========== DAREEN'S TERMINATION & RESIGNATION BENEFITS METHODS ==========
-    async createTerminationBenefit(createDto: CreateTerminationBenefitDto): Promise<terminationAndResignationBenefits> {
-        const existingBenefit = await this.terminationBenefitsModel.findOne({
-            name: { $regex: new RegExp(`^${createDto.name}$`, 'i') }
-        }).exec();
+async createTerminationBenefit(createDto: CreateTerminationBenefitDto): Promise<terminationAndResignationBenefits> {
+    const existingBenefit = await this.terminationBenefitsModel.findOne({
+        name: { $regex: new RegExp(`^${createDto.name}$`, 'i') }
+    }).exec();
 
-        if (existingBenefit) {
-            throw new BadRequestException(`Termination benefit '${createDto.name}' already exists`);
-        }
-
-        const newBenefit = new this.terminationBenefitsModel({
-            ...createDto,
-            status: ConfigStatus.DRAFT,
-        });
-
-        return await newBenefit.save();
+    if (existingBenefit) {
+        throw new BadRequestException(`Termination benefit '${createDto.name}' already exists`);
     }
+
+    const benefitData = {
+        name: createDto.name,
+        amount: createDto.amount,
+        terms: createDto.terms,
+        status: ConfigStatus.DRAFT,
+        ...(createDto.createdByEmployeeId && {
+            createdBy: new mongoose.Types.ObjectId(createDto.createdByEmployeeId)
+        })
+    };
+    const newBenefit = new this.terminationBenefitsModel(benefitData);
+
+    return await newBenefit.save();
+}
 
     async findAllTerminationBenefits(queryDto: QueryTerminationBenefitDto): Promise<{
         data: terminationAndResignationBenefits[];
@@ -964,12 +964,6 @@ export class PayrollConfigurationService {
 
     async removeTerminationBenefit(id: string): Promise<{ message: string }> {
         const benefit = await this.findOneTerminationBenefit(id);
-
-        if (benefit.status !== ConfigStatus.DRAFT) {
-            throw new ForbiddenException(
-                `Cannot delete termination benefit with status '${benefit.status}'. Only DRAFT benefits can be deleted.`
-            );
-        }
 
         await this.terminationBenefitsModel.findByIdAndDelete(id).exec();
         return { message: `Termination benefit '${benefit.name}' has been successfully deleted` };
@@ -1075,15 +1069,9 @@ export class PayrollConfigurationService {
     async updatePayGrade(id: string, updateDto: UpdatePayGradeDto) {
         const payGrade = await this.findOnePayGrade(id);
 
-        if (payGrade.status === ConfigStatus.APPROVED) {
+        if (payGrade.status !== ConfigStatus.DRAFT) {
             throw new BadRequestException(
-                'Cannot edit approved configurations. Delete and create a new one.',
-            );
-        }
-
-        if (payGrade.status !== ConfigStatus.DRAFT && payGrade.status !== ConfigStatus.REJECTED) {
-            throw new BadRequestException(
-                'Only DRAFT or REJECTED configurations can be edited',
+                'Only DRAFT configurations can be edited',
             );
         }
 
@@ -1138,7 +1126,8 @@ export class PayrollConfigurationService {
             });
             await settings.save();
         }
-        return settings;
+        // Return settings with ephemeral status
+        return { ...settings.toObject(), status: this.companySettingsStatus };
     }
 
     async updateCompanyWideSettings(updateDto: UpdateCompanyWideSettingsDto) {
@@ -1151,7 +1140,32 @@ export class PayrollConfigurationService {
         } else {
             Object.assign(settings, updateDto);
         }
-        return await settings.save();
+        const saved = await settings.save();
+        return { ...saved.toObject(), status: this.companySettingsStatus };
+    }
+
+    async approveCompanyWideSettings() {
+        const settings = await this.companySettingsModel.findOne().exec();
+        if (!settings) {
+            throw new NotFoundException('Company-wide settings not found');
+        }
+        if (this.companySettingsStatus !== 'DRAFT') {
+            throw new BadRequestException('Only DRAFT settings can be approved');
+        }
+        this.companySettingsStatus = 'APPROVED';
+        return { ...settings.toObject(), status: this.companySettingsStatus };
+    }
+
+    async rejectCompanyWideSettings() {
+        const settings = await this.companySettingsModel.findOne().exec();
+        if (!settings) {
+            throw new NotFoundException('Company-wide settings not found');
+        }
+        if (this.companySettingsStatus !== 'DRAFT') {
+            throw new BadRequestException('Only DRAFT settings can be rejected');
+        }
+        this.companySettingsStatus = 'REJECTED';
+        return { ...settings.toObject(), status: this.companySettingsStatus };
     }
 
 
@@ -1221,18 +1235,51 @@ export class PayrollConfigurationService {
 
     // ========== LAMA'S HELPER METHOD ==========
     calculateContributions(bracket: insuranceBrackets, salary: number) {
-        if (salary < bracket.minSalary || salary > bracket.maxSalary) return null;
-        const employeeContribution = (salary * bracket.employeeRate) / 100;
-        const employerContribution = (salary * bracket.employerRate) / 100;
-        return { employeeContribution, employerContribution };
-    }
+    // Ensure inclusive check
+    const isValid = salary >= bracket.minSalary && salary <= bracket.maxSalary;
+
+    const employeeContribution = (salary * bracket.employeeRate) / 100;
+    const employerContribution = (salary * bracket.employerRate) / 100;
+    const totalContribution = employeeContribution + employerContribution;
+
+    return {
+        employeeContribution,
+        employerContribution,
+        totalContribution,
+        isValid,
+    };
+}
+
 
     // ========== DAREEN'S CALCULATION METHOD ==========
+    /**
+     * Calculate termination entitlements based on approved benefits
+     * Business Rules Applied:
+     * - BR29: Termination benefits calculated based on reason (resignation vs termination)
+     * - BR56: All calculations use approved benefit configurations only
+     * 
+     * Calculation Formulas:
+     * - Gratuity: Last Salary × 0.5 × Years of Service
+     * - Severance: Last Salary × Years of Service (max 12 months)
+     * - All Other Benefits: Base Amount × Years of Service
+     * 
+     * Note: Actual unused leave days should be fetched from Leave Management module separately.
+     * This calculator uses configured benefit amounts only.
+     * 
+     * @param employeeData.benefitIds - Optional array of benefit IDs to include. If empty/undefined, all approved benefits are used.
+     */
     async calculateTerminationEntitlements(employeeData: any): Promise<any> {
-        const { employeeId, lastSalary, yearsOfService = 1, reason = 'resignation' } = employeeData;
+        const { employeeId, lastSalary, yearsOfService = 1, reason = 'resignation', benefitIds } = employeeData;
 
+        // BR56: Only use APPROVED benefits for calculations
+        // If specific benefitIds provided, filter by those IDs as well
+        let query: any = { status: ConfigStatus.APPROVED };
+        if (benefitIds && Array.isArray(benefitIds) && benefitIds.length > 0) {
+            query._id = { $in: benefitIds.map((id: string) => new Types.ObjectId(id)) };
+        }
+        
         const approvedBenefits = await this.terminationBenefitsModel
-            .find({ status: ConfigStatus.APPROVED })
+            .find(query)
             .exec();
 
         const calculations: any[] = [];
@@ -1241,23 +1288,36 @@ export class PayrollConfigurationService {
         for (const benefit of approvedBenefits) {
             let calculatedAmount = 0;
             let formula = '';
+            const benefitNameLower = benefit.name.toLowerCase();
 
-            if (benefit.name.toLowerCase().includes('gratuity')) {
+            if (benefitNameLower.includes('gratuity')) {
+                // Gratuity: Half month salary per year of service
                 calculatedAmount = lastSalary * 0.5 * yearsOfService;
                 formula = `Last Salary (${lastSalary}) × 0.5 × Years of Service (${yearsOfService})`;
-            } else if (benefit.name.toLowerCase().includes('severance')) {
+            } else if (benefitNameLower.includes('severance')) {
+                // Severance: One month salary per year, capped at 12 months
                 const months = Math.min(yearsOfService, 12);
                 calculatedAmount = lastSalary * months;
-                formula = `Last Salary (${lastSalary}) × Years of Service (${yearsOfService}, max 12 months)`;
+                formula = `Last Salary (${lastSalary}) × ${months} months (Years: ${yearsOfService}, max 12)`;
             } else {
+                // All other benefits (including leave encashment): Base Amount × Years of Service
                 calculatedAmount = benefit.amount * yearsOfService;
                 formula = `Base Amount (${benefit.amount}) × Years of Service (${yearsOfService})`;
+            }
+
+            // BR29: Apply reason-specific entitlement rules
+            let reasonNote = '';
+            if (reason === 'termination' && benefitNameLower.includes('severance')) {
+                // Terminated employees get higher severance (1.5x)
+                calculatedAmount *= 1.5;
+                reasonNote = ' (Termination multiplier: 1.5x)';
+                formula += reasonNote;
             }
 
             calculations.push({
                 benefitName: benefit.name,
                 baseAmount: benefit.amount,
-                calculatedAmount,
+                calculatedAmount: Math.round(calculatedAmount * 100) / 100,
                 formula,
                 reasonSpecific: reason === 'resignation' ? 'Resignation Entitlement' : 'Termination Entitlement'
             });
@@ -1271,9 +1331,12 @@ export class PayrollConfigurationService {
             lastSalary,
             yearsOfService,
             calculations,
-            totalEntitlement,
+            totalEntitlement: Math.round(totalEntitlement * 100) / 100,
             calculationDate: new Date(),
-            businessRulesApplied: ['BR29', 'BR56']
+            businessRulesApplied: [
+                'BR29: Reason-based entitlement calculation (termination gets 1.5x severance)',
+                'BR56: Only APPROVED benefits are included in calculations'
+            ]
         };
     }
 
@@ -1305,7 +1368,4 @@ export class PayrollConfigurationService {
         payGrade.approvedAt = new Date();
         return await payGrade.save();
     }
-
-
 }
-

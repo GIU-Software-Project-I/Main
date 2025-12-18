@@ -1,14 +1,21 @@
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
+// Force the correct API URL - environment variable may not be loading correctly
+const API_BASE_URL = 'http://localhost:9000';
 
-interface ApiResponse<T = unknown> {
+// Log the API URL at startup for debugging
+if (typeof window !== 'undefined') {
+  console.log('[API] Base URL:', API_BASE_URL);
+  console.log('[API] Env value:', process.env.NEXT_PUBLIC_API_URL);
+}
+
+export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
   status: number;
 }
 
 // Get access token from cookie
-function getAccessToken(): string | null {
+export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
   const cookies = document.cookie.split(';');
   for (const cookie of cookies) {
@@ -46,6 +53,8 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
+
+    console.log('[API] Making request to:', url);
 
     const defaultHeaders: HeadersInit = {
       'Content-Type': 'application/json',
@@ -126,51 +135,6 @@ class ApiService {
 
   async delete<T>(endpoint: string, headers?: HeadersInit): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: 'DELETE', headers });
-  }
-
-  async postFormData<T>(endpoint: string, formData: FormData): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${endpoint}`;
-    
-    const headers: HeadersInit = {};
-    const token = getAccessToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    // Note: Don't set Content-Type for FormData - browser sets it with boundary
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: formData,
-        credentials: 'include',
-      });
-
-      let data;
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      }
-
-      if (!response.ok) {
-        return {
-          error: data?.message || `HTTP error! status: ${response.status}`,
-          status: response.status,
-        };
-      }
-
-      return {
-        data,
-        status: response.status,
-      };
-    } catch (error) {
-      console.error('[API] FormData request failed:', url);
-      console.error('[API] Error:', error);
-      return {
-        error: error instanceof Error ? error.message : 'Network error - Is the backend running?',
-        status: 0,
-      };
-    }
   }
 }
 

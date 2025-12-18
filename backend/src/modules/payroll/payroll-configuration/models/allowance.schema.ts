@@ -1,13 +1,11 @@
 
 import { Prop, Schema, SchemaFactory, } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument, } from 'mongoose';
-
-// import model from another subsystem
 import {  EmployeeProfile as Employee} from '../../../employee/models/employee/employee-profile.schema';
-// import enums
 import { ConfigStatus } from '../enums/payroll-configuration-enums';
-
 export type allowanceDocument = HydratedDocument<allowance>
+
+
 
 
 @Schema({ timestamps: true })
@@ -21,10 +19,8 @@ export class allowance {
 
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Employee.name })
     createdBy?: mongoose.Types.ObjectId;
-
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Employee.name })
     approvedBy?: mongoose.Types.ObjectId;
-
     @Prop({})
     approvedAt?: Date
 

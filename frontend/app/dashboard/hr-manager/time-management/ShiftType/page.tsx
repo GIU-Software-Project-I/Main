@@ -350,11 +350,11 @@ export default function ShiftManagementPage() {
               </div>
             </div>
 
-            {/* Create Custom Shift Type */}
+            {/* Create Custom ShiftType */}
             <div className="bg-card rounded-xl border border-border p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-semibold text-foreground">
-                  {showCreateShiftType ? 'Create Shift Type' : 'Existing Shift Types'}
+                  {showCreateShiftType ? 'Create ShiftType' : 'Existing Shift Types'}
                 </h2>
                 {!showCreateShiftType && (
                   <button

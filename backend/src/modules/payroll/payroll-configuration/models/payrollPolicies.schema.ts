@@ -1,9 +1,7 @@
 
 import { Prop, Schema, SchemaFactory, } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
-// import model from another subsystem
 import {  EmployeeProfile as Employee} from '../../../employee/models/employee/employee-profile.schema';
-// import enums
 import { Applicability, ConfigStatus, PolicyType } from '../enums/payroll-configuration-enums';
 
 export type payrollPoliciesDocument = HydratedDocument<payrollPolicies>
@@ -52,7 +50,6 @@ export class payrollPolicies {
 }
 
 export const payrollPoliciesSchema = SchemaFactory.createForClass(payrollPolicies);
-
 
 
 

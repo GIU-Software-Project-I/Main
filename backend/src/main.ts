@@ -39,7 +39,8 @@ async function bootstrap() {
     //     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     //     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
     // });
-app.enableCors({
+
+    app.enableCors({
         // Explicitly allow common dev origins
         origin: [
             'http://localhost:3000',
@@ -49,11 +50,7 @@ app.enableCors({
             'http://192.168.1.20:4000',
             'http://localhost:500',
             'http://localhost:8000',
-            'http://172.24.0.1:8000',
-            'http://172.30.64.1:8000',
             'http://192.168.21.1:8000',
-            'http://172.20.176.1:8000',
-            'http://192.168.1.6:8000'
         ],
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

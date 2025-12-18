@@ -1,4 +1,4 @@
-// src/time-management/shift-management/shift-management.service.ts
+// src/time-management/time-management/time-management.service.ts
 import {Injectable, BadRequestException, NotFoundException, ConflictException, Logger, UseGuards} from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
@@ -415,6 +415,10 @@ export class ShiftManagementService {
         return Array.from(map.values());
     }
 
+    async getAllAssignments(): Promise<ShiftAssignment[]> {
+        return this.shiftAssignmentModel.find().lean() as Promise<ShiftAssignment[]>;
+    }
+
     async renewAssignment(id: string, dto: RenewAssignmentDto): Promise<ShiftAssignment> {
         const assignment = await this.shiftAssignmentModel.findById(id);
         if (!assignment) throw new NotFoundException('Assignment not found');
@@ -598,7 +602,16 @@ export class ShiftManagementService {
     }
 
     async getOvertimeRules(): Promise<OvertimeRule[]> {
-        return this.overtimeRuleModel.find().lean();
+        // Filter out short-time rules (those with description starting with 'SHORT_TIME:')
+        const all = await this.overtimeRuleModel.find().lean();
+        return all.filter((rule: any) => {
+            const desc = rule.description;
+            // Only exclude if description exists AND starts with SHORT_TIME:
+            if (desc && typeof desc === 'string' && desc.startsWith('SHORT_TIME:')) {
+                return false;
+            }
+            return true;
+        }) as OvertimeRule[];
     }
 
     async updateOvertimeRule(id: string, dto: UpdateOvertimeRuleDto): Promise<OvertimeRule> {

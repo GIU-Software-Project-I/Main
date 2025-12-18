@@ -1,6 +1,14 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { CorrectionRequestStatus } from '../models/enums';
+
+// Correction types
+export enum CorrectionType {
+    MISSING_PUNCH_IN = 'MISSING_PUNCH_IN',
+    MISSING_PUNCH_OUT = 'MISSING_PUNCH_OUT',
+    INCORRECT_PUNCH_IN = 'INCORRECT_PUNCH_IN',
+    INCORRECT_PUNCH_OUT = 'INCORRECT_PUNCH_OUT',
+}
 
 export class RequestCorrectionDto {
     @ApiProperty({ description: 'employee MongoDB ObjectId', example: '674c1a1b2c3d4e5f6a7b8c9d' })
@@ -15,18 +23,28 @@ export class RequestCorrectionDto {
     @IsString()
     reason: string;
 
+    @ApiProperty({
+        description: 'Type of correction',
+        enum: CorrectionType,
+        example: CorrectionType.MISSING_PUNCH_OUT,
+        required: false
+    })
+    @IsOptional()
+    @IsString()
+    correctionType?: CorrectionType;
+
     @ApiProperty({ description: 'Status of the request', example: 'SUBMITTED', required: false })
     @IsOptional()
     @IsString()
     status?: CorrectionRequestStatus;
 
-    // For incorrect punch: corrected date (dd/MM/yyyy) and local time (HH:mm)
-    @ApiProperty({ description: 'Corrected punch date in dd/MM/yyyy (used for incorrect punch requests)', required: false, example: '10/12/2025' })
+    // For corrections: date (dd/MM/yyyy) and local time (HH:mm)
+    @ApiProperty({ description: 'Corrected/Missing punch date in dd/MM/yyyy', required: false, example: '10/12/2025' })
     @IsOptional()
     @IsString()
     correctedPunchDate?: string;
 
-    @ApiProperty({ description: 'Corrected punch local time in HH:mm (used for incorrect punch requests)', required: false, example: '17:00' })
+    @ApiProperty({ description: 'Corrected/Missing punch local time in HH:mm', required: false, example: '17:00' })
     @IsOptional()
     @IsString()
     correctedPunchLocalTime?: string;

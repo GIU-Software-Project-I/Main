@@ -75,7 +75,7 @@ export default function AttendanceRecordsPage() {
 
   const fetchPendingCorrections = useCallback(async () => {
     try {
-      const response = await timeManagementService.getPendingCorrections();
+      const response = await timeManagementService.getAllCorrections();
 
       if (response.data) {
         const allCorrections = Array.isArray(response.data) ? response.data : [];

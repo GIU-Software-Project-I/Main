@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, Min, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsNumber, Min, Max } from 'class-validator';
 
 export class CreateTaxRuleDto {
   @IsNotEmpty()
@@ -12,6 +12,7 @@ export class CreateTaxRuleDto {
   @IsNotEmpty()
   @IsNumber()
   @Min(0)
+  @Max(100)
   rate: number;
 
   @IsNotEmpty()

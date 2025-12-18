@@ -2,86 +2,91 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { notificationsService } from '@/app/services/notifications';
 
 interface Notification {
   _id: string;
   type: 'info' | 'success' | 'warning' | 'error' | 'action';
-  category: 'leave' | 'attendance' | 'payroll' | 'performance' | 'onboarding' | 'offboarding' | 'profile' | 'system';
+  category: 'leave' | 'attendance' | 'payroll' | 'performance' | 'onboarding' | 'offboarding' | 'profile' | 'system' | 'shift';
   title: string;
   message: string;
   read: boolean;
   actionUrl?: string;
   actionLabel?: string;
   createdAt: string;
+  apiNotificationType?: string; // Store original API notification type
 }
 
-// Mock notifications for demo - in production these come from backend
-const mockNotifications: Notification[] = [
-  {
-    _id: '1',
-    type: 'success',
-    category: 'leave',
-    title: 'Leave Request Approved',
-    message: 'Your annual leave request for Dec 20-24, 2025 has been approved by your manager.',
-    read: false,
-    actionUrl: '/portal/my-leaves',
-    actionLabel: 'View Details',
-    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 min ago
-  },
-  {
-    _id: '2',
-    type: 'action',
-    category: 'onboarding',
-    title: 'Onboarding Task Pending',
-    message: 'You have 2 pending onboarding tasks that need to be completed by Dec 18, 2025.',
-    read: false,
-    actionUrl: '/portal/my-onboarding',
-    actionLabel: 'Complete Tasks',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-  },
-  {
-    _id: '3',
-    type: 'info',
-    category: 'payroll',
-    title: 'Payslip Available',
-    message: 'Your payslip for November 2025 is now available for viewing and download.',
-    read: true,
-    actionUrl: '/portal/my-payslips',
-    actionLabel: 'View Payslip',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-  },
-  {
-    _id: '4',
-    type: 'warning',
-    category: 'attendance',
-    title: 'Missing Clock Out',
-    message: 'You forgot to clock out yesterday. Please submit an attendance correction request.',
-    read: true,
-    actionUrl: '/portal/my-attendance/corrections',
-    actionLabel: 'Submit Correction',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(), // 2 days ago
-  },
-  {
-    _id: '5',
-    type: 'info',
-    category: 'performance',
-    title: 'Performance Review Published',
-    message: 'Your Q3 2025 performance review has been finalized and is available for viewing.',
-    read: true,
-    actionUrl: '/portal/my-performance',
-    actionLabel: 'View Review',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(), // 5 days ago
-  },
-  {
-    _id: '6',
-    type: 'success',
-    category: 'profile',
-    title: 'Profile Updated',
-    message: 'Your contact information has been successfully updated.',
-    read: true,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(), // 7 days ago
-  },
-];
+// Helper function to convert API notification to UI notification
+const convertApiNotificationToUI = (apiNotif: any): Notification => {
+  const apiType = apiNotif.type || '';
+
+  // Determine category and display info based on API notification type
+  let category: Notification['category'] = 'system';
+  let type: Notification['type'] = 'info';
+  let title = 'Notification';
+  let actionUrl: string | undefined;
+  let actionLabel: string | undefined;
+
+  if (apiType.includes('SHIFT_')) {
+    category = 'shift';
+    if (apiType.includes('EXPIRED')) {
+      type = 'error';
+      title = 'Shift Assignment Expired';
+    } else if (apiType.includes('EXPIRING') || apiType.includes('NEARING')) {
+      type = 'warning';
+      title = 'Shift Assignment Expiring Soon';
+    } else if (apiType.includes('ASSIGNED')) {
+      type = 'info';
+      title = 'Shift Assignment Created';
+    } else if (apiType.includes('STATUS_UPDATED')) {
+      type = 'info';
+      title = 'Shift Assignment Status Updated';
+    } else {
+      type = 'warning';
+      title = 'Shift Assignment Update';
+    }
+    actionUrl = '/dashboard/hr-admin/time-management/ShiftAssignments';
+    actionLabel = 'View Shift Assignments';
+  } else if (apiType.includes('LEAVE_')) {
+    category = 'leave';
+    if (apiType.includes('APPROVED')) type = 'success';
+    else if (apiType.includes('REJECTED')) type = 'error';
+    else type = 'action';
+    title = apiType.replace('LEAVE_', '').replace(/_/g, ' ');
+  } else if (apiType.includes('PAYROLL_')) {
+    category = 'payroll';
+    type = 'info';
+    title = 'Payroll Update';
+    actionUrl = '/portal/my-payslips';
+    actionLabel = 'View Payslips';
+  } else if (apiType.includes('ATTENDANCE_')) {
+    category = 'attendance';
+    type = 'warning';
+    title = 'Attendance Alert';
+    actionUrl = '/portal/my-attendance';
+    actionLabel = 'View Attendance';
+  } else if (apiType.includes('PERFORMANCE_')) {
+    category = 'performance';
+    type = 'info';
+    title = 'Performance Update';
+    actionUrl = '/portal/my-performance';
+    actionLabel = 'View Performance';
+  }
+
+  return {
+    _id: apiNotif._id || Math.random().toString(),
+    type,
+    category,
+    title,
+    message: apiNotif.message || '',
+    read: apiNotif.read || false,
+    actionUrl,
+    actionLabel,
+    createdAt: apiNotif.createdAt || new Date().toISOString(),
+    apiNotificationType: apiType,
+  };
+};
 
 export default function MyNotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -90,11 +95,69 @@ export default function MyNotificationsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   useEffect(() => {
-    // In production, fetch from API
-    setTimeout(() => {
-      setNotifications(mockNotifications);
-      setLoading(false);
-    }, 500);
+    const fetchNotifications = async () => {
+      try {
+        setLoading(true);
+        // Get user ID from session storage
+        let userId = typeof window !== 'undefined' ? sessionStorage.getItem('userId') : null;
+
+        // Helper to check if string is valid MongoDB ObjectId
+        const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
+
+        // Check if userId is invalid (not a 24-char hex string)
+        if (userId && !isValidObjectId(userId)) {
+          console.warn('Invalid User ID detected in session storage, clearing:', userId);
+          sessionStorage.removeItem('userId');
+          userId = null;
+        }
+
+        if (!userId) {
+          // Try to fetch from auth endpoint
+          try {
+            const authResponse = await fetch('/api/auth/me', {
+              credentials: 'include',
+            });
+
+            if (authResponse.ok) {
+              const authData = await authResponse.json();
+              const id = authData.data?.employeeProfileId || authData.data?._id;
+              if (id && isValidObjectId(id)) {
+                sessionStorage.setItem('userId', id);
+                userId = id;
+              }
+            }
+          } catch (e) {
+            console.error('Failed to get user ID from auth endpoint:', e);
+          }
+        }
+
+        if (!userId) {
+          console.warn('No valid userId found, cannot fetch notifications.');
+          setLoading(false);
+          return;
+        }
+
+        // Fetch real notifications from backend
+        const response = await notificationsService.getUserNotifications(userId);
+
+        if (response.data && Array.isArray(response.data)) {
+          // Convert API notifications to UI format
+          const uiNotifications = response.data.map(convertApiNotificationToUI);
+          setNotifications(uiNotifications);
+        } else {
+          // Fallback to empty array if no data
+          setNotifications([]);
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+        setLoading(false);
+        setNotifications([]);
+      }
+    };
+
+    fetchNotifications();
   }, []);
 
   const markAsRead = (id: string) => {
@@ -159,6 +222,7 @@ export default function MyNotificationsPage() {
 
   const getCategoryLabel = (category: Notification['category']) => {
     const labels: Record<string, string> = {
+      shift: 'Shift',
       leave: 'Leave',
       attendance: 'Attendance',
       payroll: 'Payroll',
@@ -239,27 +303,24 @@ export default function MyNotificationsPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  filter === 'all'
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${filter === 'all'
                     ? 'bg-gray-900 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 All
               </button>
               <button
                 onClick={() => setFilter('unread')}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${
-                  filter === 'unread'
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${filter === 'unread'
                     ? 'bg-gray-900 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 Unread
                 {unreadCount > 0 && (
-                  <span className={`px-2 py-0.5 text-xs rounded-full ${
-                    filter === 'unread' ? 'bg-white text-gray-900' : 'bg-blue-600 text-white'
-                  }`}>
+                  <span className={`px-2 py-0.5 text-xs rounded-full ${filter === 'unread' ? 'bg-white text-gray-900' : 'bg-blue-600 text-white'
+                    }`}>
                     {unreadCount}
                   </span>
                 )}
@@ -297,9 +358,8 @@ export default function MyNotificationsPage() {
               return (
                 <div
                   key={notification._id}
-                  className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all ${
-                    !notification.read ? `${styles.border} border-l-4` : 'border-gray-100'
-                  }`}
+                  className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all ${!notification.read ? `${styles.border} border-l-4` : 'border-gray-100'
+                    }`}
                 >
                   <div className="p-4">
                     <div className="flex gap-4">

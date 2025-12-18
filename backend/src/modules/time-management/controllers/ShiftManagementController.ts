@@ -1,14 +1,14 @@
 import {Controller, Get, Post, Patch, Body, Param, Delete, Query, UseGuards} from '@nestjs/common';
 import {ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth} from '@nestjs/swagger';
 import {
-    AssignShiftDto, BulkAssignShiftDto, CreateHolidayDto, CreateLatenessRuleDto, CreateOvertimeRuleDto,
+    AssignShiftDto, CreateHolidayDto, CreateLatenessRuleDto, CreateOvertimeRuleDto,
     CreateScheduleRuleDto,
     CreateShiftDto,
     CreateShiftTypeDto, RenewAssignmentDto, UpdateHolidayDto,
     UpdateOvertimeRuleDto, UpdateScheduleRuleDto,
     UpdateShiftDto,
     UpdateShiftTypeDto,
-    UpdateShiftAssignmentStatusDto, CreateShortTimeRuleDto, UpdateShortTimeRuleDto
+    UpdateShiftAssignmentStatusDto, CreateShortTimeRuleDto, UpdateShortTimeRuleDto, UpdateLatenessRuleDto
 } from "../dto/ShiftManagementDtos";
 import {ShiftManagementService} from "../services/ShiftManagementService";
 import { RepeatedLatenessService } from '../services/RepeatedLatenessService';
@@ -19,7 +19,7 @@ import {Roles} from "../../auth/decorators/roles-decorator";
 import {SystemRole} from "../../employee/enums/employee-profile.enums";
 
 @ApiTags('Shift Management')
-@Controller('shift-management')
+@Controller('time-management')
 export class ShiftManagementController {
     constructor(
         private readonly service: ShiftManagementService,
@@ -34,7 +34,7 @@ export class ShiftManagementController {
     @Roles(SystemRole.HR_MANAGER, SystemRole.SYSTEM_ADMIN)
     @ApiBearerAuth('access-token')
     @ApiOperation({
-        summary: 'Create Shift Type',
+        summary: 'Create ShiftType',
         description: 'HR Manager/Admin defines standardized shift configurations'
     })
     @ApiBody({
@@ -75,8 +75,8 @@ export class ShiftManagementController {
     @UseGuards(AuthenticationGuard,AuthorizationGuard)
     @Roles(SystemRole.HR_MANAGER, SystemRole.SYSTEM_ADMIN)
     @ApiBearerAuth('access-token')
-    @ApiOperation({ summary: 'Update Shift Type' })
-    @ApiParam({ name: 'id', description: 'Shift Type ID' })
+    @ApiOperation({ summary: 'Update ShiftType' })
+    @ApiParam({ name: 'id', description: 'ShiftType ID' })
     @ApiBody({ type: UpdateShiftTypeDto })
     @ApiResponse({ status: 200, description: 'Shift type updated' })
     @ApiResponse({ status: 404, description: 'Shift type not found' })
@@ -91,8 +91,8 @@ export class ShiftManagementController {
     @UseGuards(AuthenticationGuard,AuthorizationGuard)
     @Roles(SystemRole.HR_MANAGER, SystemRole.SYSTEM_ADMIN)
     @ApiBearerAuth('access-token')
-    @ApiOperation({ summary: 'Deactivate Shift Type' })
-    @ApiParam({ name: 'id', description: 'Shift Type ID' })
+    @ApiOperation({ summary: 'Deactivate ShiftType' })
+    @ApiParam({ name: 'id', description: 'ShiftType ID' })
     @ApiResponse({ status: 200, description: 'Shift type deactivated' })
     @ApiResponse({ status: 404, description: 'Shift type not found' })
     deactivateShiftType(@Param('id') id: string) {
@@ -474,169 +474,50 @@ export class ShiftManagementController {
             }
         }
     })
-    assignShift(@Body() dto: AssignShiftDto) {
-        return this.service.assignShiftToEmployee(dto);
+    async assignShift(@Body() dto: AssignShiftDto) {
+        try {
+            const result = await this.service.assignShiftToEmployee(dto);
+            return {
+                message: 'Shift assignment created successfully',
+                data: result
+            };
+        } catch (error: any) {
+            console.error('❌ Controller caught error:', error?.message || error);
+            throw error;
+        }
     }
-////////////////////////////////////////////////////////////////////////////////
-
-
-    // @Post('assignments/bulk')
-    // @ApiOperation({
-    //     summary: 'Bulk Assign Shift',
-    //     description: 'HR Manager/Admin assigns shifts to multiple employees at once. Can target specific employees, entire departments, or all employees in specific positions.'
-    // })
-    // @ApiBody({
-    //     type: BulkAssignShiftDto,
-    //     description: 'Bulk shift assignment data',
-    //     examples: {
-    //         'Assign to Specific Employees': {
-    //             summary: 'Assign shift to 3 specific employees',
-    //             value: {
-    //                 shiftId: '507f1f77bcf86cd799439011',
-    //                 targets: [
-    //                     { employeeId: '507f1f77bcf86cd799439013' },
-    //                     { employeeId: '507f1f77bcf86cd799439014' },
-    //                     { employeeId: '507f1f77bcf86cd799439015' }
-    //                 ],
-    //                 startDate: '2025-12-01T00:00:00.000Z',
-    //                 endDate: '2026-12-31T23:59:59.000Z',
-    //                 status: 'APPROVED'
-    //             }
-    //         },
-    //         'Assign to Entire Department': {
-    //             summary: 'Assign shift to all employees in a department',
-    //             value: {
-    //                 shiftId: '507f1f77bcf86cd799439011',
-    //                 targets: [
-    //                     { departmentId: '507f1f77bcf86cd799439020' }
-    //                 ],
-    //                 startDate: '2025-12-01T00:00:00.000Z',
-    //                 endDate: '2026-12-31T23:59:59.000Z',
-    //                 status: 'APPROVED'
-    //             }
-    //         },
-    //         'Assign to Multiple Departments': {
-    //             summary: 'Assign shift to Sales and IT departments',
-    //             value: {
-    //                 shiftId: '507f1f77bcf86cd799439012',
-    //                 targets: [
-    //                     { departmentId: '507f1f77bcf86cd799439020' },
-    //                     { departmentId: '507f1f77bcf86cd799439021' }
-    //                 ],
-    //                 startDate: '2025-12-15T00:00:00.000Z',
-    //                 endDate: '2026-06-30T23:59:59.000Z',
-    //                 status: 'APPROVED'
-    //             }
-    //         },
-    //         'Assign to Specific Position': {
-    //             summary: 'Assign shift to all managers',
-    //             value: {
-    //                 shiftId: '507f1f77bcf86cd799439011',
-    //                 targets: [
-    //                     { positionId: '507f1f77bcf86cd799439030' }
-    //                 ],
-    //                 startDate: '2025-12-01T00:00:00.000Z',
-    //                 endDate: '2026-12-31T23:59:59.000Z',
-    //                 status: 'APPROVED'
-    //             }
-    //         },
-    //         'Mixed Assignment': {
-    //             summary: 'Assign to employees, departments, and positions combined',
-    //             value: {
-    //                 shiftId: '507f1f77bcf86cd799439011',
-    //                 targets: [
-    //                     { employeeId: '507f1f77bcf86cd799439013' },
-    //                     { employeeId: '507f1f77bcf86cd799439014' },
-    //                     { departmentId: '507f1f77bcf86cd799439020' },
-    //                     { positionId: '507f1f77bcf86cd799439030' }
-    //                 ],
-    //                 startDate: '2025-12-01T00:00:00.000Z',
-    //                 endDate: '2026-12-31T23:59:59.000Z',
-    //                 status: 'APPROVED'
-    //             }
-    //         },
-    //         'With Schedule Rule': {
-    //             summary: 'Assign shift with rotating schedule',
-    //             value: {
-    //                 shiftId: '507f1f77bcf86cd799439011',
-    //                 scheduleRuleId: '507f1f77bcf86cd799439040',
-    //                 targets: [
-    //                     { departmentId: '507f1f77bcf86cd799439020' }
-    //                 ],
-    //                 startDate: '2025-12-01T00:00:00.000Z',
-    //                 endDate: '2026-12-31T23:59:59.000Z',
-    //                 status: 'APPROVED',
-    //                 createdBy: '507f1f77bcf86cd799439050'
-    //             }
-    //         },
-    //         'Permanent Assignment': {
-    //             summary: 'Assign shift permanently (no end date)',
-    //             value: {
-    //                 shiftId: '507f1f77bcf86cd799439011',
-    //                 targets: [
-    //                     { departmentId: '507f1f77bcf86cd799439020' }
-    //                 ],
-    //                 startDate: '2025-12-01T00:00:00.000Z',
-    //                 status: 'APPROVED'
-    //             }
-    //         },
-    //         'Pending Assignment': {
-    //             summary: 'Create assignment that requires approval',
-    //             value: {
-    //                 shiftId: '507f1f77bcf86cd799439011',
-    //                 targets: [
-    //                     { employeeId: '507f1f77bcf86cd799439013' }
-    //                 ],
-    //                 startDate: '2025-12-01T00:00:00.000Z',
-    //                 endDate: '2026-01-31T23:59:59.000Z',
-    //                 status: 'PENDING'
-    //             }
-    //         }
-    //     }
-    // })
-    // @ApiResponse({
-    //     status: 201,
-    //     description: 'Shift assignments created successfully',
-    //     schema: {
-    //         example: [
-    //             {
-    //                 _id: '507f1f77bcf86cd799439060',
-    //                 employeeId: '507f1f77bcf86cd799439013',
-    //                 shiftId: '507f1f77bcf86cd799439011',
-    //                 scheduleRuleId: '507f1f77bcf86cd799439040',
-    //                 startDate: '2025-12-01T00:00:00.000Z',
-    //                 status: 'APPROVED'
-    //             }
-    //         ]
-    //      }
-    //  })
-    // @ApiResponse({
-    //     status: 400,
-    //     description: 'Bad request - Invalid data',
-    //     schema: {
-    //         example: {
-    //             statusCode: 400,
-    //             message: 'Validation failed',
-    //             errors: [
-    //                 'shiftId must be a valid MongoDB ObjectId',
-    //                 'targets must contain at least 1 element'
-    //             ]
-    //         }
-    //     }
-    // })
-    // @ApiResponse({
-    //     status: 404,
-    //     description: 'Shift not found',
-    //     schema: {
-    //         example: {
-    //             statusCode: 404,
-    //             message: 'Shift with ID 507f1f77bcf86cd799439011 not found'
-    //         }
-    //     }
-    // })
-    // bulkAssignShift(@Body() dto: BulkAssignShiftDto) {
-    //     return this.service.bulkAssignShift(dto);
-    // }
+    ////////////////////////////////////////////////////////////////////////////
+    @Get('assignments')
+    @ApiOperation({
+        summary: 'Get All Shift Assignments',
+        description: 'Retrieve all shift assignments in the system (for HR Admin dashboard)'
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'List of all shift assignments',
+        schema: {
+            type: 'array',
+            items: {
+                type: 'object',
+                properties: {
+                    _id: { type: 'string' },
+                    employeeId: { type: 'string' },
+                    departmentId: { type: 'string' },
+                    positionId: { type: 'string' },
+                    shiftId: { type: 'string' },
+                    scheduleRuleId: { type: 'string' },
+                    startDate: { type: 'string' },
+                    endDate: { type: 'string' },
+                    status: { type: 'string' },
+                    createdAt: { type: 'string' },
+                    updatedAt: { type: 'string' }
+                }
+            }
+        }
+    })
+    async getAllAssignments() {
+        return this.service.getAllAssignments();
+    }
 
     ////////////////////////////////////////////////////////////////////////////
 
@@ -826,6 +707,16 @@ export class ShiftManagementController {
 
     ///////////////////////////////////////////////////////////////////////
 
+    @Patch('lateness-rules/:id')
+    @ApiOperation({ summary: 'Update Lateness Rule' })
+    @ApiParam({ name: 'id', description: 'Lateness Rule ID' })
+    @ApiBody({ type: UpdateLatenessRuleDto })
+    updateLatenessRule(@Param('id') id: string, @Body() dto: UpdateLatenessRuleDto) {
+        return this.service.updateLatenessRule(id, dto);
+    }
+
+    ///////////////////////////////////////////////////////////////////////
+
 
     // Repeated lateness utilities
     @Get('repeated-lateness/:employeeId/count')
@@ -920,6 +811,15 @@ export class ShiftManagementController {
     })
     createOvertimeRule(@Body() dto: CreateOvertimeRuleDto) {
         return this.service.createOvertimeRule(dto);
+    }
+
+    ///////////////////////////////////////////////////////////////////////
+
+    @Get('overtime-rules')
+    @ApiOperation({ summary: 'Get All Overtime Rules' })
+    @ApiResponse({ status: 200, description: 'List of overtime rules' })
+    getOvertimeRules() {
+        return this.service.getOvertimeRules();
     }
 
     ///////////////////////////////////////////////////////////////////////
