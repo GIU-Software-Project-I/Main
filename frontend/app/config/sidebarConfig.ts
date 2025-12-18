@@ -226,6 +226,7 @@ const HR_MANAGER_SECTIONS: NavSection[] = [
         icon: 'clock',
         children: [
           { label: 'Shift Types', href: '/dashboard/hr-manager/time-management/ShiftType', icon: 'clock' },
+            { label: 'Lateness', href: '/dashboard/hr-manager/time-management/Lateness', icon: 'clock' },
           { label: 'Schedule Rules', href: '/dashboard/hr-manager/time-management/schedule-rules', icon: 'calendar' },
           { label: 'Configure Rules', href: '/dashboard/hr-manager/time-management/ConfigureRules', icon: 'settings' },
         ],

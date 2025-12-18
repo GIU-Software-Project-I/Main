@@ -876,6 +876,27 @@ export const timeManagementService = {
     exportTimeExceptionsJSON: async () => {
         return apiService.get('/time-exceptions/export/json');
     },
+
+    // ============================================================
+    // REPEATED LATENESS TRACKING (Disciplinary)
+    // ============================================================
+
+    // Get repeated lateness count for an employee - GET /time-management/repeated-lateness/:employeeId/count
+    getRepeatedLatenessCount: async (employeeId: string) => {
+        return apiService.get(`/time-management/repeated-lateness/${employeeId}/count`);
+    },
+
+    // Evaluate and escalate repeated lateness - POST /time-management/repeated-lateness/:employeeId/evaluate
+    evaluateRepeatedLateness: async (
+        employeeId: string,
+        options?: {
+            windowDays?: number;
+            threshold?: number;
+            notifyHrId?: string;
+        }
+    ) => {
+        return apiService.post(`/time-management/repeated-lateness/${employeeId}/evaluate`, options || {});
+    },
 };
 
 export default timeManagementService;

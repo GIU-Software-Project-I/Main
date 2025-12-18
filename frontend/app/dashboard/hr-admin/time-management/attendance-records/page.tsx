@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import {
   timeManagementService,
   AttendanceRecord,
@@ -11,6 +11,9 @@ import {
 } from '@/app/services/time-management';
 import { useAuth } from '@/app/context/AuthContext';
 
+// Dynamically import the Lateness page component for the repeated lateness tab
+const RepeatedLatenessPage = lazy(() => import('../../../hr-manager/time-management/Lateness/page').then(mod => ({ default: mod.default })));
+
 // Issue interface for review results
 interface AttendanceIssue {
   type: 'MISSING_PUNCH' | 'INVALID_SEQUENCE' | 'SHORT_TIME' | 'NO_PUNCH_OUT' | 'NO_PUNCH_IN' | 'HOLIDAY_PUNCH';
@@ -18,6 +21,7 @@ interface AttendanceIssue {
   description: string;
   suggestion: string;
 }
+
 
 interface ReviewResult {
   record: AttendanceRecord;
@@ -73,7 +77,8 @@ export default function AttendanceRecordsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   // Active tab
-  const [activeTab, setActiveTab] = useState<'records' | 'corrections' | 'history'>('records');
+  const [activeTab, setActiveTab] = useState<'records' | 'corrections' | 'history' | 'repeated-lateness'>('records');
+
 
   // Handle starting review (mark as IN_REVIEW)
   const handleStartReview = async (correction: AttendanceCorrectionRequest) => {
@@ -455,6 +460,16 @@ export default function AttendanceRecordsPage() {
           >
             Correction History
           </button>
+          <button
+            onClick={() => setActiveTab('repeated-lateness')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'repeated-lateness'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Repeated Lateness
+          </button>
         </div>
 
         {/* ATTENDANCE RECORDS TAB */}
@@ -764,6 +779,20 @@ export default function AttendanceRecordsPage() {
               </div>
             )}
           </div>
+        )}
+
+        {/* REPEATED LATENESS TAB */}
+        {activeTab === 'repeated-lateness' && (
+          <Suspense fallback={
+            <div className="bg-card rounded-xl border border-border p-6">
+              <div className="animate-pulse space-y-4">
+                <div className="h-8 bg-muted rounded w-1/3"></div>
+                <div className="h-64 bg-muted rounded"></div>
+              </div>
+            </div>
+          }>
+            <RepeatedLatenessPage />
+          </Suspense>
         )}
 
         {/* CORRECTION MODAL */}
