@@ -401,7 +401,7 @@ const handleCreatePayType = async () => {
       {/* Success Alert */}
       {success && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="text-green-600">✓</div>
+          <div className="text-green-600 font-bold">Success</div>
           <p className="text-green-800 font-medium">{success}</p>
           <button 
             onClick={() => setSuccess(null)}
@@ -415,7 +415,7 @@ const handleCreatePayType = async () => {
       {/* Error Alert */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="text-red-600">✕</div>
+          <div className="text-red-600 font-bold">Failed</div>
           <div>
             <p className="text-red-800 font-medium">Validation Error</p>
             <p className="text-red-700 text-sm mt-1">{error}</p>
@@ -485,7 +485,6 @@ const handleCreatePayType = async () => {
         
         {filteredPayTypes.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="text-slate-400 mb-4">💰</div>
             <p className="text-slate-600 font-medium">
               {(filters.search || filters.status) ? 'No pay types match your filters' : 'No pay types found'}
             </p>
@@ -537,20 +536,20 @@ const handleCreatePayType = async () => {
                         {/* View button - Always visible */}
                         <button
                           onClick={() => handleViewClick(payType)}
-                          className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-300 rounded-lg transition-colors"
                           title="View Details"
                         >
-                          👁️
+                          View
                         </button>
                         
                         {/* Edit button - Only show for DRAFT pay types */}
                         {payType.status === 'draft' && (
                           <button
                             onClick={() => handleEditClick(payType)}
-                            className="p-1.5 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                            className="px-3 py-1.5 text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 border border-green-300 rounded-lg transition-colors"
                             title="Edit"
                           >
-                            ✏️
+                            Edit
                           </button>
                         )}
                       </div>
@@ -565,7 +564,7 @@ const handleCreatePayType = async () => {
 
       {/* Information Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-2">📋 Payroll Specialist Information</h3>
+        <h3 className="font-semibold text-blue-900 mb-2">Payroll Specialist Information</h3>
         <ul className="text-blue-800 text-sm space-y-2">
           <li>• As a Payroll Specialist, you can <span className="font-semibold">create draft</span> pay types</li>
           <li>• You can <span className="font-semibold">edit draft</span> pay types only</li>
@@ -632,7 +631,7 @@ const handleCreatePayType = async () => {
                   Base amount for this pay type. <span className="font-semibold">Backend enforces minimum of $6,000</span>
                 </p>
                 <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-xs font-medium text-amber-800">ℹ️ Backend Validation Notice</p>
+                  <p className="text-xs font-medium text-amber-800">Backend Validation Notice</p>
                   <p className="text-xs text-amber-700 mt-1">
                     The backend will validate that the amount meets the minimum requirement of $6,000. 
                     If validation fails, an error message will be displayed above.

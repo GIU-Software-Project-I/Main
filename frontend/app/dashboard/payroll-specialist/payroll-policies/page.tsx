@@ -611,7 +611,7 @@ export default function PayrollPoliciesPage() {
       {/* Success Alert */}
       {success && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="text-green-600">✓</div>
+          <div className="text-green-600 font-bold">Success</div>
           <p className="text-green-800 font-medium">{success}</p>
           <button 
             onClick={() => setSuccess(null)}
@@ -625,7 +625,7 @@ export default function PayrollPoliciesPage() {
       {/* Error Alert */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="text-red-600">✕</div>
+          <div className="text-red-600 font-bold">Failed</div>
           <p className="text-red-800 font-medium">{error}</p>
           <button 
             onClick={() => setError(null)}
@@ -709,7 +709,6 @@ export default function PayrollPoliciesPage() {
         
         {filteredPolicies.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="text-slate-400 mb-4">📄</div>
             <p className="text-slate-600 font-medium">
               {(filters.search || filters.status || filters.policyType) ? 'No policies match your filters' : 'No payroll policies found'}
             </p>
@@ -765,20 +764,20 @@ export default function PayrollPoliciesPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleViewClick(policy)}
-                          className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-300 rounded-lg transition-colors"
                           title="View Details"
                         >
-                          👁️
+                          View
                         </button>
                         
                         {/* Only show edit button for draft policies */}
                         {policy.status === 'draft' && (
                           <button
                             onClick={() => handleEditClick(policy)}
-                            className="p-1.5 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                            className="px-3 py-1.5 text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 border border-green-300 rounded-lg transition-colors"
                             title="Edit"
                           >
-                            ✏️
+                            Edit
                           </button>
                         )}
                         
@@ -796,17 +795,17 @@ export default function PayrollPoliciesPage() {
                           <>
                             <button
                               onClick={() => handleApproveClick(policy)}
-                              className="p-1.5 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                              className="px-3 py-1.5 text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 border border-green-300 rounded-lg transition-colors"
                               title="Approve"
                             >
-                              ✓
+                              Approve
                             </button>
                             <button
                               onClick={() => handleRejectClick(policy)}
-                              className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              className="px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-300 rounded-lg transition-colors"
                               title="Reject"
                             >
-                              ✗
+                              Reject
                             </button>
                           </>
                         )}
@@ -822,7 +821,7 @@ export default function PayrollPoliciesPage() {
 
       {/* Information Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-2">📋 Important Information</h3>
+        <h3 className="font-semibold text-blue-900 mb-2">Important Information</h3>
         <ul className="text-blue-800 text-sm space-y-2">
           <li>• All policies are created with <span className="font-semibold">DRAFT</span> status initially</li>
           <li>• Only <span className="font-semibold">DRAFT</span> policies can be edited or deleted</li>
@@ -1166,7 +1165,7 @@ export default function PayrollPoliciesPage() {
               </p>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                 <p className="text-yellow-800 text-sm">
-                  ⚠️ Once approved, this policy will be published and take effect. Approved policies cannot be edited.
+                  Once approved, this policy will be published and take effect. Approved policies cannot be edited.
                 </p>
               </div>
             </div>

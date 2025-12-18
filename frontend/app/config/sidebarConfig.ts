@@ -565,11 +565,6 @@ const PAYROLL_SPECIALIST_NAV: NavItem[] = [
       { label: 'Claims & Disputes', href: '/dashboard/payroll-specialist/payroll-tracking/claims-disputes', icon: 'alert-circle' },
     ],
   },
-  {
-    label: 'My Profile',
-    href: '/dashboard/department-employee/employee-profile',
-    icon: 'user',
-  },
 ];
 
 const PAYROLL_SPECIALIST_SECTIONS: NavSection[] = [

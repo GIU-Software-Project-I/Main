@@ -480,7 +480,7 @@ export default function AllowancesPage() {
       {/* Success Alert */}
       {success && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="text-green-600">✓</div>
+          <div className="text-green-600 font-bold">Success</div>
           <p className="text-green-800 font-medium">{success}</p>
           <button 
             onClick={() => setSuccess(null)}
@@ -494,7 +494,7 @@ export default function AllowancesPage() {
       {/* Error Alert */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="text-red-600">✕</div>
+          <div className="text-red-600 font-bold">Failed</div>
           <div>
             <p className="text-red-800 font-medium">Error</p>
             <p className="text-red-700 text-sm mt-1">{error}</p>
@@ -568,7 +568,6 @@ export default function AllowancesPage() {
         
         {allowances.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="text-slate-400 mb-4">🏢</div>
             <p className="text-slate-600 font-medium">No allowances found</p>
             <p className="text-slate-500 text-sm mt-1">
               {filters.search || filters.status ? 'Try changing your filters' : 'Create your first allowance to get started'}
@@ -621,20 +620,20 @@ export default function AllowancesPage() {
           {/* View button */}
           <button
             onClick={() => handleViewClick(allowance)}
-            className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-300 rounded-lg transition-colors"
             title="View Details"
           >
-            👁️
+            View
           </button>
           
           {/* Edit button - Only for DRAFT allowances */}
           {allowance.status === 'draft' && (
             <button
               onClick={() => handleEditClick(allowance)}
-              className="p-1.5 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 border border-green-300 rounded-lg transition-colors"
               title="Edit Allowance"
             >
-              ✏️
+              Edit
             </button>
           )}
         </div>
@@ -700,7 +699,7 @@ export default function AllowancesPage() {
 
       {/* Information Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-2">📋 Payroll Specialist Information</h3>
+        <h3 className="font-semibold text-blue-900 mb-2">Payroll Specialist Information</h3>
         <ul className="text-blue-800 text-sm space-y-2">
           <li>• As a Payroll Specialist, you can <span className="font-semibold">create draft</span> allowances</li>
           <li>• You can <span className="font-semibold">view all</span> allowances (draft, approved, rejected)</li>
@@ -772,7 +771,7 @@ export default function AllowancesPage() {
         </div>
         
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <p className="text-sm font-medium text-amber-800 mb-2">ℹ️ Important Notes</p>
+          <p className="text-sm font-medium text-amber-800 mb-2">Important Notes</p>
           <ul className="text-xs text-amber-700 space-y-1">
             <li>• Allowance will be created as <span className="font-semibold">DRAFT</span></li>
             <li>• Payroll Manager approval is required before use</li>
