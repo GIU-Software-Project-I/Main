@@ -60,6 +60,18 @@ const convertApiNotificationToUI = (apiNotif: any): Notification => {
         title = 'Payroll Update';
         actionUrl = '/portal/my-payslips';
         actionLabel = 'View Payslips';
+    } else if (apiType === 'DISPUTE_APPROVED' || apiType === 'CLAIM_APPROVED') {
+        category = 'payroll';
+        type = 'success';
+        if (apiType === 'DISPUTE_APPROVED') {
+            title = 'Dispute Approved by Manager';
+            actionUrl = '/dashboard/payroll-specialist/disputes';
+            actionLabel = 'View Disputes';
+        } else {
+            title = 'Claim Approved by Manager';
+            actionUrl = '/dashboard/payroll-specialist/claims';
+            actionLabel = 'View Claims';
+        }
     } else if (apiType.includes('ATTENDANCE_')) {
         category = 'attendance';
         type = 'warning';
