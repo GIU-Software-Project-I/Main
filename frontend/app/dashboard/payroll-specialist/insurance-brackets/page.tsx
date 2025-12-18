@@ -968,17 +968,46 @@ export default function InsuranceBracketsPage() {
                 )}
                 {selectedBracket.approvedBy && (
                   <div>
-                    <p className="text-sm text-slate-500">Approved By</p>
+                    <p className={`text-sm ${selectedBracket.status === 'rejected' ? 'text-red-600' : 'text-green-600'}`}>
+                      {selectedBracket.status === 'rejected' ? 'Rejected By' : 'Approved By'}
+                    </p>
                     <p className="font-medium text-slate-900">{selectedBracket.approvedBy}</p>
                   </div>
                 )}
                 {selectedBracket.approvedAt && (
                   <div>
-                    <p className="text-sm text-slate-500">Approved At</p>
+                    <p className={`text-sm ${selectedBracket.status === 'rejected' ? 'text-red-600' : 'text-green-600'}`}>
+                      {selectedBracket.status === 'rejected' ? 'Rejected At' : 'Approved At'}
+                    </p>
                     <p className="font-medium text-slate-900">{formatDate(selectedBracket.approvedAt)}</p>
                   </div>
                 )}
               </div>
+              
+              {selectedBracket.approvedBy && (
+                <div className={`${selectedBracket.status === 'rejected' ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'} border rounded-lg p-4`}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className={`text-sm ${selectedBracket.status === 'rejected' ? 'text-red-600' : 'text-green-600'}`}>
+                        {selectedBracket.status === 'rejected' ? 'Rejected By' : 'Approved By'}
+                      </p>
+                      <p className={`font-medium ${selectedBracket.status === 'rejected' ? 'text-red-800' : 'text-green-800'}`}>
+                        {selectedBracket.approvedBy}
+                      </p>
+                    </div>
+                    {selectedBracket.approvedAt && (
+                      <div>
+                        <p className={`text-sm ${selectedBracket.status === 'rejected' ? 'text-red-600' : 'text-green-600'}`}>
+                          {selectedBracket.status === 'rejected' ? 'Rejected At' : 'Approved At'}
+                        </p>
+                        <p className={`font-medium ${selectedBracket.status === 'rejected' ? 'text-red-800' : 'text-green-800'}`}>
+                          {formatDate(selectedBracket.approvedAt)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="p-6 border-t border-slate-200 flex justify-end">
               <button
