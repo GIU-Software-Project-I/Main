@@ -798,7 +798,8 @@ export const timeManagementService = {
     deleteHoliday: async (id: string) => {
         return apiService.delete<{ ok: boolean }>(`/holidays/${id}`);
     },
-    
+
+
 
     // Get break permission max limit - GET /break-permissions/limit
     getBreakPermissionLimit: async () => {
@@ -875,7 +876,6 @@ export const timeManagementService = {
     exportTimeExceptionsJSON: async () => {
         return apiService.get('/time-exceptions/export/json');
     },
-    
 };
 
 export default timeManagementService;

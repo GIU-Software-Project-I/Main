@@ -365,7 +365,7 @@ const HR_ADMIN_SECTIONS: NavSection[] = [
             icon: 'clock',
             children: [
                 { label: 'Manage Attendance', href: '/dashboard/hr-admin/time-management/attendance-records', icon: 'clipboard-list' },
-                { label: 'Break Permissions', href: '/dashboard/hr-admin/time-management/break-permissions', icon: 'clipboard-list' },
+                { label: 'TimeExceptions', href: '/dashboard/hr-admin/time-management/time-exceptions', icon: 'clipboard-list' },
                 { label: 'Holidays', href: '/dashboard/hr-admin/time-management/Holidays', icon: 'clipboard-list' },
               { label: 'Shift Assignments', href: '/dashboard/hr-admin/time-management/ShiftAssignments', icon: 'clipboard-list' },
 
