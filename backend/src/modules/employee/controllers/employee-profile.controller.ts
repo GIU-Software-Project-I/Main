@@ -150,7 +150,13 @@ export class EmployeeProfileController {
         @Body() dto: ProcessChangeRequestDto,
         @CurrentUser() user: JwtPayload
     ) {
-        return this.employeeProfileService.processChangeRequest(requestId, dto.status, user.sub, dto.rejectionReason);
+        return this.employeeProfileService.processChangeRequest(
+            requestId,
+            dto.status,
+            user.sub,
+            dto.rejectionReason,
+            dto.proposedChanges
+        );
     }
 
     @Get('admin/stats/by-status')

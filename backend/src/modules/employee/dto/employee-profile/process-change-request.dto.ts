@@ -10,5 +10,7 @@ export class ProcessChangeRequestDto {
     @IsOptional()
     @IsString()
     rejectionReason?: string;
-}
 
+    @IsOptional()
+    proposedChanges?: Record<string, any>;
+}
