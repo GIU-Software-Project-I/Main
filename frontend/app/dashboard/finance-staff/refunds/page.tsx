@@ -167,8 +167,8 @@ export default function RefundsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Refund Generation</h1>
-          <p className="text-slate-600 mt-1">Generate and manage refunds for approved disputes and claims</p>
+          <h1 className="text-2xl font-bold text-white">Refund Generation</h1>
+          <p className="text-white mt-1">Generate and manage refunds for approved disputes and claims</p>
         </div>
         <button
           onClick={() => setShowGenerateModal(true)}
@@ -309,7 +309,7 @@ export default function RefundsPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Refund Type</label>
                 <select
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                   value={refundType}
                   onChange={(e) => {
                     setRefundType(e.target.value as any);
@@ -325,7 +325,7 @@ export default function RefundsPage() {
                   {refundType === 'dispute' ? 'Approved Dispute' : 'Approved Expense Claim'}
                 </label>
                 <select
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                   value={selectedSourceId}
                   onChange={(e) => handleSourceChange(e.target.value)}
                   required
@@ -345,7 +345,7 @@ export default function RefundsPage() {
                 <label className="block text-sm font-medium text-slate-700 mb-1">Employee ID</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg outline-none cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg outline-none cursor-not-allowed text-slate-900"
                   value={refundEmployeeId}
                   readOnly
                   placeholder="Fetched automatically"
@@ -354,7 +354,7 @@ export default function RefundsPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                 <textarea
-                  className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg outline-none cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg outline-none cursor-not-allowed text-slate-900"
                   value={refundDescription}
                   readOnly
                   rows={3}
@@ -365,7 +365,7 @@ export default function RefundsPage() {
                 <label className="block text-sm font-medium text-slate-700 mb-1">Amount</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg outline-none cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg outline-none cursor-not-allowed text-slate-900"
                   value={refundAmount ? `$${parseFloat(refundAmount).toLocaleString()}` : ''}
                   readOnly
                   placeholder="$0.00"

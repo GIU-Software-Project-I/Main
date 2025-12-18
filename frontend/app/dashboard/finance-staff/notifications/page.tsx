@@ -61,10 +61,10 @@ export default function NotificationsPage() {
         financeStaffService.getApprovedDisputes(),
         financeStaffService.getApprovedClaims(),
       ]);
-      
+
       console.log('[Notifications] Disputes response:', disputesResponse.data);
       console.log('[Notifications] Claims response:', claimsResponse.data);
-      
+
       // Transform data to ensure all fields are strings, not objects
       if (disputesResponse.data) {
         const transformed = disputesResponse.data.map((d: any) => ({
@@ -83,7 +83,7 @@ export default function NotificationsPage() {
         console.log('[Notifications] Transformed disputes:', transformed);
         setApprovedDisputes(transformed);
       }
-      
+
       if (claimsResponse.data) {
         const transformed = claimsResponse.data.map((c: any) => ({
           ...c,
@@ -112,19 +112,19 @@ export default function NotificationsPage() {
   const handleMarkAsRead = async (type: 'dispute' | 'claim', id: string) => {
     try {
       await financeStaffService.markNotificationAsRead(type, id);
-      
+
       // Update local read status
       const newReadItems = {
         disputes: new Set(readItems.disputes),
         claims: new Set(readItems.claims),
       };
-      
+
       if (type === 'dispute') {
         newReadItems.disputes.add(id);
       } else {
         newReadItems.claims.add(id);
       }
-      
+
       setReadItems(newReadItems);
       saveReadStatus(newReadItems);
     } catch (error) {
@@ -200,7 +200,7 @@ export default function NotificationsPage() {
       }
       return String(value);
     };
-    
+
     // Helper to safely extract employee name (ALWAYS returns string)
     const getEmployeeName = (dispute: any): string => {
       if (typeof dispute.employeeName === 'string') return dispute.employeeName;
@@ -212,7 +212,7 @@ export default function NotificationsPage() {
       }
       return 'Unknown';
     };
-    
+
     // Helper to safely extract employee number (ALWAYS returns string)
     const getEmployeeNumber = (dispute: any): string => {
       if (typeof dispute.employeeNumber === 'string') return dispute.employeeNumber;
@@ -223,131 +223,127 @@ export default function NotificationsPage() {
       }
       return 'N/A';
     };
-    
+
     return (
       <div className="space-y-4">
         {approvedDisputes.map((dispute) => {
           const isRead = readItems.disputes.has(dispute.id);
           return (
-          <div key={dispute.id} className={`border rounded-lg p-4 transition-all ${
-            isRead 
-              ? 'bg-slate-50 border-slate-200 opacity-75' 
+            <div key={dispute.id} className={`border rounded-lg p-4 transition-all ${isRead
+              ? 'bg-slate-50 border-slate-200 opacity-75'
               : 'bg-white border-blue-200 shadow-sm'
-          }`}>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3">
-                  {!isRead && (
-                    <div className="w-2 h-2 bg-blue-600 rounded-full" title="Unread"></div>
-                  )}
-                  <h3 className="font-medium text-slate-900">{getEmployeeName(dispute)}</h3>
-                  <span className="text-sm text-slate-500">{getEmployeeNumber(dispute)}</span>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    dispute.priority === 'critical' ? 'bg-red-100 text-red-800' :
-                    dispute.priority === 'high' ? 'bg-orange-100 text-orange-800' :
-                    dispute.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    {safeString(dispute.priority, 'medium')}
-                  </span>
-                  {dispute.needsRefund && (
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                      Needs Refund
+              }`}>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3">
+                    {!isRead && (
+                      <div className="w-2 h-2 bg-blue-600 rounded-full" title="Unread"></div>
+                    )}
+                    <h3 className="font-medium text-slate-900">{getEmployeeName(dispute)}</h3>
+                    <span className="text-sm text-slate-500">{getEmployeeNumber(dispute)}</span>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${dispute.priority === 'critical' ? 'bg-red-100 text-red-800' :
+                      dispute.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                        dispute.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                      }`}>
+                      {safeString(dispute.priority, 'medium')}
                     </span>
-                  )}
+                    {dispute.needsRefund && (
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                        Needs Refund
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-600 mt-1">{safeString(dispute.department)}</p>
+                  <div className="mt-2">
+                    <p className="text-sm font-medium text-slate-900">{safeString(dispute.type, 'Unknown')}</p>
+                    <p className="text-sm text-slate-600 mt-1">{safeString(dispute.description)}</p>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div key="amount">
+                      <p className="text-slate-500">Amount</p>
+                      <p className="font-medium text-slate-900">${dispute.amount?.toLocaleString() || '0'}</p>
+                    </div>
+                    <div key="period">
+                      <p className="text-slate-500">Period</p>
+                      <p className="font-medium text-slate-900">{safeString(dispute.period)}</p>
+                    </div>
+                    <div key="approvedBy">
+                      <p className="text-slate-500">Approved By</p>
+                      <p className="font-medium text-slate-900">{safeString(dispute.approvedBy, 'System')}</p>
+                    </div>
+                    <div key="refundStatus">
+                      <p className="text-slate-500">Refund Status</p>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${dispute.refundStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                        dispute.refundStatus === 'processed' ? 'bg-blue-100 text-blue-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                        {safeString(dispute.refundStatus, 'pending')}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Approved on {dispute.approvedAt ? new Date(dispute.approvedAt).toLocaleDateString() : 'N/A'}
+                  </p>
                 </div>
-                <p className="text-sm text-slate-600 mt-1">{safeString(dispute.department)}</p>
-                <div className="mt-2">
-                  <p className="text-sm font-medium text-slate-900">{safeString(dispute.type, 'Unknown')}</p>
-                  <p className="text-sm text-slate-600 mt-1">{safeString(dispute.description)}</p>
-                </div>
-              <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div key="amount">
-                  <p className="text-slate-500">Amount</p>
-                  <p className="font-medium text-slate-900">${dispute.amount?.toLocaleString() || '0'}</p>
-                </div>
-                <div key="period">
-                  <p className="text-slate-500">Period</p>
-                  <p className="font-medium text-slate-900">{safeString(dispute.period)}</p>
-                </div>
-                <div key="approvedBy">
-                  <p className="text-slate-500">Approved By</p>
-                  <p className="font-medium text-slate-900">{safeString(dispute.approvedBy, 'System')}</p>
-                </div>
-                <div key="refundStatus">
-                  <p className="text-slate-500">Refund Status</p>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    dispute.refundStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                    dispute.refundStatus === 'processed' ? 'bg-blue-100 text-blue-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {safeString(dispute.refundStatus, 'pending')}
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-slate-500 mt-2">
-                Approved on {dispute.approvedAt ? new Date(dispute.approvedAt).toLocaleDateString() : 'N/A'}
-              </p>
-            </div>
-            <div className="flex space-x-2">
-              {isRead ? (
-                <span className="text-slate-400 text-sm font-medium flex items-center">
-                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Read
-                </span>
-              ) : (
-              <button
-                onClick={() => handleMarkAsRead('dispute', dispute.id)}
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-              >
-                Mark as Read
-              </button>
-              )}
-              
-              {/* REQ-PY-45: Generate refund for disputes */}
-              {dispute.needsRefund && dispute.refundStatus === 'pending' && (
-                <button
-                  onClick={() => handleGenerateRefund(
-                    'dispute',
-                    dispute.id,
-                    dispute.amount,
-                    String(dispute.employeeId || ''),
-                    dispute.description || `Refund for ${dispute.type}`
-                  )}
-                  disabled={generatingRefund === dispute.id}
-                  className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
-                    generatingRefund === dispute.id
-                      ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                >
-                  {generatingRefund === dispute.id ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <div className="flex space-x-2">
+                  {isRead ? (
+                    <span className="text-slate-400 text-sm font-medium flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      Generating...
+                      Read
                     </span>
                   ) : (
-                    '💰 Generate Refund'
+                    <button
+                      onClick={() => handleMarkAsRead('dispute', dispute.id)}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      Mark as Read
+                    </button>
                   )}
-                </button>
-              )}
-              
-              {dispute.refundStatus === 'processed' && (
-                <span className="text-green-600 text-sm font-medium flex items-center">
-                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Refund Generated
-                </span>
-              )}
+
+                  {/* REQ-PY-45: Generate refund for disputes */}
+                  {dispute.needsRefund && dispute.refundStatus === 'pending' && (
+                    <button
+                      onClick={() => handleGenerateRefund(
+                        'dispute',
+                        dispute.id,
+                        dispute.amount,
+                        String(dispute.employeeId || ''),
+                        dispute.description || `Refund for ${dispute.type}`
+                      )}
+                      disabled={generatingRefund === dispute.id}
+                      className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${generatingRefund === dispute.id
+                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
+                    >
+                      {generatingRefund === dispute.id ? (
+                        <span className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Generating...
+                        </span>
+                      ) : (
+                        '💰 Generate Refund'
+                      )}
+                    </button>
+                  )}
+
+                  {dispute.refundStatus === 'processed' && (
+                    <span className="text-green-600 text-sm font-medium flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Refund Generated
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            </div>
-          </div>
           );
         })}
         {approvedDisputes.length === 0 && (
@@ -372,7 +368,7 @@ export default function NotificationsPage() {
       }
       return String(value);
     };
-    
+
     // Helper to safely extract employee name (ALWAYS returns string)
     const getEmployeeName = (claim: any): string => {
       if (typeof claim.employeeName === 'string') return claim.employeeName;
@@ -384,7 +380,7 @@ export default function NotificationsPage() {
       }
       return 'Unknown';
     };
-    
+
     // Helper to safely extract employee number (ALWAYS returns string)
     const getEmployeeNumber = (claim: any): string => {
       if (typeof claim.employeeNumber === 'string') return claim.employeeNumber;
@@ -395,131 +391,127 @@ export default function NotificationsPage() {
       }
       return 'N/A';
     };
-    
+
     return (
       <div className="space-y-4">
         {approvedClaims.map((claim) => {
           const isRead = readItems.claims.has(claim.id);
           return (
-          <div key={claim.id} className={`border rounded-lg p-4 transition-all ${
-            isRead 
-              ? 'bg-slate-50 border-slate-200 opacity-75' 
+            <div key={claim.id} className={`border rounded-lg p-4 transition-all ${isRead
+              ? 'bg-slate-50 border-slate-200 opacity-75'
               : 'bg-white border-blue-200 shadow-sm'
-          }`}>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3">
-                  {!isRead && (
-                    <div className="w-2 h-2 bg-blue-600 rounded-full" title="Unread"></div>
-                  )}
-                  <h3 className="font-medium text-slate-900">{getEmployeeName(claim)}</h3>
-                  <span className="text-sm text-slate-500">{getEmployeeNumber(claim)}</span>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    claim.priority === 'critical' ? 'bg-red-100 text-red-800' :
-                    claim.priority === 'high' ? 'bg-orange-100 text-orange-800' :
-                    claim.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    {safeString(claim.priority, 'medium')}
-                  </span>
-                  {claim.needsRefund && (
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                      Needs Refund
+              }`}>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3">
+                    {!isRead && (
+                      <div className="w-2 h-2 bg-blue-600 rounded-full" title="Unread"></div>
+                    )}
+                    <h3 className="font-medium text-slate-900">{getEmployeeName(claim)}</h3>
+                    <span className="text-sm text-slate-500">{getEmployeeNumber(claim)}</span>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${claim.priority === 'critical' ? 'bg-red-100 text-red-800' :
+                      claim.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                        claim.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                      }`}>
+                      {safeString(claim.priority, 'medium')}
                     </span>
-                  )}
+                    {claim.needsRefund && (
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                        Needs Refund
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-600 mt-1">{safeString(claim.department)}</p>
+                  <div className="mt-2">
+                    <p className="text-sm font-medium text-slate-900">{safeString(claim.title, 'Expense Claim')}</p>
+                    <p className="text-sm text-slate-600 mt-1">{safeString(claim.description)}</p>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div key="amount">
+                      <p className="text-slate-500">Amount</p>
+                      <p className="font-medium text-slate-900">${claim.amount?.toLocaleString() || '0'}</p>
+                    </div>
+                    <div key="category">
+                      <p className="text-slate-500">Category</p>
+                      <p className="font-medium text-slate-900">{safeString(claim.category, 'General')}</p>
+                    </div>
+                    <div key="period">
+                      <p className="text-slate-500">Period</p>
+                      <p className="font-medium text-slate-900">{safeString(claim.period)}</p>
+                    </div>
+                    <div key="refundStatus">
+                      <p className="text-slate-500">Refund Status</p>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${claim.refundStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                        claim.refundStatus === 'processed' ? 'bg-blue-100 text-blue-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                        {safeString(claim.refundStatus, 'pending')}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Approved on {claim.approvedAt ? new Date(claim.approvedAt).toLocaleDateString() : 'N/A'} by {safeString(claim.approvedBy, 'Unknown')}
+                  </p>
                 </div>
-                <p className="text-sm text-slate-600 mt-1">{safeString(claim.department)}</p>
-                <div className="mt-2">
-                  <p className="text-sm font-medium text-slate-900">{safeString(claim.title, 'Expense Claim')}</p>
-                  <p className="text-sm text-slate-600 mt-1">{safeString(claim.description)}</p>
-                </div>
-              <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div key="amount">
-                  <p className="text-slate-500">Amount</p>
-                  <p className="font-medium text-slate-900">${claim.amount?.toLocaleString() || '0'}</p>
-                </div>
-                <div key="category">
-                  <p className="text-slate-500">Category</p>
-                  <p className="font-medium text-slate-900">{safeString(claim.category, 'General')}</p>
-                </div>
-                <div key="period">
-                  <p className="text-slate-500">Period</p>
-                  <p className="font-medium text-slate-900">{safeString(claim.period)}</p>
-                </div>
-                <div key="refundStatus">
-                  <p className="text-slate-500">Refund Status</p>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    claim.refundStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                    claim.refundStatus === 'processed' ? 'bg-blue-100 text-blue-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {safeString(claim.refundStatus, 'pending')}
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-slate-500 mt-2">
-                Approved on {claim.approvedAt ? new Date(claim.approvedAt).toLocaleDateString() : 'N/A'} by {safeString(claim.approvedBy, 'Unknown')}
-              </p>
-            </div>
-            <div className="flex space-x-2">
-              {isRead ? (
-                <span className="text-slate-400 text-sm font-medium flex items-center">
-                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Read
-                </span>
-              ) : (
-              <button
-                onClick={() => handleMarkAsRead('claim', claim.id)}
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-              >
-                Mark as Read
-              </button>
-              )}
-              
-              {/* REQ-PY-46: Generate refund for expense claims */}
-              {claim.needsRefund && claim.refundStatus === 'pending' && (
-                <button
-                  onClick={() => handleGenerateRefund(
-                    'claim',
-                    claim.id,
-                    claim.amount,
-                    String(claim.employeeId || ''),
-                    claim.description || `Refund for ${claim.title}`
-                  )}
-                  disabled={generatingRefund === claim.id}
-                  className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
-                    generatingRefund === claim.id
-                      ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                >
-                  {generatingRefund === claim.id ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <div className="flex space-x-2">
+                  {isRead ? (
+                    <span className="text-slate-400 text-sm font-medium flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      Generating...
+                      Read
                     </span>
                   ) : (
-                    '💰 Generate Refund'
+                    <button
+                      onClick={() => handleMarkAsRead('claim', claim.id)}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      Mark as Read
+                    </button>
                   )}
-                </button>
-              )}
-              
-              {claim.refundStatus === 'processed' && (
-                <span className="text-green-600 text-sm font-medium flex items-center">
-                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Refund Generated
-                </span>
-              )}
+
+                  {/* REQ-PY-46: Generate refund for expense claims */}
+                  {claim.needsRefund && claim.refundStatus === 'pending' && (
+                    <button
+                      onClick={() => handleGenerateRefund(
+                        'claim',
+                        claim.id,
+                        claim.amount,
+                        String(claim.employeeId || ''),
+                        claim.description || `Refund for ${claim.title}`
+                      )}
+                      disabled={generatingRefund === claim.id}
+                      className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${generatingRefund === claim.id
+                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
+                    >
+                      {generatingRefund === claim.id ? (
+                        <span className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Generating...
+                        </span>
+                      ) : (
+                        '💰 Generate Refund'
+                      )}
+                    </button>
+                  )}
+
+                  {claim.refundStatus === 'processed' && (
+                    <span className="text-green-600 text-sm font-medium flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Refund Generated
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            </div>
-          </div>
           );
         })}
         {approvedClaims.length === 0 && (
@@ -534,8 +526,8 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Approved Disputes and Claims Notifications</h1>
-        <p className="text-slate-600 mt-1">View and manage approved disputes and expense claims for adjustments</p>
+        <h1 className="text-2xl font-bold text-white">Approved Disputes and Claims Notifications</h1>
+        <p className="text-white mt-1">View and manage approved disputes and expense claims for adjustments</p>
       </div>
 
       {/* Success/Error Messages */}
@@ -549,7 +541,7 @@ export default function NotificationsPage() {
           </div>
         </div>
       )}
-      
+
       {refundError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-center">
@@ -569,7 +561,7 @@ export default function NotificationsPage() {
               <p className="text-sm font-medium text-slate-600">Approved Disputes</p>
               <p className="text-2xl font-bold text-slate-900">{approvedDisputes.length}</p>
               <p className="text-sm text-slate-500 mt-1">
-                {approvedDisputes.filter(d => !readItems.disputes.has(d.id)).length} unread • {approvedDisputes.filter(d => d.needsRefund).length} need refund
+                {approvedDisputes.filter(d => !readItems.disputes.has(d.id)).length} unread
               </p>
             </div>
             <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -585,7 +577,7 @@ export default function NotificationsPage() {
               <p className="text-sm font-medium text-slate-600">Approved Claims</p>
               <p className="text-2xl font-bold text-slate-900">{approvedClaims.length}</p>
               <p className="text-sm text-slate-500 mt-1">
-                {approvedClaims.filter(c => !readItems.claims.has(c.id)).length} unread • {approvedClaims.filter(c => c.needsRefund).length} need refund
+                {approvedClaims.filter(c => !readItems.claims.has(c.id)).length} unread
               </p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -608,11 +600,10 @@ export default function NotificationsPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                }`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  }`}
               >
                 {tab.label}
                 {tab.count > 0 && (
