@@ -126,7 +126,7 @@ export class UnifiedLeaveService {
 
   async updateLeaveType(id: string, dto: any) {
     const updated = await this.leaveTypeModel
-      .findByIdAndUpdate(id, dto, { new: true })
+      .findByIdAndUpdate(id, dto, { new: true, runValidators: true, strict: false })
       .lean();
     if (!updated) throw new NotFoundException('Leave type not found');
     return updated;
@@ -1017,31 +1017,62 @@ export class UnifiedLeaveService {
   // Entitlements & Adjustments (REQ-008, REQ-013)
   // --------------------------------------------------------------------------------
 
-  async assignEntitlement(
-    employeeId: string,
-    leaveTypeId: string,
-    yearlyEntitlement: number,
-  ) {
-    const filter = {
-      employeeId: new Types.ObjectId(employeeId),
-      leaveTypeId: new Types.ObjectId(leaveTypeId),
-    };
-    const update = {
-      yearlyEntitlement,
-      remaining: yearlyEntitlement,
-      lastAccrualDate: new Date(),
-    };
-    return this.entitlementModel
-      .findOneAndUpdate(filter, update, { upsert: true, new: true })
-      .lean();
-  }
+async assignEntitlement(employeeId: string, leaveTypeId: string, yearlyEntitlement: number) {
+  this.validateObjectId(employeeId, 'employeeId');
+  this.validateObjectId(leaveTypeId, 'leaveTypeId');
+
+  const empObj = new Types.ObjectId(employeeId);
+  const ltObj = new Types.ObjectId(leaveTypeId);
+
+  // 1) upsert yearlyEntitlement أولاً
+  const ent = await this.entitlementModel.findOneAndUpdate(
+    { employeeId: empObj, leaveTypeId: ltObj },
+    { $set: { yearlyEntitlement } },
+    { upsert: true, new: true },
+  );
+
+  // 2) احسب taken من approved requests
+  const takenAgg = await this.leaveRequestModel.aggregate([
+    { $match: { employeeId: empObj, leaveTypeId: ltObj, status: { $in: ['approved', 'APPROVED'] } } },
+    { $group: { _id: null, total: { $sum: '$durationDays' } } },
+  ]);
+
+  // 3) احسب pending من pending requests
+  const pendingAgg = await this.leaveRequestModel.aggregate([
+    { $match: { employeeId: empObj, leaveTypeId: ltObj, status: { $in: ['pending', 'PENDING'] } } },
+    { $group: { _id: null, total: { $sum: '$durationDays' } } },
+  ]);
+
+  const taken = takenAgg[0]?.total ?? 0;
+  const pending = pendingAgg[0]?.total ?? 0;
+  const carryForward = ent.carryForward ?? 0;
+
+  // 4) بما إن HR Admin بيعمل "Set yearly entitlement"
+  // خليه كمان يظبط accrued عشان base مايفضلش قديم (زي 5)
+  ent.accruedActual = yearlyEntitlement;
+  ent.accruedRounded = yearlyEntitlement;
+
+  ent.taken = taken;
+  ent.pending = pending;
+
+  // 5) remaining الصح
+  const base = ent.accruedRounded ?? ent.accruedActual ?? yearlyEntitlement ?? 0;
+  ent.remaining = base + carryForward - taken - pending;
+
+  // ملاحظة: lastAccrualDate دي مش “accrual run” فعلية، بس لو عايزها خليك زي ما تحب
+  // ent.lastAccrualDate = new Date();
+
+  await ent.save();
+  return ent.toObject();
+}
+
 
   // no sessions: simple create + update
   async manualEntitlementAdjustment(
     employeeId: string,
     leaveTypeId: string,
     amount: number,
-    type: 'add' | 'deduct',
+    type: AdjustmentType,
     reason: string,
     hrUserId: string,
   ) {
@@ -1272,19 +1303,59 @@ export class UnifiedLeaveService {
     return { data: docs, page, limit, total };
   }
 
-  async recalcEmployee(employeeId: string) {
-    const entitlements = await this.entitlementModel.find({
-      employeeId: new Types.ObjectId(employeeId),
-    });
-    for (const e of entitlements) {
-      e.remaining =
-        (e.yearlyEntitlement || 0) +
-        (e.carryForward || 0) -
-        (e.taken || 0);
-      await e.save();
-    }
-    return { ok: true, processed: entitlements.length };
+async recalcEmployee(employeeId: string) {
+  this.validateObjectId(employeeId, 'employeeId');
+  const empObj = new Types.ObjectId(employeeId);
+
+  // جِب كل entitlements للموظف
+  const entitlements = await this.entitlementModel.find({ employeeId: empObj });
+
+  // جِب taken من approved requests (group by leaveTypeId)
+  const takenAgg = await this.leaveRequestModel.aggregate([
+    { $match: { employeeId: empObj, status: { $in: ['approved', 'APPROVED'] } } },
+    { $group: { _id: '$leaveTypeId', total: { $sum: '$durationDays' } } },
+  ]);
+
+  // جِب pending من pending requests (group by leaveTypeId)
+  const pendingAgg = await this.leaveRequestModel.aggregate([
+    { $match: { employeeId: empObj, status: { $in: ['pending', 'PENDING'] } } },
+    { $group: { _id: '$leaveTypeId', total: { $sum: '$durationDays' } } },
+  ]);
+
+  const takenMap = new Map<string, number>(
+    takenAgg.map((r) => [r._id.toString(), r.total ?? 0]),
+  );
+  const pendingMap = new Map<string, number>(
+    pendingAgg.map((r) => [r._id.toString(), r.total ?? 0]),
+  );
+
+  let processed = 0;
+
+  for (const e of entitlements) {
+    const ltId = e.leaveTypeId.toString();
+    const taken = takenMap.get(ltId) ?? 0;
+    const pending = pendingMap.get(ltId) ?? 0;
+
+    e.taken = taken;
+    e.pending = pending;
+
+    // اختار "base" موحّد للرصيد (حسب نظامك)
+    // لو عندك accrual شغال: استخدم accruedRounded/Actual
+    // لو مش شغال: استخدم yearlyEntitlement
+    const base =
+      (e.accruedRounded ?? e.accruedActual ?? e.yearlyEntitlement ?? 0);
+
+    const carryForward = e.carryForward ?? 0;
+
+    e.remaining = base + carryForward - taken - pending;
+
+    await e.save();
+    processed++;
   }
+
+  return { ok: true, employeeId, processed };
+}
+
 
   // --------------------------------------------------------------------------------
   // Manager views & admin filters (REQ-034, REQ-035, REQ-039)
@@ -1912,48 +1983,109 @@ export class UnifiedLeaveService {
       summary,
     };
   }
+  private async getFirstApprovedLeaveDateMap() {
+  const rows = await this.leaveRequestModel.aggregate([
+    { $match: { status: 'approved' } }, // <-- عدّلها حسب enum عندك (APPROVED)
+    { $sort: { 'dates.from': 1 } },
+    { $group: { _id: '$employeeId', firstVacationDate: { $first: '$dates.from' } } },
+  ]);
 
-  async resetLeaveYear(
-    strategy: 'hireDate' | 'calendarYear' | 'custom',
-    referenceDate?: Date,
-  ) {
-    // REQ-012: Define Legal Leave Year & Reset Rules
-    // Corrected to respect Accrual Method
-    const entitlements = await this.entitlementModel.find();
-    const policies = await this.policyModel.find().lean();
-    const policyMap = new Map(policies.map(p => [p.leaveTypeId.toString(), p]));
+  return new Map<string, Date>(
+    rows.map((r: any) => [String(r._id), new Date(r.firstVacationDate)]),
+  );
+}
 
-    for (const e of entitlements) {
-      const policy = policyMap.get(e.leaveTypeId.toString());
-      const method = policy?.accrualMethod ?? AccrualMethod.YEARLY; // Default to yearly if no policy? Or Monthly? Safe choice.
 
-      if (method === AccrualMethod.YEARLY) {
-        // Yearly: Full entitlement upfront
-        e.accruedActual = e.yearlyEntitlement || 0;
-        e.accruedRounded = e.yearlyEntitlement || 0;
-        e.remaining = (e.yearlyEntitlement || 0) + (e.carryForward || 0) - (e.taken || 0); // Logic assumes taken resets? No, taken is cumulative for the year usually. If this is RESET YEAR, taken should be 0? 
-        // Wait, Reset Leave Year means "Start New Year".
-        // Taken should be reset to 0.
-        // Remaining = Accrued + CarryForward.
-        // The previous code had " - e.taken". If taken is "Taken in PREVIOUS year", we shouldn't subtract it from NEW year balance.
-        // We rely on "carryForward" calculation to have moved unused to carryForward.
-        // So Remaining = Accrued (New) + CarryForward.
-        e.taken = 0;
-        e.pending = 0; // Assuming pending requests carry over? Or pending count reset? Usually pending requests are for valid dates. If dates in new year, they stay pending. But "count" in entitlement might differ.
+async resetLeaveYear(
+  strategy: 'hireDate' | 'calendarYear' | 'custom',
+  referenceDate?: Date,
+  employeeId?: string,
+  dryRun: boolean = false,
+) {
+  const ref = referenceDate ?? new Date();
 
-        e.remaining = e.accruedRounded + e.carryForward;
-      } else {
-        // Monthly: Start with 0 accrued
-        e.accruedActual = 0;
-        e.accruedRounded = 0;
-        e.remaining = (e.carryForward || 0); // Only start with CF
-        e.taken = 0;
-      }
-      e.lastAccrualDate = referenceDate ?? new Date();
+  // policies
+  const policies = await this.policyModel.find().lean();
+  const policyMap = new Map(policies.map((p: any) => [String(p.leaveTypeId), p]));
+
+  // first vacation map
+  const firstVacationMap =
+    strategy === 'hireDate' ? await this.getFirstApprovedLeaveDateMap() : new Map<string, Date>();
+
+  // ✅ ONLY ONE employee if provided
+  const entitlements = employeeId
+    ? await this.entitlementModel.find({ employeeId: new Types.ObjectId(employeeId) })
+    : await this.entitlementModel.find();
+
+  let processed = 0;
+  const preview: any[] = [];
+
+  for (const e of entitlements) {
+    const empId = String(e.employeeId);
+
+    let criterion: Date | null = null;
+    if (strategy === 'calendarYear') criterion = new Date(Date.UTC(ref.getUTCFullYear(), 0, 1));
+    else if (strategy === 'custom') criterion = ref;
+    else criterion = firstVacationMap.get(empId) ?? null;
+
+    if (!criterion) continue;
+
+    const shouldReset =
+      strategy === 'calendarYear' || strategy === 'custom'
+        ? true
+        : (criterion.getUTCMonth() === ref.getUTCMonth() && criterion.getUTCDate() === ref.getUTCDate());
+
+    if (!shouldReset) continue;
+
+    // --- compute new values (WITHOUT saving yet) ---
+    const policy = policyMap.get(String(e.leaveTypeId));
+    const method = policy?.accrualMethod ?? AccrualMethod.YEARLY;
+
+    const before = {
+      entitlementId: String(e._id),
+      employeeId: String(e.employeeId),
+      leaveTypeId: String(e.leaveTypeId),
+      taken: e.taken,
+      pending: e.pending,
+      accruedActual: e.accruedActual,
+      accruedRounded: e.accruedRounded,
+      remaining: e.remaining,
+    };
+
+    let after = { ...before };
+
+    after.taken = 0;
+    after.pending = 0;
+
+    if (method === AccrualMethod.YEARLY) {
+      const yearly = e.yearlyEntitlement || 0;
+      after.accruedActual = yearly;
+      after.accruedRounded = yearly;
+      after.remaining = yearly + (e.carryForward || 0);
+    } else {
+      after.accruedActual = 0;
+      after.accruedRounded = 0;
+      after.remaining = (e.carryForward || 0);
+    }
+
+    preview.push({ before, after, accrualMethod: method });
+    processed++;
+
+    // ✅ only save if NOT dryRun
+    if (!dryRun) {
+      e.taken = after.taken;
+      e.pending = after.pending;
+      e.accruedActual = after.accruedActual as any;
+      e.accruedRounded = after.accruedRounded as any;
+      e.remaining = after.remaining as any;
+      e.lastAccrualDate = ref;
       await e.save();
     }
-    return { ok: true, processed: entitlements.length };
   }
+
+  return { ok: true, processed, dryRun, preview };
+}
+
 
   async calculateServiceDays(
     employeeId: string,
@@ -2401,7 +2533,7 @@ export class UnifiedLeaveService {
     return this.adjustmentModel
       .find(filter)
       .populate('leaveTypeId', 'name code')
-      .populate('hrUserId', 'firstName lastName')
+     // .populate('hrUserId', 'firstName lastName')
       .sort({ createdAt: -1 })
       .lean();
   }
