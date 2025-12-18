@@ -27,6 +27,11 @@ const SELF_SERVICE_SECTION: NavSection = {
   title: 'Self-Service',
   items: [
     {
+      label: 'Home',
+      href: '/',
+      icon: 'home',
+    },
+    {
       label: 'My Profile',
       href: '/portal/my-profile',
       icon: 'user',
@@ -216,11 +221,6 @@ const HR_MANAGER_SECTIONS: NavSection[] = [
         icon: 'home',
       },
       {
-        label: 'Organization',
-        href: '/dashboard/hr-manager/organization',
-        icon: 'building',
-      },
-      {
         label: 'Time Management',
         href: '/dashboard/hr-manager/time-management',
         icon: 'clock',
@@ -233,7 +233,7 @@ const HR_MANAGER_SECTIONS: NavSection[] = [
       },
       {
         label: 'Recruitment',
-        href: '/dashboard/recruiter',
+        href: '/dashboard/hr-manager/recruitment',
         icon: 'user-plus',
       },
       {

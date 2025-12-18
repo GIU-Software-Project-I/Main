@@ -176,7 +176,9 @@ export default function OnboardingChecklistDetailPage() {
           <div className="flex-1">
             <h1 className="text-2xl font-semibold text-foreground">Onboarding Checklist</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Employee ID: {onboarding.employeeId}
+              Employee ID: {typeof onboarding.employeeId === 'object' 
+                ? (onboarding.employeeId as any)?._id || (onboarding.employeeId as any)?.id || 'N/A'
+                : onboarding.employeeId || 'N/A'}
             </p>
           </div>
           <button
@@ -346,7 +348,11 @@ export default function OnboardingChecklistDetailPage() {
             </div>
             <div>
               <p className="text-muted-foreground">Contract ID</p>
-              <p className="font-mono text-foreground">{onboarding.contractId}</p>
+              <p className="font-mono text-foreground">
+                {typeof onboarding.contractId === 'object' 
+                  ? (onboarding.contractId as any)?._id || (onboarding.contractId as any)?.id || 'N/A'
+                  : onboarding.contractId || 'N/A'}
+              </p>
             </div>
             <div>
               <p className="text-muted-foreground">Created</p>

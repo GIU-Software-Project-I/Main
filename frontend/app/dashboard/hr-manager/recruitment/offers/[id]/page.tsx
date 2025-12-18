@@ -72,7 +72,7 @@ const mapJobOfferToOfferDetail = (
 ): OfferDetail => {
   // Map API status to local status
   let status: OfferDetail['status'] = 'pending_approval';
-  
+
   if (jobOffer.finalStatus === OfferFinalStatus.REJECTED) {
     status = 'rejected';
   } else if (jobOffer.applicantResponse === OfferResponseStatus.ACCEPTED) {
@@ -88,7 +88,7 @@ const mapJobOfferToOfferDetail = (
   }
 
   // Get candidate info
-  const candidateName = candidate 
+  const candidateName = candidate
     ? (candidate.fullName || `${candidate.firstName} ${candidate.lastName}`)
     : (jobOffer.candidateName || 'Unknown Candidate');
   const candidateEmail = candidate?.personalEmail || '';
@@ -523,8 +523,43 @@ export default function OfferDetailPage() {
             </svg>
             Back
           </Button>
+          {offer.status === 'pending_approval' && (
+            <>
+              <Button
+                onClick={() => handleApprove()}
+                disabled={processing}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Approve
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  const reason = prompt('Please enter rejection reason:');
+                  if (reason) handleReject(reason);
+                }}
+                disabled={processing}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Reject
+              </Button>
+            </>
+          )}
+          {offer.status === 'approved' && (
+            <Button onClick={handleSend} disabled={processing} className="bg-purple-600 hover:bg-purple-700">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+              Send Offer to Candidate
+            </Button>
+          )}
           {(offer.status === 'signed' || offer.status === 'accepted') && (
-            <Button onClick={handleTriggerOnboarding}>
+            <Button onClick={handleTriggerOnboarding} className="bg-indigo-600 hover:bg-indigo-700">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
               </svg>
@@ -661,14 +696,13 @@ export default function OfferDetailPage() {
                         <span className="text-slate-500 text-sm ml-2">({approver.employeeId})</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          approver.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                        <span className={`px-2 py-1 text-xs rounded-full ${approver.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
                           approver.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                          'bg-amber-100 text-amber-700'
-                        }`}>
+                            'bg-amber-100 text-amber-700'
+                          }`}>
                           {approver.status === 'approved' ? 'Approved' :
-                           approver.status === 'rejected' ? 'Rejected' :
-                           'Pending'}
+                            approver.status === 'rejected' ? 'Rejected' :
+                              'Pending'}
                         </span>
                         {approver.actionDate && (
                           <span className="text-slate-400 text-xs">{formatDate(approver.actionDate)}</span>
@@ -695,8 +729,8 @@ export default function OfferDetailPage() {
             {/* Generate Offer Letter (REC-018) */}
             <div className="mt-6 pt-6 border-t border-slate-100">
               <h4 className="text-sm font-medium text-slate-500 mb-3">Offer Letter Document</h4>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setShowOfferLetterGenerator(true)}
                 className="w-full sm:w-auto"
               >
@@ -715,9 +749,8 @@ export default function OfferDetailPage() {
           {(offer.status === 'pending_signature' || offer.status === 'signed' || offer.status === 'accepted') && (
             <Card>
               <div className="flex items-center gap-6">
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
-                  offer.status === 'pending_signature' ? 'bg-orange-100' : 'bg-emerald-100'
-                }`}>
+                <div className={`w-20 h-20 rounded-full flex items-center justify-center ${offer.status === 'pending_signature' ? 'bg-orange-100' : 'bg-emerald-100'
+                  }`}>
                   {offer.status === 'pending_signature' ? (
                     <svg className="w-10 h-10 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -761,13 +794,12 @@ export default function OfferDetailPage() {
                   {index < timeline.length - 1 && (
                     <div className="absolute left-[15px] top-8 bottom-0 w-0.5 bg-slate-200" style={{ top: `${index * 80 + 32}px`, height: '48px' }} />
                   )}
-                  
+
                   {/* Dot */}
-                  <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    event.status === 'completed' ? 'bg-emerald-100 text-emerald-600' :
+                  <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${event.status === 'completed' ? 'bg-emerald-100 text-emerald-600' :
                     event.status === 'current' ? 'bg-blue-100 text-blue-600 ring-4 ring-blue-50' :
-                    'bg-slate-100 text-slate-400'
-                  }`}>
+                      'bg-slate-100 text-slate-400'
+                    }`}>
                     {event.status === 'completed' ? (
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -781,9 +813,8 @@ export default function OfferDetailPage() {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <h4 className={`font-medium ${
-                      event.status === 'pending' ? 'text-slate-400' : 'text-slate-900'
-                    }`}>
+                    <h4 className={`font-medium ${event.status === 'pending' ? 'text-slate-400' : 'text-slate-900'
+                      }`}>
                       {event.action}
                     </h4>
                     <p className="text-sm text-slate-500 mt-0.5">{event.description}</p>
@@ -832,6 +863,39 @@ export default function OfferDetailPage() {
                   <p className="text-xs text-slate-500">Generate PDF</p>
                 </div>
               </button>
+
+              <button
+                onClick={() => setShowOfferLetterGenerator(true)}
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors text-left"
+              >
+                <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Generate Letter</p>
+                  <p className="text-xs text-slate-500">Preview & Download</p>
+                </div>
+              </button>
+
+              {offer.status === 'approved' && (
+                <button
+                  onClick={handleSend}
+                  disabled={processing}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors text-left"
+                >
+                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-purple-700 font-semibold">Send Now</p>
+                    <p className="text-xs text-purple-500">Digital transmission</p>
+                  </div>
+                </button>
+              )}
             </div>
           </Card>
         </div>
@@ -851,8 +915,8 @@ export default function OfferDetailPage() {
                 </div>
                 <h3 className="text-xl font-semibold text-slate-900 mb-2">Trigger Onboarding</h3>
                 <p className="text-sm text-slate-600 mb-6">
-                  This will create an onboarding task for <strong>{offer?.candidateName}</strong> starting 
-                  on <strong>{offer?.startDate}</strong>. The candidate will be notified to complete 
+                  This will create an onboarding task for <strong>{offer?.candidateName}</strong> starting
+                  on <strong>{offer?.startDate}</strong>. The candidate will be notified to complete
                   pre-boarding documents.
                 </p>
 

@@ -4,6 +4,7 @@ import { LandingNavbar } from '@/app/components/landing/navbar'
 import { HeroSection } from '@/app/components/landing/hero-section'
 import { StatsSection } from '@/app/components/landing/stats-section'
 import { FeaturesSection } from '@/app/components/landing/features-section'
+import { JobsSection } from '@/app/components/landing/jobs-section'
 import { CTASection } from '@/app/components/landing/cta-section'
 import { LandingFooter } from '@/app/components/landing/footer'
 
@@ -16,6 +17,7 @@ export default function HomePage() {
         <HeroSection />
         <StatsSection />
         <FeaturesSection />
+        <JobsSection />
         <CTASection />
       </main>
 
