@@ -516,7 +516,7 @@ export default function DepartmentalReportsPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Departmental Payroll Reports</h1>
+        <h1 className="text-2xl font-bold text-white">Departmental Payroll Reports</h1>
         <button
           onClick={() => setShowGenerateModal(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
@@ -531,7 +531,7 @@ export default function DepartmentalReportsPage() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
             <select
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               value={filters.departmentId || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, departmentId: e.target.value }))}
             >
@@ -547,7 +547,7 @@ export default function DepartmentalReportsPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Period</label>
             <input
               type="month"
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               value={filters.period || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, period: e.target.value }))}
             />
@@ -555,7 +555,7 @@ export default function DepartmentalReportsPage() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
             <select
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               value={filters.status || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value as any }))}
             >
@@ -568,7 +568,7 @@ export default function DepartmentalReportsPage() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Cost Center</label>
             <select
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               value={filters.costCenter || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, costCenter: e.target.value || undefined }))}
             >
@@ -751,7 +751,7 @@ export default function DepartmentalReportsPage() {
                           {currentSlide === 0 && (
                             <div className="space-y-3 px-4">
                               <div className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">
-                                📊 Payslip Data
+                                Payslip Data
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-slate-500">Gross Pay:</span>
@@ -782,7 +782,7 @@ export default function DepartmentalReportsPage() {
                           {currentSlide === 1 && (
                             <div className="space-y-3 px-4">
                               <div className="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-2">
-                                💰 Tax Data
+                                Tax Data
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-slate-500">Total Tax:</span>
@@ -940,7 +940,7 @@ export default function DepartmentalReportsPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Report Type</label>
                 <select
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                   value={generateForm.reportType}
                   onChange={(e) => setGenerateForm(prev => ({ ...prev, reportType: e.target.value }))}
                 >
@@ -957,7 +957,7 @@ export default function DepartmentalReportsPage() {
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
                     <select
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                       value={generateForm.departmentId}
                       onChange={(e) => setGenerateForm(prev => ({ ...prev, departmentId: e.target.value }))}
                     >
@@ -973,7 +973,7 @@ export default function DepartmentalReportsPage() {
                     <label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
                     <input
                       type="date"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                       value={generateForm.startDate}
                       onChange={(e) => setGenerateForm(prev => ({ ...prev, startDate: e.target.value }))}
                     />
@@ -982,7 +982,7 @@ export default function DepartmentalReportsPage() {
                     <label className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
                     <input
                       type="date"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                       value={generateForm.endDate}
                       onChange={(e) => setGenerateForm(prev => ({ ...prev, endDate: e.target.value }))}
                     />
@@ -997,7 +997,7 @@ export default function DepartmentalReportsPage() {
                     <label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
                     <input
                       type="date"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                       value={generateForm.startDate}
                       onChange={(e) => setGenerateForm(prev => ({ ...prev, startDate: e.target.value }))}
                     />
@@ -1006,7 +1006,7 @@ export default function DepartmentalReportsPage() {
                     <label className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
                     <input
                       type="date"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                       value={generateForm.endDate}
                       onChange={(e) => setGenerateForm(prev => ({ ...prev, endDate: e.target.value }))}
                     />
@@ -1020,7 +1020,7 @@ export default function DepartmentalReportsPage() {
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Period Type</label>
                     <select
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                       value={payslipSummaryType}
                       onChange={(e) => setPayslipSummaryType(e.target.value as 'yearly' | 'monthly')}
                     >
@@ -1037,7 +1037,7 @@ export default function DepartmentalReportsPage() {
                         min="2000"
                         max="2100"
                         step="1"
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(Number(e.target.value))}
                       />
@@ -1049,7 +1049,7 @@ export default function DepartmentalReportsPage() {
                       <label className="block text-sm font-medium text-slate-700 mb-1">Month</label>
                       <input
                         type="month"
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                         value={generateForm.startDate}
                         onChange={(e) => setGenerateForm(prev => ({ ...prev, startDate: e.target.value }))}
                       />

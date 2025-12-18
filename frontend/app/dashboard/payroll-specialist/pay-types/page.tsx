@@ -21,13 +21,11 @@ interface PayType {
 
 // Predefined pay types based on requirements
 const payTypeOptions = [
-  { value: 'Hourly Wage', label: 'Hourly Wage' },
-  { value: 'Daily Rate', label: 'Daily Rate' },
-  { value: 'Weekly Salary', label: 'Weekly Salary' },
-  { value: 'Monthly Salary', label: 'Monthly Salary' },
+  { value: 'Hourly', label: 'Hourly' },
+  { value: 'Daily', label: 'Daily' },
+  { value: 'Weekly', label: 'Weekly' },
+  { value: 'Monthly', label: 'Monthly' },
   { value: 'Contract-Based', label: 'Contract-Based' },
-  { value: 'Commission', label: 'Commission' },
-  { value: 'Bonus', label: 'Bonus' },
 ];
 
 const statusColors = {
@@ -52,8 +50,18 @@ export default function PayTypesPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showCalculateModal, setShowCalculateModal] = useState(false);
   const [selectedPayType, setSelectedPayType] = useState<PayType | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [calculationResult, setCalculationResult] = useState<any>(null);
+  
+  // Calculate form state
+  const [calculateFormData, setCalculateFormData] = useState({
+    hoursPerWeek: '40',
+    weeksPerMonth: '4',
+    contractDuration: '12',
+    roleType: 'full-time',
+  });
   
   // Search and filter state
   const [filters, setFilters] = useState({
@@ -298,6 +306,74 @@ const handleCreatePayType = async () => {
   const handleViewClick = (payType: PayType) => {
     setSelectedPayType(payType);
     setShowViewModal(true);
+  };
+
+  const handleCalculateClick = (payType: PayType) => {
+    setSelectedPayType(payType);
+    setCalculateFormData({
+      hoursPerWeek: '40',
+      weeksPerMonth: '4',
+      contractDuration: '12',
+      roleType: 'standard',
+    });
+    setCalculationResult(null);
+    setShowCalculateModal(true);
+  };
+
+  const handleCalculateSalary = () => {
+    if (!selectedPayType) return;
+
+    const hoursPerWeek = parseFloat(calculateFormData.hoursPerWeek) || 40;
+    const weeksPerMonth = parseFloat(calculateFormData.weeksPerMonth) || 4;
+    const contractDuration = parseFloat(calculateFormData.contractDuration) || 12;
+    const roleType = calculateFormData.roleType;
+    const baseAmount = selectedPayType.amount;
+    let baseSalary = 0;
+    let calculation = '';
+
+    // Role logic
+    switch (roleType) {
+      case 'full-time':
+        // Full-time: Monthly salary × months
+        baseSalary = baseAmount * contractDuration;
+        calculation = `$${baseAmount} × ${contractDuration} months (Full-time)`;
+        break;
+      case 'part-time':
+        // Part-time: 0.5 × Monthly salary × months
+        baseSalary = baseAmount * 0.5 * contractDuration;
+        calculation = `$${baseAmount} × 0.5 × ${contractDuration} months (Part-time)`;
+        break;
+      case 'hourly':
+        // Hourly: Hourly rate × hours/week × weeks/month × months
+        baseSalary = baseAmount * hoursPerWeek * weeksPerMonth * contractDuration;
+        calculation = `$${baseAmount} × ${hoursPerWeek} hrs/wk × ${weeksPerMonth} wks/mo × ${contractDuration} months (Hourly)`;
+        break;
+      case 'commission-based':
+        // Commission-based: Just show base (user can add commission externally)
+        baseSalary = baseAmount * contractDuration;
+        calculation = `$${baseAmount} × ${contractDuration} months (Commission-based, excludes commission)`;
+        break;
+      default:
+        baseSalary = baseAmount * contractDuration;
+        calculation = `$${baseAmount} × ${contractDuration} months`;
+    }
+
+    setCalculationResult({
+      baseSalary: Math.round(baseSalary * 100) / 100,
+      monthlySalary: Math.round((baseSalary / contractDuration) * 100) / 100,
+      calculation,
+      payType: selectedPayType.type,
+      roleType,
+      contractDuration,
+    });
+  };
+
+  const handleCalculateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setCalculateFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const resetForm = () => {
@@ -552,6 +628,17 @@ const handleCreatePayType = async () => {
                             Edit
                           </button>
                         )}
+                        
+                        {/* Calculate button - Only show for APPROVED pay types */}
+                        {payType.status === 'approved' && (
+                          <button
+                            onClick={() => handleCalculateClick(payType)}
+                            className="px-3 py-1.5 text-sm font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 border border-purple-300 rounded-lg transition-colors"
+                            title="Calculate Base Salary"
+                          >
+                            Calculate
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -668,12 +755,15 @@ const handleCreatePayType = async () => {
             <div className="p-6 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h4 className="text-lg font-bold text-slate-900">{selectedPayType.type}</h4>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-2 ${statusColors[selectedPayType.status] || 'bg-gray-100 text-gray-800'}`}>
-                    {statusLabels[selectedPayType.status] || selectedPayType.status}
-                  </span>
+                  <h4 className="text-lg font-bold text-slate-900 mb-2">{selectedPayType.type}</h4>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-slate-500">Status</span>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusColors[selectedPayType.status] || 'bg-gray-100 text-gray-800'}`}>
+                      {statusLabels[selectedPayType.status] || selectedPayType.status}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-slate-600 text-sm">v{selectedPayType.__v || 1}</div>
+               
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -681,10 +771,7 @@ const handleCreatePayType = async () => {
                   <p className="text-sm text-slate-500">Amount</p>
                   <p className="font-medium text-slate-900 text-xl">{formatCurrency(selectedPayType.amount)}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-500">Status</p>
-                  <p className="font-medium text-slate-900">{statusLabels[selectedPayType.status]}</p>
-                </div>
+              
                 <div>
                   <p className="text-sm text-slate-500">Created</p>
                   <p className="font-medium text-slate-900">{formatDate(selectedPayType.createdAt)}</p>
@@ -693,11 +780,26 @@ const handleCreatePayType = async () => {
                   <p className="text-sm text-slate-500">Last Modified</p>
                   <p className="font-medium text-slate-900">{formatDate(selectedPayType.updatedAt)}</p>
                 </div>
-                {selectedPayType.createdBy && (
-                  <div>
-                    <p className="text-sm text-slate-500">Created By</p>
-                    <p className="font-medium text-slate-900">{selectedPayType.createdBy}</p>
-                  </div>
+                <div>
+                  <p className="text-sm text-slate-500">Created By</p>
+                  <p className="font-medium text-slate-900">{selectedPayType.createdBy || 'N/A'}</p>
+                </div>
+                {/* Approved By/At or Rejected By/At */}
+                {(selectedPayType.status === 'approved' || selectedPayType.status === 'rejected') && (
+                  <>
+                    <div>
+                      <p className="text-sm text-slate-500">
+                        {selectedPayType.status === 'approved' ? 'Approved By' : 'Rejected By'}
+                      </p>
+                      <p className="font-medium text-slate-900">{selectedPayType.approvedBy || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">
+                        {selectedPayType.status === 'approved' ? 'Approved At' : 'Rejected At'}
+                      </p>
+                      <p className="font-medium text-slate-900">{selectedPayType.approvedAt ? formatDate(selectedPayType.approvedAt) : 'N/A'}</p>
+                    </div>
+                  </>
                 )}
               </div>
               
@@ -714,6 +816,174 @@ const handleCreatePayType = async () => {
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Calculate Modal */}
+      {showCalculateModal && selectedPayType && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200">
+              <h3 className="text-xl font-bold text-slate-900">Calculate Base Salary</h3>
+              <p className="text-slate-600 text-sm mt-1">
+                Calculate salary based on {selectedPayType.type} rate and contract terms
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              {/* Pay Type Info */}
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm font-medium text-purple-800">Pay Type</p>
+                    <p className="text-lg font-bold text-purple-900">{selectedPayType.type}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-purple-800">Base Rate</p>
+                    <p className="text-lg font-bold text-purple-900">{formatCurrency(selectedPayType.amount)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contract Terms */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-slate-900">Contract Terms</h4>
+                
+                {(selectedPayType.type === 'Hourly') && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Hours Per Week
+                    </label>
+                    <input
+                      type="number"
+                      name="hoursPerWeek"
+                      value={calculateFormData.hoursPerWeek}
+                      onChange={handleCalculateFormChange}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="e.g., 40"
+                      min="1"
+                      max="168"
+                    />
+                  </div>
+                )}
+
+                {(selectedPayType.type === 'Hourly' || selectedPayType.type === 'Daily' || selectedPayType.type === 'Weekly') && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Weeks Per Month
+                    </label>
+                    <input
+                      type="number"
+                      name="weeksPerMonth"
+                      value={calculateFormData.weeksPerMonth}
+                      onChange={handleCalculateFormChange}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="e.g., 4"
+                      min="1"
+                      max="5"
+                      step="0.5"
+                    />
+                  </div>
+                )}
+
+                {selectedPayType.type !== 'Contract-Based' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Contract Duration (Months)
+                    </label>
+                    <input
+                      type="number"
+                      name="contractDuration"
+                      value={calculateFormData.contractDuration}
+                      onChange={handleCalculateFormChange}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="e.g., 12"
+                      min="1"
+                      max="60"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Role Type
+                  </label>
+                  <select
+                    name="roleType"
+                    value={calculateFormData.roleType}
+                    onChange={handleCalculateFormChange}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="full-time">Full-time</option>
+                    <option value="part-time">Part-time</option>
+                    <option value="hourly">Hourly</option>
+                    <option value="commission-based">Commission-based</option>
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">Role type affects the salary multiplier based on employment agreement</p>
+                </div>
+              </div>
+
+              {/* Calculation Result */}
+              {calculationResult && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                  <h4 className="font-semibold text-green-900">Calculation Result</h4>
+                  
+                  <div className="text-xs text-green-700 bg-green-100 p-2 rounded font-mono">
+                    {calculationResult.calculation}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-green-700">Total Contract Salary</p>
+                      <p className="text-2xl font-bold text-green-900">
+                        {formatCurrency(calculationResult.baseSalary)}
+                      </p>
+                    </div>
+                    {calculationResult.payType !== 'Contract-Based' && (
+                      <div>
+                        <p className="text-sm text-green-700">Monthly Equivalent</p>
+                        <p className="text-2xl font-bold text-green-900">
+                          {formatCurrency(calculationResult.monthlySalary)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="text-xs text-green-600 pt-2 border-t border-green-200">
+                    <p>Based on {calculationResult.roleType} role for {calculationResult.contractDuration} month(s)</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Info Box */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-900 text-sm mb-2">Calculation Formula</h4>
+                <ul className="text-xs text-blue-800 space-y-1">
+                  <li>• <strong>Hourly:</strong> Rate × Hours/Week × Weeks/Month × Months × Role Multiplier</li>
+                  <li>• <strong>Daily:</strong> Rate × 5 Days/Week × Weeks/Month × Months × Role Multiplier</li>
+                  <li>• <strong>Weekly:</strong> Rate × Weeks/Month × Months × Role Multiplier</li>
+                  <li>• <strong>Monthly:</strong> Rate × Months × Role Multiplier</li>
+                  <li>• <strong>Contract-Based:</strong> Contract Value × Role Multiplier</li>
+                </ul>
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowCalculateModal(false);
+                  setCalculationResult(null);
+                }}
+                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleCalculateSalary}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+              >
+                Calculate
               </button>
             </div>
           </div>

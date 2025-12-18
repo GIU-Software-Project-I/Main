@@ -827,7 +827,6 @@ export default function PayrollPoliciesPage() {
           <li>• Only <span className="font-semibold">DRAFT</span> policies can be edited or deleted</li>
           <li>• <span className="font-semibold">APPROVED</span> and <span className="font-semibold">REJECTED</span> policies cannot be edited</li>
           <li>• To publish a policy, submit it for <span className="font-semibold">Payroll Manager approval</span></li>
-          <li>• Policies in <span className="font-semibold">PENDING_APPROVAL</span> status require manager action</li>
         </ul>
       </div>
 
@@ -944,7 +943,7 @@ export default function PayrollPoliciesPage() {
               {/* Rule Definition Section */}
               <div className="border-t pt-6">
                 <h4 className="font-semibold text-slate-900 mb-4">Rule Definition *</h4>
-                <p className="text-sm text-slate-600 mb-4">Fill at least one field (all fields are sent to backend)</p>
+                
                 
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   <div>
@@ -1052,11 +1051,11 @@ export default function PayrollPoliciesPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="text-lg font-bold text-slate-900">{selectedPolicy.policyName}</h4>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-2 ${statusColors[selectedPolicy.status] || 'bg-gray-100 text-gray-800'}`}>
+                  <p className="text-sm text-slate-500 mt-2">Status</p>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-1 ${statusColors[selectedPolicy.status] || 'bg-gray-100 text-gray-800'}`}>
                     {statusLabels[selectedPolicy.status] || selectedPolicy.status}
                   </span>
                 </div>
-                <div className="text-slate-600 text-sm">v{selectedPolicy.__v || 1}</div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -1075,6 +1074,10 @@ export default function PayrollPoliciesPage() {
                   <p className="font-medium text-slate-900">{selectedPolicy.createdBy}</p>
                 </div>
                 <div>
+                  <p className="text-sm text-slate-500">Created At</p>
+                  <p className="font-medium text-slate-900">{formatDate(selectedPolicy.createdAt)}</p>
+                </div>
+                <div>
                   <p className="text-sm text-slate-500">Effective Date</p>
                   <p className="font-medium text-slate-900">{formatDate(selectedPolicy.effectiveDate)}</p>
                 </div>
@@ -1088,10 +1091,20 @@ export default function PayrollPoliciesPage() {
                     <p className="font-medium text-slate-900">{formatDate(selectedPolicy.expirationDate)}</p>
                   </div>
                 )}
-                {selectedPolicy.approvedBy && (
+                {(selectedPolicy.status === 'approved' || selectedPolicy.status === 'rejected') && (
                   <div>
-                    <p className="text-sm text-slate-500">Approved By</p>
-                    <p className="font-medium text-slate-900">{selectedPolicy.approvedBy}</p>
+                    <p className="text-sm text-slate-500">
+                      {selectedPolicy.status === 'rejected' ? 'Rejected By' : 'Approved By'}
+                    </p>
+                    <p className="font-medium text-slate-900">{selectedPolicy.approvedBy || 'N/A'}</p>
+                  </div>
+                )}
+                {(selectedPolicy.status === 'approved' || selectedPolicy.status === 'rejected') && (
+                  <div>
+                    <p className="text-sm text-slate-500">
+                      {selectedPolicy.status === 'rejected' ? 'Rejected At' : 'Approved At'}
+                    </p>
+                    <p className="font-medium text-slate-900">{selectedPolicy.approvedAt ? formatDate(selectedPolicy.approvedAt) : 'N/A'}</p>
                   </div>
                 )}
               </div>

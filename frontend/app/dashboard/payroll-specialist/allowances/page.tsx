@@ -810,58 +810,37 @@ export default function AllowancesPage() {
             <div className="p-6 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h4 className="text-lg font-bold text-slate-900">{selectedAllowance.name}</h4>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-2 ${statusColors[selectedAllowance.status] || 'bg-gray-100 text-gray-800'}`}>
-                    {statusLabels[selectedAllowance.status] || selectedAllowance.status}
-                  </span>
+                  <h4 className="text-lg font-bold text-slate-900 mb-2">{selectedAllowance.name}</h4>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-slate-500">Status</span>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-sm font-medium ${statusColors[selectedAllowance.status] || 'bg-gray-100 text-gray-800'}`} style={{width: 'fit-content', minWidth: '0'}}>
+                      {statusLabels[selectedAllowance.status] || selectedAllowance.status}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-slate-600 text-sm">v{selectedAllowance.__v || 1}</div>
               </div>
-              
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-slate-500">Amount</p>
                   <p className="font-medium text-slate-900 text-xl">{formatCurrency(selectedAllowance.amount)}</p>
-                  <p className="text-xs text-slate-500 mt-1">Monthly amount</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Status</p>
-                  <p className="font-medium text-slate-900">{statusLabels[selectedAllowance.status]}</p>
+                  <p className="text-sm text-slate-500">Created By</p>
+                  <p className="font-medium text-slate-900">{selectedAllowance.createdBy || 'N/A'}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-500">Created</p>
-                  <p className="font-medium text-slate-900">{formatDate(selectedAllowance.createdAt)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Last Modified</p>
-                  <p className="font-medium text-slate-900">{formatDate(selectedAllowance.updatedAt)}</p>
-                </div>
-                {selectedAllowance.createdBy && (
-                  <div>
-                    <p className="text-sm text-slate-500">Created By</p>
-                    <p className="font-medium text-slate-900">Employee ID: {selectedAllowance.createdBy.substring(0, 8)}...</p>
-                  </div>
+                {/* Approved By/At or Rejected By/At */}
+                {(selectedAllowance.status === 'approved' || selectedAllowance.status === 'rejected') && (
+                  <>
+                    <div>
+                      <p className="text-sm text-slate-500">{selectedAllowance.status === 'approved' ? 'Approved By' : 'Rejected By'}</p>
+                      <p className="font-medium text-slate-900">{selectedAllowance.approvedBy || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">{selectedAllowance.status === 'approved' ? 'Approved At' : 'Rejected At'}</p>
+                      <p className="font-medium text-slate-900">{selectedAllowance.approvedAt ? formatDate(selectedAllowance.approvedAt) : 'N/A'}</p>
+                    </div>
+                  </>
                 )}
-                {selectedAllowance.approvedBy && (
-                  <div>
-                    <p className="text-sm text-slate-500">
-                      {selectedAllowance.status === 'approved' ? 'Approved By' : 'Rejected By'}
-                    </p>
-                    <p className="font-medium text-slate-900">Employee ID: {selectedAllowance.approvedBy.substring(0, 8)}...</p>
-                    {selectedAllowance.approvedAt && (
-                      <p className="text-xs text-slate-500 mt-1">
-                        {formatDate(selectedAllowance.approvedAt)}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              <div className="border-t border-slate-200 pt-4">
-                <p className="text-sm text-slate-500 mb-2">Allowance ID</p>
-                <code className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded font-mono">
-                  {selectedAllowance._id}
-                </code>
               </div>
             </div>
             <div className="p-6 border-t border-slate-200 flex justify-end">

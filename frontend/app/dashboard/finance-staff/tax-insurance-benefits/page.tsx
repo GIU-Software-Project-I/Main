@@ -641,11 +641,11 @@ export default function TaxInsuranceBenefitsPage() {
       {showGenerateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-full max-w-md space-y-4">
-            <h3 className="text-lg font-semibold">Generate Report</h3>
+            <h3 className="text-lg font-semibold text-slate-900">Generate Report</h3>
 
             {/* Report Type */}
             <select
-              className="w-full border p-2 rounded"
+              className="w-full border p-2 rounded text-slate-900 bg-white"
               value={generateReportType}
               onChange={(e) =>
                 setGenerateReportType(e.target.value as GenerateReportType)
@@ -663,7 +663,7 @@ export default function TaxInsuranceBenefitsPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
                 <select
-                  className="w-full border p-2 rounded"
+                  className="w-full border p-2 rounded text-slate-900 bg-white"
                   value={selectedDepartment}
                   onChange={(e) => setSelectedDepartment(e.target.value)}
                 >
@@ -864,7 +864,7 @@ function DateRange({
         <label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
         <input
           type="date"
-          className="w-full border p-2 rounded"
+          className="w-full border p-2 rounded text-slate-900 bg-white"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
         />
@@ -873,7 +873,7 @@ function DateRange({
         <label className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
         <input
           type="date"
-          className="w-full border p-2 rounded"
+          className="w-full border p-2 rounded text-slate-900 bg-white"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
         />

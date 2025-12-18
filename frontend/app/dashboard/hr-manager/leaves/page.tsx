@@ -658,17 +658,18 @@ export default function HRManagerLeavesPage() {
 
     try {
       setLoading(true);
+      setError(null);
       await leavesService.assignEntitlement({
         employeeId: assignForm.employeeId,
         leaveTypeId: assignForm.leaveTypeId,
         yearlyEntitlement: assignForm.yearlyEntitlement,
       });
-      setError(null);
       setAssignForm({ employeeId: '', leaveTypeId: '', yearlyEntitlement: 0 });
       if (assignForm.employeeId === selectedEmployeeId) {
         await fetchEmployeeBalances(selectedEmployeeId);
       }
-      alert('Entitlement assigned successfully!');
+      setSuccessMessage(`Entitlement assigned successfully! The employee has been notified.`);
+      setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to assign entitlement';
       setError(message);
@@ -1710,17 +1711,65 @@ export default function HRManagerLeavesPage() {
                         <div key={balance.leaveTypeId} className="p-3 bg-gray-50 rounded-lg">
                           <div className="flex justify-between items-center">
                             <span className="font-medium text-gray-900">{balance.leaveTypeName}</span>
-                            <span className="text-sm text-gray-600">
+                            <span className={`text-sm font-medium ${
+                              balance.remaining < 0 ? 'text-red-600' : 'text-gray-600'
+                            }`}>
                               {balance.remaining} / {balance.entitled} days
                             </span>
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
                             Used: {balance.taken} | Pending: {balance.pending}
                           </div>
+                          {(balance.leaveTypeName?.toLowerCase().includes('unpaid') && balance.remaining < 0) && (
+                            <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded">
+                              ⚠️ Negative balance detected for unpaid leave
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
+                  
+                  {/* Fix Unpaid Leave Balances Button */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={async () => {
+                        if (!confirm('This will add 100 days to all unpaid leave balances and reset taken to 0. Continue?')) {
+                          return;
+                        }
+                        try {
+                          setLoading(true);
+                          setError(null);
+                          const response = await leavesService.fixUnpaidLeaveBalances(undefined, 100);
+                          if (response.error) {
+                            setError(response.error || 'Failed to fix unpaid leave balances');
+                          } else {
+                            setSuccessMessage(`Successfully fixed ${response.data?.fixed || 0} unpaid leave balance(s). Added 100 days to ${response.data?.updated || 0} entitlement(s).`);
+                            setTimeout(() => setSuccessMessage(null), 5000);
+                            // Refresh balances if viewing an employee
+                            if (selectedEmployeeId) {
+                              await fetchEmployeeBalances(selectedEmployeeId);
+                            }
+                          }
+                        } catch (err) {
+                          const message = err instanceof Error ? err.message : 'Failed to fix unpaid leave balances';
+                          setError(message);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                      className="w-full px-4 py-2.5 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Fix Unpaid Leave Balances (+100 days)
+                    </button>
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                      This will add 100 days to all unpaid leave entitlements and reset taken balances to 0
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

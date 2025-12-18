@@ -48,11 +48,11 @@ export default function FinanceStaffRunsPage() {
   const [selectedRun, setSelectedRun] = useState<PayrollRun | null>(null);
   const [runDetails, setRunDetails] = useState<any>(null);
   const [payslips, setPayslips] = useState<Payslip[]>([]);
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'all'>('pending');
 
   useEffect(() => {
@@ -71,28 +71,28 @@ export default function FinanceStaffRunsPage() {
     setError('');
     try {
       const params: any = { page: 1, limit: 100 };
-      
+
       const res = await payrollExecutionService.listRuns(params);
-      
+
       if (res?.error) {
         setError(res.error);
         return;
       }
-      
+
       const data = (res?.data || res) as any;
       let items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-      
+
       // Filter based on active tab
       if (activeTab === 'pending') {
         // Show runs approved by manager but not yet by finance (status = pending finance approval)
-        items = items.filter((r: PayrollRun) => 
+        items = items.filter((r: PayrollRun) =>
           r.status === 'pending finance approval' || (r.approvedByManager && !r.approvedByFinance)
         );
       } else if (activeTab === 'approved') {
         // Show runs fully approved
         items = items.filter((r: PayrollRun) => r.approvedByFinance || r.status === 'approved');
       }
-      
+
       setRuns(items);
     } catch (e: any) {
       setError(e?.message || 'Failed to load runs');
@@ -188,7 +188,7 @@ export default function FinanceStaffRunsPage() {
 
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('en-EG', { 
+    return new Date(dateStr).toLocaleDateString('en-EG', {
       year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
   };
@@ -219,31 +219,28 @@ export default function FinanceStaffRunsPage() {
         <div className="flex gap-2 mb-6 border-b border-gray-200 pb-4">
           <button
             onClick={() => setActiveTab('pending')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'pending'
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'pending'
                 ? 'bg-orange-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-            }`}
+              }`}
           >
             ⏳ Pending Finance Approval
           </button>
           <button
             onClick={() => setActiveTab('approved')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'approved'
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'approved'
                 ? 'bg-green-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-            }`}
+              }`}
           >
             ✅ Approved & Ready
           </button>
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'all'
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'all'
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-            }`}
+              }`}
           >
             📋 All Runs
           </button>
@@ -286,11 +283,11 @@ export default function FinanceStaffRunsPage() {
         ) : runs.length === 0 ? (
           <div className="text-center py-12 bg-white border border-gray-200 rounded-lg">
             <p className="text-gray-500">
-              {activeTab === 'pending' 
-                ? 'No payroll runs awaiting finance approval. Payroll must be approved by manager first.' 
+              {activeTab === 'pending'
+                ? 'No payroll runs awaiting finance approval. Payroll must be approved by manager first.'
                 : activeTab === 'approved'
-                ? 'No approved payroll runs yet'
-                : 'No payroll runs found'}
+                  ? 'No approved payroll runs yet'
+                  : 'No payroll runs found'}
             </p>
           </div>
         ) : (
@@ -322,7 +319,7 @@ export default function FinanceStaffRunsPage() {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                   <div>
                     <span className="text-gray-500">Employees:</span>
@@ -351,7 +348,7 @@ export default function FinanceStaffRunsPage() {
                     <span className="text-red-600">-{formatCurrency(run.totalInsurance || run.totalInsuranceDeductions)}</span>
                   </div>
                 </div>
-                
+
                 <div className="border-t pt-2">
                   <span className="text-gray-500 text-sm">Total Net Pay:</span>
                   <p className="text-xl font-bold text-green-700">{formatCurrency(run.totalnetpay)}</p>
@@ -394,7 +391,7 @@ export default function FinanceStaffRunsPage() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="p-6 space-y-6">
                 {/* Status Badges */}
                 <div className="flex flex-wrap items-center gap-2">
@@ -473,27 +470,25 @@ export default function FinanceStaffRunsPage() {
                 <div className="border-t pt-4">
                   <h3 className="font-semibold text-black mb-3">Approval Workflow</h3>
                   <div className="flex gap-4">
-                    <div className={`flex-1 p-4 rounded-lg border-2 ${
-                      selectedRun.approvedByManager ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
-                    }`}>
+                    <div className={`flex-1 p-4 rounded-lg border-2 ${selectedRun.approvedByManager ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
+                      }`}>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xl">{selectedRun.approvedByManager ? '✅' : '○'}</span>
                         <span className="font-medium text-black">Step 1: Manager</span>
                       </div>
                       <p className="text-xs text-gray-600">
-                        {selectedRun.approvedByManager 
-                          ? `Approved ${selectedRun.approvedByManagerAt ? formatDate(selectedRun.approvedByManagerAt) : ''}` 
+                        {selectedRun.approvedByManager
+                          ? `Approved ${selectedRun.approvedByManagerAt ? formatDate(selectedRun.approvedByManagerAt) : ''}`
                           : 'Pending'}
                       </p>
                     </div>
                     <div className="flex items-center text-gray-400">→</div>
-                    <div className={`flex-1 p-4 rounded-lg border-2 ${
-                      selectedRun.approvedByFinance 
-                        ? 'bg-green-50 border-green-300' 
-                        : selectedRun.approvedByManager 
+                    <div className={`flex-1 p-4 rounded-lg border-2 ${selectedRun.approvedByFinance
+                        ? 'bg-green-50 border-green-300'
+                        : selectedRun.approvedByManager
                           ? 'bg-orange-50 border-orange-300'
                           : 'bg-gray-50 border-gray-200'
-                    }`}>
+                      }`}>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xl">
                           {selectedRun.approvedByFinance ? '✅' : selectedRun.approvedByManager ? '⏳' : '○'}
@@ -501,7 +496,7 @@ export default function FinanceStaffRunsPage() {
                         <span className="font-medium text-black">Step 2: Finance</span>
                       </div>
                       <p className="text-xs text-gray-600">
-                        {selectedRun.approvedByFinance 
+                        {selectedRun.approvedByFinance
                           ? `Approved ${selectedRun.approvedByFinanceAt ? formatDate(selectedRun.approvedByFinanceAt) : ''}`
                           : selectedRun.approvedByManager
                             ? 'Your action required'
@@ -509,11 +504,10 @@ export default function FinanceStaffRunsPage() {
                       </p>
                     </div>
                     <div className="flex items-center text-gray-400">→</div>
-                    <div className={`flex-1 p-4 rounded-lg border-2 ${
-                      selectedRun.payslipsGenerated 
-                        ? 'bg-purple-50 border-purple-300' 
+                    <div className={`flex-1 p-4 rounded-lg border-2 ${selectedRun.payslipsGenerated
+                        ? 'bg-purple-50 border-purple-300'
                         : 'bg-gray-50 border-gray-200'
-                    }`}>
+                      }`}>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xl">
                           {selectedRun.payslipsGenerated ? '📄' : '○'}
@@ -521,7 +515,7 @@ export default function FinanceStaffRunsPage() {
                         <span className="font-medium text-black">Step 3: Payslips</span>
                       </div>
                       <p className="text-xs text-gray-600">
-                        {selectedRun.payslipsGenerated 
+                        {selectedRun.payslipsGenerated
                           ? `Generated ${selectedRun.payslipsGeneratedAt ? formatDate(selectedRun.payslipsGeneratedAt) : ''}`
                           : 'Pending generation'}
                       </p>
@@ -575,7 +569,7 @@ export default function FinanceStaffRunsPage() {
                       <span className="font-semibold">This run has {selectedRun.exceptions} exception(s)</span>
                     </div>
                     <p className="text-sm text-red-700 mt-1">
-                      Review exceptions before approving. Exceptions may include negative net pay, 
+                      Review exceptions before approving. Exceptions may include negative net pay,
                       minimum wage violations, missing contract data, etc.
                     </p>
                   </div>
@@ -593,7 +587,7 @@ export default function FinanceStaffRunsPage() {
                       ✓ Finance Approve – Final Approval
                     </button>
                   )}
-                  
+
                   {/* Info for draft status */}
                   {selectedRun.status === 'draft' && (
                     <div className="text-center text-yellow-600 py-4 bg-yellow-50 rounded-lg">
@@ -620,7 +614,7 @@ export default function FinanceStaffRunsPage() {
                       </span>
                     </div>
                   )}
-                  
+
                   {(selectedRun.status === 'locked' || selectedRun.status === 'frozen') && !selectedRun.payslipsGenerated && (
                     <div className="text-center text-blue-600 py-4 bg-blue-50 rounded-lg mt-2">
                       🔒 Payroll is frozen/locked - Ready for payslip generation

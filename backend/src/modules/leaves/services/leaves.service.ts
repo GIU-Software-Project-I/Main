@@ -446,7 +446,9 @@ export class UnifiedLeaveService {
     await created.save();
 
     // Update pending count in entitlement when request is created
-    if (leaveType.deductible) {
+    // IMPORTANT: Unpaid leave should NOT affect balance - skip pending update for unpaid leave
+    const isUnpaidLeave = leaveType.paid === false;
+    if (leaveType.deductible && !isUnpaidLeave) {
       const ent = await this.entitlementModel.findOne({
         employeeId: new Types.ObjectId(dto.employeeId),
         leaveTypeId: new Types.ObjectId(dto.leaveTypeId),
@@ -800,8 +802,11 @@ export class UnifiedLeaveService {
 
     const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
     const isDeductible = leaveType?.deductible ?? true;
-
-    if (isDeductible && ent) {
+    const isUnpaidLeave = leaveType?.paid === false;
+    
+    // IMPORTANT: Unpaid leave should NOT affect balance
+    // Unpaid leave is only tracked for payroll deduction, not balance tracking
+    if (isDeductible && !isUnpaidLeave && ent) {
       // Move from pending to taken
       const durationDays = leave.durationDays || 0;
       ent.pending = Math.max(0, (ent.pending || 0) - durationDays);
@@ -813,6 +818,10 @@ export class UnifiedLeaveService {
       ent.remaining = yearly + carryForward - ent.taken;
 
       await ent.save();
+    } else if (isUnpaidLeave) {
+      this.logger.log(
+        `[BALANCE SKIP] Unpaid leave ${leave._id} approved - balance not affected (payroll tracking only)`
+      );
     }
 
     await leave.save();
@@ -855,17 +864,25 @@ export class UnifiedLeaveService {
     await leave.save();
 
     // Update entitlement - remove from pending
-    const ent = await this.entitlementModel.findOne({
-      employeeId: leave.employeeId,
-      leaveTypeId: leave.leaveTypeId,
-    });
-
-    if (ent) {
-      ent.pending = Math.max(0, (ent.pending || 0) - (leave.durationDays || 0));
-      await ent.save();
-    }
-
+    // IMPORTANT: Unpaid leave should NOT affect balance - skip for unpaid leave
     const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
+    const isUnpaidLeave = leaveType?.paid === false;
+    
+    if (!isUnpaidLeave) {
+      const ent = await this.entitlementModel.findOne({
+        employeeId: leave.employeeId,
+        leaveTypeId: leave.leaveTypeId,
+      });
+
+      if (ent) {
+        ent.pending = Math.max(0, (ent.pending || 0) - (leave.durationDays || 0));
+        await ent.save();
+      }
+    } else {
+      this.logger.log(
+        `[BALANCE SKIP] Unpaid leave ${leave._id} rejected by manager - balance not affected (payroll tracking only)`
+      );
+    }
     await this.sharedLeavesService.sendLeaveRequestRejectedNotification(
       leave.employeeId.toString(),
       leaveType?.name || 'Leave',
@@ -950,8 +967,11 @@ export class UnifiedLeaveService {
         });
         const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
         const isDeductible = leaveType?.deductible ?? true;
-
-        if (isDeductible && ent) {
+        const isUnpaidLeave = leaveType?.paid === false;
+        
+        // IMPORTANT: Unpaid leave should NOT affect balance - skip reversal for unpaid leave
+        // Unpaid leave reversal is handled by payroll, not balance tracking
+        if (isDeductible && !isUnpaidLeave && ent) {
           // Reverse the deduction - restore balance
           const durationDays = leave.durationDays || 0;
           ent.taken = Math.max(0, (ent.taken || 0) - durationDays);
@@ -968,6 +988,10 @@ export class UnifiedLeaveService {
           }
           
           await ent.save();
+        } else if (isUnpaidLeave) {
+          this.logger.log(
+            `[BALANCE SKIP] Unpaid leave ${leave._id} rejected - balance not affected (payroll tracking only)`
+          );
         }
       }
 
@@ -1021,12 +1045,19 @@ export class UnifiedLeaveService {
     const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
     const isDeductible = leaveType?.deductible ?? true;
     const isPaidLeave = leaveType?.paid !== false;
+    
+    // IMPORTANT: Unpaid leave should NOT affect balance (deductible = false)
+    // Unpaid leave is only tracked for payroll deduction purposes, not balance tracking
+    // If leave type is unpaid, it should be non-deductible to prevent negative balances
+    const isUnpaidLeave = leaveType?.paid === false;
+    const shouldUpdateBalance = isDeductible && !isUnpaidLeave;
 
     // Update entitlements in the following cases:
     // 1. Approving a PENDING request (initial approval)
     // 2. Overriding a REJECTED request to APPROVE (REQ-029: auto update balance after final approval)
     // 3. Finalizing an already-APPROVED request - verify balance is correct (REQ-029)
-    if (isDeductible) {
+    // NOTE: Unpaid leave does NOT update balance - it's only tracked for payroll
+    if (shouldUpdateBalance) {
       if (ent) {
         // For already-approved requests, verify balance is correct (REQ-029)
         if (isFinalizingApproved) {
@@ -1269,14 +1300,34 @@ export class UnifiedLeaveService {
       employeeId: new Types.ObjectId(employeeId),
       leaveTypeId: new Types.ObjectId(leaveTypeId),
     };
+    
+    // Get current entitlement to preserve carryForward and calculate remaining correctly
+    const existing = await this.entitlementModel.findOne(filter).lean();
+    const carryForward = existing?.carryForward || 0;
+    const taken = existing?.taken || 0;
+    const remaining = yearlyEntitlement + carryForward - taken;
+    
     const update = {
       yearlyEntitlement,
-      remaining: yearlyEntitlement,
+      remaining: Math.max(0, remaining), // Ensure non-negative
       lastAccrualDate: new Date(),
     };
-    return this.entitlementModel
+    
+    const result = await this.entitlementModel
       .findOneAndUpdate(filter, update, { upsert: true, new: true })
       .lean();
+    
+    // Send notification to employee
+    const leaveType = await this.leaveTypeModel.findById(leaveTypeId);
+    await this.sharedLeavesService.sendLeaveBalanceAdjustedNotification(
+      employeeId,
+      leaveType?.name || 'Leave',
+      'add',
+      yearlyEntitlement,
+      `Entitlement assigned: ${yearlyEntitlement} days for ${leaveType?.name || 'Leave'}`
+    );
+    
+    return result;
   }
 
   // no sessions: simple create + update
@@ -1288,6 +1339,7 @@ export class UnifiedLeaveService {
     reason: string,
     hrUserId: string,
   ) {
+    // Create adjustment record
     await this.adjustmentModel.create({
       employeeId: new Types.ObjectId(employeeId),
       leaveTypeId: new Types.ObjectId(leaveTypeId),
@@ -1298,21 +1350,43 @@ export class UnifiedLeaveService {
       createdAt: new Date(),
     });
 
-    const incValue = type === 'add' ? amount : -amount;
+    // Get current entitlement to calculate properly
+    const current = await this.entitlementModel.findOne({
+      employeeId: new Types.ObjectId(employeeId),
+      leaveTypeId: new Types.ObjectId(leaveTypeId),
+    });
+
+    if (!current) {
+      throw new NotFoundException('Entitlement not found for employee + leaveType');
+    }
+
+    let updateData: any = {};
+
+    if (type === 'add') {
+      // Add to yearlyEntitlement (permanent increase to entitlement)
+      updateData.yearlyEntitlement = (current.yearlyEntitlement || 0) + amount;
+      // Recalculate remaining = yearlyEntitlement + carryForward - taken
+      updateData.remaining = Math.max(0, updateData.yearlyEntitlement + (current.carryForward || 0) - (current.taken || 0));
+    } else {
+      // Deduct from remaining (available balance)
+      const newRemaining = Math.max(0, (current.remaining || 0) - amount);
+      updateData.remaining = newRemaining;
+    }
 
     const updated = await this.entitlementModel.findOneAndUpdate(
       {
         employeeId: new Types.ObjectId(employeeId),
         leaveTypeId: new Types.ObjectId(leaveTypeId),
       },
-      { $inc: { remaining: incValue } },
+      { $set: updateData },
       { new: true },
     );
 
     if (!updated) {
-      throw new NotFoundException('Entitlement not found for employee + leaveType');
+      throw new NotFoundException('Failed to update entitlement');
     }
 
+    // Send notification to employee
     const leaveType = await this.leaveTypeModel.findById(leaveTypeId);
     await this.sharedLeavesService.sendLeaveBalanceAdjustedNotification(
       employeeId,
@@ -2722,6 +2796,95 @@ export class UnifiedLeaveService {
       .populate('hrUserId', 'firstName lastName')
       .sort({ createdAt: -1 })
       .lean();
+  }
+
+  /**
+   * Fix negative balances for unpaid leave types
+   * Unpaid leave should NOT affect balance - this method corrects any incorrect deductions
+   * @param employeeId Optional - fix for specific employee only
+   * @param addDays Optional - add days to yearly entitlement (default: 0)
+   */
+  async fixUnpaidLeaveBalances(employeeId?: string, addDays: number = 0): Promise<{ fixed: number; errors: string[]; updated: number }> {
+    try {
+      this.logger.log(`[BALANCE FIX] Starting unpaid leave balance correction${addDays > 0 ? ` (adding ${addDays} days)` : ''}...`);
+      
+      // Get all unpaid leave types
+      const unpaidLeaveTypes = await this.leaveTypeModel.find({ paid: false }).lean();
+      const unpaidLeaveTypeIds = unpaidLeaveTypes.map(lt => lt._id.toString());
+      
+      if (unpaidLeaveTypeIds.length === 0) {
+        this.logger.log('[BALANCE FIX] No unpaid leave types found in system');
+        return { fixed: 0, errors: [], updated: 0 };
+      }
+
+      // Build query for entitlements
+      const query: any = { leaveTypeId: { $in: unpaidLeaveTypeIds.map(id => new Types.ObjectId(id)) } };
+      if (employeeId) {
+        query.employeeId = new Types.ObjectId(employeeId);
+      }
+
+      // Find all entitlements for unpaid leave types
+      const entitlements = await this.entitlementModel.find(query).lean();
+      this.logger.log(`[BALANCE FIX] Found ${entitlements.length} unpaid leave entitlements to check`);
+
+      let fixedCount = 0;
+      let updatedCount = 0;
+      const errors: string[] = [];
+
+      for (const ent of entitlements) {
+        try {
+          // Unpaid leave should NOT have taken/remaining deductions
+          // Reset taken to 0 and recalculate remaining based on yearly + carryForward only
+          let yearly = ent.yearlyEntitlement || 0;
+          const carryForward = ent.carryForward || 0;
+          const currentTaken = ent.taken || 0;
+          const currentRemaining = ent.remaining || 0;
+
+          // Add days to yearly entitlement if requested
+          if (addDays > 0) {
+            yearly = yearly + addDays;
+            updatedCount++;
+            this.logger.log(
+              `[BALANCE FIX] Adding ${addDays} days to entitlement ${ent._id}: ` +
+              `Yearly: ${ent.yearlyEntitlement || 0} → ${yearly}`
+            );
+          }
+
+          const correctRemaining = yearly + carryForward;
+
+          // Fix if there's a discrepancy (taken > 0, remaining != correct, or days were added)
+          if (currentTaken > 0 || currentRemaining !== correctRemaining || addDays > 0) {
+            await this.entitlementModel.updateOne(
+              { _id: ent._id },
+              {
+                $set: {
+                  yearlyEntitlement: yearly, // Updated if addDays > 0
+                  taken: 0, // Unpaid leave doesn't deduct from balance
+                  remaining: correctRemaining, // Remaining = yearly + carryForward (no deductions)
+                }
+              }
+            );
+
+            fixedCount++;
+            this.logger.log(
+              `[BALANCE FIX] Fixed entitlement ${ent._id}: ` +
+              `Yearly: ${ent.yearlyEntitlement || 0} → ${yearly}, ` +
+              `Taken: ${currentTaken} → 0, Remaining: ${currentRemaining} → ${correctRemaining}`
+            );
+          }
+        } catch (err: any) {
+          const errorMsg = `Failed to fix entitlement ${ent._id}: ${err.message}`;
+          errors.push(errorMsg);
+          this.logger.error(`[BALANCE FIX] ${errorMsg}`, err);
+        }
+      }
+
+      this.logger.log(`[BALANCE FIX] ✅ Completed. Fixed ${fixedCount} entitlements, Updated ${updatedCount} with added days. Errors: ${errors.length}`);
+      return { fixed: fixedCount, errors, updated: updatedCount };
+    } catch (error: any) {
+      this.logger.error('[BALANCE FIX] ❌ Failed to fix unpaid leave balances:', error);
+      throw new BadRequestException(`Failed to fix unpaid leave balances: ${error.message}`);
+    }
   }
 }
 

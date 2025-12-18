@@ -34,6 +34,8 @@ import {EmployeeProfile, EmployeeProfileSchema} from "../employee/models/employe
 import {BreakPermissionController} from "./controllers/BreakPermissionController";
 import {BreakPermissionService} from "./services/BreakPermissionService";
 import {AuthModule} from "../auth/auth-module";
+import {TimeExceptionEscalationScheduler} from "./services/time-exception-escalation.scheduler";
+import {TestSchedulersController} from "./controllers/test-schedulers.controller";
 
 @Module({
     imports:
@@ -64,7 +66,8 @@ import {AuthModule} from "../auth/auth-module";
         ShiftManagementController,
         NotificationController,
         BreakPermissionController,
-        AttendanceSyncController],
+        AttendanceSyncController,
+        TestSchedulersController],
 
     providers: [AttendanceService,
         TimeExceptionService,
@@ -72,6 +75,7 @@ import {AuthModule} from "../auth/auth-module";
         ShiftManagementService,
         HolidayService,
         ShiftExpiryScheduler,
+        TimeExceptionEscalationScheduler,
         RepeatedLatenessService,
         NotificationService,
         BreakPermissionService,
