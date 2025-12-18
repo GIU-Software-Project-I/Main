@@ -56,12 +56,12 @@ export default function EmployeeProfilePage() {
                     <p className="text-slate-600">View and manage your personal information</p>
                 </div>
                 <div className="flex gap-3">
-                    <Link href="/dashboard/department-employee/employee-profile/correction-requests">
+                    <Link href="/portal/my-profile/correction-requests">
                         <Button variant="outline">
                             Correction Requests
                         </Button>
                     </Link>
-                    <Link href="/dashboard/department-employee/employee-profile/edit">
+                    <Link href="/portal/my-profile/edit">
                         <Button>
                             ✏️ Update Profile
                         </Button>
@@ -99,7 +99,7 @@ export default function EmployeeProfilePage() {
                                 </div>
                             </div>
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${profile.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'
-                            }`}>
+                                }`}>
                                 {profile.status}
                             </span>
                         </div>

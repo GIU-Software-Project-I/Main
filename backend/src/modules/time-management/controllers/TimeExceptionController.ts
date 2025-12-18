@@ -14,6 +14,16 @@ export class TimeExceptionController {
         return this.svc.createException(dto);
     }
 
+    @Get('export/csv')
+    async exportCSV(@Response() res: any) {
+        return this.svc.exportToCSV(res);
+    }
+
+    @Get('export/json')
+    async exportJSON(@Response() res: any) {
+        return this.svc.exportToJSON(res);
+    }
+
     @Get()
     async list(@Query() query: ExceptionQueryDto) {
         // If no query parameters provided, return all exceptions
@@ -37,15 +47,5 @@ export class TimeExceptionController {
     @Put('status')
     async updateStatus(@Body() dto: UpdateExceptionStatusDto) {
         return this.svc.updateStatus(dto);
-    }
-
-    @Get('export/csv')
-    async exportCSV(@Response() res: any) {
-        return this.svc.exportToCSV(res);
-    }
-
-    @Get('export/json')
-    async exportJSON(@Response() res: any) {
-        return this.svc.exportToJSON(res);
     }
 }

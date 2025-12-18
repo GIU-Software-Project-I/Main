@@ -194,30 +194,39 @@ export default function HRAdminPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((stat, idx) => {
             const colors = colorClasses[stat.color];
-            const Wrapper = stat.href ? Link : 'div';
-
-            return (
-              <Wrapper
-                key={idx}
-                href={stat.href || ''}
-                className={`bg-card border border-border rounded-xl p-5 hover:shadow-md transition-shadow ${stat.href ? 'cursor-pointer' : ''}`}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                    <p className="text-3xl font-bold text-foreground mt-1">
-                      {loading ? (
-                        <span className="inline-block w-12 h-8 bg-muted animate-pulse rounded"></span>
-                      ) : (
-                        stat.value
-                      )}
-                    </p>
-                  </div>
-                  <div className={`p-2.5 rounded-xl ${colors.bg}`}>
-                    <div className={colors.text}>{stat.icon}</div>
-                  </div>
+            const content = (
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                  <p className="text-3xl font-bold text-foreground mt-1">
+                    {loading ? (
+                      <span className="inline-block w-12 h-8 bg-muted animate-pulse rounded"></span>
+                    ) : (
+                      stat.value
+                    )}
+                  </p>
                 </div>
-              </Wrapper>
+                <div className={`p-2.5 rounded-xl ${colors.bg}`}>
+                  <div className={colors.text}>{stat.icon}</div>
+                </div>
+              </div>
+            );
+
+            return stat.href ? (
+              <Link
+                key={idx}
+                href={stat.href}
+                className={`bg-card border border-border rounded-xl p-5 hover:shadow-md transition-shadow cursor-pointer`}
+              >
+                {content}
+              </Link>
+            ) : (
+              <div
+                key={idx}
+                className={`bg-card border border-border rounded-xl p-5 hover:shadow-md transition-shadow`}
+              >
+                {content}
+              </div>
             );
           })}
         </div>

@@ -8,7 +8,6 @@ import { useAuth } from '@/app/context/AuthContext';
 interface InsuranceBracket {
   _id: string;
   name: string;
-  amount: number;
   status: 'draft' | 'approved' | 'rejected';
   createdBy?: string;
   createdAt: string;
@@ -69,7 +68,6 @@ export default function InsuranceBracketsPage() {
   const [formData, setFormData] = useState({
     name: '',
     customName: '',
-    amount: '',
     minSalary: '',
     maxSalary: '',
     employeeRate: '',
@@ -130,9 +128,8 @@ export default function InsuranceBracketsPage() {
     // Determine the final name
     const finalName = formData.name === 'custom' ? formData.customName : formData.name;
 
-    // Required fields validation
+    // Only validate name for new creation (not for editing)
     if (!selectedBracket) {
-      // Only validate name for new creation
       if (!formData.name) {
         errors.push('Please select an insurance type');
       } else if (formData.name === 'custom' && !formData.customName.trim()) {
@@ -151,20 +148,17 @@ export default function InsuranceBracketsPage() {
     }
 
     // Required numeric fields
-    if (!formData.amount) errors.push('Amount is required');
     if (!formData.minSalary) errors.push('Minimum salary is required');
     if (!formData.maxSalary) errors.push('Maximum salary is required');
     if (!formData.employeeRate) errors.push('Employee rate is required');
     if (!formData.employerRate) errors.push('Employer rate is required');
 
     // Numeric validation
-    const amount = parseFloat(formData.amount);
     const minSalary = parseFloat(formData.minSalary);
     const maxSalary = parseFloat(formData.maxSalary);
     const employeeRate = parseFloat(formData.employeeRate);
     const employerRate = parseFloat(formData.employerRate);
 
-    if (isNaN(amount) || amount < 0) errors.push('Amount must be a positive number');
     if (isNaN(minSalary) || minSalary < 0) errors.push('Minimum salary must be a positive number');
     if (isNaN(maxSalary) || maxSalary < 0) errors.push('Maximum salary must be a positive number');
     if (isNaN(employeeRate) || employeeRate < 0 || employeeRate > 100) errors.push('Employee rate must be between 0 and 100');
@@ -201,7 +195,6 @@ export default function InsuranceBracketsPage() {
       
       const apiData = {
         name: finalName,
-        amount: parseFloat(formData.amount),
         minSalary: parseFloat(formData.minSalary),
         maxSalary: parseFloat(formData.maxSalary),
         employeeRate: parseFloat(formData.employeeRate),
@@ -274,8 +267,6 @@ export default function InsuranceBracketsPage() {
       setError(null);
 
       const updateData = {
-        // Name is NOT included here - cannot be changed after creation
-        amount: parseFloat(formData.amount),
         minSalary: parseFloat(formData.minSalary),
         maxSalary: parseFloat(formData.maxSalary),
         employeeRate: parseFloat(formData.employeeRate),
@@ -382,7 +373,6 @@ export default function InsuranceBracketsPage() {
     setFormData({
       name: '', // Not used for editing - display only
       customName: '', // Not used for editing - display only
-      amount: bracket.amount.toString(),
       minSalary: bracket.minSalary.toString(),
       maxSalary: bracket.maxSalary.toString(),
       employeeRate: bracket.employeeRate.toString(),
@@ -409,7 +399,6 @@ export default function InsuranceBracketsPage() {
     setFormData({
       name: '',
       customName: '',
-      amount: '',
       minSalary: '',
       maxSalary: '',
       employeeRate: '',
@@ -566,7 +555,6 @@ export default function InsuranceBracketsPage() {
                   <th className="text-left py-4 px-6 font-semibold text-slate-700">Insurance Type</th>
                   <th className="text-left py-4 px-6 font-semibold text-slate-700">Salary Range</th>
                   <th className="text-left py-4 px-6 font-semibold text-slate-700">Contributions</th>
-                  <th className="text-left py-4 px-6 font-semibold text-slate-700">Amount</th>
                   <th className="text-left py-4 px-6 font-semibold text-slate-700">Status</th>
                   <th className="text-left py-4 px-6 font-semibold text-slate-700">Created</th>
                   <th className="text-left py-4 px-6 font-semibold text-slate-700">Actions</th>
@@ -595,12 +583,10 @@ export default function InsuranceBracketsPage() {
                         <p className="text-slate-600">
                           Employer: <span className="font-medium">{formatPercentage(bracket.employerRate)}</span>
                         </p>
+                        <p className="text-slate-500 text-xs mt-1">
+                          Total: {formatPercentage(bracket.employeeRate + bracket.employerRate)}
+                        </p>
                       </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="text-slate-700 font-medium">
-                        {formatCurrency(bracket.amount)}
-                      </span>
                     </td>
                     <td className="py-4 px-6">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusColors[bracket.status] || 'bg-gray-100 text-gray-800'}`}>
@@ -846,29 +832,6 @@ export default function InsuranceBracketsPage() {
                 </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Base Amount *
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-slate-500">$</span>
-                  </div>
-                  <input
-                    type="number"
-                    name="amount"
-                    value={formData.amount}
-                    onChange={handleChange}
-                    className="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    placeholder="e.g., 500"
-                    step="0.01"
-                    min="0"
-                  />
-                </div>
-                <p className="text-xs text-slate-500 mt-1">Base insurance amount for this bracket</p>
-              </div>
-              
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <p className="text-sm font-medium text-amber-800 mb-2">ℹ️ Important Notes</p>
                 <ul className="text-xs text-amber-700 space-y-1">
@@ -928,11 +891,6 @@ export default function InsuranceBracketsPage() {
                   </div>
                   
                   <div>
-                    <p className="text-sm text-slate-500">Base Amount</p>
-                    <p className="font-medium text-slate-900 text-xl">{formatCurrency(selectedBracket.amount)}</p>
-                  </div>
-                  
-                  <div>
                     <p className="text-sm text-slate-500">Status</p>
                     <p className="font-medium text-slate-900">{statusLabels[selectedBracket.status]}</p>
                   </div>
@@ -942,17 +900,11 @@ export default function InsuranceBracketsPage() {
                   <div>
                     <p className="text-sm text-slate-500">Employee Contribution</p>
                     <p className="font-medium text-slate-900 text-xl">{formatPercentage(selectedBracket.employeeRate)}</p>
-                    <p className="text-sm text-slate-500 mt-1">
-                      {formatCurrency(selectedBracket.amount * selectedBracket.employeeRate / 100)} per period
-                    </p>
                   </div>
                   
                   <div>
                     <p className="text-sm text-slate-500">Employer Contribution</p>
                     <p className="font-medium text-slate-900 text-xl">{formatPercentage(selectedBracket.employerRate)}</p>
-                    <p className="text-sm text-slate-500 mt-1">
-                      {formatCurrency(selectedBracket.amount * selectedBracket.employerRate / 100)} per period
-                    </p>
                   </div>
                   
                   <div>
@@ -1045,7 +997,6 @@ export default function InsuranceBracketsPage() {
                   <p>• Salary Range: {formatCurrency(selectedBracket.minSalary)} - {formatCurrency(selectedBracket.maxSalary)}</p>
                   <p>• Employee Rate: {formatPercentage(selectedBracket.employeeRate)}</p>
                   <p>• Employer Rate: {formatPercentage(selectedBracket.employerRate)}</p>
-                  <p>• Base Amount: {formatCurrency(selectedBracket.amount)}</p>
                 </div>
               </div>
               
