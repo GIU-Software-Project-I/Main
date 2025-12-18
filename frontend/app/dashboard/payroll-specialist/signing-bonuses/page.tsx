@@ -514,6 +514,16 @@ export default function SigningBonusesPage() {
             {loading ? 'Refreshing...' : 'Refresh'}
           </button>
           <button
+            onClick={() => {
+              setSelectedSigningBonus(null);
+              setCalcInputs(prev => ({ ...prev, pendingAllowances: '' }));
+              setShowCalculateModal(true);
+            }}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+          >
+            Calculate Entitelments
+          </button>
+          <button
             onClick={handleCreateClick}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
@@ -679,20 +689,7 @@ export default function SigningBonusesPage() {
                               Edit
                             </button>
                           )}
-                          {/* Calculate button - show for approved signing bonuses */}
-                          {signingBonus.status === 'approved' && (
-                            <button
-                              onClick={() => {
-                                setSelectedSigningBonus(signingBonus);
-                                setCalcInputs(prev => ({ ...prev, pendingAllowances: signingBonus.amount?.toString() || '' }));
-                                setShowCalculateModal(true);
-                              }}
-                              className="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border border-indigo-300 rounded-lg transition-colors"
-                              title="Calculate Entitlements"
-                            >
-                              Calculate
-                            </button>
-                          )}
+                          {/* per-row Calculate removed — use header 'Calculate Entitelments' button */}
                           
                           {/* Delete button - Only for DRAFT signing bonuses
                           {signingBonus.status === 'draft' && (
