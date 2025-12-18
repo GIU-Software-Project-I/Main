@@ -8,6 +8,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 
 
+
 async function bootstrap() {
 
     const app = await NestFactory.create(AppModule);
@@ -21,9 +22,28 @@ async function bootstrap() {
     app.use(cookieParser());
 
     app.use(express.json({ limit: '50mb' }));
+
     app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
     app.useGlobalPipes(new ValidationPipe({ whitelist: false, transform: true }));
+
+    //
+    // app.enableCors({
+    //     // Explicitly allow common dev origins
+    //     origin: [
+    //         'http://localhost:3000',
+    //         'http://127.0.0.1:3000',
+    //         'http://localhost:4000',
+    //         'http://127.0.0.1:4000',
+    //         'http://192.168.1.20:4000',
+    //         'http://localhost:500',
+    //         'http://localhost:8000',
+    //         'http://192.168.21.1:8000',
+    //         'http://192.168.100.20:8000',
+    //     ],
+    //     credentials: true,
+    //     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    //     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'], });
 
     // app.enableCors({
     //     origin: (origin, callback) => {
@@ -39,20 +59,22 @@ async function bootstrap() {
     //     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     //     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
     // });
-app.enableCors({
-        // Explicitly allow common dev origins
-        origin: [
-            'http://localhost:3000',
-            'http://127.0.0.1:3000',
-            'http://localhost:4000',
-            'http://127.0.0.1:4000',
-            'http://192.168.1.20:4000',
-            'http://localhost:500',
-            'http://localhost:8000',
-            'http://172.24.0.1:8000',
-            'http://172.30.64.1:8000',
-            'http://192.168.21.1:8000'
-        ],
+
+    app.enableCors({
+        // Allow all localhost origins during development
+        origin: (origin, callback) => {
+            // Allow requests with no origin (like mobile apps, curl, Postman)
+            if (!origin) return callback(null, true);
+            // Allow any localhost/127.0.0.1 origin during development
+            if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+                return callback(null, true);
+            }
+            // Allow any origin in development
+            if (process.env.NODE_ENV !== 'production') {
+                return callback(null, true);
+            }
+            callback(null, true);
+        },
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],

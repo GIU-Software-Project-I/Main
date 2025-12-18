@@ -51,6 +51,12 @@ export class RequestCorrectionDto {
 
 }
 
+export class StartReviewDto {
+    @ApiProperty({ description: 'Correction Request ID', example: '674c1a1b2c3d4e5f6a7b8d01' })
+    @IsNotEmpty()
+    correctionRequestId: string;
+}
+
 export class ReviewCorrectionDto {
     @ApiProperty({ description: 'Correction Request ID', example: '674c1a1b2c3d4e5f6a7b8d01' })
     @IsNotEmpty()

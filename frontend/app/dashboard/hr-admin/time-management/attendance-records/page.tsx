@@ -75,6 +75,47 @@ export default function AttendanceRecordsPage() {
   // Active tab
   const [activeTab, setActiveTab] = useState<'records' | 'corrections' | 'history'>('records');
 
+  // Handle starting review (mark as IN_REVIEW)
+  const handleStartReview = async (correction: AttendanceCorrectionRequest) => {
+    alert('Review button clicked! ID: ' + correction._id);
+    console.log('[handleStartReview] Starting review for correction:', correction._id);
+    try {
+      setError(null);
+      setSubmitting(true);
+      console.log('[handleStartReview] submitting state set to true');
+
+      console.log('[handleStartReview] Calling startReview API...');
+      const response = await timeManagementService.startReview(correction._id);
+      console.log('[handleStartReview] API Response:', response);
+
+      if (response?.error) {
+        throw new Error(response.error);
+      }
+
+      // Refresh corrections to show updated status
+      console.log('[handleStartReview] Refreshing corrections...');
+      await fetchCorrections();
+      console.log('[handleStartReview] Corrections refreshed');
+
+      // Set selected correction and show modal
+      setSelectedCorrection(correction);
+      setShowReviewModal(true);
+
+      setSuccess('Correction marked as under review');
+      setTimeout(() => setSuccess(null), 3000);
+
+      console.log('[handleStartReview] Review started successfully');
+    } catch (err: any) {
+      console.error('[handleStartReview] Error:', err);
+      const errMsg = err?.message || 'Failed to start review';
+      setError(`Failed to start review: ${errMsg}`);
+      alert('Error: ' + errMsg);
+    } finally {
+      setSubmitting(false);
+      console.log('[handleStartReview] submitting state set to false');
+    }
+  };
+
   // Fetch attendance records with review
   const fetchAttendanceRecords = useCallback(async () => {
     if (!employeeIdFilter) {
@@ -654,13 +695,11 @@ export default function AttendanceRecordsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => {
-                            setSelectedCorrection(correction);
-                            setShowReviewModal(true);
-                          }}
-                          className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                          onClick={() => handleStartReview(correction)}
+                          disabled={submitting}
+                          className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          Review
+                          {submitting ? 'Starting Review...' : 'Review'}
                         </button>
                       </div>
                     </div>
@@ -908,6 +947,7 @@ export default function AttendanceRecordsPage() {
                     setShowReviewModal(false);
                     setSelectedCorrection(null);
                     setReviewNote('');
+                    setSubmitting(false);
                   }}
                   className="text-muted-foreground hover:text-foreground"
                 >
@@ -970,6 +1010,7 @@ export default function AttendanceRecordsPage() {
                       setShowReviewModal(false);
                       setSelectedCorrection(null);
                       setReviewNote('');
+                      setSubmitting(false);
                     }}
                     className="px-4 py-2 border border-input text-foreground font-medium rounded-lg hover:bg-accent transition-colors"
                   >

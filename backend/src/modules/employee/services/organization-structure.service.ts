@@ -784,9 +784,12 @@ export class OrganizationStructureService {
     }
 
     async createChangeRequest(dto: SubmitStructureRequestDto, performedBy?: string): Promise<StructureChangeRequest> {
+        if (!dto.requestedByEmployeeId) {
+            throw new BadRequestException('Requested by employee ID is required');
+        }
         this.validateObjectId(dto.requestedByEmployeeId, 'requestedByEmployeeId');
 
-        if (dto.targetDepartmentId) {
+        if(dto.targetDepartmentId) {
             this.validateObjectId(dto.targetDepartmentId, 'targetDepartmentId');
             const department = await this.departmentModel.findById(dto.targetDepartmentId);
             if (!department) {
@@ -978,6 +981,10 @@ export class OrganizationStructureService {
 
     async submitApprovalDecision(changeRequestId: string, dto: SubmitApprovalDecisionDto, performedBy?: string): Promise<StructureApproval> {
         this.validateObjectId(changeRequestId, 'changeRequestId');
+
+        if (!dto.approverEmployeeId) {
+            throw new BadRequestException('Approver employee ID is required');
+        }
         this.validateObjectId(dto.approverEmployeeId, 'approverEmployeeId');
 
         const changeRequest = await this.changeRequestModel.findById(changeRequestId);
@@ -985,7 +992,12 @@ export class OrganizationStructureService {
             throw new NotFoundException('Change request not found');
         }
 
-        if (![StructureRequestStatus.SUBMITTED, StructureRequestStatus.UNDER_REVIEW].includes(changeRequest.status)) {
+        console.log(`[SubmitApprovalDecision] Request ID: ${changeRequestId}, Current status: ${changeRequest.status}, Decision: ${dto.decision}`);
+
+        // Check if status is actionable (case-insensitive, including 'pending')
+        const normalizedStatus = changeRequest.status?.toUpperCase();
+        const actionableStatuses = ['SUBMITTED', 'UNDER_REVIEW', 'PENDING'];
+        if (!actionableStatuses.includes(normalizedStatus)) {
             throw new BadRequestException(`Cannot approve/reject request with status ${changeRequest.status}`);
         }
 
@@ -1011,13 +1023,26 @@ export class OrganizationStructureService {
             comments: dto.comments,
         });
 
+        // Determine new status
+        let newStatus: StructureRequestStatus;
         if (dto.decision === ApprovalDecision.APPROVED) {
-            changeRequest.status = StructureRequestStatus.APPROVED;
+            newStatus = StructureRequestStatus.APPROVED;
         } else if (dto.decision === ApprovalDecision.REJECTED) {
-            changeRequest.status = StructureRequestStatus.REJECTED;
+            newStatus = StructureRequestStatus.REJECTED;
+        } else {
+            newStatus = changeRequest.status;
         }
 
-        await changeRequest.save();
+        console.log(`[SubmitApprovalDecision] Updating status from ${changeRequest.status} to ${newStatus}`);
+
+        // Use findByIdAndUpdate to ensure the update is persisted
+        const updatedRequest = await this.changeRequestModel.findByIdAndUpdate(
+            changeRequestId,
+            { $set: { status: newStatus } },
+            { new: true }
+        );
+
+        console.log(`[SubmitApprovalDecision] Updated request status: ${updatedRequest?.status}`);
 
         await this.logChange({
             action: ChangeLogAction.UPDATED,
@@ -1028,12 +1053,17 @@ export class OrganizationStructureService {
             after: approval.toObject(),
         });
 
-        await this.sharedOrganizationService.notifyStructureChangeRequestProcessed(
-            changeRequest.requestNumber,
-            changeRequest.requestedByEmployeeId.toString(),
-            dto.decision,
-            dto.comments
-        );
+        try {
+            await this.sharedOrganizationService.notifyStructureChangeRequestProcessed(
+                changeRequest.requestedByEmployeeId.toString(),
+                changeRequest.requestNumber,
+                dto.decision,
+                dto.comments
+            );
+        } catch (notifyError) {
+            console.error('[SubmitApprovalDecision] Notification error:', notifyError);
+            // Don't throw - notification failure shouldn't fail the approval
+        }
 
         return approval;
     }

@@ -99,12 +99,22 @@ export default function ExitClearancePage() {
   const handleTriggerFinalSettlement = async () => {
     if (!checklist) return;
 
+    // Extract terminationId - handle both populated object and string ID
+    const terminationId = typeof checklist.terminationId === 'object'
+      ? (checklist.terminationId as any)?._id || (checklist.terminationId as any)?.id
+      : checklist.terminationId;
+
+    if (!terminationId) {
+      setError('Invalid termination ID');
+      return;
+    }
+
     try {
       setError(null);
       await offboardingService.triggerFinalSettlement({
-        terminationId: checklist.terminationId,
+        terminationId: terminationId,
       });
-      router.push(`/dashboard/hr-manager/offboarding/final-settlement/${checklist.terminationId}`);
+      router.push(`/dashboard/hr-manager/offboarding/final-settlement/${terminationId}`);
     } catch (err: any) {
       setError(err.message || 'Failed to trigger final settlement');
     }

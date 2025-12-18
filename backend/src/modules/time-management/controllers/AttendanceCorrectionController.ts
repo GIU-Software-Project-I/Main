@@ -5,6 +5,7 @@ import {
     RequestCorrectionDto,
     ReviewCorrectionDto,
     CorrectionType,
+    StartReviewDto,
 } from '../dto/AttendanceCorrectionDtos';
 import { AttendanceCorrectionService } from "../services/AttendanceCorrectionService";
 
@@ -144,6 +145,14 @@ export class AttendanceCorrectionController {
             message: `Correction request submitted successfully`,
             data: created
         };
+    }
+
+    // Manager starts reviewing (marks as IN_REVIEW)
+    @Post('start-review')
+    @ApiOperation({ summary: 'Mark correction as IN_REVIEW (when review button is clicked)' })
+    @ApiResponse({ status: 200, description: 'Correction marked as IN_REVIEW' })
+    async startReview(@Body() dto: StartReviewDto) {
+        return this.correctionService.startReview(dto.correctionRequestId);
     }
 
     // Manager reviews (approve/reject)

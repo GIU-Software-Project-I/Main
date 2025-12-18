@@ -20,7 +20,9 @@ export default function SystemAdminOnboardingPage() {
       setLoading(true);
       setError(null);
       const result = await onboardingService.getEmployeesPendingProvisioning();
-      setPendingProvisioning(result || []);
+      // Ensure result is always an array
+      const data = Array.isArray(result) ? result : ((result as any)?.data || []);
+      setPendingProvisioning(data);
     } catch (err: any) {
       if (!err.message?.includes('404')) {
         setError(err.message || 'Failed to fetch data');
@@ -74,8 +76,8 @@ export default function SystemAdminOnboardingPage() {
     }
   };
 
-  const urgentCount = pendingProvisioning.filter(p => p.isUrgent).length;
-  const standardCount = pendingProvisioning.filter(p => !p.isUrgent).length;
+  const urgentCount = Array.isArray(pendingProvisioning) ? pendingProvisioning.filter(p => p.isUrgent).length : 0;
+  const standardCount = Array.isArray(pendingProvisioning) ? pendingProvisioning.filter(p => !p.isUrgent).length : 0;
 
   if (loading) {
     return (

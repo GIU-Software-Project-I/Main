@@ -198,11 +198,11 @@ export const employeeProfileService = {
   // =============================================
 
   /**
-   * Get all employees (paginated)
+   * Get all employees (paginated with optional filters)
    * GET /employee-profile/admin/employees
    */
-  getAllEmployees: async (page?: number, limit?: number) => {
-    const query = buildQueryString({ page, limit });
+  getAllEmployees: async (page?: number, limit?: number, status?: string, departmentId?: string) => {
+    const query = buildQueryString({ page, limit, status, departmentId });
     return apiService.get(`/employee-profile/admin/employees${query}`);
   },
 
@@ -210,8 +210,8 @@ export const employeeProfileService = {
    * Search employees (paginated)
    * GET /employee-profile/admin/search
    */
-  searchEmployees: async (q: string, page?: number, limit?: number) => {
-    const query = buildQueryString({ q, page, limit });
+  searchEmployees: async (q: string, page?: number, limit?: number, status?: string) => {
+    const query = buildQueryString({ query: q, page, limit, status });
     return apiService.get(`/employee-profile/admin/search${query}`);
   },
 

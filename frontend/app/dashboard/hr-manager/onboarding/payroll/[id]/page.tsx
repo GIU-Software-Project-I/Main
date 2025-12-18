@@ -29,9 +29,14 @@ export default function PayrollInitiationPage() {
       const onboardingData = await onboardingService.getOnboardingById(onboardingId);
       setOnboarding(onboardingData);
 
-      if (onboardingData.contractId) {
+      // Extract contract ID - handle both populated object and string ID
+      const contractId = typeof onboardingData.contractId === 'object'
+        ? (onboardingData.contractId as any)?._id || (onboardingData.contractId as any)?.id
+        : onboardingData.contractId;
+
+      if (contractId) {
         try {
-          const contractData = await onboardingService.getContractDetails(onboardingData.contractId);
+          const contractData = await onboardingService.getContractDetails(contractId);
           setContract(contractData);
         } catch {
           // Contract details might not be accessible
@@ -45,13 +50,18 @@ export default function PayrollInitiationPage() {
   };
 
   const handleTriggerPayroll = async () => {
-    if (!onboarding?.contractId) return;
+    // Extract contract ID - handle both populated object and string ID
+    const contractId = typeof onboarding?.contractId === 'object'
+      ? (onboarding?.contractId as any)?._id || (onboarding?.contractId as any)?.id
+      : onboarding?.contractId;
+
+    if (!contractId) return;
 
     try {
       setTriggering(true);
       setError(null);
       await onboardingService.triggerPayrollInitiation({
-        contractId: onboarding.contractId,
+        contractId: contractId,
       });
       setPayrollTriggered(true);
     } catch (err: any) {
@@ -62,12 +72,17 @@ export default function PayrollInitiationPage() {
   };
 
   const handleProcessBonus = async () => {
-    if (!onboarding?.contractId) return;
+    // Extract contract ID - handle both populated object and string ID
+    const contractId = typeof onboarding?.contractId === 'object'
+      ? (onboarding?.contractId as any)?._id || (onboarding?.contractId as any)?.id
+      : onboarding?.contractId;
+
+    if (!contractId) return;
 
     try {
       setTriggering(true);
       setError(null);
-      await onboardingService.processSigningBonus(onboarding.contractId);
+      await onboardingService.processSigningBonus(contractId);
       setBonusProcessed(true);
     } catch (err: any) {
       setError(err.message || 'Failed to process signing bonus');

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { StatusBadge } from '@/app/components/ui/status-badge';
 
 export interface ChangeRequest {
     _id: string;
@@ -32,11 +33,11 @@ interface ChangeRequestCardProps {
     processing?: boolean;
 }
 
-const STATUS_CONFIG: Record<string, { bg: string; text: string; icon: string }> = {
-    PENDING: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-400', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-    APPROVED: { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-700 dark:text-green-400', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-    REJECTED: { bg: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-700 dark:text-red-400', icon: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z' },
-    CANCELED: { bg: 'bg-gray-50 dark:bg-gray-900/20', text: 'text-gray-700 dark:text-gray-400', icon: 'M6 18L18 6M6 6l12 12' },
+const STATUS_ICONS: Record<string, string> = {
+    PENDING: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+    APPROVED: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+    REJECTED: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z',
+    CANCELED: 'M6 18L18 6M6 6l12 12',
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -60,7 +61,7 @@ export default function ChangeRequestCard({ request, onApprove, onReject, proces
     const [rejectReason, setRejectReason] = useState('');
     const [expanded, setExpanded] = useState(false);
 
-    const statusConfig = STATUS_CONFIG[request.status] || STATUS_CONFIG.PENDING;
+    const statusIcon = STATUS_ICONS[request.status] || STATUS_ICONS.PENDING;
     const isPending = request.status === 'PENDING';
 
     const getEmployeeInfo = () => {
@@ -101,7 +102,7 @@ export default function ChangeRequestCard({ request, onApprove, onReject, proces
     };
 
     return (
-        <div className={`bg-card border rounded-xl overflow-hidden transition-all ${isPending ? 'border-amber-200 dark:border-amber-800' : 'border-border'}`}>
+        <div className={`bg-card border rounded-xl overflow-hidden transition-all ${isPending ? 'border-warning/50' : 'border-border'}`}>
             {/* Header */}
             <div className="px-5 py-4 flex items-center justify-between bg-muted/30">
                 <div className="flex items-center gap-3">
@@ -114,12 +115,7 @@ export default function ChangeRequestCard({ request, onApprove, onReject, proces
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={statusConfig.icon} />
-                        </svg>
-                        {request.status}
-                    </span>
+                    <StatusBadge status={request.status} showDot />
                     <button
                         onClick={() => setExpanded(!expanded)}
                         className="p-1.5 rounded-lg hover:bg-muted transition-colors"
@@ -142,11 +138,11 @@ export default function ChangeRequestCard({ request, onApprove, onReject, proces
 
                 {/* Change Comparison */}
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-lg">
-                        <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">Previous Value</p>
+                    <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                        <p className="text-xs font-medium text-destructive mb-1">Previous Value</p>
                         <p className="text-sm text-foreground break-words">{formatValue(request.oldValue)}</p>
                     </div>
-                    <div className="p-3 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-900/30 rounded-lg">
+                    <div className="p-3 bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                         <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">New Value</p>
                         <p className="text-sm text-foreground break-words">{formatValue(request.newValue)}</p>
                     </div>
@@ -162,9 +158,9 @@ export default function ChangeRequestCard({ request, onApprove, onReject, proces
 
                 {/* Rejection reason if rejected */}
                 {request.status === 'REJECTED' && request.rejectionReason && (
-                    <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">Rejection Reason</p>
-                        <p className="text-sm text-red-800 dark:text-red-300">{request.rejectionReason}</p>
+                    <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                        <p className="text-xs font-medium text-destructive mb-1">Rejection Reason</p>
+                        <p className="text-sm text-destructive/80">{request.rejectionReason}</p>
                     </div>
                 )}
 
@@ -191,7 +187,7 @@ export default function ChangeRequestCard({ request, onApprove, onReject, proces
                     <button
                         onClick={() => setShowRejectModal(true)}
                         disabled={processing}
-                        className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50 transition-colors"
+                        className="px-4 py-2 text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-lg hover:bg-destructive/20 disabled:opacity-50 transition-colors"
                     >
                         Reject
                     </button>
@@ -249,7 +245,7 @@ export default function ChangeRequestCard({ request, onApprove, onReject, proces
                             <button
                                 onClick={handleRejectSubmit}
                                 disabled={!rejectReason.trim() || processing}
-                                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                                className="px-4 py-2 text-sm font-medium text-white bg-destructive rounded-lg hover:bg-destructive/90 disabled:opacity-50 transition-colors"
                             >
                                 Reject Request
                             </button>

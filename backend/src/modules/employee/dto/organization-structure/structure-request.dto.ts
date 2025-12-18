@@ -2,7 +2,6 @@ import { PartialType } from '@nestjs/mapped-types';
 import {
   IsEnum,
   IsMongoId,
-  IsNotEmpty,
   IsOptional,
   IsString,
 } from 'class-validator';
@@ -18,8 +17,8 @@ export class SubmitStructureRequestDto {
   requestNumber?: string;
 
   @IsMongoId()
-  @IsNotEmpty()
-  requestedByEmployeeId: string;
+  @IsOptional()
+  requestedByEmployeeId?: string;
 
   @IsEnum(StructureRequestType)
   requestType: StructureRequestType;
@@ -51,8 +50,8 @@ export class UpdateStructureRequestDto extends PartialType(
 
 export class SubmitApprovalDecisionDto {
   @IsMongoId()
-  @IsNotEmpty()
-  approverEmployeeId: string;
+  @IsOptional()
+  approverEmployeeId?: string;
 
   @IsEnum(ApprovalDecision)
   decision: ApprovalDecision;
