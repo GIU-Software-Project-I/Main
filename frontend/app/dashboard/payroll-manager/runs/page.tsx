@@ -1,17 +1,53 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ThemeCustomizer, ThemeCustomizerTrigger } from '@/app/components/theme-customizer';
 import { useSearchParams } from 'next/navigation';
 import { payrollExecutionService } from '@/app/services/payroll-execution';
-
-
-
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Badge } from "../../../components/ui/badge";
+import { Skeleton } from "../../../components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
+import { 
+  AlertCircle, 
+  CheckCircle, 
+  Lock, 
+  Unlock,
+  Eye,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  DollarSign,
+  CalendarDays,
+  Building,
+  FileText,
+  Clock,
+  Shield,
+  AlertTriangle,
+  ChevronRight,
+  Filter,
+  Settings,
+  Search,
+  BarChart3,
+  Receipt,
+  User,
+  AlertOctagon
+} from "lucide-react";
 
 // Helper function to format payrollPeriod object to string
 const formatPayrollPeriod = (period: any): string => {
   if (!period) return 'No Period';
   if (typeof period === 'string') {
-    // Try to parse as date
     const d = new Date(period);
     if (!isNaN(d.getTime())) {
       return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
@@ -101,6 +137,7 @@ export default function PayrollManagerRunsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
   
   // Map URL filter to tab
   const getInitialTab = (): 'pending' | 'all' | 'frozen' | 'approved' => {
@@ -141,7 +178,7 @@ export default function PayrollManagerRunsPage() {
       const res = await payrollExecutionService.listRuns(params);
       
       if (res?.error) {
-        setError(res.error || 'Failed to connect to server. Please ensure the backend is running on http://localhost:9000');
+        setError(res.error || 'Failed to connect to server.');
         setRuns([]);
         return;
       }
@@ -151,9 +188,6 @@ export default function PayrollManagerRunsPage() {
       
       // Filter based on active tab
       if (activeTab === 'pending') {
-        // Show runs awaiting manager approval:
-        // - Status 'under review' or 'under_review' means processed and awaiting manager approval (REQ-PY-20, REQ-PY-22)
-        // - Must NOT have managerApprovalDate set (manager hasn't approved yet)
         items = items.filter((r: PayrollRun) => {
           const status = (r.status || '').toLowerCase();
           return (status === 'under review' || status === 'under_review') && !r.managerApprovalDate;
@@ -168,7 +202,7 @@ export default function PayrollManagerRunsPage() {
       setRuns(items);
     } catch (e: any) {
       console.error('Failed to load runs:', e);
-      setError(e?.message || 'Failed to load runs. Please check if the backend is running.');
+      setError(e?.message || 'Failed to load payroll runs.');
       setRuns([]);
     } finally {
       setLoading(false);
@@ -185,7 +219,6 @@ export default function PayrollManagerRunsPage() {
       }
       const details = (res?.data || res) as any;
       setRunDetails(details);
-      // Extract employee payroll details if available
       if (details?.employeePayrollDetails) {
         setEmployeeDetails(details.employeePayrollDetails);
       }
@@ -208,11 +241,11 @@ export default function PayrollManagerRunsPage() {
         setError(res.error);
         return;
       }
-      setSuccess('Payroll run approved by manager! It will now proceed to finance for final approval.');
+      setSuccess('Payroll run approved successfully. Proceeding to finance approval.');
       fetchRuns();
       setSelectedRun(null);
     } catch (e: any) {
-      setError(e?.message || 'Failed to approve');
+      setError(e?.message || 'Failed to approve payroll run');
     } finally {
       setLoading(false);
     }
@@ -233,7 +266,7 @@ export default function PayrollManagerRunsPage() {
       fetchRuns();
       setSelectedRun(null);
     } catch (e: any) {
-      setError(e?.message || 'Failed to freeze');
+      setError(e?.message || 'Failed to freeze payroll');
     } finally {
       setLoading(false);
     }
@@ -254,23 +287,21 @@ export default function PayrollManagerRunsPage() {
       fetchRuns();
       setSelectedRun(null);
     } catch (e: any) {
-      setError(e?.message || 'Failed to unfreeze');
+      setError(e?.message || 'Failed to unfreeze payroll');
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): "secondary" | "destructive" | "default" | "outline" => {
     const s = status?.toLowerCase();
-    if (s === 'approved') return 'bg-green-100 text-green-800 border-green-200';
-    if (s === 'draft') return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    if (s === 'pending' || s === 'pending finance approval') return 'bg-orange-100 text-orange-800 border-orange-200';
-    if (s === 'rejected') return 'bg-red-100 text-red-800 border-red-200';
-    if (s === 'locked' || s === 'frozen') return 'bg-blue-100 text-blue-800 border-blue-200';
-    if (s === 'unlocked') return 'bg-purple-100 text-purple-800 border-purple-200';
-    if (s === 'paid') return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-    if (s === 'under review' || s === 'under_review') return 'bg-amber-100 text-amber-800 border-amber-200';
-    return 'bg-gray-100 text-gray-800 border-gray-200';
+    if (s === 'approved' || s === 'paid') return 'default';
+    if (s === 'draft') return 'secondary';
+    if (s === 'pending' || s === 'pending finance approval' || s === 'under review' || s === 'under_review') return 'outline';
+    if (s === 'rejected') return 'destructive';
+    if (s === 'locked' || s === 'frozen') return 'default';
+    if (s === 'unlocked') return 'outline';
+    return 'secondary';
   };
 
   const formatCurrency = (amount: number | undefined) => {
@@ -279,543 +310,706 @@ export default function PayrollManagerRunsPage() {
   };
 
   const formatDate = (dateStr: string | undefined) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('en-EG', { 
+    if (!dateStr) return 'Not available';
+    return new Date(dateStr).toLocaleDateString('en-US', { 
       year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold text-black mb-2">Payroll Manager - Review & Approval</h1>
-        <p className="text-gray-600 mb-6">
-          Review payroll runs, approve, and manage freeze/unfreeze operations
-        </p>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-6 relative">
+      {/* Theme Customizer Trigger */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <ThemeCustomizerTrigger 
+          onClick={() => setShowThemeCustomizer(true)}
+        />
+      </div>
+      
+      {/* Theme Customizer Modal */}
+      {showThemeCustomizer && (
+        <ThemeCustomizer open={showThemeCustomizer} onOpenChange={setShowThemeCustomizer} />
+      )}
 
-        {/* Messages */}
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+            <span className="hover:text-primary transition-colors">Manager Dashboard</span>
+            <ChevronRight className="h-3 w-3" />
+            <span className="text-foreground font-medium">Payroll Review</span>
+          </div>
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Receipt className="h-6 w-6 text-primary" />
+                </div>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                  Payroll Review & Approval
+                </h1>
+              </div>
+              <p className="text-muted-foreground">
+                Review payroll runs, approve submissions, and manage freeze/unfreeze operations
+              </p>
+            </div>
+            <Badge variant="outline" className="px-3 py-1 border-primary/30">
+              <Shield className="h-3 w-3 mr-2" />
+              Manager Access
+            </Badge>
+          </div>
+        </div>
+
+        {/* Status Messages */}
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex justify-between items-center">
-            <span>{error}</span>
-            <button onClick={() => setError('')} className="text-red-500 hover:text-red-700">✕</button>
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              <span className="text-destructive">{error}</span>
+            </div>
+            <button onClick={() => setError('')} className="text-destructive/70 hover:text-destructive">
+              ×
+            </button>
           </div>
         )}
         {success && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex justify-between items-center">
-            <span>{success}</span>
-            <button onClick={() => setSuccess('')} className="text-green-500 hover:text-green-700">✕</button>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-200 pb-4">
-          <button
-            onClick={() => setActiveTab('pending')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'pending'
-                ? 'bg-orange-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-            }`}
-          >
-            ⏳ Pending Approval
-          </button>
-          <button
-            onClick={() => setActiveTab('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-            }`}
-          >
-            📋 All Runs
-          </button>
-          <button
-            onClick={() => setActiveTab('frozen')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'frozen'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-            }`}
-          >
-            🔒 Frozen
-          </button>
-          <button
-            onClick={fetchRuns}
-            disabled={loading}
-            className="ml-auto px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-          >
-            {loading ? 'Loading...' : 'Refresh'}
-          </button>
-        </div>
-
-        {/* Filter for All tab */}
-        {activeTab === 'all' && (
-          <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
-            <div className="flex gap-4 items-center">
-              <label className="text-sm font-medium text-black">Filter by Status:</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-black bg-white"
-              >
-                <option value="">All Statuses</option>
-                <option value="draft">Draft</option>
-                <option value="under review">Under Review</option>
-                <option value="pending finance approval">Pending Finance Approval</option>
-                <option value="approved">Approved</option>
-                <option value="locked">Locked</option>
-                <option value="unlocked">Unlocked</option>
-                <option value="rejected">Rejected</option>
-              </select>
+          <div className="bg-success/10 border border-success/20 rounded-lg p-4 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-success" />
+              <span className="text-success">{success}</span>
             </div>
+            <button onClick={() => setSuccess('')} className="text-success/70 hover:text-success">
+              ×
+            </button>
           </div>
         )}
 
-        {/* Runs List */}
-        {loading && runs.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">Loading payroll runs...</div>
-        ) : runs.length === 0 ? (
-          <div className="text-center py-12 bg-white border border-gray-200 rounded-lg">
-            <p className="text-gray-500">
-              {activeTab === 'pending' 
-                ? 'No payroll runs awaiting your approval' 
-                : activeTab === 'frozen'
-                ? 'No frozen payroll runs'
-                : 'No payroll runs found'}
-            </p>
+        {/* Main Navigation Tabs */}
+        <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v as any)} className="w-full">
+          <div className="flex justify-between items-center mb-4">
+            <TabsList>
+              <TabsTrigger value="pending" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Pending Review
+              </TabsTrigger>
+              <TabsTrigger value="all" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                All Runs
+              </TabsTrigger>
+              <TabsTrigger value="frozen" className="flex items-center gap-2">
+                <Lock className="h-4 w-4" />
+                Frozen Runs
+              </TabsTrigger>
+            </TabsList>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={fetchRuns}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {runs.map((run) => (
-              <div
-                key={run._id}
-                className={`bg-white border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer ${
-                  run.frozen ? 'border-blue-300' : 'border-gray-200'
-                }`}
-                onClick={() => {
-                  setSelectedRun(run);
-                  fetchRunDetails(run._id);
-                }}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <span className="font-semibold text-black text-lg">
-                      {formatPayrollPeriod(run.payrollPeriod)}
-                    </span>
-                    <p className="text-sm text-gray-500">{run.entity || 'Default Entity'}</p>
+
+          {/* Additional Filter for All Runs */}
+          <TabsContent value="all" className="space-y-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">Filter by Status</span>
                   </div>
-                  <div className="flex flex-col gap-1 items-end">
-                    <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(run.status || '')}`}>
-                      {run.status?.toUpperCase() || 'UNKNOWN'}
-                    </span>
-                    {run.frozen && (
-                      <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                        🔒 FROZEN
-                      </span>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">All Statuses</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="under review">Under Review</SelectItem>
+                      <SelectItem value="pending finance approval">Pending Finance Approval</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="locked">Locked</SelectItem>
+                      <SelectItem value="unlocked">Unlocked</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Runs Grid */}
+          <TabsContent value={activeTab} className="mt-0">
+            {loading && runs.length === 0 ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i}>
+                    <CardHeader>
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-6 w-24" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : runs.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                    {activeTab === 'pending' ? (
+                      <CheckCircle className="h-8 w-8 text-muted-foreground" />
+                    ) : activeTab === 'frozen' ? (
+                      <Unlock className="h-8 w-8 text-muted-foreground" />
+                    ) : (
+                      <FileText className="h-8 w-8 text-muted-foreground" />
                     )}
                   </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                  <div>
-                    <span className="text-gray-500">Employees:</span>
-                    <span className="ml-1 text-black font-medium">{run.employees || 0}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Exceptions:</span>
-                    <span className={`ml-1 font-medium ${(run.exceptions || 0) > 0 ? 'text-red-600' : 'text-black'}`}>
-                      {run.exceptions || 0}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="border-t pt-2">
-                  <span className="text-gray-500 text-sm">Total Net Pay:</span>
-                  <p className="text-xl font-bold text-black">{formatCurrency(run.totalnetpay)}</p>
-                </div>
-
-                {/* Approval Status Indicators */}
-                <div className="flex gap-2 mt-2">
-                  <span className={`text-xs px-2 py-0.5 rounded ${run.approvedByManager ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                    {run.approvedByManager ? '✓ Mgr' : '○ Mgr'}
-                  </span>
-                  <span className={`text-xs px-2 py-0.5 rounded ${run.approvedByFinance ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                    {run.approvedByFinance ? '✓ Fin' : '○ Fin'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Selected Run Modal */}
-        {selectedRun && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-xl font-bold text-black">
-                      Payroll Run Review
-                    </h2>
-                    <p className="text-gray-500">
-                      {formatPayrollPeriod(selectedRun.payrollPeriod)}
-                      {' - '}{selectedRun.entity || 'Default Entity'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => { setSelectedRun(null); setRunDetails(null); setEmployeeDetails([]); }}
-                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                  <h3 className="text-lg font-medium text-foreground mb-2">
+                    {activeTab === 'pending' 
+                      ? 'No payroll runs awaiting review' 
+                      : activeTab === 'frozen'
+                      ? 'No frozen payroll runs'
+                      : 'No payroll runs found'}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {activeTab === 'pending' 
+                      ? 'All payroll runs have been reviewed and approved'
+                      : activeTab === 'frozen'
+                      ? 'All payroll runs are currently unlocked for editing'
+                      : 'Try adjusting your filters to see more results'}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {runs.map((run) => (
+                  <Card 
+                    key={run._id} 
+                    className={`cursor-pointer transition-all hover:shadow-lg ${
+                      selectedRun?._id === run._id ? 'ring-2 ring-primary' : ''
+                    } ${run.frozen ? 'border-blue-300' : ''}`}
+                    onClick={() => {
+                      setSelectedRun(run);
+                      fetchRunDetails(run._id);
+                    }}
                   >
-                    ×
-                  </button>
-                </div>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg text-foreground">
+                            {formatPayrollPeriod(run.payrollPeriod)}
+                          </CardTitle>
+                          <CardDescription className="flex items-center gap-2 mt-1">
+                            <Building className="h-3 w-3" />
+                            {run.entity || 'Default Entity'}
+                          </CardDescription>
+                        </div>
+                        <div className="flex flex-col gap-1 items-end">
+                          <Badge variant={getStatusColor(run.status || '')} className="capitalize">
+                            {run.status || 'Unknown'}
+                          </Badge>
+                          {run.frozen && (
+                            <Badge variant="default" className="bg-blue-100 text-blue-700 border-blue-200">
+                              <Lock className="h-3 w-3 mr-1" />
+                              Frozen
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            Employees
+                          </span>
+                          <span className="font-medium text-foreground">{run.employees || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground flex items-center gap-1">
+                            <AlertOctagon className="h-3 w-3" />
+                            Exceptions
+                          </span>
+                          <span className={`font-medium ${(run.exceptions || 0) > 0 ? 'text-destructive' : 'text-foreground'}`}>
+                            {run.exceptions || 0}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="border-t pt-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-muted-foreground">Total Net Pay</span>
+                          <span className="text-lg font-bold text-success">
+                            {formatCurrency(run.totalnetpay)}
+                          </span>
+                        </div>
+                        {/* Approval Status */}
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant={run.approvedByManager ? 'default' : 'outline'} className="text-xs">
+                            {run.approvedByManager ? 'Manager ✓' : 'Manager ○'}
+                          </Badge>
+                          <Badge variant={run.approvedByFinance ? 'default' : 'outline'} className="text-xs">
+                            {run.approvedByFinance ? 'Finance ✓' : 'Finance ○'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="pt-0">
+                      <Button variant="ghost" className="w-full">
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
               </div>
-              
-              <div className="p-6 space-y-6">
-                {/* Status Badges */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${getStatusColor(selectedRun.status || '')}`}>
-                    {selectedRun.status?.toUpperCase() || 'UNKNOWN'}
-                  </span>
-                  {selectedRun.frozen && (
-                    <span className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                      🔒 FROZEN
-                    </span>
-                  )}
-                  {selectedRun.approvedByManager && (
-                    <span className="px-3 py-1.5 rounded-lg text-sm font-medium bg-green-100 text-green-800 border border-green-200">
-                      ✓ Manager Approved
-                    </span>
-                  )}
-                  {selectedRun.approvedByFinance && (
-                    <span className="px-3 py-1.5 rounded-lg text-sm font-medium bg-green-100 text-green-800 border border-green-200">
-                      ✓ Finance Approved
-                    </span>
-                  )}
-                </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
 
-                {/* Summary Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <span className="text-gray-500 text-sm">Employees</span>
-                    <p className="text-2xl font-bold text-black">{selectedRun.employees || 0}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <span className="text-gray-500 text-sm">Exceptions</span>
-                    <p className={`text-2xl font-bold ${(selectedRun.exceptions || 0) > 0 ? 'text-red-600' : 'text-black'}`}>
-                      {selectedRun.exceptions || 0}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <span className="text-gray-500 text-sm">Total Gross Pay</span>
-                    <p className="text-xl font-bold text-black">{formatCurrency(selectedRun.totalGrossPay || runDetails?.totalGrossPay)}</p>
-                  </div>
-                  <div className="bg-red-50 p-4 rounded-lg">
-                    <span className="text-gray-500 text-sm">Total Deductions</span>
-                    <p className="text-xl font-bold text-red-600">-{formatCurrency(selectedRun.totalDeductions || runDetails?.totalDeductions)}</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <span className="text-gray-500 text-sm">Total Net Pay</span>
-                    <p className="text-2xl font-bold text-green-700">{formatCurrency(selectedRun.totalnetpay)}</p>
-                  </div>
-                  <div className="bg-orange-50 p-4 rounded-lg">
-                    <span className="text-gray-500 text-sm">Irregularities</span>
-                    <p className={`text-2xl font-bold ${(selectedRun.irregularitiesCount || 0) > 0 ? 'text-orange-600' : 'text-black'}`}>
-                      {selectedRun.irregularitiesCount || 0}
-                    </p>
-                  </div>
-                </div>
+      {/* Run Details Dialog */}
+      {selectedRun && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-card border-b p-6 flex justify-between items-start">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">
+                  Payroll Run Review
+                </h2>
+                <p className="text-muted-foreground mt-1">
+                  {formatPayrollPeriod(selectedRun.payrollPeriod)} • {selectedRun.entity || 'Default Entity'}
+                </p>
+              </div>
+              <button
+                onClick={() => { setSelectedRun(null); setRunDetails(null); setEmployeeDetails([]); }}
+                className="text-muted-foreground hover:text-foreground transition-colors text-2xl"
+              >
+                ×
+              </button>
+            </div>
 
-                {/* Irregularities Section */}
-                {(selectedRun.irregularities && selectedRun.irregularities.length > 0) && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-orange-800 mb-2">⚠️ Flagged Irregularities</h3>
-                    <ul className="space-y-1 max-h-40 overflow-y-auto">
-                      {selectedRun.irregularities.map((irr, idx) => (
-                        <li key={idx} className="text-sm text-orange-700 flex items-start gap-2">
-                          <span className="mt-1">•</span>
-                          <span>{irr}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Status & Info Bar */}
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge variant={getStatusColor(selectedRun.status || '')} className="text-sm capitalize">
+                  {selectedRun.status || 'Unknown'}
+                </Badge>
+                {selectedRun.frozen && (
+                  <Badge variant="default" className="bg-blue-100 text-blue-700 border-blue-200">
+                    <Lock className="h-3 w-3 mr-1" />
+                    Frozen
+                  </Badge>
                 )}
+                {selectedRun.approvedByManager && (
+                  <Badge variant="default">
+                    <Shield className="h-3 w-3 mr-1" />
+                    Manager Approved
+                  </Badge>
+                )}
+                {selectedRun.approvedByFinance && (
+                  <Badge variant="default">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Finance Approved
+                  </Badge>
+                )}
+              </div>
 
-                {/* Freeze/Unfreeze Info */}
-                {selectedRun.frozen && selectedRun.frozenReason && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-blue-800 mb-1">🔒 Frozen</h3>
-                    <p className="text-sm text-blue-700">Reason: {selectedRun.frozenReason}</p>
-                    {selectedRun.frozenAt && (
-                      <p className="text-xs text-blue-600 mt-1">Frozen at: {formatDate(selectedRun.frozenAt)}</p>
+              {/* Financial Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Financial Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <div className="text-sm text-muted-foreground">Employees</div>
+                      <div className="text-2xl font-bold text-foreground">{selectedRun.employees || 0}</div>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <div className="text-sm text-muted-foreground">Exceptions</div>
+                      <div className={`text-2xl font-bold ${(selectedRun.exceptions || 0) > 0 ? 'text-destructive' : 'text-foreground'}`}>
+                        {selectedRun.exceptions || 0}
+                      </div>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <div className="text-sm text-muted-foreground">Gross Pay</div>
+                      <div className="text-xl font-bold text-foreground">
+                        {formatCurrency(selectedRun.totalGrossPay || runDetails?.totalGrossPay)}
+                      </div>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <div className="text-sm text-muted-foreground">Deductions</div>
+                      <div className="text-xl font-bold text-destructive">
+                        -{formatCurrency(selectedRun.totalDeductions || runDetails?.totalDeductions)}
+                      </div>
+                    </div>
+                    <div className="bg-success/10 border border-success/20 rounded-lg p-4">
+                      <div className="text-sm text-success">Net Pay</div>
+                      <div className="text-2xl font-bold text-success">
+                        {formatCurrency(selectedRun.totalnetpay)}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Additional Financial Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Earnings Breakdown</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {selectedRun.totalBaseSalary !== undefined && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Base Salaries</span>
+                        <span className="font-medium">EGP {selectedRun.totalBaseSalary?.toLocaleString() || '0'}</span>
+                      </div>
                     )}
-                  </div>
-                )}
+                    {selectedRun.totalAllowances !== undefined && (
+                      <div className="flex justify-between items-center text-green-600">
+                        <span className="text-muted-foreground">Allowances</span>
+                        <span className="font-medium">+EGP {selectedRun.totalAllowances?.toLocaleString() || '0'}</span>
+                      </div>
+                    )}
+                    {selectedRun.totalOvertime !== undefined && selectedRun.totalOvertime > 0 && (
+                      <div className="flex justify-between items-center text-blue-600">
+                        <span className="text-muted-foreground">Overtime</span>
+                        <span className="font-medium">+EGP {selectedRun.totalOvertime?.toLocaleString() || '0'}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
-                {/* Approval Timeline */}
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold text-black mb-3">Approval Workflow</h3>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Deductions Breakdown</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {selectedRun.totalTaxDeductions !== undefined && (
+                      <div className="flex justify-between items-center text-destructive">
+                        <span className="text-muted-foreground">Tax</span>
+                        <span className="font-medium">-EGP {selectedRun.totalTaxDeductions?.toLocaleString() || '0'}</span>
+                      </div>
+                    )}
+                    {selectedRun.totalInsuranceDeductions !== undefined && (
+                      <div className="flex justify-between items-center text-destructive">
+                        <span className="text-muted-foreground">Insurance</span>
+                        <span className="font-medium">-EGP {selectedRun.totalInsuranceDeductions?.toLocaleString() || '0'}</span>
+                      </div>
+                    )}
+                    {selectedRun.totalPenalties !== undefined && selectedRun.totalPenalties > 0 && (
+                      <div className="flex justify-between items-center text-destructive">
+                        <span className="text-muted-foreground">Penalties</span>
+                        <span className="font-medium">-EGP {selectedRun.totalPenalties?.toLocaleString() || '0'}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Irregularities Section */}
+              {(selectedRun.irregularities && selectedRun.irregularities.length > 0) && (
+                <Card className="border-warning/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-warning">
+                      <AlertTriangle className="h-5 w-5" />
+                      Flagged Irregularities
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {selectedRun.irregularities.map((irr, idx) => (
+                        <div key={idx} className="flex items-start gap-2 p-3 bg-warning/10 rounded-lg">
+                          <AlertTriangle className="h-4 w-4 text-warning mt-0.5" />
+                          <span className="text-warning text-sm">{irr}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Freeze/Unfreeze Information */}
+              {selectedRun.frozen && selectedRun.frozenReason && (
+                <Card className="border-blue-200 bg-blue-50/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-700">
+                      <Lock className="h-5 w-5" />
+                      Frozen Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-blue-800 mb-2">{selectedRun.frozenReason}</p>
+                    {selectedRun.frozenAt && (
+                      <div className="text-sm text-blue-600">
+                        <Clock className="inline h-3 w-3 mr-1" />
+                        Frozen: {formatDate(selectedRun.frozenAt)}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Approval Workflow */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Approval Workflow
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="flex gap-4">
                     <div className={`flex-1 p-4 rounded-lg border-2 ${
                       selectedRun.approvedByManager 
-                        ? 'bg-green-50 border-green-300' 
-                        : 'bg-orange-50 border-orange-300'
+                        ? 'bg-success/10 border-success/30' 
+                        : 'bg-warning/10 border-warning/30'
                     }`}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xl">{selectedRun.approvedByManager ? '✅' : '⏳'}</span>
-                        <span className="font-medium text-black">Manager Approval</span>
+                      <div className="flex items-center gap-2 mb-2">
+                        {selectedRun.approvedByManager ? (
+                          <CheckCircle className="h-5 w-5 text-success" />
+                        ) : (
+                          <Clock className="h-5 w-5 text-warning" />
+                        )}
+                        <h4 className="font-medium">Manager Approval</h4>
                       </div>
-                      <p className="text-xs text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         {selectedRun.approvedByManager 
                           ? `Approved ${selectedRun.approvedByManagerAt ? formatDate(selectedRun.approvedByManagerAt) : ''}` 
-                          : 'Awaiting approval'}
+                          : 'Awaiting review and approval'}
                       </p>
                     </div>
-                    <div className="flex items-center text-gray-400">→</div>
+                    
+                    <div className="flex items-center justify-center text-muted-foreground">
+                      <ChevronRight className="h-6 w-6" />
+                    </div>
+                    
                     <div className={`flex-1 p-4 rounded-lg border-2 ${
                       selectedRun.approvedByFinance 
-                        ? 'bg-green-50 border-green-300' 
+                        ? 'bg-success/10 border-success/30' 
                         : selectedRun.approvedByManager 
-                          ? 'bg-orange-50 border-orange-300'
-                          : 'bg-gray-50 border-gray-200'
+                          ? 'bg-warning/10 border-warning/30'
+                          : 'bg-muted/50 border-muted'
                     }`}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xl">
-                          {selectedRun.approvedByFinance ? '✅' : selectedRun.approvedByManager ? '⏳' : '⏸️'}
-                        </span>
-                        <span className="font-medium text-black">Finance Approval</span>
+                      <div className="flex items-center gap-2 mb-2">
+                        {selectedRun.approvedByFinance ? (
+                          <CheckCircle className="h-5 w-5 text-success" />
+                        ) : selectedRun.approvedByManager ? (
+                          <Clock className="h-5 w-5 text-warning" />
+                        ) : (
+                          <Settings className="h-5 w-5 text-muted-foreground" />
+                        )}
+                        <h4 className="font-medium">Finance Approval</h4>
                       </div>
-                      <p className="text-xs text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         {selectedRun.approvedByFinance 
                           ? `Approved ${selectedRun.approvedByFinanceAt ? formatDate(selectedRun.approvedByFinanceAt) : ''}`
                           : selectedRun.approvedByManager
-                            ? 'Awaiting finance'
-                            : 'Pending manager approval'}
+                            ? 'Pending finance review'
+                            : 'Requires manager approval first'}
                       </p>
                     </div>
                   </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                {/* Employee Payroll Details */}
-                {employeeDetails.length > 0 && (
-                  <div className="border-t pt-4">
-                    <h3 className="font-semibold text-black mb-3">Employee Payroll Details</h3>
+              {/* Employee Details */}
+              {employeeDetails.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Employee Payroll Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-100">
-                          <tr>
-                            <th className="text-left p-2 text-black">Employee</th>
-                            <th className="text-right p-2 text-black">Gross</th>
-                            <th className="text-right p-2 text-black">Deductions</th>
-                            <th className="text-right p-2 text-black">Net</th>
-                            <th className="text-center p-2 text-black">Status</th>
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-3 text-muted-foreground">Employee</th>
+                            <th className="text-right p-3 text-muted-foreground">Gross</th>
+                            <th className="text-right p-3 text-muted-foreground">Deductions</th>
+                            <th className="text-right p-3 text-muted-foreground">Net</th>
+                            <th className="text-center p-3 text-muted-foreground">Status</th>
                           </tr>
                         </thead>
                         <tbody>
                           {employeeDetails.slice(0, 10).map((emp, idx) => (
-                            <tr key={emp._id || idx} className="border-b border-gray-100">
-                              <td className="p-2 text-black">
-                                {emp.employeeName || emp.employeeId?.toString().slice(-8) || '-'}
-                                {emp.exceptions && emp.exceptions.length > 0 && (
-                                  <span className="ml-2 text-xs text-red-600" title={emp.exceptions.join(', ')}>⚠️</span>
-                                )}
+                            <tr key={emp._id || idx} className="border-b hover:bg-muted/50">
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4 text-muted-foreground" />
+                                  <div>
+                                    <div className="font-medium text-foreground">
+                                      {emp.employeeName || emp.employeeId?.toString().slice(-8) || '-'}
+                                    </div>
+                                    {emp.exceptions && emp.exceptions.length > 0 && (
+                                      <div className="text-xs text-destructive flex items-center gap-1">
+                                        <AlertCircle className="h-3 w-3" />
+                                        {emp.exceptions.length} exception(s)
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
                               </td>
-                              <td className="text-right p-2 text-black">{formatCurrency(emp.grossPay)}</td>
-                              <td className="text-right p-2 text-red-600">
+                              <td className="text-right p-3 font-medium">{formatCurrency(emp.grossPay)}</td>
+                              <td className="text-right p-3 text-destructive">
                                 -{formatCurrency((emp.taxDeductions || 0) + (emp.insuranceDeductions || 0) + (emp.otherDeductions || 0))}
                               </td>
-                              <td className="text-right p-2 text-green-700 font-medium">{formatCurrency(emp.netPay)}</td>
-                              <td className="text-center p-2">
-                                <span className={`px-2 py-0.5 rounded text-xs ${getStatusColor(emp.status || '')}`}>
+                              <td className="text-right p-3 font-bold text-success">{formatCurrency(emp.netPay)}</td>
+                              <td className="text-center p-3">
+                                <Badge variant="outline" className="capitalize">
                                   {emp.status || '-'}
-                                </span>
+                                </Badge>
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                       {employeeDetails.length > 10 && (
-                        <p className="text-sm text-gray-500 mt-2 text-center">
+                        <div className="text-center p-3 text-sm text-muted-foreground">
                           Showing 10 of {employeeDetails.length} employees
-                        </p>
+                        </div>
                       )}
                     </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Run Metadata */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Run Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    {(runDetails?.runId || selectedRun.runId) && (
+                      <div>
+                        <span className="text-sm text-muted-foreground">Run ID</span>
+                        <div className="font-mono text-sm text-foreground">{runDetails?.runId || selectedRun.runId}</div>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-sm text-muted-foreground">Created</span>
+                      <div className="text-foreground">{formatDate(runDetails?.createdAt || selectedRun.createdAt)}</div>
+                    </div>
+                    {runDetails?.processedAt && (
+                      <div>
+                        <span className="text-sm text-muted-foreground">Processed</span>
+                        <div className="text-foreground">{formatDate(runDetails.processedAt)}</div>
+                      </div>
+                    )}
+                    {runDetails?.paymentStatus && (
+                      <div>
+                        <span className="text-sm text-muted-foreground">Payment Status</span>
+                        <div className="text-foreground capitalize">{runDetails.paymentStatus}</div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="space-y-4">
+                {/* Manager Approval */}
+                {(selectedRun.status === 'under review' || selectedRun.status === 'under_review') && !selectedRun.managerApprovalDate && (
+                  <Button 
+                    onClick={() => handleApprove(selectedRun._id)}
+                    disabled={loading}
+                    className="w-full py-6 text-lg"
+                  >
+                    <CheckCircle className="h-5 w-5 mr-2" />
+                    Approve Payroll Run
+                  </Button>
+                )}
+
+                {/* Status Information */}
+                {selectedRun.status === 'draft' && (
+                  <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <Clock className="h-4 w-4 text-warning" />
+                      <span className="font-medium text-warning">Draft Status</span>
+                    </div>
+                    <p className="text-sm text-warning">
+                      Awaiting submission from payroll specialist for review
+                    </p>
+                  </div>
+                )}
+                {selectedRun.status === 'pending finance approval' && (
+                  <div className="bg-success/10 border border-success/20 rounded-lg p-4 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <CheckCircle className="h-4 w-4 text-success" />
+                      <span className="font-medium text-success">Manager Approved</span>
+                    </div>
+                    <p className="text-sm text-success">
+                      Awaiting finance department approval
+                    </p>
                   </div>
                 )}
 
-                {/* Run Details - Always show comprehensive info */}
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold text-black mb-2">Run Details</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                      {/* Run ID */}
-                      {(runDetails?.runId || selectedRun.runId) && (
-                        <>
-                          <span className="text-gray-600">Run ID:</span>
-                          <span className="font-medium text-black">{runDetails?.runId || selectedRun.runId}</span>
-                        </>
-                      )}
-                      
-                      {/* Period */}
-                      <span className="text-gray-600">Period:</span>
-                      <span className="font-medium text-black">
-                        {formatPayrollPeriod(runDetails?.payrollPeriod || selectedRun.payrollPeriod)}
-                      </span>
-                      
-                      {/* Entity/Department */}
-                      <span className="text-gray-600">Department:</span>
-                      <span className="font-medium text-black">{runDetails?.entity || selectedRun.entity || '-'}</span>
-                      
-                      {/* Employees */}
-                      <span className="text-gray-600">Employees:</span>
-                      <span className="font-medium text-black">{runDetails?.employees || runDetails?.totalEmployees || selectedRun.employees || 0}</span>
-                      
-                      {/* Status */}
-                      <span className="text-gray-600">Status:</span>
-                      <span className="font-medium text-black capitalize">{selectedRun.status || '-'}</span>
-                      
-                      {/* Payment Status */}
-                      {(runDetails?.paymentStatus || selectedRun.paymentStatus) && (
-                        <>
-                          <span className="text-gray-600">Payment Status:</span>
-                          <span className="font-medium text-black capitalize">{runDetails?.paymentStatus || selectedRun.paymentStatus}</span>
-                        </>
-                      )}
-                      
-                      {/* Base Salary Total */}
-                      {(runDetails?.totalBaseSalary !== undefined) && (
-                        <>
-                          <span className="text-gray-600">Base Salaries:</span>
-                          <span className="font-medium text-black">EGP {runDetails?.totalBaseSalary?.toLocaleString() || '0'}</span>
-                        </>
-                      )}
-                      
-                      {/* Allowances */}
-                      {(runDetails?.totalAllowances !== undefined) && (
-                        <>
-                          <span className="text-gray-600">Total Allowances:</span>
-                          <span className="font-medium text-green-700">+EGP {runDetails?.totalAllowances?.toLocaleString() || '0'}</span>
-                        </>
-                      )}
-                      
-                      {/* Overtime */}
-                      {(runDetails?.totalOvertime !== undefined && runDetails?.totalOvertime > 0) && (
-                        <>
-                          <span className="text-gray-600">Overtime:</span>
-                          <span className="font-medium text-blue-700">+EGP {runDetails?.totalOvertime?.toLocaleString() || '0'}</span>
-                        </>
-                      )}
-                      
-                      {/* Penalties */}
-                      {(runDetails?.totalPenalties !== undefined && runDetails?.totalPenalties > 0) && (
-                        <>
-                          <span className="text-gray-600">Penalties:</span>
-                          <span className="font-medium text-red-600">-EGP {runDetails?.totalPenalties?.toLocaleString() || '0'}</span>
-                        </>
-                      )}
-                      
-                      {/* Created Date */}
-                      <span className="text-gray-600">Created:</span>
-                      <span className="font-medium text-black">
-                        {new Date(runDetails?.createdAt || selectedRun.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                      </span>
-                      
-                      {/* Processed Date */}
-                      {(runDetails?.processedAt || selectedRun.processedAt) && (
-                        <>
-                          <span className="text-gray-600">Processed:</span>
-                          <span className="font-medium text-black">
-                            {new Date(runDetails?.processedAt || selectedRun.processedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                          </span>
-                        </>
-                      )}
-                      
-                      {/* Manager Approval Date */}
-                      {(runDetails?.managerApprovalDate || selectedRun.managerApprovalDate) && (
-                        <>
-                          <span className="text-gray-600">Manager Approved:</span>
-                          <span className="font-medium text-green-700">
-                            {new Date(runDetails?.managerApprovalDate || selectedRun.managerApprovalDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                          </span>
-                        </>
-                      )}
-                      
-                      {/* Finance Approval Date */}
-                      {(runDetails?.financeApprovalDate || selectedRun.financeApprovalDate) && (
-                        <>
-                          <span className="text-gray-600">Finance Approved:</span>
-                          <span className="font-medium text-green-700">
-                            {new Date(runDetails?.financeApprovalDate || selectedRun.financeApprovalDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="border-t pt-4 space-y-3">
-                  {/* Manager Approve button - only for 'under review' status (REQ-PY-22) */}
-                  {(selectedRun.status === 'under review' || selectedRun.status === 'under_review') && !selectedRun.managerApprovalDate && (
-                    <button
-                      onClick={() => handleApprove(selectedRun._id)}
-                      disabled={loading}
-                      className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50"
-                    >
-                      ✓ Approve Payroll Run
-                    </button>
-                  )}
-                  
-                  {/* Info for other statuses */}
-                  {selectedRun.status === 'draft' && (
-                    <div className="text-center text-yellow-600 py-4 bg-yellow-50 rounded-lg">
-                      📝 Draft - Awaiting specialist submission
-                    </div>
-                  )}
-                  {(selectedRun.status === 'pending finance approval') && (
-                    <div className="text-center text-amber-600 py-4 bg-amber-50 rounded-lg">
-                      ✓ Manager approved - Awaiting finance approval
-                    </div>
-                  )}
-
-                  {/* Freeze/Unfreeze buttons - only show for appropriate statuses */}
-                  {(selectedRun.status === 'approved' || selectedRun.status === 'locked' || selectedRun.status === 'unlocked') && (
-                    <div className="space-y-3">
+                {/* Freeze/Unfreeze Actions */}
+                {(selectedRun.status === 'approved' || selectedRun.status === 'locked' || selectedRun.status === 'unlocked') && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Security Controls</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
                       {selectedRun.status === 'unlocked' && (
-                        <div className="text-sm text-purple-700 bg-purple-50 p-3 rounded-lg border border-purple-200">
-                          <strong>🔓 Unlocked for Corrections</strong>
-                          <p className="mt-1">This run is unlocked. The Payroll Specialist can make edits and resubmit for the full approval cycle (Manager → Finance → Lock).</p>
-                          <p className="mt-1 text-xs">You can also directly re-freeze if no changes are needed.</p>
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Unlock className="h-4 w-4 text-purple-600" />
+                            <span className="font-medium text-purple-700">Unlocked for Corrections</span>
+                          </div>
+                          <p className="text-sm text-purple-600">
+                            This payroll run is unlocked. The Payroll Specialist can make edits and resubmit for the full approval cycle.
+                          </p>
                         </div>
                       )}
                       <div className="flex gap-3">
                         {selectedRun.status === 'approved' || selectedRun.status === 'unlocked' ? (
-                          <button
+                          <Button 
                             onClick={() => handleFreeze(selectedRun._id)}
                             disabled={loading}
-                            className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+                            variant="default"
+                            className="flex-1 py-4"
                           >
-                            🔒 {selectedRun.status === 'unlocked' ? 'Re-Freeze Payroll' : 'Freeze Payroll'}
-                          </button>
+                            <Lock className="h-4 w-4 mr-2" />
+                            {selectedRun.status === 'unlocked' ? 'Re-Freeze Payroll' : 'Freeze Payroll'}
+                          </Button>
                         ) : selectedRun.status === 'locked' ? (
-                          <button
+                          <Button 
                             onClick={() => handleUnfreeze(selectedRun._id)}
                             disabled={loading}
-                            className="flex-1 bg-orange-600 text-white py-3 rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50"
+                            variant="outline"
+                            className="flex-1 py-4"
                           >
-                            🔓 Unfreeze for Corrections
-                          </button>
+                            <Unlock className="h-4 w-4 mr-2" />
+                            Unfreeze for Corrections
+                          </Button>
                         ) : null}
                       </div>
-                    </div>
-                  )}
-                </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

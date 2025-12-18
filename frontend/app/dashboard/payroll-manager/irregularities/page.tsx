@@ -1,8 +1,45 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, JSX } from 'react';
+import { ThemeCustomizer, ThemeCustomizerTrigger } from '@/app/components/theme-customizer';
+import { Snackbar } from './snackbar';
 import Link from 'next/link';
 import { payrollExecutionService } from '@/app/services/payroll-execution';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Badge } from "../../../components/ui/badge";
+import { Skeleton } from "../../../components/ui/skeleton";
+import { 
+  AlertTriangle, 
+  CheckCircle, 
+  XCircle, 
+  Eye,
+  Filter,
+  Clock,
+  User,
+  Building,
+  FileText,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+  ShieldAlert,
+  Settings,
+  RefreshCw,
+  Calculator,
+  Percent,
+  DollarSign,
+  Users,
+  Calendar
+} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
 
 interface Irregularity {
   _id: string;
@@ -44,7 +81,12 @@ export default function IrregularitiesPage() {
     notes: '',
     adjustedValue: '',
   });
-  const [stats, setStats] = useState({ pending: 0, escalated: 0, resolved: 0 });
+  const [stats, setStats] = useState({ total: 0, pending: 0, escalated: 0, resolved: 0 });
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; type?: 'success' | 'error' }>({ 
+    open: false, 
+    message: '' 
+  });
+  const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
 
   useEffect(() => {
     fetchIrregularities();
@@ -80,14 +122,18 @@ export default function IrregularitiesPage() {
       } else {
         irregularityData = { data: [], pending: 0, escalated: 0, resolved: 0 };
       }
-      setIrregularities(Array.isArray(irregularityData.data) ? irregularityData.data : []);
+      
+      const data = Array.isArray(irregularityData.data) ? irregularityData.data : [];
+      setIrregularities(data);
       setStats({
-        pending: irregularityData.pending || 0,
-        escalated: irregularityData.escalated || 0,
-        resolved: irregularityData.resolved || 0,
+        total: data.length,
+        pending: data.filter(i => i.status === 'pending').length,
+        escalated: data.filter(i => i.status === 'escalated').length,
+        resolved: data.filter(i => i.status === 'resolved').length,
       });
     } catch (err) {
       console.error('Failed to fetch irregularities:', err);
+      setSnackbar({ open: true, message: 'Failed to load irregularities', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -95,7 +141,7 @@ export default function IrregularitiesPage() {
 
   const handleResolve = async () => {
     if (!selectedIrregularity || !resolutionForm.notes.trim()) {
-      alert('Please provide resolution notes');
+      setSnackbar({ open: true, message: 'Please provide resolution notes', type: 'error' });
       return;
     }
 
@@ -105,66 +151,68 @@ export default function IrregularitiesPage() {
         action: resolutionForm.action,
         notes: resolutionForm.notes,
       };
-      
       if (resolutionForm.action === 'adjusted' && resolutionForm.adjustedValue) {
         payload.adjustedValue = parseFloat(resolutionForm.adjustedValue);
       }
-
       await payrollExecutionService.resolveIrregularity(selectedIrregularity._id, payload);
-      alert('Irregularity resolved successfully');
+      setSnackbar({ open: true, message: 'Irregularity resolved successfully', type: 'success' });
       setSelectedIrregularity(null);
       setResolutionForm({ action: 'approved', notes: '', adjustedValue: '' });
       fetchIrregularities();
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to resolve irregularity');
+      setSnackbar({ 
+        open: true, 
+        message: err?.response?.data?.message || 'Failed to resolve irregularity', 
+        type: 'error' 
+      });
     } finally {
       setResolving(false);
     }
   };
 
   const getSeverityBadge = (severity: string) => {
-    const styles: Record<string, string> = {
-      info: 'bg-blue-100 text-blue-800',
-      low: 'bg-green-100 text-green-800',
-      medium: 'bg-yellow-100 text-yellow-800',
-      high: 'bg-orange-100 text-orange-800',
-      critical: 'bg-red-100 text-red-800',
+    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+      info: 'default',
+      low: 'secondary',
+      medium: 'secondary', // changed from 'warning' to 'secondary'
+      high: 'destructive',
+      critical: 'destructive',
     };
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[severity] || styles.info}`}>
-        {severity.toUpperCase()}
-      </span>
+      <Badge variant={variants[severity] || 'default'} className="capitalize">
+        {severity}
+      </Badge>
     );
   };
 
   const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      pending: 'bg-gray-100 text-gray-800',
-      escalated: 'bg-purple-100 text-purple-800',
-      resolved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
+    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+      pending: 'default',
+      escalated: 'secondary',
+      resolved: 'outline',
+      rejected: 'destructive',
     };
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status] || styles.pending}`}>
-        {status.toUpperCase()}
-      </span>
+      <Badge variant={variants[status] || 'default'} className="capitalize">
+        {status}
+      </Badge>
     );
   };
 
   const getTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      overtime_spike: '⏰',
-      salary_spike: '📈',
-      negative_net_pay: '🔴',
-      commission_spike: '💰',
-      new_hire_prorated: 'ℹ️',
-      loan_deduction: '🏦',
-      penalty_deduction: '⚠️',
-      absence_deduction: '📅',
-      suspended_employee: '🚫',
-      extended_unpaid_leave: '🏖️',
+    const icons: Record<string, JSX.Element> = {
+      overtime_spike: <TrendingUp className="h-4 w-4" />,
+      salary_spike: <DollarSign className="h-4 w-4" />,
+      negative_net_pay: <AlertCircle className="h-4 w-4" />,
+      commission_spike: <Percent className="h-4 w-4" />,
+      new_hire_prorated: <User className="h-4 w-4" />,
+      loan_deduction: <Calculator className="h-4 w-4" />,
+      penalty_deduction: <ShieldAlert className="h-4 w-4" />,
+      absence_deduction: <Calendar className="h-4 w-4" />,
+      suspended_employee: <XCircle className="h-4 w-4" />,
+      extended_unpaid_leave: <Clock className="h-4 w-4" />,
     };
-    return icons[type] || '⚡';
+    return icons[type] || <AlertTriangle className="h-4 w-4" />;
   };
 
   const formatDate = (dateStr: string) => {
@@ -181,316 +229,521 @@ export default function IrregularitiesPage() {
   const formatCurrency = (amount: number) => `EGP ${amount?.toLocaleString() || 0}`;
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-          <Link href="/dashboard/payroll-manager" className="hover:text-blue-600">Dashboard</Link>
-          <span>→</span>
-          <span className="text-gray-900">Irregularities</span>
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900">Payroll Irregularities Management</h1>
-        <p className="text-gray-600 mt-1">Review and resolve flagged payroll issues</p>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-6 relative">
+      {/* Theme Customizer Trigger */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <ThemeCustomizerTrigger 
+          onClick={() => setShowThemeCustomizer(true)}
+        />
       </div>
+      
+      {/* Theme Customizer Modal */}
+      {showThemeCustomizer && (
+        <ThemeCustomizer open={showThemeCustomizer} onOpenChange={setShowThemeCustomizer} />
+      )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div 
-          onClick={() => setFilter('all')}
-          className={`bg-white p-4 rounded-lg shadow cursor-pointer border-2 transition-colors ${
-            filter === 'all' ? 'border-blue-500' : 'border-transparent hover:border-gray-200'
-          }`}
-        >
-          <div className="text-sm text-gray-500">Total</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.pending + stats.escalated + stats.resolved}</div>
-        </div>
-        <div 
-          onClick={() => setFilter('pending')}
-          className={`bg-white p-4 rounded-lg shadow cursor-pointer border-2 transition-colors ${
-            filter === 'pending' ? 'border-yellow-500' : 'border-transparent hover:border-gray-200'
-          }`}
-        >
-          <div className="text-sm text-gray-500">Pending</div>
-          <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-        </div>
-        <div 
-          onClick={() => setFilter('escalated')}
-          className={`bg-white p-4 rounded-lg shadow cursor-pointer border-2 transition-colors ${
-            filter === 'escalated' ? 'border-purple-500' : 'border-transparent hover:border-gray-200'
-          }`}
-        >
-          <div className="text-sm text-gray-500">Escalated</div>
-          <div className="text-2xl font-bold text-purple-600">{stats.escalated}</div>
-        </div>
-        <div 
-          onClick={() => setFilter('resolved')}
-          className={`bg-white p-4 rounded-lg shadow cursor-pointer border-2 transition-colors ${
-            filter === 'resolved' ? 'border-green-500' : 'border-transparent hover:border-gray-200'
-          }`}
-        >
-          <div className="text-sm text-gray-500">Resolved</div>
-          <div className="text-2xl font-bold text-green-600">{stats.resolved}</div>
-        </div>
-      </div>
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        message={snackbar.message}
+        onClose={() => setSnackbar({ open: false, message: '' })}
+      />
 
-      {/* Irregularities Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-4 border-b bg-gray-50">
-          <h2 className="font-semibold text-gray-900">
-            {filter === 'all' ? 'All Irregularities' : `${filter.charAt(0).toUpperCase() + filter.slice(1)} Irregularities`}
-          </h2>
-        </div>
-
-        {loading ? (
-          <div className="p-8 text-center text-gray-500">Loading...</div>
-        ) : irregularities.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">No irregularities found</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600">
-                <tr>
-                  <th className="text-left p-3">Type</th>
-                  <th className="text-left p-3">Employee</th>
-                  <th className="text-left p-3">Department</th>
-                  <th className="text-left p-3">Description</th>
-                  <th className="text-left p-3">Severity</th>
-                  <th className="text-left p-3">Status</th>
-                  <th className="text-left p-3">Flagged</th>
-                  <th className="text-left p-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {irregularities.map((irr) => (
-                  <tr key={irr._id} className="hover:bg-gray-50">
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">{getTypeIcon(irr.type)}</span>
-                        <span className="text-gray-900 font-medium">
-                          {irr.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="font-medium text-gray-900">{irr.employeeName}</div>
-                      <div className="text-xs text-gray-500">{irr.employeeCode}</div>
-                    </td>
-                    <td className="p-3 text-gray-700">
-                      {irr.payrollRun?.entity || 'N/A'}
-                    </td>
-                    <td className="p-3">
-                      <div className="text-gray-700 max-w-xs truncate" title={irr.description}>
-                        {irr.description}
-                      </div>
-                      {irr.currentValue !== undefined && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Value: {formatCurrency(irr.currentValue)}
-                          {irr.variancePercentage && ` (+${irr.variancePercentage}%)`}
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-3">{getSeverityBadge(irr.severity)}</td>
-                    <td className="p-3">{getStatusBadge(irr.status)}</td>
-                    <td className="p-3 text-gray-500 text-xs">{formatDate(irr.flaggedAt)}</td>
-                    <td className="p-3">
-                      {irr.status !== 'resolved' ? (
-                        <button
-                          onClick={() => setSelectedIrregularity(irr)}
-                          className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                        >
-                          Resolve
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setSelectedIrregularity(irr)}
-                          className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors"
-                        >
-                          View
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+            <Link href="/dashboard/payroll-manager" className="hover:text-primary transition-colors">
+              Dashboard
+            </Link>
+            <ChevronRight className="h-3 w-3" />
+            <span className="text-foreground font-medium">Irregularities Management</span>
           </div>
-        )}
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-amber-500/10 rounded-lg">
+                  <ShieldAlert className="h-6 w-6 text-amber-600" />
+                </div>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                  Payroll Irregularities
+                </h1>
+              </div>
+              <p className="text-muted-foreground">
+                Monitor, investigate, and resolve flagged payroll compliance issues
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={fetchIrregularities}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+        </div>
+
+        {/* Statistics Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="border-l-4 border-l-primary">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Irregularities
+                </CardTitle>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <AlertTriangle className="h-4 w-4 text-primary" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-foreground">{stats.total}</span>
+                  <span className="text-sm text-muted-foreground">issues</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-amber-500">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Pending Review
+                </CardTitle>
+                <div className="p-2 bg-amber-500/10 rounded-lg">
+                  <Clock className="h-4 w-4 text-amber-600" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-amber-600">{stats.pending}</span>
+                  <span className="text-sm text-muted-foreground">awaiting action</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-purple-500">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Escalated Issues
+                </CardTitle>
+                <div className="p-2 bg-purple-500/10 rounded-lg">
+                  <TrendingUp className="h-4 w-4 text-purple-600" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-purple-600">{stats.escalated}</span>
+                  <span className="text-sm text-muted-foreground">escalated</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-emerald-500">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Resolved
+                </CardTitle>
+                <div className="p-2 bg-emerald-500/10 rounded-lg">
+                  <CheckCircle className="h-4 w-4 text-emerald-600" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-emerald-600">{stats.resolved}</span>
+                  <span className="text-sm text-muted-foreground">closed</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Irregularities Management</CardTitle>
+                <CardDescription>
+                  Review and take action on flagged payroll compliance issues
+                </CardDescription>
+              </div>
+              <Tabs value={filter} onValueChange={(v: any) => setFilter(v as any)} className="w-[400px]">
+                <TabsList className="grid grid-cols-4">
+                  <TabsTrigger value="all" className="flex items-center gap-2">
+                    <Filter className="h-3 w-3" />
+                    All
+                  </TabsTrigger>
+                  <TabsTrigger value="pending" className="flex items-center gap-2">
+                    <Clock className="h-3 w-3" />
+                    Pending
+                  </TabsTrigger>
+                  <TabsTrigger value="escalated" className="flex items-center gap-2">
+                    <TrendingUp className="h-3 w-3" />
+                    Escalated
+                  </TabsTrigger>
+                  <TabsTrigger value="resolved" className="flex items-center gap-2">
+                    <CheckCircle className="h-3 w-3" />
+                    Resolved
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-20 w-full" />
+                ))}
+              </div>
+            ) : irregularities.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <CheckCircle className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium text-foreground mb-2">No irregularities found</h3>
+                <p className="text-muted-foreground">
+                  {filter === 'all' 
+                    ? 'All payroll irregularities have been resolved'
+                    : `No ${filter} irregularities at this time`
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {irregularities.map((irr) => (
+                  <Card 
+                    key={irr._id} 
+                    className={`cursor-pointer hover:shadow-md transition-all ${
+                      selectedIrregularity?._id === irr._id ? 'ring-2 ring-primary' : ''
+                    }`}
+                    onClick={() => setSelectedIrregularity(irr)}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4 flex-1">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            {getTypeIcon(irr.type)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="font-semibold text-foreground">
+                                {irr.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              </h3>
+                              <div className="flex gap-2">
+                                {getSeverityBadge(irr.severity)}
+                                {getStatusBadge(irr.status)}
+                              </div>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-3">
+                              {irr.description}
+                            </p>
+                            <div className="flex items-center gap-6 text-sm">
+                              <div className="flex items-center gap-2">
+                                <User className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-foreground">{irr.employeeName}</span>
+                                <span className="text-muted-foreground">({irr.employeeCode})</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Building className="h-3 w-3 text-muted-foreground" />
+                                <span>{irr.payrollRun?.entity || 'N/A'}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-3 w-3 text-muted-foreground" />
+                                <span>{formatDate(irr.flaggedAt)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          {irr.currentValue !== undefined && (
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-foreground">
+                                {formatCurrency(irr.currentValue)}
+                              </div>
+                              {irr.variancePercentage && (
+                                <div className={`text-sm ${irr.variancePercentage > 0 ? 'text-rose-600' : 'text-green-600'}`}>
+                                  <TrendingUp className="inline h-3 w-3 mr-1" />
+                                  {irr.variancePercentage}% variance
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <Button variant={irr.status === 'resolved' ? 'ghost' : 'default'} size="sm">
+                            <Eye className="h-4 w-4 mr-2" />
+                            {irr.status === 'resolved' ? 'View Details' : 'Resolve'}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Resolution Modal */}
+      {/* Resolution Dialog */}
       {selectedIrregularity && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">
-                    {selectedIrregularity.status === 'resolved' ? 'View Resolution' : 'Resolve Irregularity'}
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {selectedIrregularity.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedIrregularity(null)}
-                  className="text-gray-400 hover:text-gray-600 text-2xl"
-                >
-                  ×
-                </button>
+          <div className="bg-card rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-card border-b p-6 flex justify-between items-start">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">
+                  {selectedIrregularity.status === 'resolved' ? 'Resolution Details' : 'Resolve Irregularity'}
+                </h2>
+                <p className="text-muted-foreground mt-1">
+                  {selectedIrregularity.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </p>
               </div>
+              <button
+                onClick={() => setSelectedIrregularity(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors text-2xl"
+              >
+                ×
+              </button>
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Irregularity Details */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-900 mb-3">Issue Details</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">Employee:</span>
-                    <div className="font-medium text-gray-900">{selectedIrregularity.employeeName}</div>
-                    <div className="text-xs text-gray-500">{selectedIrregularity.employeeCode}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Department:</span>
-                    <div className="font-medium text-gray-900">{selectedIrregularity.payrollRun?.entity || 'N/A'}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Severity:</span>
-                    <div className="mt-1">{getSeverityBadge(selectedIrregularity.severity)}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Status:</span>
-                    <div className="mt-1">{getStatusBadge(selectedIrregularity.status)}</div>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <span className="text-gray-500 text-sm">Description:</span>
-                  <p className="text-gray-900 mt-1">{selectedIrregularity.description}</p>
-                </div>
-                {selectedIrregularity.currentValue !== undefined && (
-                  <div className="mt-4 p-3 bg-white rounded border">
-                    <div className="text-sm text-gray-500">Current Value</div>
-                    <div className="text-lg font-bold text-gray-900">
-                      {formatCurrency(selectedIrregularity.currentValue)}
-                    </div>
-                    {selectedIrregularity.previousAverage !== undefined && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Previous Average: {formatCurrency(selectedIrregularity.previousAverage)}
-                        {selectedIrregularity.variancePercentage && 
-                          <span className="text-red-600 ml-2">(+{selectedIrregularity.variancePercentage}%)</span>
-                        }
+              {/* Issue Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Issue Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Employee Details</h4>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <User className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-foreground">{selectedIrregularity.employeeName}</div>
+                            <div className="text-sm text-muted-foreground">{selectedIrregularity.employeeCode}</div>
+                          </div>
+                        </div>
                       </div>
-                    )}
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Department</h4>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-blue-500/10 rounded-lg">
+                            <Building className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div className="font-medium">{selectedIrregularity.payrollRun?.entity || 'N/A'}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Severity & Status</h4>
+                        <div className="flex gap-2">
+                          {getSeverityBadge(selectedIrregularity.severity)}
+                          {getStatusBadge(selectedIrregularity.status)}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Flagged Date</h4>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span>{formatDate(selectedIrregularity.flaggedAt)}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
-                {selectedIrregularity.escalationReason && (
-                  <div className="mt-4 p-3 bg-purple-50 rounded border border-purple-200">
-                    <div className="text-sm text-purple-700 font-medium">Escalation Reason</div>
-                    <p className="text-purple-900 mt-1">{selectedIrregularity.escalationReason}</p>
+                </CardContent>
+              </Card>
+
+              {/* Description & Values */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Issue Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Description</h4>
+                    <p className="text-foreground">{selectedIrregularity.description}</p>
+                  </div>
+                  
+                  {selectedIrregularity.currentValue !== undefined && (
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-muted/50 rounded-lg p-4">
+                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Current Value</h4>
+                        <div className="text-2xl font-bold text-foreground">
+                          {formatCurrency(selectedIrregularity.currentValue)}
+                        </div>
+                      </div>
+                      {selectedIrregularity.previousAverage !== undefined && (
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h4 className="text-sm font-medium text-muted-foreground mb-1">Historical Average</h4>
+                          <div className="text-xl font-semibold text-foreground">
+                            {formatCurrency(selectedIrregularity.previousAverage)}
+                          </div>
+                        </div>
+                      )}
+                      {selectedIrregularity.variancePercentage !== undefined && (
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h4 className="text-sm font-medium text-muted-foreground mb-1">Variance</h4>
+                          <div className={`text-xl font-semibold ${
+                            selectedIrregularity.variancePercentage > 0 ? 'text-rose-600' : 'text-green-600'
+                          }`}>
+                            {selectedIrregularity.variancePercentage > 0 ? '+' : ''}
+                            {selectedIrregularity.variancePercentage}%
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Escalation Info */}
+              {selectedIrregularity.escalationReason && (
+                <Card className="border-purple-200 bg-purple-50/50">
+                  <CardHeader>
+                    <CardTitle className="text-base text-purple-700">Escalation Details</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-purple-800 mb-2">{selectedIrregularity.escalationReason}</p>
                     {selectedIrregularity.escalatedAt && (
-                      <div className="text-xs text-purple-600 mt-2">
+                      <div className="text-sm text-purple-600">
                         Escalated: {formatDate(selectedIrregularity.escalatedAt)}
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
+                  </CardContent>
+                </Card>
+              )}
 
-              {/* Resolution Form or View */}
+              {/* Resolution Section */}
               {selectedIrregularity.status === 'resolved' && selectedIrregularity.resolution ? (
-                <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                  <h3 className="font-semibold text-green-800 mb-3">Resolution</h3>
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="text-green-700">Action:</span>
-                      <span className="ml-2 font-medium text-green-900 capitalize">
-                        {selectedIrregularity.resolution.action}
-                      </span>
+                <Card className="border-emerald-200 bg-emerald-50/50">
+                  <CardHeader>
+                    <CardTitle className="text-base text-emerald-700">Resolution Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-sm font-medium text-emerald-600 mb-1">Action Taken</h4>
+                        <Badge variant="outline" className="border-emerald-300 text-emerald-700 capitalize">
+                          {selectedIrregularity.resolution.action}
+                        </Badge>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-emerald-600 mb-1">Resolved By</h4>
+                        <div className="font-medium">{selectedIrregularity.resolution.resolvedBy}</div>
+                      </div>
                     </div>
                     <div>
-                      <span className="text-green-700">Notes:</span>
-                      <p className="text-green-900 mt-1">{selectedIrregularity.resolution.notes}</p>
+                      <h4 className="text-sm font-medium text-emerald-600 mb-1">Resolution Notes</h4>
+                      <p className="text-emerald-800">{selectedIrregularity.resolution.notes}</p>
                     </div>
-                    <div className="text-xs text-green-600 mt-2">
+                    <div className="text-sm text-emerald-600">
                       Resolved: {formatDate(selectedIrregularity.resolution.resolvedAt)}
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ) : (
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900">Resolution Action</h3>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Action</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {['approved', 'rejected', 'adjusted', 'excluded'].map((action) => (
-                        <button
-                          key={action}
-                          onClick={() => setResolutionForm({ ...resolutionForm, action })}
-                          className={`p-3 rounded-lg border-2 text-left transition-colors ${
-                            resolutionForm.action === action
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <div className="font-medium text-gray-900 capitalize">{action}</div>
-                          <div className="text-xs text-gray-500">
-                            {action === 'approved' && 'Accept the flagged value'}
-                            {action === 'rejected' && 'Reject and flag for correction'}
-                            {action === 'adjusted' && 'Modify the value'}
-                            {action === 'excluded' && 'Exclude from payroll'}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {resolutionForm.action === 'adjusted' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Resolution Action</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Adjusted Value (EGP)
+                      <h4 className="text-sm font-medium text-muted-foreground mb-3">Select Resolution</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          { action: 'approved', label: 'Approve', description: 'Accept flagged value', variant: 'default' },
+                          { action: 'rejected', label: 'Reject', description: 'Flag for correction', variant: 'destructive' },
+                          { action: 'adjusted', label: 'Adjust', description: 'Modify value', variant: 'outline' },
+                          { action: 'excluded', label: 'Exclude', description: 'Remove from payroll', variant: 'secondary' },
+                        ].map(({ action, label, description, variant }) => (
+                          <Button
+                            key={action}
+                            variant={resolutionForm.action === action ? 'default' : 'outline'}
+                            className={`h-auto py-4 px-4 ${
+                              resolutionForm.action === action 
+                                ? 'border-primary bg-primary/10 text-primary' 
+                                : ''
+                            }`}
+                            onClick={() => setResolutionForm({ ...resolutionForm, action })}
+                          >
+                            <div className="text-left">
+                              <div className="font-medium">{label}</div>
+                              <div className="text-xs text-muted-foreground mt-1">{description}</div>
+                            </div>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {resolutionForm.action === 'adjusted' && (
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Adjusted Value (EGP)
+                        </label>
+                        <input
+                          type="number"
+                          value={resolutionForm.adjustedValue}
+                          onChange={(e) => setResolutionForm({ ...resolutionForm, adjustedValue: e.target.value })}
+                          className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background"
+                          placeholder="Enter adjusted value"
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Resolution Notes <span className="text-destructive">*</span>
                       </label>
-                      <input
-                        type="number"
-                        value={resolutionForm.adjustedValue}
-                        onChange={(e) => setResolutionForm({ ...resolutionForm, adjustedValue: e.target.value })}
-                        className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                        placeholder="Enter adjusted value"
+                      <textarea
+                        value={resolutionForm.notes}
+                        onChange={(e) => setResolutionForm({ ...resolutionForm, notes: e.target.value })}
+                        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background"
+                        rows={4}
+                        placeholder="Provide detailed explanation of resolution decision..."
                       />
                     </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Resolution Notes <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      value={resolutionForm.notes}
-                      onChange={(e) => setResolutionForm({ ...resolutionForm, notes: e.target.value })}
-                      className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                      rows={3}
-                      placeholder="Explain your decision..."
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
-              <button
-                onClick={() => setSelectedIrregularity(null)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100"
-              >
-                {selectedIrregularity.status === 'resolved' ? 'Close' : 'Cancel'}
-              </button>
-              {selectedIrregularity.status !== 'resolved' && (
-                <button
-                  onClick={handleResolve}
-                  disabled={resolving || !resolutionForm.notes.trim()}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {resolving ? 'Resolving...' : 'Submit Resolution'}
-                </button>
+                  </CardContent>
+                  <CardFooter className="flex justify-end gap-3 border-t pt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedIrregularity(null)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleResolve}
+                      disabled={resolving || !resolutionForm.notes.trim()}
+                    >
+                      {resolving ? 'Processing...' : 'Submit Resolution'}
+                    </Button>
+                  </CardFooter>
+                </Card>
               )}
             </div>
           </div>
