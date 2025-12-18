@@ -772,7 +772,7 @@ export default function ClaimsDisputesPage() {
               </div>
 
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
-                💡 Please attach receipts or supporting documents when prompted after submission.
+                Please attach receipts or supporting documents when prompted after submission.
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -800,7 +800,7 @@ export default function ClaimsDisputesPage() {
       {/* Help Section */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">💡</span>
+          <span className="text-2xl"></span>
           <div>
             <h4 className="font-semibold text-blue-900">Need Help?</h4>
             <p className="text-sm text-blue-700 mt-1">

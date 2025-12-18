@@ -89,15 +89,15 @@ export default function InsuranceDeductionsPage() {
   };
 
   const getInsuranceTypeIcon = (type?: string) => {
-    if (!type) return '🏥';
+    if (!type) return '';
     const lowerType = type.toLowerCase();
-    if (lowerType.includes('health')) return '🏥';
-    if (lowerType.includes('pension') || lowerType.includes('retirement')) return '👴';
-    if (lowerType.includes('unemployment')) return '💼';
-    if (lowerType.includes('disability')) return '♿';
-    if (lowerType.includes('life')) return '🛡️';
-    return '🏥';
-  };
+    if (lowerType.includes('health')) return '';
+    if (lowerType.includes('pension') || lowerType.includes('retirement')) return '';
+    if (lowerType.includes('unemployment')) return '';
+    if (lowerType.includes('disability')) return '';
+    if (lowerType.includes('life')) return '';
+    return '';
+  }; 
 
   const getInsuranceTypeColor = (type?: string) => {
     if (!type) return 'bg-blue-100 text-blue-700';

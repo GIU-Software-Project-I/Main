@@ -407,7 +407,7 @@ export default function PayslipsPage() {
 
               {/* Earnings Breakdown */}
               <div className="border border-slate-200 rounded-lg p-4">
-                <h4 className="font-semibold text-slate-900 mb-4">💰 Earnings</h4>
+                <h4 className="font-semibold text-slate-900 mb-4">Earnings</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between py-2 border-b border-slate-100">
                     <span className="text-slate-700">Base Salary</span>
@@ -434,7 +434,7 @@ export default function PayslipsPage() {
 
               {/* Deductions Breakdown */}
               <div className="border border-slate-200 rounded-lg p-4">
-                <h4 className="font-semibold text-slate-900 mb-4">💸 Deductions</h4>
+                <h4 className="font-semibold text-slate-900 mb-4">Deductions</h4>
                 <div className="space-y-2">
                   {selectedPayslip.deductions?.map((deduction, idx) => (
                     <div key={idx} className="flex justify-between py-2 border-b border-slate-100">
@@ -479,7 +479,7 @@ export default function PayslipsPage() {
                   </button>
                   <Link href="/dashboard/department-employee/payroll-tracking/claims-disputes">
                     <button className="px-4 py-2 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50">
-                      ⚠️ Dispute
+                      Dispute
                     </button>
                   </Link>
                 </div>

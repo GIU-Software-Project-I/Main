@@ -71,7 +71,7 @@ export default function PayrollTrackingPage() {
       title: 'My Payslips',
       description: 'View and download your monthly payslips with detailed breakdown of earnings and deductions.',
       href: '/dashboard/department-employee/payroll-tracking/payslips',
-      icon: '📄',
+      icon: '',
       color: 'blue',
       features: ['View monthly payslips', 'Download PDF', 'See payment status'],
       requirement: 'REQ-PY-1, REQ-PY-2'
@@ -80,7 +80,7 @@ export default function PayrollTrackingPage() {
       title: 'Salary History',
       description: 'Track your salary changes over time including base salary, bonuses, and adjustments.',
       href: '/dashboard/department-employee/payroll-tracking/salary-history',
-      icon: '📈',
+      icon: '',
       color: 'green',
       features: ['Base salary info', 'Historical records', 'Contract details'],
       requirement: 'REQ-PY-3, REQ-PY-13'
@@ -89,7 +89,7 @@ export default function PayrollTrackingPage() {
       title: 'Tax Deductions',
       description: 'View detailed tax deductions with law references and tax brackets (BR 5, BR 6).',
       href: '/dashboard/department-employee/payroll-tracking/tax-deductions',
-      icon: '🏛️',
+      icon: '',
       color: 'blue',
       features: ['Income tax breakdown', 'Law references', 'Tax brackets'],
       requirement: 'REQ-PY-8'
@@ -98,7 +98,7 @@ export default function PayrollTrackingPage() {
       title: 'Insurance Deductions',
       description: 'View itemized insurance deductions (health, pension, unemployment, etc.).',
       href: '/dashboard/department-employee/payroll-tracking/insurance-deductions',
-      icon: '🏥',
+      icon: '',
       color: 'green',
       features: ['Health insurance', 'Pension contributions', 'Unemployment'],
       requirement: 'REQ-PY-9'
@@ -107,7 +107,7 @@ export default function PayrollTrackingPage() {
       title: 'Misconduct & Absenteeism',
       description: 'View salary deductions due to misconduct or unapproved absenteeism.',
       href: '/dashboard/department-employee/payroll-tracking/misconduct-deductions',
-      icon: '⚠️',
+      icon: '',
       color: 'red',
       features: ['Absenteeism records', 'Policy violations', 'Time management integration'],
       requirement: 'REQ-PY-10'
@@ -116,7 +116,7 @@ export default function PayrollTrackingPage() {
       title: 'Unpaid Leave Deductions',
       description: 'View deductions for unpaid leave days with daily/hourly calculations (BR 11).',
       href: '/dashboard/department-employee/payroll-tracking/unpaid-leave-deductions',
-      icon: '📅',
+      icon: '',
       color: 'orange',
       features: ['Daily rate calculations', 'Leave integration', 'Period filtering'],
       requirement: 'REQ-PY-11'
@@ -125,7 +125,7 @@ export default function PayrollTrackingPage() {
       title: 'Compensation & Benefits',
       description: 'View leave compensation, transportation allowance, and employer contributions.',
       href: '/dashboard/department-employee/payroll-tracking/contributions',
-      icon: '🎁',
+      icon: '',
       color: 'purple',
       features: ['Leave encashment', 'Transportation', 'Employer contributions'],
       requirement: 'REQ-PY-5, REQ-PY-7, REQ-PY-14'
@@ -134,7 +134,7 @@ export default function PayrollTrackingPage() {
       title: 'Tax Documents',
       description: 'Download annual tax statements and other tax-related documents for official purposes.',
       href: '/dashboard/department-employee/payroll-tracking/tax-documents',
-      icon: '📋',
+      icon: '',
       color: 'amber',
       features: ['Annual statements', 'Tax certificates', 'Download documents'],
       requirement: 'REQ-PY-15'
@@ -143,7 +143,7 @@ export default function PayrollTrackingPage() {
       title: 'Claims & Disputes',
       description: 'Submit expense claims, dispute payroll errors, and track request status.',
       href: '/dashboard/department-employee/payroll-tracking/claims-disputes',
-      icon: '⚠️',
+      icon: '',
       color: 'orange',
       features: ['Submit claims', 'File disputes', 'Track status'],
       requirement: 'REQ-PY-16, REQ-PY-17, REQ-PY-18'
@@ -174,7 +174,7 @@ export default function PayrollTrackingPage() {
             <h2 className="text-2xl font-bold">Payroll Tracking Overview</h2>
             <p className="text-amber-100 mt-2">Your payroll information at a glance</p>
           </div>
-          <div className="text-6xl">💰</div>
+          <div className="text-6xl"></div>
         </div>
         
         {loading ? (

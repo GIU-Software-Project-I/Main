@@ -212,18 +212,18 @@ export default function ContributionsPage() {
 
   const getContributionIcon = (type: string) => {
     const lowerType = type?.toLowerCase() || '';
-    if (lowerType.includes('health') || lowerType.includes('medical')) return '🏥';
-    if (lowerType.includes('pension') || lowerType.includes('retirement')) return '🏦';
-    if (lowerType.includes('insurance')) return '🛡️';
-    if (lowerType.includes('allowance')) return '💵';
-    if (lowerType.includes('education') || lowerType.includes('training')) return '📚';
-    return '💼';
-  };
+    if (lowerType.includes('health') || lowerType.includes('medical')) return '';
+    if (lowerType.includes('pension') || lowerType.includes('retirement')) return '';
+    if (lowerType.includes('insurance')) return '';
+    if (lowerType.includes('allowance')) return '';
+    if (lowerType.includes('education') || lowerType.includes('training')) return '';
+    return '';
+  }; 
 
   const tabs = [
-    { id: 'employer', label: 'Employer Contributions', icon: '💼', total: getTotalEmployerContributions() },
-    { id: 'leave', label: 'Leave Encashment', icon: '📅', total: getTotalLeaveCompensation() },
-    { id: 'transportation', label: 'Transportation', icon: '🚗', total: getTotalTransportation() },
+    { id: 'employer', label: 'Employer Contributions', icon: '', total: getTotalEmployerContributions() },
+    { id: 'leave', label: 'Leave Encashment', icon: '', total: getTotalLeaveCompensation() },
+    { id: 'transportation', label: 'Transportation', icon: '', total: getTotalTransportation() },
   ];
 
   if (loading) {

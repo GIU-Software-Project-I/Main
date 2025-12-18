@@ -120,13 +120,13 @@ export default function MisconductDeductionsPage() {
   };
 
   const getDeductionTypeIcon = (type?: string) => {
-    if (!type) return '⚠️';
+    if (!type) return '';
     const lowerType = type.toLowerCase();
-    if (lowerType.includes('absent') || lowerType.includes('missing')) return '🚫';
-    if (lowerType.includes('late') || lowerType.includes('tardiness')) return '⏰';
-    if (lowerType.includes('misconduct') || lowerType.includes('violation')) return '❌';
-    if (lowerType.includes('unauthorized')) return '🔒';
-    return '⚠️';
+    if (lowerType.includes('absent') || lowerType.includes('missing')) return '';
+    if (lowerType.includes('late') || lowerType.includes('tardiness')) return '';
+    if (lowerType.includes('misconduct') || lowerType.includes('violation')) return '';
+    if (lowerType.includes('unauthorized')) return '';
+    return '';
   };
 
   const getDeductionTypeColor = (type?: string) => {

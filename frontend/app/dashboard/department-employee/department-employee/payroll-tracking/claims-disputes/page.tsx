@@ -359,13 +359,13 @@ export default function ClaimsDisputesPage() {
           onClick={() => setShowDisputeForm(true)}
           className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium flex items-center gap-2"
         >
-          ⚠️ File a Dispute
+          File a Dispute
         </button>
         <button
           onClick={() => setShowClaimForm(true)}
           className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2"
         >
-          💰 Submit a Claim
+          Submit a Claim
         </button>
       </div>
 
@@ -379,7 +379,7 @@ export default function ClaimsDisputesPage() {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          📊 Overview
+          Overview
         </button>
         <button
           onClick={() => setActiveTab('disputes')}
@@ -389,7 +389,7 @@ export default function ClaimsDisputesPage() {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          ⚠️ My Disputes
+          My Disputes
           {disputes.length > 0 && (
             <span className={`px-2 py-0.5 rounded-full text-xs ${
               activeTab === 'disputes' ? 'bg-orange-200' : 'bg-slate-200'
@@ -406,7 +406,7 @@ export default function ClaimsDisputesPage() {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          💰 My Claims
+          My Claims
           {claims.length > 0 && (
             <span className={`px-2 py-0.5 rounded-full text-xs ${
               activeTab === 'claims' ? 'bg-orange-200' : 'bg-slate-200'
@@ -772,7 +772,7 @@ export default function ClaimsDisputesPage() {
               </div>
 
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
-                💡 Please attach receipts or supporting documents when prompted after submission.
+                Please attach receipts or supporting documents when prompted after submission.
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -800,7 +800,7 @@ export default function ClaimsDisputesPage() {
       {/* Help Section */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">💡</span>
+          <span className="text-2xl"></span>
           <div>
             <h4 className="font-semibold text-blue-900">Need Help?</h4>
             <p className="text-sm text-blue-700 mt-1">

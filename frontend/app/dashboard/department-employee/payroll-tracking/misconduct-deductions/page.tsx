@@ -120,13 +120,13 @@ export default function MisconductDeductionsPage() {
   };
 
   const getDeductionTypeIcon = (type?: string) => {
-    if (!type) return '⚠️';
+    if (!type) return '';
     const lowerType = type.toLowerCase();
-    if (lowerType.includes('absent') || lowerType.includes('missing')) return '🚫';
-    if (lowerType.includes('late') || lowerType.includes('tardiness')) return '⏰';
-    if (lowerType.includes('misconduct') || lowerType.includes('violation')) return '❌';
-    if (lowerType.includes('unauthorized')) return '🔒';
-    return '⚠️';
+    if (lowerType.includes('absent') || lowerType.includes('missing')) return '';
+    if (lowerType.includes('late') || lowerType.includes('tardiness')) return '';
+    if (lowerType.includes('misconduct') || lowerType.includes('violation')) return '';
+    if (lowerType.includes('unauthorized')) return '';
+    return '';
   };
 
   const getDeductionTypeColor = (type?: string) => {
@@ -196,7 +196,7 @@ export default function MisconductDeductionsPage() {
               From payslips and attendance records
             </p>
           </div>
-          <div className="text-6xl">⚠️</div>
+          <div className="text-6xl"></div>
         </div>
       </div>
 
@@ -257,7 +257,7 @@ export default function MisconductDeductionsPage() {
               {/* Misconduct Deductions List */}
               {filteredMisconductData.length === 0 ? (
                 <div className="bg-slate-50 rounded-lg border border-slate-200 shadow-sm p-12 text-center">
-                  <div className="text-6xl mb-4">✅</div>
+                  <div className="text-6xl mb-4"></div>
                   <p className="text-slate-700 font-medium text-lg">No misconduct deductions found</p>
                   <p className="text-slate-500 text-sm mt-2">
                     No salary deductions for misconduct or absenteeism in your payslips

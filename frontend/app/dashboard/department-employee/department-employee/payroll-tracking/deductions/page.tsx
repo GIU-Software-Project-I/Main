@@ -389,7 +389,7 @@ export default function DeductionsPage() {
                       )}
                       {deduction.lawReference && (
                         <p className="text-xs text-amber-600 mt-1">
-                          📜 Law Reference: {deduction.lawReference}
+                          Law Reference: {deduction.lawReference}
                         </p>
                       )}
                     </div>
@@ -418,7 +418,7 @@ export default function DeductionsPage() {
       {/* Insurance Deductions Tab */}
       {activeTab === 'insurance' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">🏥 Insurance Deductions</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Insurance Deductions</h3>
           <p className="text-slate-600 text-sm mb-6">
             Health, pension, unemployment, and other insurance contributions.
           </p>
@@ -467,7 +467,7 @@ export default function DeductionsPage() {
       {/* Misconduct Deductions Tab */}
       {activeTab === 'misconduct' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">⚠️ Misconduct / Absenteeism Deductions</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Misconduct / Absenteeism Deductions</h3>
           <p className="text-slate-600 text-sm mb-6">
             Salary deductions due to misconduct or unapproved absenteeism.
           </p>
@@ -603,7 +603,7 @@ export default function DeductionsPage() {
       {/* Help Section */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">💡</span>
+          <span className="text-2xl"></span>
           <div>
             <h4 className="font-semibold text-amber-900">Have questions about your deductions?</h4>
             <p className="text-sm text-amber-700 mt-1">

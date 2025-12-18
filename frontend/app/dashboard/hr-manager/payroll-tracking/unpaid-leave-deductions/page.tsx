@@ -175,7 +175,7 @@ export default function UnpaidLeaveDeductionsPage() {
   if (!leaveData) {
     return (
       <div className="bg-slate-50 rounded-lg border border-slate-200 shadow-sm p-12 text-center">
-        <div className="text-6xl mb-4">📅</div>
+        <div className="text-6xl mb-4"></div>
         <p className="text-slate-700 font-medium text-lg">No unpaid leave data available</p>
         <p className="text-slate-500 text-sm mt-2">
           {leaveData?.message || 'No unpaid leave deductions found'}
@@ -218,7 +218,7 @@ export default function UnpaidLeaveDeductionsPage() {
               {leaveData.totalUnpaidLeaveDays || 0} unpaid leave day{leaveData.totalUnpaidLeaveDays !== 1 ? 's' : ''}
             </p>
           </div>
-          <div className="text-6xl">📅</div>
+          <div className="text-6xl"></div>
         </div>
       </div>
 

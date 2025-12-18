@@ -455,7 +455,7 @@ export default function UnpaidLeaveDeductionsPage() {
       {/* Information Panel */}
       <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">💡</span>
+          <span className="text-2xl"></span>
           <div>
             <h4 className="font-semibold text-orange-900 mb-2">Understanding Unpaid Leave Deductions</h4>
             <ul className="text-sm text-orange-800 space-y-1 list-disc list-inside">

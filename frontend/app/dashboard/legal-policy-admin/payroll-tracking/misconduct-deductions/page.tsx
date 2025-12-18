@@ -120,13 +120,13 @@ export default function MisconductDeductionsPage() {
   };
 
   const getDeductionTypeIcon = (type?: string) => {
-    if (!type) return '⚠️';
+    if (!type) return '';
     const lowerType = type.toLowerCase();
-    if (lowerType.includes('absent') || lowerType.includes('missing')) return '🚫';
-    if (lowerType.includes('late') || lowerType.includes('tardiness')) return '⏰';
-    if (lowerType.includes('misconduct') || lowerType.includes('violation')) return '❌';
-    if (lowerType.includes('unauthorized')) return '🔒';
-    return '⚠️';
+    if (lowerType.includes('absent') || lowerType.includes('missing')) return '';
+    if (lowerType.includes('late') || lowerType.includes('tardiness')) return '';
+    if (lowerType.includes('misconduct') || lowerType.includes('violation')) return '';
+    if (lowerType.includes('unauthorized')) return '';
+    return '';
   };
 
   const getDeductionTypeColor = (type?: string) => {
@@ -196,7 +196,7 @@ export default function MisconductDeductionsPage() {
               From payslips and attendance records
             </p>
           </div>
-          <div className="text-6xl">⚠️</div>
+          <div className="text-6xl"></div>
         </div>
       </div>
 
@@ -400,7 +400,7 @@ export default function MisconductDeductionsPage() {
       {/* Information Panel */}
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">💡</span>
+          <span className="text-2xl"></span>
           <div>
             <h4 className="font-semibold text-red-900 mb-2">Understanding Misconduct & Absenteeism Deductions</h4>
             <ul className="text-sm text-red-800 space-y-1 list-disc list-inside">

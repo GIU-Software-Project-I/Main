@@ -266,11 +266,11 @@ export default function DeductionsPage() {
   };
 
   const tabs = [
-    { id: 'tax', label: 'Tax Deductions', icon: '🏛️', count: taxDeductions.length },
-    { id: 'insurance', label: 'Insurance', icon: '🏥', count: insuranceDeductions.length },
-    { id: 'misconduct', label: 'Misconduct', icon: '⚠️', count: misconductDeductions.length },
-    { id: 'unpaid', label: 'Unpaid Leave', icon: '📅', count: unpaidLeaveDeductions.length },
-    { id: 'attendance', label: 'Attendance', icon: '⏰', count: attendanceDeductions.length },
+    { id: 'tax', label: 'Tax Deductions', icon: '', count: taxDeductions.length },
+    { id: 'insurance', label: 'Insurance', icon: '', count: insuranceDeductions.length },
+    { id: 'misconduct', label: 'Misconduct', icon: '', count: misconductDeductions.length },
+    { id: 'unpaid', label: 'Unpaid Leave', icon: '', count: unpaidLeaveDeductions.length },
+    { id: 'attendance', label: 'Attendance', icon: '', count: attendanceDeductions.length },
   ];
 
   if (loading) {
@@ -321,7 +321,7 @@ export default function DeductionsPage() {
             <p className="text-4xl font-bold mt-2">{formatCurrency(getTotalDeductions())}</p>
             <p className="text-red-100 mt-1">Combined deductions from all categories</p>
           </div>
-          <div className="text-6xl">💸</div>
+          <div className="text-6xl"></div>
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
@@ -385,7 +385,7 @@ export default function DeductionsPage() {
           
           {taxDeductions.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-2">📋</div>
+              <div className="text-4xl mb-2"></div>
               No tax deductions recorded
             </div>
           ) : (
@@ -405,7 +405,7 @@ export default function DeductionsPage() {
                       )}
                       {deduction.lawReference && (
                         <p className="text-xs text-amber-600 mt-1">
-                          📜 Law Reference: {deduction.lawReference}
+                          Law Reference: {deduction.lawReference}
                         </p>
                       )}
                     </div>
@@ -434,14 +434,14 @@ export default function DeductionsPage() {
       {/* Insurance Deductions Tab */}
       {activeTab === 'insurance' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">🏥 Insurance Deductions</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Insurance Deductions</h3>
           <p className="text-slate-600 text-sm mb-6">
             Health, pension, unemployment, and other insurance contributions.
           </p>
           
           {insuranceDeductions.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-2">🏥</div>
+              <div className="text-4xl mb-2"></div>
               No insurance deductions recorded
             </div>
           ) : (
@@ -483,14 +483,14 @@ export default function DeductionsPage() {
       {/* Misconduct Deductions Tab */}
       {activeTab === 'misconduct' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">⚠️ Misconduct / Absenteeism Deductions</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Misconduct / Absenteeism Deductions</h3>
           <p className="text-slate-600 text-sm mb-6">
             Salary deductions due to misconduct or unapproved absenteeism.
           </p>
           
           {misconductDeductions.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-2">✅</div>
+              <div className="text-4xl mb-2"></div>
               No misconduct deductions - Great job!
             </div>
           ) : (
@@ -525,14 +525,14 @@ export default function DeductionsPage() {
       {/* Unpaid Leave Tab */}
       {activeTab === 'unpaid' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">📅 Unpaid Leave Deductions</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Unpaid Leave Deductions</h3>
           <p className="text-slate-600 text-sm mb-6">
             Deductions for unpaid leave days based on daily/hourly salary calculations.
           </p>
           
           {unpaidLeaveDeductions.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-2">📅</div>
+              <div className="text-4xl mb-2"></div>
               No unpaid leave deductions
             </div>
           ) : (
@@ -579,7 +579,7 @@ export default function DeductionsPage() {
           
           {attendanceDeductions.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-2">✅</div>
+              <div className="text-4xl mb-2"></div>
               No attendance-based deductions - Excellent attendance!
             </div>
           ) : (
@@ -619,7 +619,7 @@ export default function DeductionsPage() {
       {/* Help Section */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">💡</span>
+          <span className="text-2xl"></span>
           <div>
             <h4 className="font-semibold text-amber-900">Have questions about your deductions?</h4>
             <p className="text-sm text-amber-700 mt-1">

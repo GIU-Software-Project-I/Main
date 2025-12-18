@@ -250,7 +250,7 @@ export default function TaxDeductionsPage() {
                         )}
                         {tax.lawReference && (
                           <p className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                            <span>📜</span>
+                            <span></span>
                             <span>Law Reference: {tax.lawReference}</span>
                           </p>
                         )}
