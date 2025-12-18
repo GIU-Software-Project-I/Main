@@ -136,10 +136,10 @@ export default function OnboardingDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">In Progress</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">{stats.inProgress}</p>
+                <p className="text-3xl font-bold text-primary mt-1">{stats.inProgress}</p>
               </div>
-              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
@@ -149,10 +149,10 @@ export default function OnboardingDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                <p className="text-3xl font-bold text-green-600 mt-1">{stats.completed}</p>
+                <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">{stats.completed}</p>
               </div>
-              <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
@@ -162,10 +162,10 @@ export default function OnboardingDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending Tasks</p>
-                <p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingTasks}</p>
+                <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mt-1">{stats.pendingTasks}</p>
               </div>
-              <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
@@ -177,11 +177,11 @@ export default function OnboardingDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
             href="/dashboard/hr-manager/onboarding/checklists"
-            className="group bg-card p-5 rounded-xl border border-border hover:border-primary/50 hover:shadow-md transition-all"
+            className="group bg-card p-5 rounded-xl border border-border hover:border-primary/50 hover:shadow-md transition-all font-medium"
           >
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors flex-shrink-0">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center group-hover:bg-primary/20 transition-colors flex-shrink-0">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                 </svg>
               </div>
@@ -193,40 +193,40 @@ export default function OnboardingDashboard() {
           </Link>
           <Link
             href="/dashboard/hr-manager/onboarding/employee"
-            className="group bg-card p-5 rounded-xl border border-border hover:border-green-200 hover:shadow-md transition-all"
+            className="group bg-card p-5 rounded-xl border border-border hover:border-green-500/30 hover:shadow-md transition-all"
           >
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center group-hover:bg-green-100 dark:group-hover:bg-green-900/30 transition-colors flex-shrink-0">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center group-hover:bg-green-500/20 transition-colors flex-shrink-0">
+                <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-foreground text-sm group-hover:text-green-600 transition-colors">Profile Creation</h3>
+                <h3 className="font-semibold text-foreground text-sm group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">Profile Creation</h3>
                 <p className="text-xs text-muted-foreground mt-1">Create from signed contracts</p>
               </div>
             </div>
           </Link>
           <Link
             href="/dashboard/hr-manager/onboarding/payroll"
-            className="group bg-card p-5 rounded-xl border border-border hover:border-purple-200 hover:shadow-md transition-all"
+            className="group bg-card p-5 rounded-xl border border-border hover:border-purple-500/30 hover:shadow-md transition-all"
           >
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-center group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30 transition-colors flex-shrink-0">
-                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center group-hover:bg-purple-500/20 transition-colors flex-shrink-0">
+                <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-foreground text-sm group-hover:text-purple-600 transition-colors">Payroll Setup</h3>
+                <h3 className="font-semibold text-foreground text-sm group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">Payroll Setup</h3>
                 <p className="text-xs text-muted-foreground mt-1">Initiate payroll and bonuses</p>
               </div>
             </div>
           </Link>
           <div className="bg-card p-5 rounded-xl border border-border">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-orange-50 dark:bg-orange-900/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
               </div>
@@ -248,11 +248,10 @@ export default function OnboardingDashboard() {
             <button
               key={filter.value}
               onClick={() => setFilterStatus(filter.value as any)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                filterStatus === filter.value
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${filterStatus === filter.value
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-card border border-border text-foreground hover:bg-accent'
-              }`}
+                }`}
             >
               {filter.label}
             </button>
@@ -297,17 +296,16 @@ export default function OnboardingDashboard() {
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          onboarding.completed
-                            ? 'bg-green-100 dark:bg-green-900/20'
-                            : 'bg-blue-100 dark:bg-blue-900/20'
-                        }`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${onboarding.completed
+                            ? 'bg-green-500/10'
+                            : 'bg-primary/10'
+                          }`}>
                           {onboarding.completed ? (
-                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                           ) : (
-                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                           )}
@@ -315,11 +313,10 @@ export default function OnboardingDashboard() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-1">
                             <h3 className="font-medium text-foreground truncate">{employeeName}</h3>
-                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                              onboarding.completed
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                            }`}>
+                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${onboarding.completed
+                                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                                : 'bg-primary/10 text-primary'
+                              }`}>
                               {onboarding.completed ? 'Completed' : 'In Progress'}
                             </span>
                           </div>

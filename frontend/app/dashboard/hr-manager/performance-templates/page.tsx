@@ -308,12 +308,12 @@ export default function PerformanceTemplatesPage() {
 
     const getTypeColor = (type: string) => {
         switch (type) {
-            case 'ANNUAL': return 'bg-blue-100 text-blue-700';
-            case 'SEMI_ANNUAL': return 'bg-cyan-100 text-cyan-700';
-            case 'PROBATIONARY': return 'bg-orange-100 text-orange-700';
-            case 'PROJECT': return 'bg-purple-100 text-purple-700';
-            case 'AD_HOC': return 'bg-green-100 text-green-700';
-            default: return 'bg-slate-100 text-slate-700';
+            case 'ANNUAL': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
+            case 'SEMI_ANNUAL': return 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20';
+            case 'PROBATIONARY': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20';
+            case 'PROJECT': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
+            case 'AD_HOC': return 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20';
+            default: return 'bg-muted text-muted-foreground border-border';
         }
     };
 
@@ -330,8 +330,8 @@ export default function PerformanceTemplatesPage() {
         return (
             <div className="flex items-center justify-center h-96">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-slate-600">Loading templates...</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Loading templates...</p>
                 </div>
             </div>
         );
@@ -342,13 +342,13 @@ export default function PerformanceTemplatesPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-                        <Link href="/dashboard/hr-manager" className="hover:text-slate-700">HR Manager</Link>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <Link href="/dashboard/hr-manager" className="hover:text-foreground">HR Manager</Link>
                         <span>/</span>
-                        <span className="text-slate-900">Performance Templates</span>
+                        <span className="text-foreground">Performance Templates</span>
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-900">Appraisal Templates</h1>
-                    <p className="text-slate-600 mt-1">Create and manage standardized performance review templates</p>
+                    <h1 className="text-2xl font-bold text-foreground">Appraisal Templates</h1>
+                    <p className="text-muted-foreground mt-1">Create and manage standardized performance review templates</p>
                 </div>
                 <Button onClick={() => setIsCreateDialogOpen(true)}>
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -384,12 +384,12 @@ export default function PerformanceTemplatesPage() {
                 {filteredTemplates.map((template) => (
                     <div
                         key={template._id}
-                        className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg hover:border-slate-300 transition-all"
+                        className="bg-card border border-border rounded-xl p-6 hover:shadow-lg hover:border-primary/50 transition-all"
                     >
                         <div className="flex items-start justify-between mb-4">
                             <div>
-                                <h3 className="font-semibold text-slate-900">{template.name}</h3>
-                                <Badge className={`mt-2 ${getTypeColor(template.templateType)}`}>
+                                <h3 className="font-semibold text-foreground">{template.name}</h3>
+                                <Badge variant="outline" className={`mt-2 ${getTypeColor(template.templateType)}`}>
                                     {template.templateType.replace('_', ' ')}
                                 </Badge>
                             </div>
@@ -398,11 +398,11 @@ export default function PerformanceTemplatesPage() {
                             </Badge>
                         </div>
 
-                        <p className="text-sm text-slate-600 mb-4 line-clamp-2">
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                             {template.description || 'No description provided'}
                         </p>
 
-                        <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
                             <span className="flex items-center gap-1">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -437,12 +437,12 @@ export default function PerformanceTemplatesPage() {
             </div>
 
             {filteredTemplates.length === 0 && (
-                <div className="text-center py-12 bg-white border border-slate-200 rounded-xl">
-                    <svg className="w-12 h-12 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center py-12 bg-card border border-border rounded-xl">
+                    <svg className="w-12 h-12 text-muted-foreground opacity-30 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <h3 className="text-lg font-medium text-slate-900 mb-1">No templates found</h3>
-                    <p className="text-slate-600">Create your first appraisal template to get started</p>
+                    <h3 className="text-lg font-medium text-foreground mb-1">No templates found</h3>
+                    <p className="text-muted-foreground">Create your first appraisal template to get started</p>
                 </div>
             )}
 
@@ -505,9 +505,9 @@ export default function PerformanceTemplatesPage() {
                         </div>
 
                         {/* Rating Scale */}
-                        <div className="p-4 bg-slate-50 rounded-lg">
+                        <div className="p-4 bg-muted/50 border border-border rounded-lg">
                             <Label className="text-base font-semibold">Rating Scale *</Label>
-                            <p className="text-sm text-slate-500 mb-4">Select the rating scale type for this template</p>
+                            <p className="text-sm text-muted-foreground mb-4">Select the rating scale type for this template</p>
 
                             <div className="grid grid-cols-3 gap-3 mb-4">
                                 {ratingScaleTypes.map((scale) => (
@@ -516,12 +516,12 @@ export default function PerformanceTemplatesPage() {
                                         type="button"
                                         onClick={() => handleRatingScaleTypeChange(scale.value as RatingScaleType)}
                                         className={`p-4 rounded-lg border-2 transition-all text-center ${formData.ratingScale.type === scale.value
-                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                : 'border-slate-200 bg-white hover:border-slate-300'
+                                            ? 'border-primary bg-primary/10 text-primary'
+                                            : 'border-border bg-background hover:border-primary/50'
                                             }`}
                                     >
                                         <div className="text-2xl font-bold mb-1">{scale.max}</div>
-                                        <div className="text-sm">{scale.label}</div>
+                                        <div className="text-sm font-medium">{scale.label}</div>
                                     </button>
                                 ))}
                             </div>
@@ -530,8 +530,8 @@ export default function PerformanceTemplatesPage() {
                                 <Label className="text-sm">Scale Labels (optional)</Label>
                                 <div className="flex flex-wrap gap-2 mt-2">
                                     {formData.ratingScale.labels?.map((label, idx) => (
-                                        <div key={idx} className="flex items-center gap-1 bg-white px-3 py-1 rounded-full border text-sm">
-                                            <span className="font-medium text-blue-600">{idx + formData.ratingScale.min}:</span>
+                                        <div key={idx} className="flex items-center gap-1 bg-background px-3 py-1 rounded-full border border-border text-sm">
+                                            <span className="font-medium text-primary">{idx + formData.ratingScale.min}:</span>
                                             <Input
                                                 value={label}
                                                 onChange={(e) => {
@@ -553,7 +553,7 @@ export default function PerformanceTemplatesPage() {
                         {/* Criteria */}
                         <div>
                             <Label className="text-base font-semibold">Evaluation Criteria</Label>
-                            <p className="text-sm text-slate-500 mb-3">Add the criteria that will be evaluated</p>
+                            <p className="text-sm text-muted-foreground mb-3">Add the criteria that will be evaluated</p>
 
                             {/* Add Criterion Form */}
                             <div className="p-4 border border-dashed border-slate-300 rounded-lg mb-4">
@@ -629,20 +629,20 @@ export default function PerformanceTemplatesPage() {
                             {formData.criteria.length > 0 && (
                                 <div className="space-y-2">
                                     {formData.criteria.map((criterion) => (
-                                        <div key={criterion.key} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                                        <div key={criterion.key} className="flex items-center justify-between p-3 bg-muted/50 border border-border rounded-lg">
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="font-medium text-slate-900">{criterion.title}</span>
+                                                    <span className="font-medium text-foreground">{criterion.title}</span>
                                                     <Badge variant="outline" className="text-xs">{criterion.key}</Badge>
-                                                    {criterion.weight && <Badge className="bg-blue-100 text-blue-700">{criterion.weight}%</Badge>}
-                                                    {criterion.required && <Badge className="bg-red-100 text-red-700">Required</Badge>}
+                                                    {criterion.weight && <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">{criterion.weight}%</Badge>}
+                                                    {criterion.required && <Badge variant="secondary" className="bg-destructive/10 text-destructive border-destructive/20">Required</Badge>}
                                                 </div>
                                                 {criterion.details && (
-                                                    <p className="text-sm text-slate-500 mt-1">{criterion.details}</p>
+                                                    <p className="text-sm text-muted-foreground mt-1">{criterion.details}</p>
                                                 )}
                                             </div>
                                             <Button variant="ghost" size="sm" onClick={() => removeCriterion(criterion.key)}>
-                                                <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-4 h-4 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                 </svg>
                                             </Button>
@@ -696,26 +696,26 @@ export default function PerformanceTemplatesPage() {
                     {selectedTemplate && (
                         <div className="space-y-6 py-4">
                             <div>
-                                <h4 className="font-medium text-slate-900 mb-2">Description</h4>
-                                <p className="text-slate-600">{selectedTemplate.description || 'No description provided'}</p>
+                                <h4 className="font-medium text-foreground mb-2">Description</h4>
+                                <p className="text-muted-foreground">{selectedTemplate.description || 'No description provided'}</p>
                             </div>
 
                             <div>
-                                <h4 className="font-medium text-slate-900 mb-3">Rating Scale</h4>
-                                <div className="p-4 bg-slate-50 rounded-lg">
+                                <h4 className="font-medium text-foreground mb-3">Rating Scale</h4>
+                                <div className="p-4 bg-muted/50 border border-border rounded-lg">
                                     <div className="flex items-center gap-4 mb-3">
-                                        <Badge className="bg-blue-100 text-blue-700">
+                                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                                             {getRatingScaleLabel(selectedTemplate.ratingScale?.type)}
                                         </Badge>
-                                        <span className="text-sm text-slate-600">
+                                        <span className="text-sm text-muted-foreground font-medium">
                                             Range: {selectedTemplate.ratingScale?.min} - {selectedTemplate.ratingScale?.max}
                                         </span>
                                     </div>
                                     {selectedTemplate.ratingScale?.labels && selectedTemplate.ratingScale.labels.length > 0 && (
                                         <div className="flex flex-wrap gap-2">
                                             {selectedTemplate.ratingScale.labels.map((label, idx) => (
-                                                <div key={idx} className="px-3 py-1 bg-white rounded-full border text-sm">
-                                                    <span className="font-medium text-blue-600">{idx + (selectedTemplate.ratingScale?.min || 1)}:</span> {label}
+                                                <div key={idx} className="px-3 py-1 bg-background rounded-full border border-border text-sm">
+                                                    <span className="font-medium text-primary">{idx + (selectedTemplate.ratingScale?.min || 1)}:</span> {label}
                                                 </div>
                                             ))}
                                         </div>
@@ -724,32 +724,32 @@ export default function PerformanceTemplatesPage() {
                             </div>
 
                             <div>
-                                <h4 className="font-medium text-slate-900 mb-3">Evaluation Criteria</h4>
+                                <h4 className="font-medium text-foreground mb-3">Evaluation Criteria</h4>
                                 {selectedTemplate.criteria && selectedTemplate.criteria.length > 0 ? (
                                     <div className="space-y-2">
                                         {selectedTemplate.criteria.map((criterion, idx) => (
-                                            <div key={idx} className="p-3 bg-slate-50 rounded-lg">
+                                            <div key={idx} className="p-3 bg-muted/50 border border-border rounded-lg">
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="font-medium text-slate-900">{criterion.title}</span>
+                                                    <span className="font-medium text-foreground">{criterion.title}</span>
                                                     <Badge variant="outline" className="text-xs">{criterion.key}</Badge>
-                                                    {criterion.weight && <Badge className="bg-blue-100 text-blue-700">{criterion.weight}%</Badge>}
-                                                    {criterion.required && <Badge className="bg-red-100 text-red-700">Required</Badge>}
+                                                    {criterion.weight && <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">{criterion.weight}%</Badge>}
+                                                    {criterion.required && <Badge variant="secondary" className="bg-destructive/10 text-destructive border-destructive/20">Required</Badge>}
                                                 </div>
                                                 {criterion.details && (
-                                                    <p className="text-sm text-slate-500 mt-1">{criterion.details}</p>
+                                                    <p className="text-sm text-muted-foreground mt-1">{criterion.details}</p>
                                                 )}
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
-                                    <p className="text-slate-500 italic">No criteria defined</p>
+                                    <p className="text-muted-foreground italic">No criteria defined</p>
                                 )}
                             </div>
 
                             {selectedTemplate.instructions && (
                                 <div>
-                                    <h4 className="font-medium text-slate-900 mb-2">Instructions</h4>
-                                    <p className="text-slate-600 whitespace-pre-wrap">{selectedTemplate.instructions}</p>
+                                    <h4 className="font-medium text-foreground mb-2">Instructions</h4>
+                                    <p className="text-muted-foreground whitespace-pre-wrap">{selectedTemplate.instructions}</p>
                                 </div>
                             )}
                         </div>

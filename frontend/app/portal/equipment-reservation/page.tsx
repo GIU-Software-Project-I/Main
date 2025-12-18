@@ -301,7 +301,7 @@ export default function EquipmentReservationPage() {
                       <span className={`px-3 py-1 text-sm font-medium rounded-full ${
                         hasPending ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'
                       }`}>
-                        {hasPending ? 'Pending' : 'Complete'}
+                        {hasPending ? 'pending' : 'complete'}
                       </span>
                     </div>
 

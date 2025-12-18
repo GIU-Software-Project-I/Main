@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { organizationStructureService } from '@/app/services/organization-structure';
+import { StatusBadge } from '@/app/components/ui/status-badge';
 
 /**
  * Change Requests Management - System Admin
@@ -36,23 +37,6 @@ const requestTypeLabels: Record<string, string> = {
   NEW_POSITION: 'New Position',
   UPDATE_POSITION: 'Update Position',
   CLOSE_POSITION: 'Close Position',
-};
-
-const statusStyles: Record<string, string> = {
-  DRAFT: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
-  SUBMITTED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  UNDER_REVIEW: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  APPROVED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  REJECTED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  CANCELED: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
-  IMPLEMENTED: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  // Lowercase variants for compatibility
-  pending: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  PENDING: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  submitted: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  under_review: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  approved: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
 // Helper to check if status is actionable (case-insensitive)
@@ -254,9 +238,7 @@ export default function ChangeRequestsPage() {
                         {request.targetPositionId?.title || request.targetDepartmentId?.name || '-'}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 text-xs font-medium rounded ${statusStyles[request.status]}`}>
-                          {request.status}
-                        </span>
+                        <StatusBadge status={request.status} />
                       </td>
                       <td className="px-6 py-4 text-muted-foreground text-sm">
                         {new Date(request.createdAt).toLocaleDateString()}
@@ -312,10 +294,8 @@ export default function ChangeRequestsPage() {
                   </div>
                   <div>
                     <label className="text-sm text-muted-foreground">Status</label>
-                    <p>
-                      <span className={`px-2 py-1 text-xs font-medium rounded ${statusStyles[selectedRequest.status]}`}>
-                        {selectedRequest.status}
-                      </span>
+                    <p className="mt-1">
+                      <StatusBadge status={selectedRequest.status} size="lg" />
                     </p>
                   </div>
                   <div>
