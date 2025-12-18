@@ -226,17 +226,54 @@ export const payrollSpecialistService = {
   },
 
   async generateStandardPayrollSummary(filters: ReportFilters) {
-    const response = await api.post<StandardPayrollSummary>('/payroll/reports/summary/generate', filters);
+    // Call the correct backend endpoint for payroll summary
+    const params = new URLSearchParams();
+    // Determine period type based on filters
+    const periodType = filters.periodType || 'monthly';
+    params.append('type', periodType);
+
+    if (filters.startDate) {
+      // Extract period from startDate (YYYY-MM format for monthly, YYYY for yearly)
+      if (periodType === 'yearly') {
+        params.append('period', filters.startDate.substring(0, 4));
+      } else {
+        params.append('period', filters.startDate.substring(0, 7));
+      }
+    }
+
+    const response = await api.get<any>(`/payroll/tracking/reports/payroll-summary?${params}`);
     return response;
   },
 
   async generateTaxReport(filters: ReportFilters) {
-    const response = await api.post<TaxReport>('/payroll/reports/tax/generate', filters);
+    // Call the compliance report endpoint with type=tax
+    // This fetches tax data from taxRules schema via payslips
+    const params = new URLSearchParams();
+    params.append('type', 'tax');
+
+    if (filters.startDate) {
+      // Extract year from startDate
+      const year = new Date(filters.startDate).getFullYear();
+      params.append('year', year.toString());
+    } else if (filters.endDate) {
+      const year = new Date(filters.endDate).getFullYear();
+      params.append('year', year.toString());
+    } else {
+      params.append('year', new Date().getFullYear().toString());
+    }
+
+    const response = await api.get<TaxReport>(`/payroll/tracking/reports/compliance?${params}`);
     return response;
   },
 
   async generatePaySlipHistoryReport(filters: ReportFilters) {
-    const response = await api.post<PaySlipHistoryReport>('/payroll/reports/payslip/generate', filters);
+    // Fetch payslips from the payslip schema via department payroll report
+    const params = new URLSearchParams();
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.departmentId) params.append('departmentId', filters.departmentId);
+
+    const response = await api.get<PaySlipHistoryReport>(`/payroll/tracking/reports/department-payroll?${params}`);
     return response;
   },
 
@@ -280,10 +317,10 @@ export const payrollSpecialistService = {
     if (filters?.department) params.append('department', filters.department);
     if (filters?.type && filters.type !== 'all') params.append('type', filters.type);
     if (filters?.priority && filters.priority !== 'all') params.append('priority', filters.priority);
-    
+
     const queryString = params.toString();
     const response = await api.get<any>(`/payroll/tracking/disputes${queryString ? `?${queryString}` : ''}`);
-    
+
     // Handle nested response format
     if ((response.data as any).data) {
       return {
@@ -292,7 +329,7 @@ export const payrollSpecialistService = {
         count: (response.data as any).count
       };
     }
-    
+
     return response;
   },
 
@@ -335,7 +372,7 @@ export const payrollSpecialistService = {
     if (filters?.department) params.append('department', filters.department);
     if (filters?.category && filters.category !== 'all') params.append('category', filters.category);
     if (filters?.priority && filters.priority !== 'all') params.append('priority', filters.priority);
-    
+
     const queryString = params.toString();
     const response = await api.get<ExpenseClaim[]>(`/payroll/claims${queryString ? `?${queryString}` : ''}`);
     return response;

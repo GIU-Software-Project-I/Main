@@ -41,6 +41,14 @@ export default function OffboardingChecklistPage() {
     }
   };
 
+  // Helper to extract ID from potentially populated object
+  const getTerminationId = () => {
+    if (!checklist?.terminationId) return '';
+    return typeof checklist.terminationId === 'object'
+      ? (checklist.terminationId as any)?._id || (checklist.terminationId as any)?.id || ''
+      : checklist.terminationId;
+  };
+
   const getStatusBadge = (status: ApprovalStatus) => {
     switch (status) {
       case ApprovalStatus.APPROVED:
@@ -97,7 +105,7 @@ export default function OffboardingChecklistPage() {
         </div>
         {completionStatus?.fullyCleared && (
           <Link
-            href={`/dashboard/hr-manager/offboarding/final-settlement/${checklist.terminationId}`}
+            href={`/dashboard/hr-manager/offboarding/final-settlement/${getTerminationId()}`}
             className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
           >
             Proceed to Final Settlement

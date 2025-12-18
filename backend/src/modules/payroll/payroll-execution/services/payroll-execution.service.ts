@@ -795,250 +795,137 @@ async listIrregularities(
         payrollRunId?: string;
         severity?: string;
     },
-    userId?: string
-) {
-    // Ensure all payroll details have the irregularities array by running the fix script
-    await this.employeePayrollDetailsModel.updateMany(
-        { $or: [ { irregularities: { $exists: false } }, { irregularities: null } ] },
-        { $set: { irregularities: [] } }
-    );
-  // Get employee payroll details based on filters
-  const query: any = {};
-  if (filters.payrollRunId) {
-    query.payrollRunId = new mongoose.Types.ObjectId(filters.payrollRunId);
-  }
+        userId?: string
+    ) {
+        let data: any[] = [];
+        let pending = 0, resolved = 0, escalated = 0;
+        // Fetch payroll details based on filters
+        const query: any = {};
+        if (filters.payrollRunId) query.payrollRunId = filters.payrollRunId;
+        // You can add more filter logic as needed
+        // Populate employeeId and payrollRunId for richer info
+        const payrollDetails = await this.employeePayrollDetailsModel.find(query)
+            .populate('employeeId', 'employeeCode fullName')
+            .populate('payrollRunId', 'entity period status runId')
+            .exec();
 
-    const payrollDetails = await this.employeePayrollDetailsModel
-        .find(query)
-        .populate('employeeId', 'employeeCode fullName department position')
-        .populate('payrollRunId', 'period entity status name')
-        .exec();
-
-    // Gather persistent irregularities from each payroll detail
-    let allIrregularities: any[] = [];
-    for (const detailDoc of payrollDetails) {
-        // Convert to plain object for safe property access
-        const detail = detailDoc.toObject ? detailDoc.toObject() : detailDoc;
-        // Ensure persistent irregularity for missing/invalid bank account
-        const validBankStatuses = ['valid', 'verified', 'active'];
-        if (!detail.bankStatus || !validBankStatuses.includes((detail.bankStatus || '').toLowerCase())) {
-            const irrId = `${detail._id}_bank`;
-            if (!Array.isArray(detail.irregularities) || !detail.irregularities.some((irr: any) => irr.irregularityId === irrId)) {
-                // Add persistent irregularity if missing
-                if (detailDoc.irregularities === undefined) detailDoc.irregularities = [];
-                detailDoc.irregularities.push({
-                    irregularityId: irrId,
-                    type: 'bank_account',
-                    severity: 'high',
-                    status: 'pending',
-                    description: `Invalid bank status: "${detail.bankStatus || 'Not provided'}"`,
-                    flaggedAt: new Date(),
-                });
-                await detailDoc.save();
-                // Update local copy for reporting
-                detail.irregularities = detailDoc.irregularities;
-            }
-        }
-        if (Array.isArray(detail.irregularities)) {
-            for (const irr of detail.irregularities) {
-                allIrregularities.push({
-                    ...irr,
-                    employeeCode: detail.employeeId?.employeeCode || 'Unknown',
-                    employeeName: detail.employeeId?.fullName || 'Unknown Employee',
-                    payrollRun: detail.payrollRunId ? {
-                        entity: detail.payrollRunId.entity,
-                        period: detail.payrollRunId.period,
-                        status: detail.payrollRunId.status,
-                        runId: detail.payrollRunId._id
-                    } : undefined,
-                    bankStatus: detail.bankStatus // Always include the true bankStatus from the payroll detail
+        for (const detailDoc of payrollDetails) {
+            const detail = detailDoc.toObject ? detailDoc.toObject() : detailDoc;
+            // Pending irregularities: those still in exceptions string
+            if (detail.exceptions && typeof detail.exceptions === 'string' && detail.exceptions.trim() !== '') {
+                const messages = detail.exceptions.split(',').map(msg => msg.trim()).filter(Boolean);
+                messages.forEach(msg => {
+                    pending++;
+                    data.push({
+                        _id: `${detail._id}_${Buffer.from(msg).toString('base64').slice(0, 8)}`,
+                        employeeId: detail.employeeId?._id || detail.employeeId,
+                        employeeCode: detail.employeeId?.employeeCode || 'N/A',
+                        employeeName: detail.employeeId?.fullName || 'N/A',
+                        payrollRunId: detail.payrollRunId?._id || detail.payrollRunId,
+                        payrollRun: detail.payrollRunId ? {
+                            entity: detail.payrollRunId.entity,
+                            period: detail.payrollRunId.period,
+                            status: detail.payrollRunId.status,
+                            runId: detail.payrollRunId.runId || ''
+                        } : undefined,
+                        type: 'manual',
+                        severity: 'medium',
+                        status: 'pending',
+                        description: msg,
+                        flaggedAt: detail.updatedAt || detail.createdAt || new Date(),
+                        currentValue: detail.netSalary,
+                        previousValue: undefined,
+                        previousAverage: undefined,
+                        variancePercentage: undefined,
+                        escalatedAt: undefined,
+                        escalationReason: undefined,
+                        resolution: undefined
+                    });
                 });
             }
+            // Minimal: show resolved irregularities as status 'resolved' if not in exceptions but previously present
+            if ((!detail.exceptions || detail.exceptions.trim() === '') && detail._previousIrregularities) {
+                detail._previousIrregularities.forEach((msg: string) => {
+                    resolved++;
+                    data.push({
+                        _id: `${detail._id}_${Buffer.from(msg).toString('base64').slice(0, 8)}`,
+                        employeeId: detail.employeeId?._id || detail.employeeId,
+                        employeeCode: detail.employeeId?.employeeCode || 'N/A',
+                        employeeName: detail.employeeId?.fullName || 'N/A',
+                        payrollRunId: detail.payrollRunId?._id || detail.payrollRunId,
+                        payrollRun: detail.payrollRunId ? {
+                            entity: detail.payrollRunId.entity,
+                            period: detail.payrollRunId.period,
+                            status: detail.payrollRunId.status,
+                            runId: detail.payrollRunId.runId || ''
+                        } : undefined,
+                        type: 'manual',
+                        severity: 'medium',
+                        status: 'resolved',
+                        description: msg,
+                        flaggedAt: detail.updatedAt || detail.createdAt || new Date(),
+                        currentValue: detail.netSalary,
+                        previousValue: undefined,
+                        previousAverage: undefined,
+                        variancePercentage: undefined,
+                        escalatedAt: undefined,
+                        escalationReason: undefined,
+                        resolution: undefined
+                    });
+                });
+            }
         }
+        return {
+            data,
+            total: data.length,
+            pending,
+            resolved,
+            escalated
+        };
     }
-
-    // Apply filters
-    let filtered = allIrregularities;
-    if (filters.status && filters.status !== 'all') {
-        filtered = filtered.filter(irr => irr.status === filters.status);
-    }
-    if (filters.severity) {
-        filtered = filtered.filter(irr => irr.severity === filters.severity);
-    }
-
-    // Calculate stats
-    const stats = {
-        pending: filtered.filter(irr => irr.status === 'pending').length,
-        escalated: filtered.filter(irr => irr.status === 'escalated').length,
-        resolved: filtered.filter(irr => irr.status === 'resolved').length,
-    };
-
-    return {
-        data: filtered,
-        ...stats,
-        total: filtered.length,
-    };
-}
 
 private detectIrregularities(payrollDetails: any[]): any[] {
-  const irregularities: any[] = [];
-
-  payrollDetails.forEach(detail => {
-    const employee = detail.employeeId;
-    const payrollRun = detail.payrollRunId;
-    const baseId = detail._id.toString();
-
-    // 1. Missing/Invalid bank status
-    if (!detail.bankStatus || !['valid', 'verified', 'active'].includes(detail.bankStatus?.toLowerCase())) {
-      irregularities.push({
-        _id: `${baseId}_bank`,
-        employeeCode: employee?.employeeCode || 'Unknown',
-        employeeName: employee?.fullName || 'Unknown Employee',
-        type: 'bank_account',
-        severity: 'high',
-        status: 'pending',
-        description: `Invalid bank status: "${detail.bankStatus || 'Not provided'}"`,
-        currentValue: detail.netSalary,
-        flaggedAt: new Date().toISOString(),
-        payrollRun: payrollRun ? {
-          entity: payrollRun.entity,
-          period: payrollRun.period,
-          status: payrollRun.status,
-          runId: payrollRun._id
-        } : undefined
-      });
-    }
-
-    // 2. Negative net pay
-    if (detail.netSalary < 0) {
-      irregularities.push({
-        _id: `${baseId}_negative`,
-        employeeCode: employee?.employeeCode || 'Unknown',
-        employeeName: employee?.fullName || 'Unknown Employee',
-        type: 'negative_net_pay',
-        severity: 'critical',
-        status: 'pending',
-        description: `Negative net salary: EGP ${detail.netSalary}`,
-        currentValue: detail.netSalary,
-        flaggedAt: new Date().toISOString(),
-        payrollRun: payrollRun ? {
-          entity: payrollRun.entity,
-          period: payrollRun.period,
-          status: payrollRun.status,
-          runId: payrollRun._id
-        } : undefined
-      });
-    }
-
-    // 3. Zero net pay
-    if (detail.netSalary === 0) {
-      irregularities.push({
-        _id: `${baseId}_zero`,
-        employeeCode: employee?.employeeCode || 'Unknown',
-        employeeName: employee?.fullName || 'Unknown Employee',
-        type: 'zero_net_pay',
-        severity: 'high',
-        status: 'pending',
-        description: `Zero net salary after deductions`,
-        currentValue: detail.netSalary,
-        flaggedAt: new Date().toISOString(),
-        payrollRun: payrollRun ? {
-          entity: payrollRun.entity,
-          period: payrollRun.period,
-          status: payrollRun.status,
-          runId: payrollRun._id
-        } : undefined
-      });
-    }
-
-    // 4. Excessive tax (>100% of gross)
-    const grossSalary = (detail.baseSalary || 0) + (detail.allowances || 0);
-    const taxAmount = detail.deductionsBreakdown?.tax || 0;
-    
-    if (grossSalary > 0 && taxAmount > 0) {
-      const taxPercentage = (taxAmount / grossSalary) * 100;
-      
-      if (taxPercentage >= 100) {
-        irregularities.push({
-          _id: `${baseId}_tax100`,
-          employeeCode: employee?.employeeCode || 'Unknown',
-          employeeName: employee?.fullName || 'Unknown Employee',
-          type: 'excessive_tax',
-          severity: 'critical',
-          status: 'pending',
-          description: `Tax (${taxPercentage.toFixed(1)}%) exceeds gross salary`,
-          currentValue: taxAmount,
-          previousValue: grossSalary,
-          variancePercentage: taxPercentage,
-          flaggedAt: new Date().toISOString(),
-          payrollRun: payrollRun ? {
-            entity: payrollRun.entity,
-            period: payrollRun.period,
-            status: payrollRun.status,
-            runId: payrollRun._id
-          } : undefined
-        });
-      }
-    }
-
-    // 5. Excessive overtime (>50% of base)
-    const overtimeAmount = detail.overtime?.amount || 0;
-    if (detail.baseSalary > 0 && overtimeAmount > 0) {
-      const overtimePercentage = (overtimeAmount / detail.baseSalary) * 100;
-      
-      if (overtimePercentage > 50) {
-        irregularities.push({
-          _id: `${baseId}_overtime`,
-          employeeCode: employee?.employeeCode || 'Unknown',
-          employeeName: employee?.fullName || 'Unknown Employee',
-          type: 'overtime_spike',
-          severity: 'medium',
-          status: 'pending',
-          description: `Overtime (${overtimePercentage.toFixed(1)}%) exceeds 50% of base`,
-          currentValue: overtimeAmount,
-          previousValue: detail.baseSalary,
-          variancePercentage: overtimePercentage,
-          flaggedAt: new Date().toISOString(),
-          payrollRun: payrollRun ? {
-            entity: payrollRun.entity,
-            period: payrollRun.period,
-            status: payrollRun.status,
-            runId: payrollRun._id
-          } : undefined
-        });
-      }
-    }
-
-    // 6. High deductions (>60% of gross)
-    const totalDeductions = detail.deductions || 0;
-    if (grossSalary > 0) {
-      const deductionsPercentage = (totalDeductions / grossSalary) * 100;
-      
-      if (deductionsPercentage > 60) {
-        irregularities.push({
-          _id: `${baseId}_highdeductions`,
-          employeeCode: employee?.employeeCode || 'Unknown',
-          employeeName: employee?.fullName || 'Unknown Employee',
-          type: 'high_deductions',
-          severity: 'high',
-          status: 'pending',
-          description: `Deductions (${deductionsPercentage.toFixed(1)}%) exceed 60% of gross`,
-          currentValue: totalDeductions,
-          previousValue: grossSalary,
-          variancePercentage: deductionsPercentage,
-          flaggedAt: new Date().toISOString(),
-          payrollRun: payrollRun ? {
-            entity: payrollRun.entity,
-            period: payrollRun.period,
-            status: payrollRun.status,
-            runId: payrollRun._id
-          } : undefined
-        });
-      }
-    }
-  });
-
-  return irregularities;
+    const messages: string[] = [];
+    payrollDetails.forEach(detail => {
+        // 1. Missing/Invalid bank status
+        if (!detail.bankStatus || !['valid', 'verified', 'active'].includes((detail.bankStatus || '').toLowerCase())) {
+            messages.push(`Invalid bank status: "${detail.bankStatus || 'Not provided'}"`);
+        }
+        // 2. Negative net pay
+        if (detail.netSalary < 0) {
+            messages.push(`Negative net salary: EGP ${detail.netSalary}`);
+        }
+        // 3. Zero net pay
+        if (detail.netSalary === 0) {
+            messages.push('Zero net salary after deductions');
+        }
+        // 4. Excessive tax (>100% of gross)
+        const grossSalary = (detail.baseSalary || 0) + (detail.allowances || 0);
+        const taxAmount = detail.deductionsBreakdown?.tax || 0;
+        if (grossSalary > 0 && taxAmount > 0) {
+            const taxPercentage = (taxAmount / grossSalary) * 100;
+            if (taxPercentage >= 100) {
+                messages.push(`Tax (${taxPercentage.toFixed(1)}%) exceeds gross salary`);
+            }
+        }
+        // 5. Excessive overtime (>50% of base)
+        const overtimeAmount = detail.overtime?.amount || 0;
+        if (detail.baseSalary > 0 && overtimeAmount > 0) {
+            const overtimePercentage = (overtimeAmount / detail.baseSalary) * 100;
+            if (overtimePercentage > 50) {
+                messages.push(`Overtime (${overtimePercentage.toFixed(1)}%) exceeds 50% of base`);
+            }
+        }
+        // 6. High deductions (>60% of gross)
+        const totalDeductions = detail.deductions || 0;
+        if (grossSalary > 0) {
+            const deductionsPercentage = (totalDeductions / grossSalary) * 100;
+            if (deductionsPercentage > 60) {
+                messages.push(`Deductions (${deductionsPercentage.toFixed(1)}%) exceed 60% of gross`);
+            }
+        }
+    });
+    return messages;
 }
 
 async getIrregularity(id: string, userId?: string) {
@@ -1133,36 +1020,20 @@ async resolveIrregularity(
     if (!detail) {
         throw new NotFoundException('Source payroll detail not found');
     }
-    const irr = (detail.irregularities || []).find((irr: any) => irr.irregularityId === id);
-    if (!irr) {
-        throw new NotFoundException('Irregularity not found');
-    }
-    if (irr.status === 'resolved') {
-        throw new BadRequestException('Irregularity already resolved');
-    }
-    irr.status = 'resolved';
-    irr.resolution = {
-        action: data.action,
-        notes: data.notes,
-        adjustedValue: data.adjustedValue,
-        resolvedBy: userId,
-        resolvedAt: new Date()
-    };
-    // Optionally update payroll detail fields if needed (as before)
-    let updatedDocument = false;
-    // Optionally: update detail fields based on irregularity type and action
-    // ...existing logic for updating detail fields...
+    const now = new Date();
+    // Clear the entire exceptions string when resolving any irregularity
+    detail.exceptions = '';
     await detail.save();
     return {
         success: true,
         message: `Irregularity ${data.action} successfully`,
-        resolution: irr.resolution,
-        updatedDocument: updatedDocument ? {
+        updatedDocument: {
             netSalary: detail.netSalary,
             deductions: detail.deductions,
             bankStatus: detail.bankStatus,
+            exceptions: detail.exceptions,
             updatedAt: detail.updatedAt
-        } : undefined
+        }
     };
 }
 
@@ -1221,11 +1092,25 @@ async resolveIrregularity(
         try {
             const db = this.db;
             if (db) {
+                // Try to find department by ID
                 const department = await db.collection('departments').findOne(
                     { _id: new mongoose.Types.ObjectId(dto.entityId) },
                     { projection: { name: 1 } }
                 );
-                entity = department?.name || 'Unknown Department';
+                if (department && department.name) {
+                    entity = department.name;
+                } else {
+                    // If not found in departments, search employee_profiles by primaryDepartmentId
+                    const employeeWithDept = await db.collection('employee_profiles').findOne(
+                        { primaryDepartmentId: new mongoose.Types.ObjectId(dto.entityId) },
+                        { projection: { primaryDepartmentId: 1 } }
+                    );
+                    if (employeeWithDept && employeeWithDept.primaryDepartmentId) {
+                        entity = 'Department (from employee profile)';
+                    } else {
+                        entity = 'Unknown Department';
+                    }
+                }
             }
         } catch (err) {
             console.warn('Could not fetch department name:', err.message);
@@ -1423,7 +1308,6 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
     // REQ-PY-22: Manager approval
     async approvePayroll(id: string, approvedBy?: string) {
         await this.ensurePayrollManager(approvedBy);
-        
         const existing = await this.payrollRunsModel.findById(id).lean().exec();
         if (!existing) {
             throw new NotFoundException(`Payroll run ${id} not found`);
@@ -1441,9 +1325,33 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
             );
         }
 
+        // --- PATCH: Resolve all irregularities for this run ---
+        // Find all employee payroll details for this run
+        const details = await this.employeePayrollDetailsModel.find({ payrollRunId: id }).exec();
+        for (const detail of details) {
+            if (Array.isArray(detail.irregularities)) {
+                let updated = false;
+                for (const irr of detail.irregularities) {
+                    if (irr.status !== 'resolved') {
+                        irr.status = 'resolved';
+                        irr.resolution = {
+                            action: 'approved',
+                            notes: 'Auto-resolved on manager approval',
+                            resolvedBy: approvedBy,
+                            resolvedAt: new Date()
+                        };
+                        updated = true;
+                    }
+                }
+                if (updated) {
+                    await detail.save();
+                }
+            }
+        }
+        // --- END PATCH ---
+
         const now = new Date();
         const managerId = new mongoose.Types.ObjectId(approvedBy);
-        
         // REQ-PY-22: Manager approval transitions to PENDING_FINANCE_APPROVAL
         const updated = await this.payrollRunsModel.findByIdAndUpdate(
             id,
@@ -1457,7 +1365,6 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
             },
             { new: true }
         ).exec();
-        
         return updated;
     }
 
@@ -1683,6 +1590,31 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
         const payslips = await this.paySlipModel.find({ 
             payrollRunId: new mongoose.Types.ObjectId(payrollRunId) 
         }).lean().exec();
+        console.log('Fetched payslips:', payslips);
+        // Helper to extract default fields from nested data
+        const extractDefaultFields = (p: any) => ({
+            employeeId: p.employeeId,
+            payrollRunId: p.payrollRunId,
+            baseSalary: p.baseSalary ?? p.earningsDetails?.baseSalary ?? 0,
+            allowances: p.allowances ?? p.earningsDetails?.allowances ?? [],
+            bonuses: p.bonuses ?? p.earningsDetails?.bonuses ?? [],
+            benefits: p.benefits ?? p.earningsDetails?.benefits ?? [],
+            refunds: p.refunds ?? p.earningsDetails?.refunds ?? [],
+            taxAmount: p.taxAmount ?? p.deductionsDetails?.taxAmount ?? 0,
+            insuranceAmount: p.insuranceAmount ?? p.deductionsDetails?.insuranceAmount ?? 0,
+            penaltiesAmount: p.penaltiesAmount ?? p.deductionsDetails?.penaltiesAmount ?? 0,
+            taxes: p.taxes ?? p.deductionsDetails?.taxes ?? [],
+            insurances: p.insurances ?? p.deductionsDetails?.insurances ?? [],
+            totalGrossSalary: p.totalGrossSalary ?? 0,
+            totaDeductions: p.totaDeductions ?? 0,
+            netPay: p.netPay ?? 0,
+            paymentStatus: p.paymentStatus,
+            createdAt: p.createdAt,
+            updatedAt: p.updatedAt,
+            status: p.status,
+            // Keep all extra fields for advanced use
+            ...p
+        });
 
         // Populate employee names
         const db = this.db;
@@ -1692,7 +1624,6 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
                 { _id: { $in: employeeIds } },
                 { projection: { _id: 1, firstName: 1, lastName: 1, fullName: 1, employeeNumber: 1 } }
             ).toArray();
-            
             const employeeMap = new Map<string, { name: string; employeeNumber: string }>(
                 employees.map((e: any) => [
                     e._id.toString(), 
@@ -1702,18 +1633,16 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
                     }
                 ])
             );
-            
             return payslips.map((p: any) => ({
-                ...p,
+                ...extractDefaultFields(p),
                 employeeName: employeeMap.get(p.employeeId?.toString())?.name || 'Unknown',
                 employeeNumber: employeeMap.get(p.employeeId?.toString())?.employeeNumber || '',
                 payrollPeriod: existing.payrollPeriod,
                 entity: existing.entity,
             }));
         }
-        
         return payslips.map((p: any) => ({
-            ...p,
+            ...extractDefaultFields(p),
             payrollPeriod: existing.payrollPeriod,
             entity: existing.entity,
         }));
@@ -1744,8 +1673,32 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
             }
         }
 
+        // Helper to extract default fields from nested data
+        const extractDefaultFields = (p: any) => ({
+            employeeId: p.employeeId,
+            payrollRunId: p.payrollRunId,
+            baseSalary: p.baseSalary ?? p.earningsDetails?.baseSalary ?? 0,
+            allowances: p.allowances ?? p.earningsDetails?.allowances ?? [],
+            bonuses: p.bonuses ?? p.earningsDetails?.bonuses ?? [],
+            benefits: p.benefits ?? p.earningsDetails?.benefits ?? [],
+            refunds: p.refunds ?? p.earningsDetails?.refunds ?? [],
+            taxAmount: p.taxAmount ?? p.deductionsDetails?.taxAmount ?? 0,
+            insuranceAmount: p.insuranceAmount ?? p.deductionsDetails?.insuranceAmount ?? 0,
+            penaltiesAmount: p.penaltiesAmount ?? p.deductionsDetails?.penaltiesAmount ?? 0,
+            taxes: p.taxes ?? p.deductionsDetails?.taxes ?? [],
+            insurances: p.insurances ?? p.deductionsDetails?.insurances ?? [],
+            totalGrossSalary: p.totalGrossSalary ?? 0,
+            totaDeductions: p.totaDeductions ?? 0,
+            netPay: p.netPay ?? 0,
+            paymentStatus: p.paymentStatus,
+            createdAt: p.createdAt,
+            updatedAt: p.updatedAt,
+            status: p.status,
+            // Keep all extra fields for advanced use
+            ...p
+        });
         return {
-            ...payslip,
+            ...extractDefaultFields(payslip),
             employeeName,
             employeeNumber,
             payrollPeriod: payrollRun?.payrollPeriod,
@@ -2007,7 +1960,9 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
                     totalGrossPay: totalGross,
                     totalDeductions: totalDeductionsSum,
                     totalTaxDeductions: totalTaxSum,
+                    totalTaxes: totalTaxSum,
                     totalInsuranceDeductions: totalInsuranceSum,
+                    totalInsurance: totalInsuranceSum,
                     totalPenalties: totalPenaltiesSum,
                     totalAllowances: totalAllowancesSum,
                     totalBaseSalary: totalBaseSalarySum,
@@ -2035,6 +1990,11 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
         minimumWage: number,
         db: any
     ) {
+        // --- BEGIN DETAILED LOGGING ---
+        console.log('--- processEmployeePayroll START ---');
+        console.log('Employee:', JSON.stringify(emp, null, 2));
+        console.log('Payroll Run:', JSON.stringify(runDoc, null, 2));
+        // Logging will be repeated after all calculations, before payslip creation
         const employeeId = emp._id;
 
         // BR 1, BR 66: Validate active contract
@@ -2499,34 +2459,59 @@ async approvePayrollInitiation(id: string, approvedBy?: string) {
             penaltiesList.push({ reason: latenessReason || `Lateness: ${Math.round(attendanceData.latenessMinutes)} minutes`, amount: latenessPenalty });
         }
 
-        // BR 17: Create payslip with detailed breakdown
-        await this.paySlipModel.create({
-            employeeId: employeeId,
-            payrollRunId: runDoc._id,
-            earningsDetails: {
-                baseSalary: baseSalary,
-                allowances: allowancesConfig,
-                bonuses: approvedBonus ? [approvedBonus] : [],
-                benefits: approvedBenefit ? [approvedBenefit] : [],
-                refunds: refundsAmount > 0 ? [{ amount: refundsAmount, description: 'Approved refunds' }] : [],
-            },
-            deductionsDetails: {
-                taxes: taxRules,
-                insurances: matchingBracket ? [matchingBracket] : [],
-                penalties: penaltiesList.length > 0 ? {
-                    employeeId: employeeId,
-                    penalties: penaltiesList
-                } : undefined,
-                // Calculated amounts for easy display
-                taxAmount: taxAmount,
-                insuranceAmount: insuranceAmount,
-                penaltiesAmount: totalPenalties,
-            },
-            totalGrossSalary: proratedGross,
-            totaDeductions: totalAllDeductions, // Total: tax + insurance + penalties
-            netPay: netPay,
-            paymentStatus: PaySlipPaymentStatus.PENDING,
-        });
+        // BR 17: Create payslip with detailed breakdown, always including default fields and merging extra fields
+        // Default required fields for earnings
+        const defaultEarnings = {
+            baseSalary: baseSalary,
+            allowances: allowancesConfig,
+            bonuses: approvedBonus ? [approvedBonus] : [],
+            benefits: approvedBenefit ? [approvedBenefit] : [],
+            refunds: refundsAmount > 0 ? [{ amount: refundsAmount, description: 'Approved refunds' }] : [],
+        };
+
+        // Only include the applicable tax rule(s) with a valid rate
+        const applicableTaxes = applicableTaxRule ? [{
+            name: applicableTaxRule.name || 'Tax',
+            rate: typeof applicableTaxRule.rate === 'number' ? applicableTaxRule.rate : 0,
+            amount: taxAmount
+        }] : [];
+        const defaultDeductions = {
+            taxes: applicableTaxes,
+            insurances: matchingBracket ? [matchingBracket] : [],
+            penalties: penaltiesList.length > 0 ? {
+                employeeId: employeeId,
+                penalties: penaltiesList
+            } : undefined,
+            taxAmount: taxAmount,
+            insuranceAmount: insuranceAmount,
+            penaltiesAmount: totalPenalties,
+        };
+
+        // Ensure every tax object in deductionsDetails.taxes includes a rate property
+        const safeDeductions = { ...defaultDeductions };
+        if (Array.isArray(safeDeductions.taxes)) {
+            safeDeductions.taxes = safeDeductions.taxes.map((tax: any) => ({
+                ...tax,
+                rate: typeof tax.rate === 'number' ? tax.rate : (tax.rate ? Number(tax.rate) : (tax.rate === 0 ? 0 : (tax.rate === undefined ? (tax.rate = tax.rate || 0) : 0)))
+            }));
+        }
+        try {
+            const payslipDoc = await this.paySlipModel.create({
+                employeeId: employeeId,
+                payrollRunId: runDoc._id,
+                earningsDetails: defaultEarnings,
+                deductionsDetails: safeDeductions,
+                totalGrossSalary: proratedGross,
+                totaDeductions: totalAllDeductions, // Total: tax + insurance + penalties
+                netPay: netPay,
+                paymentStatus: PaySlipPaymentStatus.PENDING
+            });
+            console.log('Payslip created successfully:', JSON.stringify(payslipDoc, null, 2));
+        } catch (err) {
+            console.error('Payslip creation error:', err);
+            throw err;
+        }
+        console.log('--- processEmployeePayroll END ---');
     }
 
     private async autoProcessSigningBonus(emp: any, db: any, runDoc: any) {

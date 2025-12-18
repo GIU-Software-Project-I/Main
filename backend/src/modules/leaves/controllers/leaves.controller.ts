@@ -10,7 +10,11 @@ import {
   Param,
   Query,
   UseGuards,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
+import { join } from 'path';
+import { existsSync, createReadStream } from 'fs';
 import { UnifiedLeaveService } from '../services/leaves.service';
 import { CreateLeaveTypeDto } from '../dto/create-leave-type.dto';
 import { UpdateLeaveTypeDto } from '../dto/update-leave-type.dto';
@@ -253,9 +257,12 @@ export class UnifiedLeaveController {
     @Query('hrId') hrId: string,
     @Query('decision') decision: 'approve' | 'reject',
     @Query('allowNegative') allowNegative?: string,
+    @Query('reason') reason?: string,
+    @Query('isOverride') isOverride?: string,
   ) {
     const allow = allowNegative === 'true';
-    return this.service.hrFinalize(id, hrId, decision, allow);
+    const override = isOverride === 'true';
+    return this.service.hrFinalize(id, hrId, decision, allow, reason, override);
   }
 
   // -------------------------
@@ -540,16 +547,20 @@ async resetLeaveYear(@Body() body: {
   // -------------------------
   // Attachments (REQ-016, REQ-028)
   // -------------------------
+  // More specific route must come first (NestJS route matching order matters)
+  @Post('attachments/:id/validate-medical')
+  @Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  async validateMedicalAttachment(
+    @Param('id') id: string,
+    @Query('verifiedBy') verifiedBy?: string,
+  ) {
+    return this.service.validateMedicalAttachment(id, verifiedBy);
+  }
+
   @Post('attachments')
   @Roles(SystemRole.DEPARTMENT_EMPLOYEE, SystemRole.DEPARTMENT_HEAD, SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
   async saveAttachment(@Body() dto: any) {
     return this.service.saveAttachment(dto);
-  }
-
-  @Get('attachments/:id/validate-medical')
-  @Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
-  async validateMedicalAttachment(@Param('id') id: string) {
-    return this.service.validateMedicalAttachment(id);
   }
 
   // -------------------------
@@ -753,6 +764,119 @@ async resetLeaveYear(@Body() body: {
     return this.service.getAttachment(id);
   }
 
+  @Get('attachments/:id/download')
+  @Roles(SystemRole.DEPARTMENT_EMPLOYEE, SystemRole.DEPARTMENT_HEAD, SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  async downloadAttachment(@Param('id') id: string, @Res() res: Response) {
+    try {
+      const attachment = await this.service.getAttachment(id);
+      if (!attachment) {
+        return res.status(404).json({ message: 'Attachment not found' });
+      }
+
+      const filePath = (attachment as any).filePath;
+      if (!filePath) {
+        return res.status(404).json({ message: 'File path not found' });
+      }
+
+      // Check if filePath is a URL (http/https) - if so, redirect to it
+      if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        return res.redirect(filePath);
+      }
+
+      // Check if filePath is a data URL (base64) - if so, return it directly
+      if (filePath.startsWith('data:')) {
+        const base64Data = filePath.split(',')[1];
+        const mimeMatch = filePath.match(/data:([^;]+)/);
+        const mimeType = mimeMatch ? mimeMatch[1] : (attachment as any).fileType || 'application/octet-stream';
+        
+        const buffer = Buffer.from(base64Data, 'base64');
+        const originalName = (attachment as any).originalName || 'document';
+        
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(originalName)}"`);
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Content-Length', buffer.length);
+        
+        return res.send(buffer);
+      }
+
+      // If filePath is a local path, try to read from filesystem
+      // Normalize the filePath - remove leading slash if present
+      let normalizedPath = filePath.replace(/^\/+/, '');
+      
+      // Try multiple path variations
+      const possiblePaths = [
+        join(process.cwd(), normalizedPath),
+        join(process.cwd(), filePath),
+        filePath,
+        join(process.cwd(), 'uploads', normalizedPath.replace(/^uploads\//, '')),
+      ];
+      
+      let fullPath: string | null = null;
+      for (const path of possiblePaths) {
+        if (existsSync(path)) {
+          fullPath = path;
+          break;
+        }
+      }
+      
+      if (!fullPath) {
+        // File doesn't exist on server filesystem
+        // Check if it's an external URL - if so, redirect to it
+        if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+          return res.redirect(filePath);
+        }
+        
+        // If filePath is a static path reference (/uploads/...), try to serve it via static middleware
+        // by redirecting to the static file URL
+        if (filePath.startsWith('/uploads/') || filePath.startsWith('uploads/')) {
+          const staticPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
+          // Since static middleware might not work due to route conflicts,
+          // return a response that tells frontend to use the static path directly
+          // Frontend will construct: http://localhost:9000/uploads/...
+          return res.json({
+            filePath: filePath,
+            originalName: (attachment as any).originalName || 'document',
+            fileType: (attachment as any).fileType || 'application/octet-stream',
+            staticUrl: `http://localhost:9000${staticPath}`,
+            message: 'File path reference. Use the staticUrl to access the file.'
+          });
+        }
+        
+        // For other cases, return file info
+        const originalName = (attachment as any).originalName || 'document';
+        const fileType = (attachment as any).fileType || 'application/octet-stream';
+        
+        return res.json({
+          filePath: filePath,
+          originalName: originalName,
+          fileType: fileType,
+          isExternal: true,
+          message: 'File is stored externally. Use the filePath to access it.'
+        });
+      }
+
+      // Set headers for file download
+      const originalName = (attachment as any).originalName || 'document';
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(originalName)}"`);
+      res.setHeader('Content-Type', (attachment as any).fileType || 'application/octet-stream');
+
+      // Stream the file
+      const fileStream = createReadStream(fullPath);
+      fileStream.on('error', (error) => {
+        console.error('Error streaming file:', error);
+        if (!res.headersSent) {
+          res.status(500).json({ message: 'Error reading file', error: error.message });
+        }
+      });
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error('Error in downloadAttachment:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Internal server error', error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+  }
+
   @Delete('attachments/:id')
   @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
   async deleteAttachment(@Param('id') id: string) {
@@ -769,5 +893,18 @@ async resetLeaveYear(@Body() body: {
     @Query('leaveTypeId') leaveTypeId?: string,
   ) {
     return this.service.getAdjustmentHistory(employeeId, leaveTypeId);
+  }
+
+  @Post('fix-unpaid-balances')
+  @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  async fixUnpaidLeaveBalances(
+    @Query('employeeId') employeeId?: string,
+    @Query('addDays') addDays?: string,
+  ) {
+    const daysToAdd = addDays ? parseInt(addDays, 10) : 0;
+    if (isNaN(daysToAdd) || daysToAdd < 0) {
+      return { error: 'addDays must be a non-negative number' };
+    }
+    return this.service.fixUnpaidLeaveBalances(employeeId, daysToAdd);
   }
 }

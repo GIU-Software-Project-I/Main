@@ -6,6 +6,9 @@ export const payrollExecutionService = {
   getDraft: async (id: string) => {
     return apiService.get(`/payroll-execution/draft/${id}`);
   },
+  getPayslipById: async (id: string) => {
+    return apiService.get(`/payroll-execution/payslip/${id}`);
+  },
 
   // Approval workflow
   approveByManager: async (id: string) => {

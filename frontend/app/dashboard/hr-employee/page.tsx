@@ -10,7 +10,7 @@ export default function HREmployeePage() {
           <h1 className="text-3xl font-bold text-slate-900">HR Employee Dashboard</h1>
           <p className="text-slate-600 mt-2">HR operations and execution</p>
         </div>
-        <Link href="/dashboard/department-employee/employee-profile">
+        <Link href="/portal/my-profile">
           <button className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
             My Profile
           </button>
@@ -41,22 +41,22 @@ export default function HREmployeePage() {
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
         <h2 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center">
+          <Link href="/dashboard/hr-employee/recruitment/jobs" className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center">
             <div className="text-2xl mb-2">📝</div>
             <p className="font-medium text-slate-900">Job Posting</p>
-          </button>
-          <button className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center">
+          </Link>
+          <Link href="/dashboard/hr-employee/recruitment/applications" className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center">
             <div className="text-2xl mb-2">👤</div>
             <p className="font-medium text-slate-900">Candidates</p>
-          </button>
-          <button className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center">
+          </Link>
+          <Link href="/dashboard/hr-employee/recruitment/interviews" className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center">
             <div className="text-2xl mb-2">🗓️</div>
             <p className="font-medium text-slate-900">Interviews</p>
-          </button>
-          <button className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center">
+          </Link>
+          <Link href="/dashboard/hr-employee/recruitment/offers" className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center">
             <div className="text-2xl mb-2">✉️</div>
             <p className="font-medium text-slate-900">Offers</p>
-          </button>
+          </Link>
         </div>
       </div>
     </div>

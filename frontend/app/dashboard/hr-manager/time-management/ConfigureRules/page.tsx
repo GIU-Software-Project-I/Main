@@ -5,8 +5,10 @@ import {
   timeManagementService,
   OvertimeRule,
   ShortTimeRule,
+  LatenessRule,
   CreateOvertimeRuleDto,
   CreateShortTimeRuleDto,
+  CreateLatenessRuleDto,
 } from '@/app/services/time-management';
 
 // Predefined overtime rule templates
@@ -53,6 +55,28 @@ const SHORTTIME_TEMPLATES = [
   },
 ];
 
+// Predefined lateness rule templates
+const LATENESS_TEMPLATES = [
+  {
+    name: 'Standard Lateness Policy',
+    description: 'Grace period of 10 minutes. Deduction of 0.5 salary per minute after grace period.',
+    gracePeriodMinutes: 10,
+    deductionForEachMinute: 0.5,
+  },
+  {
+    name: 'Strict Lateness Policy',
+    description: 'No grace period. Deduction of 1.0 salary per minute for any lateness.',
+    gracePeriodMinutes: 0,
+    deductionForEachMinute: 1.0,
+  },
+  {
+    name: 'Lenient Lateness Policy',
+    description: 'Grace period of 15 minutes. Deduction of 0.25 salary per minute after grace period.',
+    gracePeriodMinutes: 15,
+    deductionForEachMinute: 0.25,
+  },
+];
+
 export default function ConfigureRulesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,9 +85,10 @@ export default function ConfigureRulesPage() {
   // Data state
   const [overtimeRules, setOvertimeRules] = useState<OvertimeRule[]>([]);
   const [shortTimeRules, setShortTimeRules] = useState<ShortTimeRule[]>([]);
+  const [latenessRules, setLatenessRules] = useState<LatenessRule[]>([]);
 
   // Active tab
-  const [activeTab, setActiveTab] = useState<'overtime' | 'shorttime'>('overtime');
+  const [activeTab, setActiveTab] = useState<'overtime' | 'shorttime' | 'lateness'>('overtime');
 
   // Form state - Overtime
   const [showOvertimeForm, setShowOvertimeForm] = useState(false);
@@ -89,6 +114,17 @@ export default function ConfigureRulesPage() {
   });
   const [editingShortTime, setEditingShortTime] = useState<ShortTimeRule | null>(null);
 
+  // Form state - Lateness
+  const [showLatenessForm, setShowLatenessForm] = useState(false);
+  const [latenessForm, setLatenessForm] = useState<CreateLatenessRuleDto>({
+    name: '',
+    description: '',
+    gracePeriodMinutes: 10,
+    deductionForEachMinute: 0.5,
+    active: true,
+  });
+  const [editingLateness, setEditingLateness] = useState<LatenessRule | null>(null);
+
   const [submitting, setSubmitting] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -96,22 +132,19 @@ export default function ConfigureRulesPage() {
       setLoading(true);
       setError(null);
 
-      const [overtimeRes, shortTimeRes] = await Promise.all([
+      const [overtimeRes, shortTimeRes, latenessRes] = await Promise.all([
         timeManagementService.getOvertimeRules(),
         timeManagementService.getShortTimeRules(),
+        timeManagementService.getLatenessRules(),
       ]);
 
       // Handle overtime rules response
       if (overtimeRes.error) {
         console.error('Error fetching overtime rules:', overtimeRes.error);
       } else {
-        // Backend already filters out short-time rules
         const overtimeData = overtimeRes.data;
         if (Array.isArray(overtimeData)) {
           setOvertimeRules(overtimeData);
-        } else if (overtimeData) {
-          // Handle case where data might be wrapped
-          setOvertimeRules([]);
         } else {
           setOvertimeRules([]);
         }
@@ -128,9 +161,22 @@ export default function ConfigureRulesPage() {
           setShortTimeRules([]);
         }
       }
-    } catch (err: any) {
+
+      // Handle lateness rules response
+      if (latenessRes.error) {
+        console.error('Error fetching lateness rules:', latenessRes.error);
+      } else {
+        const latenessData = latenessRes.data;
+        if (Array.isArray(latenessData)) {
+          setLatenessRules(latenessData);
+        } else {
+          setLatenessRules([]);
+        }
+      }
+    } catch (err: unknown) {
       console.error('Error in fetchData:', err);
-      setError(err.message || 'Failed to load rules');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to load rules';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -165,8 +211,9 @@ export default function ConfigureRulesPage() {
       resetOvertimeForm();
       await fetchData();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to create overtime rule');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to create overtime rule';
+      setError(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -194,8 +241,9 @@ export default function ConfigureRulesPage() {
       setEditingOvertime(null);
       await fetchData();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to update overtime rule');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to update overtime rule';
+      setError(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -215,8 +263,9 @@ export default function ConfigureRulesPage() {
       setSuccess(`Overtime rule "${name}" approved`);
       await fetchData();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to approve overtime rule');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to approve overtime rule';
+      setError(errorMsg);
     }
   };
 
@@ -263,8 +312,9 @@ export default function ConfigureRulesPage() {
       resetShortTimeForm();
       await fetchData();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to create short-time rule');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to create short-time rule';
+      setError(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -296,8 +346,9 @@ export default function ConfigureRulesPage() {
       setEditingShortTime(null);
       await fetchData();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to update short-time rule');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to update short-time rule';
+      setError(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -317,8 +368,9 @@ export default function ConfigureRulesPage() {
       setSuccess(`Short-time rule "${name}" approved`);
       await fetchData();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to approve short-time rule');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to approve short-time rule';
+      setError(errorMsg);
     }
   };
 
@@ -345,6 +397,111 @@ export default function ConfigureRulesPage() {
       ignoreWeekends: template.ignoreWeekends,
       ignoreHolidays: template.ignoreHolidays,
       minShortMinutes: template.minShortMinutes,
+    });
+  };
+
+  // ============================================================
+  // LATENESS HANDLERS
+  // ============================================================
+
+  const handleCreateLateness = async () => {
+    if (!latenessForm.name.trim()) {
+      setError('Rule name is required');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError(null);
+
+      const response = await timeManagementService.createLatenessRule(latenessForm);
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      setSuccess(`Lateness rule "${latenessForm.name}" created successfully`);
+      resetLatenessForm();
+      await fetchData();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create lateness rule');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateLateness = async () => {
+    if (!editingLateness) return;
+
+    try {
+      setSubmitting(true);
+      setError(null);
+
+      const response = await timeManagementService.updateLatenessRule(editingLateness._id, {
+        name: editingLateness.name,
+        description: editingLateness.description,
+        gracePeriodMinutes: editingLateness.gracePeriodMinutes,
+        deductionForEachMinute: editingLateness.deductionForEachMinute,
+        active: editingLateness.active,
+      });
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      setSuccess('Lateness rule updated successfully');
+      setEditingLateness(null);
+      await fetchData();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update lateness rule');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteLateness = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+    try {
+      setError(null);
+
+      const response = await timeManagementService.deleteLatenessRule(id);
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      setSuccess(`Lateness rule "${name}" deleted`);
+      await fetchData();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete lateness rule');
+    }
+  };
+
+  const resetLatenessForm = () => {
+    setLatenessForm({
+      name: '',
+      description: '',
+      gracePeriodMinutes: 10,
+      deductionForEachMinute: 0.5,
+      active: true,
+    });
+    setShowLatenessForm(false);
+  };
+
+  const selectLatenessTemplate = (template: typeof LATENESS_TEMPLATES[0]) => {
+    setLatenessForm({
+      name: template.name,
+      description: template.description,
+      gracePeriodMinutes: template.gracePeriodMinutes,
+      deductionForEachMinute: template.deductionForEachMinute,
+      active: true,
     });
   };
 
@@ -413,6 +570,16 @@ export default function ConfigureRulesPage() {
             }`}
           >
             Short-time Rules
+          </button>
+          <button
+            onClick={() => setActiveTab('lateness')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'lateness'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Lateness Rules
           </button>
         </div>
 
@@ -928,7 +1095,259 @@ export default function ConfigureRulesPage() {
           </div>
         )}
 
-        {/* Info Box */}
+        {/* Lateness Rules Tab */}
+        {activeTab === 'lateness' && (
+          <div className="space-y-6">
+            {/* Create Form */}
+            <div className="bg-card rounded-xl border border-border p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-foreground">
+                  {showLatenessForm ? 'Create Lateness Rule' : 'Existing Lateness Rules'}
+                </h2>
+                {!showLatenessForm && (
+                  <button
+                    onClick={() => setShowLatenessForm(true)}
+                    className="px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
+                  >
+                    Create Rule
+                  </button>
+                )}
+              </div>
+
+              {showLatenessForm && (
+                <div className="border border-border rounded-lg p-4 mb-4 bg-muted/30 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">Rule Name *</label>
+                    <input
+                      type="text"
+                      value={latenessForm.name}
+                      onChange={(e) => setLatenessForm({ ...latenessForm, name: e.target.value })}
+                      placeholder="e.g., Standard Lateness Policy"
+                      className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      disabled={submitting}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">Description</label>
+                    <textarea
+                      value={latenessForm.description || ''}
+                      onChange={(e) => setLatenessForm({ ...latenessForm, description: e.target.value })}
+                      placeholder="Describe the lateness rule..."
+                      className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      rows={3}
+                      disabled={submitting}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">Grace Period (minutes)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={latenessForm.gracePeriodMinutes || 0}
+                        onChange={(e) => setLatenessForm({ ...latenessForm, gracePeriodMinutes: parseInt(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        disabled={submitting}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">Deduction per Minute</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={latenessForm.deductionForEachMinute || 0}
+                        onChange={(e) => setLatenessForm({ ...latenessForm, deductionForEachMinute: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        disabled={submitting}
+                      />
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={latenessForm.active || true}
+                      onChange={(e) => setLatenessForm({ ...latenessForm, active: e.target.checked })}
+                      className="rounded border-input"
+                    />
+                    Active
+                  </label>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={handleCreateLateness}
+                      disabled={submitting}
+                      className="px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                    >
+                      {submitting ? 'Creating...' : 'Create Rule'}
+                    </button>
+                    <button
+                      onClick={resetLatenessForm}
+                      disabled={submitting}
+                      className="px-4 py-2 border border-input text-foreground font-medium rounded-lg hover:bg-accent transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  {/* Templates */}
+                  <div className="pt-4 border-t border-border">
+                    <p className="text-sm font-medium text-foreground mb-2">Quick Templates:</p>
+                    <div className="grid grid-cols-1 gap-2">
+                      {LATENESS_TEMPLATES.map((template) => (
+                        <button
+                          key={template.name}
+                          onClick={() => selectLatenessTemplate(template)}
+                          disabled={submitting}
+                          className="text-left px-3 py-2 border border-border rounded-lg hover:bg-accent transition-colors text-sm disabled:opacity-50"
+                        >
+                          <div className="font-medium text-foreground">{template.name}</div>
+                          <div className="text-xs text-muted-foreground">{template.description}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Rules List */}
+              {!showLatenessForm && (
+                <div className="space-y-2">
+                  {latenessRules.length === 0 ? (
+                    <p className="text-muted-foreground text-sm py-4">No lateness rules configured yet.</p>
+                  ) : (
+                    latenessRules.map((rule) => (
+                      <div key={rule._id} className="border border-border rounded-lg p-4 flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium text-foreground">{rule.name}</h3>
+                            <span className={`text-xs px-2 py-1 rounded-full font-semibold ${rule.active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'}`}>
+                              {rule.active ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
+                          {rule.description && <p className="text-sm text-muted-foreground mb-2">{rule.description}</p>}
+                          <div className="flex flex-wrap gap-3 text-xs">
+                            <span><strong>Grace:</strong> {rule.gracePeriodMinutes} min</span>
+                            <span><strong>Deduction:</strong> {rule.deductionForEachMinute} per min</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => setEditingLateness(rule)}
+                            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                            title="Edit"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteLateness(rule._id, rule.name)}
+                            className="p-2 text-destructive hover:text-destructive/80 transition-colors"
+                            title="Delete"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* Edit Form */}
+              {editingLateness && (
+                <div className="border border-border rounded-lg p-4 mt-4 bg-muted/30 space-y-4">
+                  <h3 className="font-medium text-foreground">Edit Lateness Rule</h3>
+
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">Rule Name</label>
+                    <input
+                      type="text"
+                      value={editingLateness.name}
+                      onChange={(e) => setEditingLateness({ ...editingLateness, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      disabled={submitting}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">Description</label>
+                    <textarea
+                      value={editingLateness.description || ''}
+                      onChange={(e) => setEditingLateness({ ...editingLateness, description: e.target.value })}
+                      className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      rows={3}
+                      disabled={submitting}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">Grace Period (minutes)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={editingLateness.gracePeriodMinutes}
+                        onChange={(e) => setEditingLateness({ ...editingLateness, gracePeriodMinutes: parseInt(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        disabled={submitting}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">Deduction per Minute</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editingLateness.deductionForEachMinute}
+                        onChange={(e) => setEditingLateness({ ...editingLateness, deductionForEachMinute: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        disabled={submitting}
+                      />
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={editingLateness.active}
+                      onChange={(e) => setEditingLateness({ ...editingLateness, active: e.target.checked })}
+                      className="rounded border-input"
+                    />
+                    Active
+                  </label>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={handleUpdateLateness}
+                      disabled={submitting}
+                      className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                    >
+                      {submitting ? 'Updating...' : 'Update Rule'}
+                    </button>
+                    <button
+                      onClick={() => setEditingLateness(null)}
+                      disabled={submitting}
+                      className="px-3 py-1.5 text-sm border border-input rounded-lg hover:bg-accent transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Info Section */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

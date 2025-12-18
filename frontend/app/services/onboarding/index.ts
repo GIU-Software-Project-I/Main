@@ -385,6 +385,13 @@ class OnboardingService {
     return response.data as Onboarding;
   }
 
+  // ONB-002: Get signed contracts pending employee creation
+  async getSignedContractsForOnboarding(): Promise<any[]> {
+    const response = await apiService.get<any[]>(`/onboarding/contracts/pending-employee-creation`);
+    if (response.error) throw new Error(response.error);
+    return response.data || [];
+  }
+
   // ONB-002: Get signed contract details
   async getContractDetails(contractId: string): Promise<Contract> {
     const response = await apiService.get<Contract>(`/onboarding/contracts/${contractId}`);
@@ -573,12 +580,14 @@ class OnboardingService {
     message: string;
     cancelledAt: string;
   }> {
-    const response = await apiService.delete<{
+    // Use post with _method override or send body with delete
+    // Since apiService.delete doesn't support body, we use a workaround
+    const response = await apiService.post<{
       success: boolean;
       onboardingId: string;
       message: string;
       cancelledAt: string;
-    }>(`/onboarding/${onboardingId}/cancel`);
+    }>(`/onboarding/${onboardingId}/cancel`, dto);
     if (response.error) throw new Error(response.error);
     return response.data as any;
   }

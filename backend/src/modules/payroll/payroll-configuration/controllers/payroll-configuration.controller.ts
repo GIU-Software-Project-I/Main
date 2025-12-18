@@ -50,8 +50,6 @@ import { UpdateCompanyWideSettingsDto } from '../dto/update-company-settings.dto
 import { ApproveConfigDto } from '../dto/approve-config.dto';
 import { CreatePayGradeDto } from '../dto/create-paygrade.dto';
 import { UpdatePayGradeDto } from '../dto/update-paygrade.dto';
-import { CreateTaxBracketDto } from '../dto/create-tax-bracket.dto';
-import { UpdateTaxBracketDto } from '../dto/update-tax-bracket.dto';
 
 @Controller('payroll-configuration-requirements')
 @UseGuards(AuthenticationGuard, AuthorizationGuard)
@@ -174,55 +172,6 @@ async calculateContributions(
     return result;
 }
 
-
-  // ========== TAX BRACKETS ENDPOINTS ==========
-  
-  @Get('tax-brackets')
-  @Roles(SystemRole.LEGAL_POLICY_ADMIN, SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER)
-  getTaxBrackets() {
-    return this.payrollConfigService.getTaxBrackets();
-  }
-
-  @Get('tax-brackets/:id')
-  @Roles(SystemRole.LEGAL_POLICY_ADMIN, SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER)
-  getTaxBracket(@Param('id') id: string) {
-    return this.payrollConfigService.getTaxBracket(id);
-  }
-
-  @Post('tax-brackets')
-  @Roles(SystemRole.LEGAL_POLICY_ADMIN)
-  @HttpCode(HttpStatus.CREATED)
-  createTaxBracket(@Body() dto: CreateTaxBracketDto) {
-    return this.payrollConfigService.createTaxBracket(dto);
-  }
-
-  @Patch('tax-brackets/:id')
-    @Roles(SystemRole.LEGAL_POLICY_ADMIN, SystemRole.PAYROLL_MANAGER)
-  @HttpCode(HttpStatus.OK)
-  updateTaxBracket(@Param('id') id: string, @Body() dto: UpdateTaxBracketDto) {
-    return this.payrollConfigService.updateTaxBracket(id, dto);
-  }
-
-  @Delete('tax-brackets/:id')
-    @Roles(SystemRole.LEGAL_POLICY_ADMIN, SystemRole.PAYROLL_MANAGER)
-  @HttpCode(HttpStatus.OK)
-  deleteTaxBracket(@Param('id') id: string) {
-    return this.payrollConfigService.deleteTaxBracket(id);
-  }
-
-    @Patch('tax-brackets/:id/approve')
-    @Roles(SystemRole.PAYROLL_MANAGER)
-    @HttpCode(HttpStatus.OK)
-    approveTaxBracket(@Param('id') id: string, @Body() dto: ApproveTaxRuleDto) {
-        return this.payrollConfigService.approveTaxBracket(id, dto);
-    }
-
-    @Patch('tax-brackets/:id/reject')
-    @Roles(SystemRole.PAYROLL_MANAGER)
-    @HttpCode(HttpStatus.OK)
-    rejectTaxBracket(@Param('id') id: string, @Body() dto: ApproveTaxRuleDto) {
-        return this.payrollConfigService.rejectTaxBracket(id, dto);
-    }
 
     // ========== DAREEN'S PAYROLL POLICIES ENDPOINTS ==========
     @Post('policies')

@@ -37,7 +37,9 @@ export default function ResignationDetailPage() {
       const requestData = await offboardingService.getTerminationRequestById(requestId);
       setRequest(requestData);
 
-      if (requestData.status === TerminationStatus.APPROVED) {
+      // Check if status is approved (case-insensitive)
+      const status = requestData.status?.toLowerCase();
+      if (status === TerminationStatus.APPROVED || status === 'approved') {
         try {
           const clearanceData = await offboardingService.getClearanceChecklistByTerminationId(requestId);
           setClearance(clearanceData);
@@ -140,7 +142,11 @@ export default function ResignationDetailPage() {
     );
   }
 
-  const isResignation = request.initiator === TerminationInitiation.EMPLOYEE;
+  const isResignation = request.initiator === TerminationInitiation.EMPLOYEE ||
+                        request.initiator?.toLowerCase() === 'employee';
+
+  // Normalize status for comparison (DB might return uppercase)
+  const normalizedStatus = request.status?.toLowerCase() as TerminationStatus;
 
   return (
     <div className="p-8 space-y-6 bg-background min-h-screen">
@@ -167,7 +173,7 @@ export default function ResignationDetailPage() {
           })()}
         </div>
         <div className="flex gap-3">
-          {request.status === TerminationStatus.PENDING && (
+          {normalizedStatus === TerminationStatus.PENDING && (
             <button
               onClick={handleDelete}
               disabled={updating}
@@ -193,8 +199,8 @@ export default function ResignationDetailPage() {
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Status</dt>
                 <dd className="mt-1">
-                  <span className={`px-3 py-1 text-sm font-medium rounded-full border ${getStatusBadge(request.status)}`}>
-                    {request.status.replace('_', ' ').toUpperCase()}
+                  <span className={`px-3 py-1 text-sm font-medium rounded-full border ${getStatusBadge(normalizedStatus)}`}>
+                    {normalizedStatus.replace('_', ' ').toUpperCase()}
                   </span>
                 </dd>
               </div>
@@ -244,7 +250,7 @@ export default function ResignationDetailPage() {
             </div>
           )}
 
-          {request.status === TerminationStatus.APPROVED && (
+          {normalizedStatus === TerminationStatus.APPROVED && (
             <div className="bg-card rounded-lg border border-border p-6">
               <h2 className="text-lg font-semibold mb-4 text-foreground">Exit Clearance</h2>
               {clearance ? (
@@ -281,7 +287,7 @@ export default function ResignationDetailPage() {
           <div className="bg-card rounded-lg border border-border p-6">
             <h2 className="text-lg font-semibold mb-4 text-foreground">Actions</h2>
             <div className="space-y-3">
-              {request.status === TerminationStatus.PENDING && (
+              {normalizedStatus === TerminationStatus.PENDING && (
                 <>
                   <button
                     onClick={() => handleStatusUpdate(TerminationStatus.UNDER_REVIEW)}
@@ -302,7 +308,7 @@ export default function ResignationDetailPage() {
                   </button>
                 </>
               )}
-              {request.status === TerminationStatus.UNDER_REVIEW && (
+              {normalizedStatus === TerminationStatus.UNDER_REVIEW && (
                 <>
                   <button
                     onClick={() => {
@@ -326,7 +332,7 @@ export default function ResignationDetailPage() {
                   </button>
                 </>
               )}
-              {request.status === TerminationStatus.APPROVED && clearance && (
+              {normalizedStatus === TerminationStatus.APPROVED && clearance && (
                 <Link
                   href={`/dashboard/hr-manager/offboarding/final-settlement/${request._id}`}
                   className="block w-full px-4 py-2 bg-primary text-primary-foreground text-center rounded-md hover:bg-primary/90"
@@ -334,9 +340,9 @@ export default function ResignationDetailPage() {
                   Process Final Settlement
                 </Link>
               )}
-              {(request.status === TerminationStatus.APPROVED || request.status === TerminationStatus.REJECTED) && (
+              {(normalizedStatus === TerminationStatus.APPROVED || normalizedStatus === TerminationStatus.REJECTED) && (
                 <p className="text-sm text-muted-foreground text-center">
-                  This request has been {request.status.toLowerCase()}.
+                  This request has been {normalizedStatus}.
                 </p>
               )}
             </div>
@@ -347,8 +353,8 @@ export default function ResignationDetailPage() {
             <div className="space-y-3">
               {[
                 { step: 1, label: 'Request Submitted', completed: true },
-                { step: 2, label: 'Under Review', completed: request.status !== TerminationStatus.PENDING },
-                { step: 3, label: 'Approved/Rejected', completed: request.status === TerminationStatus.APPROVED || request.status === TerminationStatus.REJECTED },
+                { step: 2, label: 'Under Review', completed: normalizedStatus !== TerminationStatus.PENDING },
+                { step: 3, label: 'Approved/Rejected', completed: normalizedStatus === TerminationStatus.APPROVED || normalizedStatus === TerminationStatus.REJECTED },
                 { step: 4, label: 'Clearance Process', completed: !!clearance },
                 { step: 5, label: 'Final Settlement', completed: false },
               ].map((item) => (

@@ -259,12 +259,143 @@ export const leavesService: Record<string, any> = {
   },
 
   // HR finalize (approve/reject)
-  hrFinalize: async (id: string, hrId: string, decision: 'approve' | 'reject', allowNegative?: boolean) => {
+  hrFinalize: async (id: string, hrId: string, decision: 'approve' | 'reject', allowNegative?: boolean, reason?: string, isOverride?: boolean) => {
     const query = new URLSearchParams();
     query.set('hrId', hrId);
     query.set('decision', decision);
     if (allowNegative) query.set('allowNegative', 'true');
+    if (reason) query.set('reason', reason);
+    if (isOverride) query.set('isOverride', 'true');
     return apiService.patch(`/leaves/requests/${id}/hr-finalize?${query.toString()}`);
+  },
+
+  // Bulk process leave requests (REQ-027)
+  bulkProcessRequests: async (requestIds: string[], action: 'approve' | 'reject', actorId: string) => {
+    return apiService.post('/leaves/requests/bulk-process', {
+      requestIds,
+      action,
+      actorId,
+    });
+  },
+
+  // Get attachment details (REQ-028)
+  getAttachment: async (attachmentId: string) => {
+    return apiService.get(`/leaves/attachments/${attachmentId}`);
+  },
+
+  // Validate medical attachment (REQ-028)
+  validateMedicalAttachment: async (attachmentId: string, verifiedBy?: string) => {
+    const query = verifiedBy ? `?verifiedBy=${verifiedBy}` : '';
+    return apiService.post(`/leaves/attachments/${attachmentId}/validate-medical${query}`);
+  },
+
+  // HR finalize with payroll sync - updates employee records and calculates payroll adjustments
+  hrFinalizeWithPayrollSync: async (
+    requestId: string,
+    hrId: string,
+    decision: 'approve' | 'reject',
+    options?: {
+      allowNegative?: boolean;
+      syncPayroll?: boolean;
+      baseSalary?: number;
+      workDaysInMonth?: number;
+      durationDays?: number;
+      leaveTypeName?: string;
+    }
+  ): Promise<{
+    ok: boolean;
+    message: string;
+    request?: {
+      _id?: string;
+      id?: string;
+      employeeId?: string;
+      leaveTypeId?: string;
+      status?: string;
+      approvalFlow?: Array<{ role: string; status: string }>;
+    };
+    payrollImpact?: {
+      isUnpaidLeave: boolean;
+      deductionAmount: number;
+      dailyRate: number;
+      daysDeducted: number;
+      formula: string;
+    };
+    balanceUpdate?: {
+      leaveTypeName: string;
+      previousBalance: number;
+      newBalance: number;
+      daysDeducted: number;
+    };
+    error?: string;
+  }> => {
+    try {
+      // Perform the finalization directly
+      const query = new URLSearchParams();
+      query.set('hrId', hrId);
+      query.set('decision', decision);
+      if (options?.allowNegative) query.set('allowNegative', 'true');
+
+      const finalizeResponse = await apiService.patch(`/leaves/requests/${requestId}/hr-finalize?${query.toString()}`);
+
+      if (finalizeResponse.error) {
+        return { ok: false, message: 'Failed to finalize request', error: finalizeResponse.error };
+      }
+
+      const durationDays = options?.durationDays || 0;
+      const leaveTypeName = options?.leaveTypeName || 'Leave';
+      const isUnpaidLeave = (leaveTypeName || '').toLowerCase().includes('unpaid');
+
+      // Calculate payroll impact for approved unpaid leaves
+      let payrollImpact = undefined;
+      if (decision === 'approve' && isUnpaidLeave && options?.syncPayroll && durationDays > 0) {
+        const baseSalary = options.baseSalary || 5000;
+        const workDays = options.workDaysInMonth || 22;
+        const dailyRate = baseSalary / workDays;
+        const deductionAmount = dailyRate * durationDays;
+
+        payrollImpact = {
+          isUnpaidLeave: true,
+          deductionAmount: Math.round(deductionAmount * 100) / 100,
+          dailyRate: Math.round(dailyRate * 100) / 100,
+          daysDeducted: durationDays,
+          formula: `(${baseSalary} / ${workDays}) × ${durationDays} = $${deductionAmount.toFixed(2)}`,
+        };
+      }
+
+      // Calculate balance update for approved leaves
+      let balanceUpdate = undefined;
+      if (decision === 'approve' && durationDays > 0) {
+        balanceUpdate = {
+          leaveTypeName,
+          previousBalance: 0, // We don't fetch this anymore
+          newBalance: 0,
+          daysDeducted: durationDays,
+        };
+      }
+
+      return {
+        ok: true,
+        message: decision === 'approve'
+          ? `Leave request approved successfully!${durationDays > 0 ? ` ${durationDays} days of ${leaveTypeName} will be deducted.` : ''}`
+          : 'Leave request rejected.',
+        request: finalizeResponse.data ? {
+          _id: (finalizeResponse.data as Record<string, unknown>)?._id as string | undefined,
+          id: (finalizeResponse.data as Record<string, unknown>)?.id as string | undefined,
+          employeeId: (finalizeResponse.data as Record<string, unknown>)?.employeeId as string | undefined,
+          leaveTypeId: (finalizeResponse.data as Record<string, unknown>)?.leaveTypeId as string | undefined,
+          status: (finalizeResponse.data as Record<string, unknown>)?.status as string | undefined,
+        } : undefined,
+        payrollImpact,
+        balanceUpdate,
+      };
+    } catch (err) {
+      console.error('HR finalize with payroll sync error:', err);
+      return {
+        ok: false,
+        message: 'Failed to finalize leave request',
+        error: err instanceof Error ? err.message : 'Unknown error',
+      };
+    }
   },
 
   // Assign entitlement to employee
@@ -832,11 +963,19 @@ resetLeaveYear: async (data: {
       // Get leave types
       const typesResponse = await apiService.get('/leaves/types');
       const leaveTypes = Array.isArray(typesResponse.data) ? typesResponse.data : [];
-      console.log('Leave Types:', leaveTypes.map((lt: any) => `${lt.name} (${lt._id})`));
+
+      interface LeaveType {
+        name?: string;
+        code?: string;
+        _id?: string;
+        id?: string;
+      }
+
+      console.log('Leave Types:', (leaveTypes as LeaveType[]).map((lt: LeaveType) => `${lt.name} (${lt._id})`));
 
       // Find unpaid leave type IDs
       const unpaidTypeIds: string[] = [];
-      leaveTypes.forEach((lt: any) => {
+      (leaveTypes as LeaveType[]).forEach((lt: LeaveType) => {
         const name = (lt.name || '').toLowerCase();
         const code = (lt.code || '').toLowerCase();
         if (name.includes('unpaid') || code.includes('unpaid') ||
@@ -848,17 +987,31 @@ resetLeaveYear: async (data: {
       });
 
       // Parse requests from response
-      let requests: any[] = [];
-      const data = response.data as any;
+      interface RequestData {
+        _id?: string;
+        id?: string;
+        dates?: { from?: string | Date; to?: string | Date };
+        from?: string | Date;
+        to?: string | Date;
+        startDate?: string | Date;
+        endDate?: string | Date;
+        status?: string;
+        leaveTypeId?: string | { _id?: string; id?: string };
+        leaveTypeName?: string;
+        durationDays?: number;
+      }
+
+      let requests: RequestData[] = [];
+      const data = response.data as Record<string, unknown>;
 
       if (Array.isArray(data)) {
-        requests = data;
+        requests = data as RequestData[];
       } else if (data?.data && Array.isArray(data.data)) {
-        requests = data.data;
+        requests = data.data as RequestData[];
       } else if (data?.requests && Array.isArray(data.requests)) {
-        requests = data.requests;
+        requests = data.requests as RequestData[];
       } else if (data?.items && Array.isArray(data.items)) {
-        requests = data.items;
+        requests = data.items as RequestData[];
       }
 
       console.log('Total requests found:', requests.length);
@@ -885,8 +1038,8 @@ resetLeaveYear: async (data: {
         console.log('--- Checking request:', req._id || req.id);
 
         // Get dates - handle different structures
-        let reqFromStr = req.dates?.from || req.from || req.startDate;
-        let reqToStr = req.dates?.to || req.to || req.endDate;
+        const reqFromStr = req.dates?.from || req.from || req.startDate;
+        const reqToStr = req.dates?.to || req.to || req.endDate;
 
         if (!reqFromStr || !reqToStr) {
           console.log('  SKIP: No dates found');
@@ -944,17 +1097,17 @@ resetLeaveYear: async (data: {
         const overlapEnd = new Date(Math.min(reqTo.getTime(), periodTo.getTime()));
         const daysInPeriod = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-        const leaveType = leaveTypes.find((lt: any) => String(lt._id || lt.id) === leaveTypeId);
+        const leaveType = (leaveTypes as LeaveType[]).find((lt: LeaveType) => String(lt._id || lt.id) === leaveTypeId);
 
         console.log('  >>> MATCHED! Days:', daysInPeriod);
 
         unpaidLeaves.push({
-          requestId: req._id || req.id,
-          from: reqFromStr,
-          to: reqToStr,
+          requestId: (req._id || req.id) as string,
+          from: String(reqFromStr),
+          to: String(reqToStr),
           durationDays: daysInPeriod,
           leaveTypeName: leaveType?.name || req.leaveTypeName || 'Unpaid Leave',
-          status: req.status,
+          status: req.status || 'PENDING',
         });
       }
 
@@ -1032,8 +1185,16 @@ resetLeaveYear: async (data: {
       const balanceResponse = await apiService.get(`/leaves/employees/${employeeId}/balances`);
       const balances = Array.isArray(balanceResponse.data) ? balanceResponse.data : [];
 
+      interface Balance {
+        leaveTypeName?: string;
+        entitled?: number;
+        yearlyEntitlement?: number;
+        taken?: number;
+        remaining?: number;
+      }
+
       const getBalanceForType = (typeName: string) => {
-        const balance = balances.find((b: any) => {
+        const balance = (balances as Balance[]).find((b: Balance) => {
           const name = (b.leaveTypeName || '').toLowerCase();
           return name.includes(typeName);
         });
@@ -1172,6 +1333,14 @@ resetLeaveYear: async (data: {
         needsSync: false,
       };
     }
+  },
+
+  // Fix unpaid leave balances (add days and reset taken)
+  fixUnpaidLeaveBalances: async (employeeId?: string, addDays: number = 0) => {
+    const query = new URLSearchParams();
+    if (employeeId) query.set('employeeId', employeeId);
+    if (addDays > 0) query.set('addDays', addDays.toString());
+    return apiService.post(`/leaves/fix-unpaid-balances?${query.toString()}`);
   },
 };
 

@@ -193,6 +193,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
       }
 
+      // After successful registration, login the candidate and redirect to their dashboard
+      try {
+        const loginResponse = await authService.login({
+          email: data.email,
+          password: data.password,
+        });
+        
+        if (loginResponse.data?.user) {
+          const transformedUser = transformUser(loginResponse.data.user);
+          setUser(transformedUser);
+          localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(transformedUser));
+          
+          // Redirect to candidate dashboard
+          router.push('/dashboard/job-candidate');
+        }
+      } catch (loginErr) {
+        // If auto-login fails, just redirect to login page
+        router.push('/login');
+      }
+
       setIsLoading(false);
       return true;
     } catch (err) {
@@ -200,7 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       return false;
     }
-  }, []);
+  }, [router]);
 
   const logout = useCallback(async () => {
     setIsLoading(true);

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { TeamMember } from './TeamMemberCard';
+import { StatusBadge } from '@/app/components/ui/status-badge';
 
 interface TeamMemberDetailModalProps {
   member: TeamMember | null;
@@ -61,15 +62,6 @@ export default function TeamMemberDetailModal({ member, isOpen, onClose }: TeamM
     return status?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown';
   };
 
-  const getStatusColor = (status: string) => {
-    const s = status?.toLowerCase();
-    if (s === 'active') return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
-    if (s === 'on_leave') return 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
-    if (s === 'onboarding') return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
-    if (s === 'suspended') return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400';
-    return 'bg-muted text-muted-foreground';
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -126,9 +118,11 @@ export default function TeamMemberDetailModal({ member, isOpen, onClose }: TeamM
           {/* Status Badge */}
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">Status</span>
-            <span className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(member.status)}`}>
-              {formatStatus(member.status)}
-            </span>
+            <StatusBadge
+              status={member.status}
+              label={formatStatus(member.status)}
+              size="lg"
+            />
           </div>
 
           {/* Details Grid */}
@@ -202,7 +196,7 @@ export default function TeamMemberDetailModal({ member, isOpen, onClose }: TeamM
           </div>
 
           {/* Privacy Notice */}
-          <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/20 rounded-lg">
             <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -215,4 +209,3 @@ export default function TeamMemberDetailModal({ member, isOpen, onClose }: TeamM
     </div>
   );
 }
-

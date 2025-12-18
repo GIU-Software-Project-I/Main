@@ -2,11 +2,57 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
+import { GlassCard } from '@/app/components/ui/glass-card';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { DotPattern } from '@/app/components/dot-pattern';
+import { User, Mail, Lock, Phone, CreditCard, CheckCircle2, AlertCircle } from 'lucide-react';
+
+// Password strength indicator component
+function PasswordStrength({ password }: { password: string }) {
+  const calculateStrength = (pwd: string): number => {
+    let strength = 0;
+    if (pwd.length >= 6) strength++;
+    if (pwd.length >= 10) strength++;
+    if (/[A-Z]/.test(pwd)) strength++;
+    if (/[0-9]/.test(pwd)) strength++;
+    if (/[^A-Za-z0-9]/.test(pwd)) strength++;
+    return Math.min(strength, 4);
+  };
+
+  const strength = calculateStrength(password);
+
+  const strengthColors = [
+    'bg-destructive/50',   // 0: Weak
+    'bg-destructive',      // 1: Weak
+    'bg-amber-500',        // 2: Fair
+    'bg-blue-500',         // 3: Good
+    'bg-green-500',        // 4: Strong
+  ];
+
+  const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+
+  if (!password) return null;
+
+  return (
+    <div className="mt-2 space-y-1">
+      <div className="flex gap-1 h-1">
+        {[1, 2, 3, 4].map((level) => (
+          <div
+            key={level}
+            className={`flex-1 rounded-full transition-all duration-300 ${level <= strength ? strengthColors[strength] : 'bg-muted/50'}`}
+          />
+        ))}
+      </div>
+      <p className={`text-xs font-medium text-right ${strength <= 1 ? 'text-destructive' : strength === 2 ? 'text-amber-500' : strength === 3 ? 'text-blue-500' : 'text-green-500'}`}>
+        {strengthLabels[strength]}
+      </p>
+    </div>
+  );
+}
 
 export default function RegisterPage() {
-  const router = useRouter();
   const { register, isLoading, error: authError, clearError } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
@@ -75,218 +121,226 @@ export default function RegisterPage() {
 
     if (result) {
       setSuccess(true);
-      // Redirect to login after successful registration
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
     }
   };
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md text-center">
-          <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200 p-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Registration Successful!</h2>
-            <p className="text-slate-600 mb-4">Your account has been created. Redirecting to login...</p>
-            <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
-          </div>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 z-0">
+          <DotPattern className="opacity-[0.3]" size="md" fadeStyle="circle" />
         </div>
+
+        <GlassCard className="w-full max-w-md text-center p-8 relative z-10 animate-in fade-in zoom-in duration-500">
+          <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-4 ring-green-500/5">
+            <CheckCircle2 className="w-10 h-10 text-green-500" />
+          </div>
+          <h2 className="text-3xl font-bold text-foreground mb-3">Registration Successful!</h2>
+          <p className="text-muted-foreground mb-6">Your account has been created. Redirecting to your dashboard...</p>
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+        </GlassCard>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center space-x-2">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
-              <span className="text-white font-bold text-xl">HR</span>
-            </div>
+    <div className="min-h-screen relative flex items-center justify-center p-4 bg-background overflow-hidden py-10">
+      {/* Background Effects */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[100px] opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] opacity-20"></div>
+        <DotPattern className="opacity-[0.3]" size="md" fadeStyle="circle" />
+      </div>
+
+      <div className="w-full max-w-2xl relative z-10">
+        <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Link href="/" className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-primary to-blue-600 rounded-xl mb-4 shadow-lg shadow-primary/20 hover:scale-105 transition-transform duration-300">
+            <span className="text-white font-bold text-xl">HR</span>
           </Link>
-          <h1 className="mt-4 text-2xl font-bold text-slate-800">Create an account</h1>
-          <p className="mt-2 text-slate-600">Join our HR platform as a candidate</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Create an account</h1>
+          <p className="text-muted-foreground mt-2">
+            Join our platform as a candidate and start your journey
+          </p>
         </div>
 
-        {/* Register Form */}
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200 p-8">
+        <GlassCard className="p-8 shadow-xl border-t border-white/10 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
           {displayError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-start">
-              <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{displayError}</span>
+            <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <span className="text-sm text-destructive font-medium">{displayError}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-slate-700 mb-1.5">
-                  First name *
-                </label>
-                <input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  autoComplete="given-name"
-                  value={formData.firstName}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label htmlFor="firstName" className="text-sm font-medium text-foreground ml-1">First Name</label>
+                <div className="relative group">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    id="firstName"
+                    name="firstName"
+                    type="text"
+                    autoComplete="given-name"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    className="pl-10 bg-background/50"
+                    placeholder="John"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="lastName" className="text-sm font-medium text-foreground ml-1">Last Name</label>
+                <div className="relative group">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    type="text"
+                    autoComplete="family-name"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    className="pl-10 bg-background/50"
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label htmlFor="nationalId" className="text-sm font-medium text-foreground ml-1">National ID</label>
+                <div className="relative group">
+                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    id="nationalId"
+                    name="nationalId"
+                    type="text"
+                    value={formData.nationalId}
+                    onChange={handleChange}
+                    className="pl-10 bg-background/50"
+                    placeholder="ID Number"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="mobilePhone" className="text-sm font-medium text-foreground ml-1">Mobile Phone</label>
+                <div className="relative group">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    id="mobilePhone"
+                    name="mobilePhone"
+                    type="tel"
+                    autoComplete="tel"
+                    value={formData.mobilePhone}
+                    onChange={handleChange}
+                    className="pl-10 bg-background/50"
+                    placeholder="+1 234 567 8900"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-foreground ml-1">Email Address</label>
+              <div className="relative group">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="Ahmed"
+                  className="pl-10 bg-background/50"
+                  placeholder="john@example.com"
                 />
               </div>
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Last name *
-                </label>
-                <input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  autoComplete="family-name"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="Hassan"
-                />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium text-foreground ml-1">Password</label>
+                <div className="relative group">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="pl-10 bg-background/50"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <PasswordStrength password={formData.password} />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground ml-1">Confirm Password</label>
+                <div className="relative group">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className="pl-10 bg-background/50"
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label htmlFor="nationalId" className="block text-sm font-medium text-slate-700 mb-1.5">
-                National ID *
-              </label>
-              <input
-                id="nationalId"
-                name="nationalId"
-                type="text"
-                value={formData.nationalId}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="ID123456789"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
-                Email address *
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="mobilePhone" className="block text-sm font-medium text-slate-700 mb-1.5">
-                Mobile Phone *
-              </label>
-              <input
-                id="mobilePhone"
-                name="mobilePhone"
-                type="tel"
-                autoComplete="tel"
-                value={formData.mobilePhone}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="+20 123 456 7890"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
-                Password *
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="At least 6 characters"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 mb-1.5">
-                Confirm password *
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="Confirm your password"
-              />
-            </div>
-
-            <div className="flex items-start">
+            <div className="flex items-start bg-muted/30 p-3 rounded-lg border border-border/50">
               <input
                 type="checkbox"
                 id="agreeToTerms"
                 name="agreeToTerms"
                 checked={formData.agreeToTerms}
                 onChange={handleChange}
-                className="mt-1 w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                className="mt-1 w-4 h-4 text-primary border-input rounded focus:ring-ring bg-background cursor-pointer"
               />
-              <label htmlFor="agreeToTerms" className="ml-2 text-sm text-slate-600">
+              <label htmlFor="agreeToTerms" className="ml-3 text-sm text-muted-foreground cursor-pointer select-none">
                 I agree to the{' '}
-                <Link href="/terms" className="text-blue-600 hover:text-blue-700">
+                <Link href="/terms" className="text-primary hover:text-primary/80 transition-colors font-medium hover:underline">
                   Terms of Service
                 </Link>{' '}
                 and{' '}
-                <Link href="/privacy" className="text-blue-600 hover:text-blue-700">
+                <Link href="/privacy" className="text-primary hover:text-primary/80 transition-colors font-medium hover:underline">
                   Privacy Policy
                 </Link>
               </label>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:scale-[1.02]"
             >
               {isLoading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
                   Creating account...
                 </>
               ) : (
                 'Create account'
               )}
-            </button>
+            </Button>
           </form>
-        </div>
 
-        {/* Sign in link */}
-        <p className="mt-6 text-center text-sm text-slate-600">
-          Already have an account?{' '}
-          <Link href="/login" className="font-medium text-blue-600 hover:text-blue-700">
-            Sign in
-          </Link>
-        </p>
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              Already have an account?{' '}
+              <Link href="/login" className="font-medium text-primary hover:text-primary/80 hover:underline transition-all">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </GlassCard>
       </div>
     </div>
   );

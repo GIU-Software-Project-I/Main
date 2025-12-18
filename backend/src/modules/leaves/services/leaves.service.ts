@@ -446,7 +446,9 @@ export class UnifiedLeaveService {
     await created.save();
 
     // Update pending count in entitlement when request is created
-    if (leaveType.deductible) {
+    // IMPORTANT: Unpaid leave should NOT affect balance - skip pending update for unpaid leave
+    const isUnpaidLeave = leaveType.paid === false;
+    if (leaveType.deductible && !isUnpaidLeave) {
       const ent = await this.entitlementModel.findOne({
         employeeId: new Types.ObjectId(dto.employeeId),
         leaveTypeId: new Types.ObjectId(dto.leaveTypeId),
@@ -800,8 +802,11 @@ export class UnifiedLeaveService {
 
     const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
     const isDeductible = leaveType?.deductible ?? true;
-
-    if (isDeductible && ent) {
+    const isUnpaidLeave = leaveType?.paid === false;
+    
+    // IMPORTANT: Unpaid leave should NOT affect balance
+    // Unpaid leave is only tracked for payroll deduction, not balance tracking
+    if (isDeductible && !isUnpaidLeave && ent) {
       // Move from pending to taken
       const durationDays = leave.durationDays || 0;
       ent.pending = Math.max(0, (ent.pending || 0) - durationDays);
@@ -813,6 +818,10 @@ export class UnifiedLeaveService {
       ent.remaining = yearly + carryForward - ent.taken;
 
       await ent.save();
+    } else if (isUnpaidLeave) {
+      this.logger.log(
+        `[BALANCE SKIP] Unpaid leave ${leave._id} approved - balance not affected (payroll tracking only)`
+      );
     }
 
     await leave.save();
@@ -855,17 +864,25 @@ export class UnifiedLeaveService {
     await leave.save();
 
     // Update entitlement - remove from pending
-    const ent = await this.entitlementModel.findOne({
-      employeeId: leave.employeeId,
-      leaveTypeId: leave.leaveTypeId,
-    });
-
-    if (ent) {
-      ent.pending = Math.max(0, (ent.pending || 0) - (leave.durationDays || 0));
-      await ent.save();
-    }
-
+    // IMPORTANT: Unpaid leave should NOT affect balance - skip for unpaid leave
     const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
+    const isUnpaidLeave = leaveType?.paid === false;
+    
+    if (!isUnpaidLeave) {
+      const ent = await this.entitlementModel.findOne({
+        employeeId: leave.employeeId,
+        leaveTypeId: leave.leaveTypeId,
+      });
+
+      if (ent) {
+        ent.pending = Math.max(0, (ent.pending || 0) - (leave.durationDays || 0));
+        await ent.save();
+      }
+    } else {
+      this.logger.log(
+        `[BALANCE SKIP] Unpaid leave ${leave._id} rejected by manager - balance not affected (payroll tracking only)`
+      );
+    }
     await this.sharedLeavesService.sendLeaveRequestRejectedNotification(
       leave.employeeId.toString(),
       leaveType?.name || 'Leave',
@@ -882,20 +899,32 @@ export class UnifiedLeaveService {
     hrId: string,
     decision: 'approve' | 'reject',
     allowNegative: boolean = false,
+    reason?: string,
+    isOverride: boolean = false,
   ) {
     const leave = await this.leaveRequestModel.findById(id);
-    if (!leave) throw new NotFoundException('Not found');
+    if (!leave) throw new NotFoundException('Leave request not found');
 
-    // Allow override of REJECTED status if decision is approve
-    // Also allow PENDING
-    const validStatuses: LeaveStatus[] = [LeaveStatus.PENDING];
+    // Check if already finalized (HR approval exists in approvalFlow)
+    const hrApproval = leave.approvalFlow?.find((f) => f.role === 'hr');
+    const isAlreadyFinalized = hrApproval?.status === 'approved' && leave.status === LeaveStatus.APPROVED;
+    
+    if (isAlreadyFinalized && decision === 'approve') {
+      throw new BadRequestException(
+        'This leave request has already been finalized. Employee records and payroll have been updated.',
+      );
+    }
+
+    // Allow finalizing APPROVED requests (for finalization step)
+    // Also allow PENDING and REJECTED (for initial approval/rejection)
+    const validStatuses: LeaveStatus[] = [LeaveStatus.PENDING, LeaveStatus.APPROVED];
     if (decision === 'approve') {
       validStatuses.push(LeaveStatus.REJECTED); // Allow override
     }
 
     if (!validStatuses.includes(leave.status as LeaveStatus)) {
       throw new BadRequestException(
-        `Cannot finalize request in status ${leave.status}`,
+        `Cannot finalize request in status ${leave.status}. Only PENDING, APPROVED, or REJECTED requests can be finalized.`,
       );
     }
 
@@ -910,30 +939,104 @@ export class UnifiedLeaveService {
       } as any;
     }
 
+    // Track override in approval flow for audit trail (REQ-026)
     leave.approvalFlow[1] = {
       role: 'hr',
       status: decision === 'approve' ? 'approved' : 'rejected',
       decidedBy: new Types.ObjectId(hrId),
       decidedAt: new Date(),
+      ...(isOverride && { overrideReason: reason, isOverride: true }),
     } as any;
 
-    leave.status =
-      decision === 'approve'
-        ? LeaveStatus.APPROVED
-        : LeaveStatus.REJECTED;
+    // Log override for audit trail
+    if (isOverride) {
+      this.logger.log(
+        `[OVERRIDE] HR ${hrId} overrode manager decision for leave ${id}. Reason: ${reason || 'Not provided'}`
+      );
+    }
+
+    // Store original status before changing it
+    const originalStatus = leave.status;
 
     if (decision === 'reject') {
+      // If already approved, we need to reverse the entitlement deduction
+      if (originalStatus === LeaveStatus.APPROVED) {
+        const ent = await this.entitlementModel.findOne({
+          employeeId: leave.employeeId,
+          leaveTypeId: leave.leaveTypeId,
+        });
+        const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
+        const isDeductible = leaveType?.deductible ?? true;
+        const isUnpaidLeave = leaveType?.paid === false;
+        
+        // IMPORTANT: Unpaid leave should NOT affect balance - skip reversal for unpaid leave
+        // Unpaid leave reversal is handled by payroll, not balance tracking
+        if (isDeductible && !isUnpaidLeave && ent) {
+          // Reverse the deduction - restore balance
+          const durationDays = leave.durationDays || 0;
+          ent.taken = Math.max(0, (ent.taken || 0) - durationDays);
+          ent.remaining = (ent.remaining || 0) + durationDays;
+          
+          // If this was moved from pending, restore pending too
+          // Check if there was a pending deduction
+          const managerApproval = leave.approvalFlow?.find((f) => f.role === 'manager');
+          if (managerApproval?.status === 'approved') {
+            // Manager had approved, so it was moved from pending to taken
+            // Restore to pending instead
+            ent.pending = (ent.pending || 0) + durationDays;
+            ent.taken = Math.max(0, (ent.taken || 0) - durationDays);
+          }
+          
+          await ent.save();
+        } else if (isUnpaidLeave) {
+          this.logger.log(
+            `[BALANCE SKIP] Unpaid leave ${leave._id} rejected - balance not affected (payroll tracking only)`
+          );
+        }
+      }
+
+      leave.status = LeaveStatus.REJECTED;
       await leave.save();
-      const leaveTypeForReject = await this.leaveTypeModel.findById(leave.leaveTypeId);
-      await this.sharedLeavesService.sendLeaveRequestRejectedNotification(
-        leave.employeeId.toString(),
-        leaveTypeForReject?.name || 'Leave',
-        leave.dates.from,
-        leave.dates.to
-      );
+      
+      // Send finalization notification for rejection (REQ-030)
+      // Notify employee, manager, and attendance coordinator when request is finalized as rejected
+      try {
+        const leaveTypeForReject = await this.leaveTypeModel.findById(leave.leaveTypeId);
+        const managerId = await this.sharedLeavesService.getEmployeeManager(leave.employeeId.toString());
+        
+        // Check if this was finalizing an already-approved request (needs finalization notification)
+        const wasFinalizingApproved = originalStatus === LeaveStatus.APPROVED;
+        
+        if (wasFinalizingApproved) {
+          // Finalization notification (REQ-030) - notify all parties
+          await this.sharedLeavesService.sendLeaveRequestFinalizedNotification(
+            leave.employeeId.toString(),
+            managerId || '',
+            leaveTypeForReject?.name || 'Leave',
+            leave.dates.from,
+            leave.dates.to,
+            'rejected'
+          );
+        } else {
+          // Initial rejection notification (not a finalization)
+          await this.sharedLeavesService.sendLeaveRequestRejectedNotification(
+            leave.employeeId.toString(),
+            leaveTypeForReject?.name || 'Leave',
+            leave.dates.from,
+            leave.dates.to,
+            reason
+          );
+        }
+      } catch (notifError) {
+        this.logger.warn('Failed to send rejection/finalization notification:', notifError);
+      }
+      
       return leave;
     }
 
+    // APPROVE/FINALIZE decision
+    const isFinalizingApproved = originalStatus === LeaveStatus.APPROVED;
+    const isOverridingRejection = originalStatus === LeaveStatus.REJECTED && decision === 'approve';
     const ent = await this.entitlementModel.findOne({
       employeeId: leave.employeeId,
       leaveTypeId: leave.leaveTypeId,
@@ -941,103 +1044,274 @@ export class UnifiedLeaveService {
 
     const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
     const isDeductible = leaveType?.deductible ?? true;
+    const isPaidLeave = leaveType?.paid !== false;
+    
+    // IMPORTANT: Unpaid leave should NOT affect balance (deductible = false)
+    // Unpaid leave is only tracked for payroll deduction purposes, not balance tracking
+    // If leave type is unpaid, it should be non-deductible to prevent negative balances
+    const isUnpaidLeave = leaveType?.paid === false;
+    const shouldUpdateBalance = isDeductible && !isUnpaidLeave;
 
-    if (isDeductible) {
+    // Update entitlements in the following cases:
+    // 1. Approving a PENDING request (initial approval)
+    // 2. Overriding a REJECTED request to APPROVE (REQ-029: auto update balance after final approval)
+    // 3. Finalizing an already-APPROVED request - verify balance is correct (REQ-029)
+    // NOTE: Unpaid leave does NOT update balance - it's only tracked for payroll
+    if (shouldUpdateBalance) {
       if (ent) {
-        if (!allowNegative) {
-          const remaining = ent.remaining ?? 0;
-          if (leave.durationDays > remaining) {
-            throw new BadRequestException(`Insufficient balance for approval. Request: ${leave.durationDays}, Remaining: ${remaining}. Use allowNegative=true to override.`);
+        // For already-approved requests, verify balance is correct (REQ-029)
+        if (isFinalizingApproved) {
+          // Balance should have been updated by manager approval
+          // Verify it's correct and ensure this leave is accounted for
+          const durationDays = leave.durationDays || 0;
+          const managerApproval = leave.approvalFlow?.find((f) => f.role === 'manager');
+          
+          if (managerApproval?.status === 'approved') {
+            // Manager approved, so balance should have been updated by managerApprove()
+            // Verify remaining balance calculation is correct (REQ-029: ensure records remain accurate)
+            const yearly = ent.yearlyEntitlement || 0;
+            const carryForward = ent.carryForward || 0;
+            const currentTaken = ent.taken || 0;
+            const expectedRemaining = yearly + carryForward - currentTaken;
+            
+            // Recalculate remaining to ensure it's correct
+            // This handles cases where balance might have been manually adjusted or there were calculation errors
+            ent.remaining = expectedRemaining;
+            await ent.save();
+            
+            this.logger.log(
+              `[BALANCE VERIFY] Verified balance for finalized leave ${leave._id}. ` +
+              `Duration: ${durationDays} days, Taken: ${currentTaken}, Remaining: ${expectedRemaining} ` +
+              `(Yearly: ${yearly}, CarryForward: ${carryForward})`
+            );
+          } else {
+            // No manager approval - this might be a direct HR approval
+            // In this case, we should ensure balance is updated (though this shouldn't normally happen)
+            this.logger.warn(
+              `[BALANCE WARNING] Finalizing approved leave ${leave._id} without manager approval. ` +
+              `Balance may not have been updated. Duration: ${durationDays} days.`
+            );
+            
+            // Ensure balance is correct even if manager didn't approve
+            const yearly = ent.yearlyEntitlement || 0;
+            const carryForward = ent.carryForward || 0;
+            const currentTaken = ent.taken || 0;
+            ent.remaining = yearly + carryForward - currentTaken;
+            await ent.save();
           }
-        }
+        } else if (!isFinalizingApproved) {
+          // Approving PENDING or overriding REJECTED to APPROVE
+          if (!allowNegative) {
+            const remaining = ent.remaining ?? 0;
+            if (leave.durationDays > remaining) {
+              throw new BadRequestException(`Insufficient balance for approval. Request: ${leave.durationDays}, Remaining: ${remaining}. Use allowNegative=true to override.`);
+            }
+          }
 
-        ent.taken = (ent.taken || 0) + (leave.durationDays || 0);
-        ent.remaining = (ent.remaining || 0) - (leave.durationDays || 0); // Allow going negative if allowNegative is true (or if logic passed above)
-        await ent.save();
-      } else {
-        // No entitlement exists
-        if (!allowNegative) {
-          throw new BadRequestException('No entitlement found. Cannot approve without allowNegative override.');
+          // Handle override of rejected request: pending was already removed by manager rejection
+          // So we need to deduct directly from remaining, not from pending
+          if (isOverridingRejection) {
+            // Overriding rejection: balance was never deducted (manager rejected removed from pending only)
+            // So we deduct directly from remaining balance
+            const durationDays = leave.durationDays || 0;
+            ent.taken = (ent.taken || 0) + durationDays;
+            ent.remaining = (ent.remaining || 0) - durationDays;
+            // Pending was already removed by manager rejection, so no need to adjust it
+            this.logger.log(
+              `[BALANCE UPDATE] Override rejection to approval: Deducted ${durationDays} days from balance for leave ${leave._id}`
+            );
+          } else {
+            // Normal approval: Move from pending to taken
+            const durationDays = leave.durationDays || 0;
+            const pendingDays = Math.max(0, (ent.pending || 0) - durationDays);
+            ent.pending = pendingDays;
+            ent.taken = (ent.taken || 0) + durationDays;
+            ent.remaining = (ent.remaining || 0) - durationDays;
+            this.logger.log(
+              `[BALANCE UPDATE] Approved pending request: Moved ${durationDays} days from pending to taken for leave ${leave._id}`
+            );
+          }
+          
+          await ent.save();
         }
-        await this.entitlementModel.create({
-          employeeId: leave.employeeId,
-          leaveTypeId: leave.leaveTypeId,
-          yearlyEntitlement: 0,
-          accruedActual: 0,
-          accruedRounded: 0,
-          carryForward: 0,
-          taken: leave.durationDays || 0,
-          pending: 0,
-          remaining: -(leave.durationDays || 0),
-          lastAccrualDate: null,
-          nextResetDate: null,
-        });
+      } else {
+        // No entitlement exists - only create if approving (not finalizing already-approved)
+        if (!isFinalizingApproved) {
+          if (!allowNegative) {
+            throw new BadRequestException('No entitlement found. Cannot approve without allowNegative override.');
+          }
+          await this.entitlementModel.create({
+            employeeId: leave.employeeId,
+            leaveTypeId: leave.leaveTypeId,
+            yearlyEntitlement: 0,
+            accruedActual: 0,
+            accruedRounded: 0,
+            carryForward: 0,
+            taken: leave.durationDays || 0,
+            pending: 0,
+            remaining: -(leave.durationDays || 0),
+            lastAccrualDate: null,
+            nextResetDate: null,
+          });
+          this.logger.log(
+            `[BALANCE UPDATE] Created entitlement with negative balance for leave ${leave._id} (allowNegative=true)`
+          );
+        } else {
+          // Finalizing already-approved but no entitlement exists - this is an error
+          this.logger.warn(
+            `[BALANCE WARNING] Finalizing approved leave ${leave._id} but no entitlement found. ` +
+            `Balance may not have been updated correctly.`
+          );
+        }
       }
     }
 
-    await this.payrollNotifyAfterApproval(leave);
+    // Update status to APPROVED if it was PENDING
+    if (!isFinalizingApproved) {
+      leave.status = LeaveStatus.APPROVED;
+    }
+
+    // Update employee records and sync with payroll/time management
+    await this.finalizeApprovedLeave(leave, hrId, isPaidLeave);
+    
     await leave.save();
 
-    const leaveTypeForNotify = await this.leaveTypeModel.findById(leave.leaveTypeId);
-    await this.sharedLeavesService.sendLeaveRequestApprovedNotification(
-      leave.employeeId.toString(),
-      leaveTypeForNotify?.name || 'Leave',
-      leave.dates.from,
-      leave.dates.to
-    );
+    // Send notifications
+    try {
+      const leaveTypeForNotify = await this.leaveTypeModel.findById(leave.leaveTypeId);
+      const managerId = await this.sharedLeavesService.getEmployeeManager(leave.employeeId.toString());
+      
+      if (isFinalizingApproved) {
+        // Finalization notification (REQ-030)
+        await this.sharedLeavesService.sendLeaveRequestFinalizedNotification(
+          leave.employeeId.toString(),
+          managerId || '',
+          leaveTypeForNotify?.name || 'Leave',
+          leave.dates.from,
+          leave.dates.to,
+          'approved'
+        );
+      } else {
+        // Initial approval notification
+        await this.sharedLeavesService.sendLeaveRequestApprovedNotification(
+          leave.employeeId.toString(),
+          leaveTypeForNotify?.name || 'Leave',
+          leave.dates.from,
+          leave.dates.to
+        );
+      }
 
-    await this.sharedLeavesService.syncLeaveWithTimeManagement(
-      leave.employeeId.toString(),
-      leave.dates.from,
-      leave.dates.to,
-      leaveTypeForNotify?.name || 'Leave',
-      'approved'
-    );
+      // Sync with Time Management
+      await this.sharedLeavesService.syncLeaveWithTimeManagement(
+        leave.employeeId.toString(),
+        leave.dates.from,
+        leave.dates.to,
+        leaveTypeForNotify?.name || 'Leave',
+        'approved'
+      );
+    } catch (notifError) {
+      this.logger.warn('Failed to send notification or sync:', notifError);
+    }
 
     return leave;
   }
 
+  /**
+   * Finalizes an approved leave request by updating employee records and adjusting payroll
+   * This is called when HR finalizes an already-approved request (REQ-025)
+   */
+  private async finalizeApprovedLeave(
+    leave: LeaveRequestDocument,
+    hrId: string,
+    isPaidLeave: boolean,
+  ): Promise<void> {
+    try {
+      // 1. Update employee status if currently on leave
+      const now = new Date();
+      const leaveStart = new Date(leave.dates.from);
+      const leaveEnd = new Date(leave.dates.to);
+      
+      if (now >= leaveStart && now <= leaveEnd) {
+        await this.sharedLeavesService.updateEmployeeStatusToOnLeave(leave.employeeId.toString());
+      }
+
+      // 2. Real-time sync with Payroll (REQ: Auto sync with payroll system)
+      // Sync for ALL finalized leaves (both paid and unpaid) so payroll can track them
+      // Unpaid leaves will trigger deductions, paid leaves are tracked for records
+      await this.payrollNotifyAfterApproval(leave);
+
+      // 3. Log finalization for audit trail
+      this.logger.log(
+        `[FINALIZE] Leave request ${leave._id} finalized by HR ${hrId}. ` +
+        `Employee: ${leave.employeeId}, Days: ${leave.durationDays}, ` +
+        `Paid: ${isPaidLeave}, Period: ${leaveStart.toISOString().slice(0, 10)} to ${leaveEnd.toISOString().slice(0, 10)}`
+      );
+    } catch (error) {
+      this.logger.error(`Failed to finalize leave ${leave._id}:`, error);
+      throw new BadRequestException(`Failed to finalize leave request: ${error.message}`);
+    }
+  }
+
+  /**
+   * Real-time payroll sync after leave finalization (REQ: Auto sync with payroll)
+   * This ensures salary deductions or adjustments are calculated without delays
+   */
   private async payrollNotifyAfterApproval(leave: LeaveRequestDocument) {
     try {
       const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
+      const isPaid = leaveType?.paid !== false;
+      
+      this.logger.log(
+        `[PAYROLL_SYNC] Initiating real-time sync for leave ${leave._id}. ` +
+        `Employee: ${leave.employeeId}, Days: ${leave.durationDays || 0}, Paid: ${isPaid}`
+      );
+
+      // Real-time sync with payroll system
       await this.sharedLeavesService.syncLeaveWithPayroll(leave.employeeId.toString(), {
         leaveRequestId: leave._id.toString(),
         leaveTypeId: leave.leaveTypeId.toString(),
-        durationDays: leave.durationDays,
-        isPaid: leaveType?.paid !== false,
+        durationDays: leave.durationDays || 0,
+        isPaid: isPaid,
         from: leave.dates.from,
         to: leave.dates.to,
       });
+
+      this.logger.log(
+        `[PAYROLL_SYNC] ✅ Real-time sync completed for leave ${leave._id}. ` +
+        `${isPaid ? 'Paid leave - no deduction required' : 'Unpaid leave - deduction will be calculated'}`
+      );
     } catch (err) {
-      this.logger.warn('Payroll sync failed for leave ' + leave._id);
+      this.logger.error(`[PAYROLL_SYNC] ❌ Real-time sync failed for leave ${leave._id}:`, err);
+      // Don't throw - allow finalization to complete even if sync fails
+      // Payroll service can still process during payroll calculation
     }
   }
 
   // --------------------------------------------------------------------------------
   // Entitlements & Adjustments (REQ-008, REQ-013)
   // --------------------------------------------------------------------------------
-
-async assignEntitlement(employeeId: string, leaveTypeId: string, yearlyEntitlement: number) {
+async assignEntitlement(
+  employeeId: string,
+  leaveTypeId: string,
+  yearlyEntitlement: number,
+) {
   this.validateObjectId(employeeId, 'employeeId');
   this.validateObjectId(leaveTypeId, 'leaveTypeId');
 
   const empObj = new Types.ObjectId(employeeId);
   const ltObj = new Types.ObjectId(leaveTypeId);
 
-  // 1) upsert yearlyEntitlement أولاً
   const ent = await this.entitlementModel.findOneAndUpdate(
     { employeeId: empObj, leaveTypeId: ltObj },
     { $set: { yearlyEntitlement } },
     { upsert: true, new: true },
   );
 
-  // 2) احسب taken من approved requests
   const takenAgg = await this.leaveRequestModel.aggregate([
     { $match: { employeeId: empObj, leaveTypeId: ltObj, status: { $in: ['approved', 'APPROVED'] } } },
     { $group: { _id: null, total: { $sum: '$durationDays' } } },
   ]);
 
-  // 3) احسب pending من pending requests
   const pendingAgg = await this.leaveRequestModel.aggregate([
     { $match: { employeeId: empObj, leaveTypeId: ltObj, status: { $in: ['pending', 'PENDING'] } } },
     { $group: { _id: null, total: { $sum: '$durationDays' } } },
@@ -1047,25 +1321,30 @@ async assignEntitlement(employeeId: string, leaveTypeId: string, yearlyEntitleme
   const pending = pendingAgg[0]?.total ?? 0;
   const carryForward = ent.carryForward ?? 0;
 
-  // 4) بما إن HR Admin بيعمل "Set yearly entitlement"
-  // خليه كمان يظبط accrued عشان base مايفضلش قديم (زي 5)
   ent.accruedActual = yearlyEntitlement;
   ent.accruedRounded = yearlyEntitlement;
 
   ent.taken = taken;
   ent.pending = pending;
 
-  // 5) remaining الصح
   const base = ent.accruedRounded ?? ent.accruedActual ?? yearlyEntitlement ?? 0;
-  ent.remaining = base + carryForward - taken - pending;
+  ent.remaining = Math.max(0, base + carryForward - taken - pending);
 
-  // ملاحظة: lastAccrualDate دي مش “accrual run” فعلية، بس لو عايزها خليك زي ما تحب
-  // ent.lastAccrualDate = new Date();
+  ent.lastAccrualDate = new Date();
 
   await ent.save();
+
+  const leaveType = await this.leaveTypeModel.findById(leaveTypeId).lean();
+  await this.sharedLeavesService.sendLeaveBalanceAdjustedNotification(
+    employeeId,
+    leaveType?.name || 'Leave',
+    'set',
+    yearlyEntitlement,
+    `Entitlement set: ${yearlyEntitlement} days for ${leaveType?.name || 'Leave'}`,
+  );
+
   return ent.toObject();
 }
-
 
   // no sessions: simple create + update
   async manualEntitlementAdjustment(
@@ -1076,6 +1355,7 @@ async assignEntitlement(employeeId: string, leaveTypeId: string, yearlyEntitleme
     reason: string,
     hrUserId: string,
   ) {
+    // Create adjustment record
     await this.adjustmentModel.create({
       employeeId: new Types.ObjectId(employeeId),
       leaveTypeId: new Types.ObjectId(leaveTypeId),
@@ -1086,21 +1366,43 @@ async assignEntitlement(employeeId: string, leaveTypeId: string, yearlyEntitleme
       createdAt: new Date(),
     });
 
-    const incValue = type === 'add' ? amount : -amount;
+    // Get current entitlement to calculate properly
+    const current = await this.entitlementModel.findOne({
+      employeeId: new Types.ObjectId(employeeId),
+      leaveTypeId: new Types.ObjectId(leaveTypeId),
+    });
+
+    if (!current) {
+      throw new NotFoundException('Entitlement not found for employee + leaveType');
+    }
+
+    let updateData: any = {};
+
+    if (type === 'add') {
+      // Add to yearlyEntitlement (permanent increase to entitlement)
+      updateData.yearlyEntitlement = (current.yearlyEntitlement || 0) + amount;
+      // Recalculate remaining = yearlyEntitlement + carryForward - taken
+      updateData.remaining = Math.max(0, updateData.yearlyEntitlement + (current.carryForward || 0) - (current.taken || 0));
+    } else {
+      // Deduct from remaining (available balance)
+      const newRemaining = Math.max(0, (current.remaining || 0) - amount);
+      updateData.remaining = newRemaining;
+    }
 
     const updated = await this.entitlementModel.findOneAndUpdate(
       {
         employeeId: new Types.ObjectId(employeeId),
         leaveTypeId: new Types.ObjectId(leaveTypeId),
       },
-      { $inc: { remaining: incValue } },
+      { $set: updateData },
       { new: true },
     );
 
     if (!updated) {
-      throw new NotFoundException('Entitlement not found for employee + leaveType');
+      throw new NotFoundException('Failed to update entitlement');
     }
 
+    // Send notification to employee
     const leaveType = await this.leaveTypeModel.findById(leaveTypeId);
     await this.sharedLeavesService.sendLeaveBalanceAdjustedNotification(
       employeeId,
@@ -2224,14 +2526,83 @@ async resetLeaveYear(
     return this.attachmentModel.create(dto);
   }
 
-  async validateMedicalAttachment(id: string) {
-    const attachment = await this.attachmentModel.findById(id);
-    if (!attachment) throw new NotFoundException('Attachment not found');
-    const type = (attachment.fileType || '').toLowerCase();
-    if (!type.includes('pdf') && !type.includes('image')) {
-      throw new BadRequestException('Invalid medical document');
+  async validateMedicalAttachment(id: string, verifiedBy?: string) {
+    try {
+      // Validate attachment ID format
+      if (!id || !Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid attachment ID format');
+      }
+
+      const attachmentId = new Types.ObjectId(id);
+      const attachment = await this.attachmentModel.findById(attachmentId);
+      if (!attachment) {
+        throw new NotFoundException(`Attachment with ID ${id} not found`);
+      }
+      
+      const type = (attachment.fileType || '').toLowerCase();
+      const validTypes = ['pdf', 'image', 'jpeg', 'jpg', 'png', 'gif', 'bmp'];
+      const isValidType = validTypes.some(validType => type.includes(validType));
+      
+      if (!isValidType) {
+        throw new BadRequestException(`Invalid medical document format: ${attachment.fileType}. Only PDF and image files (JPEG, JPG, PNG, GIF, BMP) are accepted.`);
+      }
+
+      // Find leave request that uses this specific attachment (attachmentId is stored as ObjectId in schema)
+      // Use findOne to ensure we only get ONE specific leave request for this attachment
+      const attachmentIdObj = new Types.ObjectId(id);
+      const leaveRequest = await this.leaveRequestModel.findOne({ attachmentId: attachmentIdObj });
+    
+      if (!leaveRequest) {
+        this.logger.warn(`No leave request found for attachment ${id}`);
+        // Still return success for attachment validation, but no leave request to update
+      } else if (verifiedBy) {
+        // Track verification in approval flow for audit trail (REQ-028)
+        // Only update THIS specific leave request - ensure we're working with the correct one
+        if (!leaveRequest.approvalFlow || !Array.isArray(leaveRequest.approvalFlow)) {
+          leaveRequest.approvalFlow = [] as any;
+        }
+        
+        // Check if verification already exists for THIS specific attachment in THIS specific request
+        const attachmentIdStr = id.toString();
+        const existingVerification = leaveRequest.approvalFlow.find(
+          (f: any) => 
+            f.action === 'medical_document_verified' && 
+            (f.attachmentId === attachmentIdStr || f.attachmentId === id)
+        );
+        
+        if (!existingVerification) {
+          // Add verification entry to approval flow for THIS specific request only
+          const verificationEntry = {
+            role: 'hr',
+            status: 'verified',
+            action: 'medical_document_verified',
+            decidedBy: new Types.ObjectId(verifiedBy),
+            decidedAt: new Date(),
+            attachmentId: attachmentIdStr, // Always store attachment ID for exact matching
+          };
+          
+          leaveRequest.approvalFlow.push(verificationEntry as any);
+          await leaveRequest.save();
+          this.logger.log(`Medical document ${id} verified by HR ${verifiedBy} for leave request ${leaveRequest._id} (attachmentId: ${attachmentIdStr})`);
+        } else {
+          this.logger.log(`Medical document ${id} already verified for leave request ${leaveRequest._id}`);
+        }
+      }
+
+      return {
+        ...attachment.toObject(),
+        verified: true,
+        verifiedAt: new Date(),
+        verifiedBy: verifiedBy || null,
+        leaveRequestId: leaveRequest?._id?.toString() || null,
+      };
+    } catch (error) {
+      this.logger.error(`Error validating medical attachment ${id}: ${error.message}`, error.stack);
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to verify medical document: ${error.message}`);
     }
-    return attachment;
   }
 
   // --------------------------------------------------------------------------------
@@ -2244,38 +2615,44 @@ async resetLeaveYear(
     actorId: string,
   ) {
     const results: string[] = [];
+    const errors: string[] = [];
 
+    // Process each request using hrFinalize to ensure proper finalization
     for (const id of requestIds) {
-      const reqDoc = await this.leaveRequestModel.findById(id);
-      if (!reqDoc) continue;
+      try {
+        // Validate request exists and is in a processable state
+        const reqDoc = await this.leaveRequestModel.findById(id);
+        if (!reqDoc) {
+          errors.push(`${id}: Request not found`);
+          continue;
+        }
 
-      if (!reqDoc.approvalFlow || !Array.isArray(reqDoc.approvalFlow)) {
-        reqDoc.approvalFlow = [] as any;
+        // Check if already finalized (skip if already finalized and approving)
+        const hrApproval = reqDoc.approvalFlow?.find((f) => f.role === 'hr');
+        const isAlreadyFinalized = hrApproval?.status === 'approved' && reqDoc.status === LeaveStatus.APPROVED;
+        
+        if (isAlreadyFinalized && action === 'approve') {
+          errors.push(`${id}: Already finalized`);
+          continue;
+        }
+
+        // Use hrFinalize to properly finalize each request (updates balances, sends notifications, etc.)
+        await this.hrFinalize(id, actorId, action, true, `Bulk ${action} by HR`, false);
+        results.push(id);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Failed to process request ${id} in bulk: ${errorMessage}`);
+        errors.push(`${id}: ${errorMessage}`);
       }
-
-      if (action === 'approve') {
-        reqDoc.approvalFlow[0] = {
-          role: 'manager',
-          status: 'approved',
-          decidedBy: new Types.ObjectId(actorId),
-          decidedAt: new Date(),
-        } as any;
-        reqDoc.status = LeaveStatus.PENDING;
-      } else {
-        reqDoc.approvalFlow[0] = {
-          role: 'manager',
-          status: 'rejected',
-          decidedBy: new Types.ObjectId(actorId),
-          decidedAt: new Date(),
-        } as any;
-        reqDoc.status = LeaveStatus.REJECTED;
-      }
-
-      await reqDoc.save();
-      results.push(reqDoc._id.toString());
     }
 
-    return { ok: true, processed: results.length, ids: results };
+    return { 
+      ok: true, 
+      processed: results.length, 
+      total: requestIds.length,
+      ids: results,
+      errors: errors.length > 0 ? errors : undefined
+    };
   }
 
   async flagIrregular(requestId: string, flag: boolean, reason?: string) {
@@ -2536,6 +2913,95 @@ async resetLeaveYear(
      // .populate('hrUserId', 'firstName lastName')
       .sort({ createdAt: -1 })
       .lean();
+  }
+
+  /**
+   * Fix negative balances for unpaid leave types
+   * Unpaid leave should NOT affect balance - this method corrects any incorrect deductions
+   * @param employeeId Optional - fix for specific employee only
+   * @param addDays Optional - add days to yearly entitlement (default: 0)
+   */
+  async fixUnpaidLeaveBalances(employeeId?: string, addDays: number = 0): Promise<{ fixed: number; errors: string[]; updated: number }> {
+    try {
+      this.logger.log(`[BALANCE FIX] Starting unpaid leave balance correction${addDays > 0 ? ` (adding ${addDays} days)` : ''}...`);
+      
+      // Get all unpaid leave types
+      const unpaidLeaveTypes = await this.leaveTypeModel.find({ paid: false }).lean();
+      const unpaidLeaveTypeIds = unpaidLeaveTypes.map(lt => lt._id.toString());
+      
+      if (unpaidLeaveTypeIds.length === 0) {
+        this.logger.log('[BALANCE FIX] No unpaid leave types found in system');
+        return { fixed: 0, errors: [], updated: 0 };
+      }
+
+      // Build query for entitlements
+      const query: any = { leaveTypeId: { $in: unpaidLeaveTypeIds.map(id => new Types.ObjectId(id)) } };
+      if (employeeId) {
+        query.employeeId = new Types.ObjectId(employeeId);
+      }
+
+      // Find all entitlements for unpaid leave types
+      const entitlements = await this.entitlementModel.find(query).lean();
+      this.logger.log(`[BALANCE FIX] Found ${entitlements.length} unpaid leave entitlements to check`);
+
+      let fixedCount = 0;
+      let updatedCount = 0;
+      const errors: string[] = [];
+
+      for (const ent of entitlements) {
+        try {
+          // Unpaid leave should NOT have taken/remaining deductions
+          // Reset taken to 0 and recalculate remaining based on yearly + carryForward only
+          let yearly = ent.yearlyEntitlement || 0;
+          const carryForward = ent.carryForward || 0;
+          const currentTaken = ent.taken || 0;
+          const currentRemaining = ent.remaining || 0;
+
+          // Add days to yearly entitlement if requested
+          if (addDays > 0) {
+            yearly = yearly + addDays;
+            updatedCount++;
+            this.logger.log(
+              `[BALANCE FIX] Adding ${addDays} days to entitlement ${ent._id}: ` +
+              `Yearly: ${ent.yearlyEntitlement || 0} → ${yearly}`
+            );
+          }
+
+          const correctRemaining = yearly + carryForward;
+
+          // Fix if there's a discrepancy (taken > 0, remaining != correct, or days were added)
+          if (currentTaken > 0 || currentRemaining !== correctRemaining || addDays > 0) {
+            await this.entitlementModel.updateOne(
+              { _id: ent._id },
+              {
+                $set: {
+                  yearlyEntitlement: yearly, // Updated if addDays > 0
+                  taken: 0, // Unpaid leave doesn't deduct from balance
+                  remaining: correctRemaining, // Remaining = yearly + carryForward (no deductions)
+                }
+              }
+            );
+
+            fixedCount++;
+            this.logger.log(
+              `[BALANCE FIX] Fixed entitlement ${ent._id}: ` +
+              `Yearly: ${ent.yearlyEntitlement || 0} → ${yearly}, ` +
+              `Taken: ${currentTaken} → 0, Remaining: ${currentRemaining} → ${correctRemaining}`
+            );
+          }
+        } catch (err: any) {
+          const errorMsg = `Failed to fix entitlement ${ent._id}: ${err.message}`;
+          errors.push(errorMsg);
+          this.logger.error(`[BALANCE FIX] ${errorMsg}`, err);
+        }
+      }
+
+      this.logger.log(`[BALANCE FIX] ✅ Completed. Fixed ${fixedCount} entitlements, Updated ${updatedCount} with added days. Errors: ${errors.length}`);
+      return { fixed: fixedCount, errors, updated: updatedCount };
+    } catch (error: any) {
+      this.logger.error('[BALANCE FIX] ❌ Failed to fix unpaid leave balances:', error);
+      throw new BadRequestException(`Failed to fix unpaid leave balances: ${error.message}`);
+    }
   }
 }
 

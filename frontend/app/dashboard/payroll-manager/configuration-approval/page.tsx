@@ -43,7 +43,6 @@ export default function PayrollSystemConfigurationApprovalPage() {
     { id: "signingBonuses", label: "Signing Bonuses", icon: "🎁" },
     { id: "terminationBenefits", label: "Termination Benefits", icon: "🚪" },
     { id: "taxRules", label: "Tax Rules", icon: "📊" },
-    { id: "taxBrackets", label: "Tax Brackets", icon: "🧮" },
   ];
 
   const filtered = useMemo(() => {
@@ -353,19 +352,10 @@ export default function PayrollSystemConfigurationApprovalPage() {
   const closeView = () => setView(null);
 
   const beginEdit = (item: ConfigItem) => {
-    const isPayType = activeTab === "payTypes";
-
-    // Pay Types: allow editing when NOT draft; others: only when draft
-    if (isPayType) {
-      if (item.status === ConfigStatus.DRAFT) {
-        setError("Pay Types can be edited after leaving draft (e.g., pending/approved).");
-        return;
-      }
-    } else {
-      if (item.status !== ConfigStatus.DRAFT) {
-        setError("Only DRAFT configurations can be edited.");
-        return;
-      }
+    // All configuration types (including pay types) are editable only while in DRAFT
+    if (item.status !== ConfigStatus.DRAFT) {
+      setError("Only DRAFT configurations can be edited.");
+      return;
     }
 
     setEdit(item);
@@ -403,9 +393,15 @@ export default function PayrollSystemConfigurationApprovalPage() {
         };
         res = await payrollConfigurationService.updatePayrollPolicy(edit.id, payload);
       } else if (activeTab === "payTypes") {
+        const amountNumber = Number(edit.amount);
+        if (!Number.isFinite(amountNumber)) {
+          throw new Error("Please enter a valid amount for the pay type");
+        }
+
         payload = {
           name: edit.name,
           description: edit.description,
+          amount: amountNumber,
         };
         res = await payrollConfigurationService.updatePayType(edit.id, payload);
       } else if (activeTab === "allowances") {
@@ -599,6 +595,18 @@ export default function PayrollSystemConfigurationApprovalPage() {
                       onChange={(e) => setEdit({ ...edit, description: e.target.value })}
                     />
                   </div>
+
+                  {activeTab === "payTypes" && (
+                    <div className="md:col-span-2">
+                      <label className="text-xs font-medium text-slate-700">Amount (EGP)</label>
+                      <input
+                        type="number"
+                        className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
+                        value={edit.amount ?? ""}
+                        onChange={(e) => setEdit({ ...edit, amount: e.target.value })}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -874,24 +882,15 @@ export default function PayrollSystemConfigurationApprovalPage() {
                             </>
                           )}
 
-                          {/* Edit: Pay Types editable when NOT draft; others only when DRAFT */}
-                          {activeTab === "payTypes"
-                            ? item.status !== ConfigStatus.DRAFT && (
-                                <button
-                                  className="px-3 py-1 border border-blue-300 rounded hover:bg-blue-50 text-blue-700 text-xs"
-                                  onClick={() => beginEdit(item)}
-                                >
-                                  ✎ Edit
-                                </button>
-                              )
-                            : item.status === ConfigStatus.DRAFT && (
-                                <button
-                                  className="px-3 py-1 border border-blue-300 rounded hover:bg-blue-50 text-blue-700 text-xs"
-                                  onClick={() => beginEdit(item)}
-                                >
-                                  ✎ Edit
-                                </button>
-                              )}
+                          {/* Edit: all configuration types are editable only in DRAFT */}
+                          {item.status === ConfigStatus.DRAFT && (
+                            <button
+                              className="px-3 py-1 border border-blue-300 rounded hover:bg-blue-50 text-blue-700 text-xs"
+                              onClick={() => beginEdit(item)}
+                            >
+                              ✎ Edit
+                            </button>
+                          )}
                           <button
                             className="px-3 py-1 border rounded hover:bg-blue-50 text-xs"
                             onClick={() => viewItem(item)}

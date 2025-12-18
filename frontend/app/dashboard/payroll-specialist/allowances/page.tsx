@@ -480,7 +480,7 @@ export default function AllowancesPage() {
       {/* Success Alert */}
       {success && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="text-green-600">✓</div>
+          <div className="text-green-600 font-bold">Success</div>
           <p className="text-green-800 font-medium">{success}</p>
           <button 
             onClick={() => setSuccess(null)}
@@ -494,7 +494,7 @@ export default function AllowancesPage() {
       {/* Error Alert */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="text-red-600">✕</div>
+          <div className="text-red-600 font-bold">Failed</div>
           <div>
             <p className="text-red-800 font-medium">Error</p>
             <p className="text-red-700 text-sm mt-1">{error}</p>
@@ -568,7 +568,6 @@ export default function AllowancesPage() {
         
         {allowances.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="text-slate-400 mb-4">🏢</div>
             <p className="text-slate-600 font-medium">No allowances found</p>
             <p className="text-slate-500 text-sm mt-1">
               {filters.search || filters.status ? 'Try changing your filters' : 'Create your first allowance to get started'}
@@ -621,20 +620,20 @@ export default function AllowancesPage() {
           {/* View button */}
           <button
             onClick={() => handleViewClick(allowance)}
-            className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-300 rounded-lg transition-colors"
             title="View Details"
           >
-            👁️
+            View
           </button>
           
           {/* Edit button - Only for DRAFT allowances */}
           {allowance.status === 'draft' && (
             <button
               onClick={() => handleEditClick(allowance)}
-              className="p-1.5 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 border border-green-300 rounded-lg transition-colors"
               title="Edit Allowance"
             >
-              ✏️
+              Edit
             </button>
           )}
         </div>
@@ -700,7 +699,7 @@ export default function AllowancesPage() {
 
       {/* Information Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-2">📋 Payroll Specialist Information</h3>
+        <h3 className="font-semibold text-blue-900 mb-2">Payroll Specialist Information</h3>
         <ul className="text-blue-800 text-sm space-y-2">
           <li>• As a Payroll Specialist, you can <span className="font-semibold">create draft</span> allowances</li>
           <li>• You can <span className="font-semibold">view all</span> allowances (draft, approved, rejected)</li>
@@ -772,7 +771,7 @@ export default function AllowancesPage() {
         </div>
         
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <p className="text-sm font-medium text-amber-800 mb-2">ℹ️ Important Notes</p>
+          <p className="text-sm font-medium text-amber-800 mb-2">Important Notes</p>
           <ul className="text-xs text-amber-700 space-y-1">
             <li>• Allowance will be created as <span className="font-semibold">DRAFT</span></li>
             <li>• Payroll Manager approval is required before use</li>
@@ -811,58 +810,37 @@ export default function AllowancesPage() {
             <div className="p-6 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h4 className="text-lg font-bold text-slate-900">{selectedAllowance.name}</h4>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-2 ${statusColors[selectedAllowance.status] || 'bg-gray-100 text-gray-800'}`}>
-                    {statusLabels[selectedAllowance.status] || selectedAllowance.status}
-                  </span>
+                  <h4 className="text-lg font-bold text-slate-900 mb-2">{selectedAllowance.name}</h4>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-slate-500">Status</span>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-sm font-medium ${statusColors[selectedAllowance.status] || 'bg-gray-100 text-gray-800'}`} style={{width: 'fit-content', minWidth: '0'}}>
+                      {statusLabels[selectedAllowance.status] || selectedAllowance.status}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-slate-600 text-sm">v{selectedAllowance.__v || 1}</div>
               </div>
-              
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-slate-500">Amount</p>
                   <p className="font-medium text-slate-900 text-xl">{formatCurrency(selectedAllowance.amount)}</p>
-                  <p className="text-xs text-slate-500 mt-1">Monthly amount</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Status</p>
-                  <p className="font-medium text-slate-900">{statusLabels[selectedAllowance.status]}</p>
+                  <p className="text-sm text-slate-500">Created By</p>
+                  <p className="font-medium text-slate-900">{selectedAllowance.createdBy || 'N/A'}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-500">Created</p>
-                  <p className="font-medium text-slate-900">{formatDate(selectedAllowance.createdAt)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Last Modified</p>
-                  <p className="font-medium text-slate-900">{formatDate(selectedAllowance.updatedAt)}</p>
-                </div>
-                {selectedAllowance.createdBy && (
-                  <div>
-                    <p className="text-sm text-slate-500">Created By</p>
-                    <p className="font-medium text-slate-900">Employee ID: {selectedAllowance.createdBy.substring(0, 8)}...</p>
-                  </div>
+                {/* Approved By/At or Rejected By/At */}
+                {(selectedAllowance.status === 'approved' || selectedAllowance.status === 'rejected') && (
+                  <>
+                    <div>
+                      <p className="text-sm text-slate-500">{selectedAllowance.status === 'approved' ? 'Approved By' : 'Rejected By'}</p>
+                      <p className="font-medium text-slate-900">{selectedAllowance.approvedBy || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">{selectedAllowance.status === 'approved' ? 'Approved At' : 'Rejected At'}</p>
+                      <p className="font-medium text-slate-900">{selectedAllowance.approvedAt ? formatDate(selectedAllowance.approvedAt) : 'N/A'}</p>
+                    </div>
+                  </>
                 )}
-                {selectedAllowance.approvedBy && (
-                  <div>
-                    <p className="text-sm text-slate-500">
-                      {selectedAllowance.status === 'approved' ? 'Approved By' : 'Rejected By'}
-                    </p>
-                    <p className="font-medium text-slate-900">Employee ID: {selectedAllowance.approvedBy.substring(0, 8)}...</p>
-                    {selectedAllowance.approvedAt && (
-                      <p className="text-xs text-slate-500 mt-1">
-                        {formatDate(selectedAllowance.approvedAt)}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              <div className="border-t border-slate-200 pt-4">
-                <p className="text-sm text-slate-500 mb-2">Allowance ID</p>
-                <code className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded font-mono">
-                  {selectedAllowance._id}
-                </code>
               </div>
             </div>
             <div className="p-6 border-t border-slate-200 flex justify-end">

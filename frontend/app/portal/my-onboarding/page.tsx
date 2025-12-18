@@ -128,7 +128,7 @@ export default function MyOnboardingPage() {
   if (noOnboarding) {
     return (
       <div className="p-6 lg:p-8 bg-background min-h-screen">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-6">
           <div className="bg-card rounded-xl border border-border p-12 text-center">
             <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
               <svg className="w-10 h-10 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,9 +136,41 @@ export default function MyOnboardingPage() {
               </svg>
             </div>
             <h2 className="text-xl font-semibold text-foreground mb-2">No Active Onboarding</h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              You don't have an active onboarding checklist. If you're a new hire, please contact HR to get started.
+            <p className="text-muted-foreground max-w-md mx-auto mb-6">
+              You don't have an active onboarding checklist yet. If you're a new hire, please upload your signed contract and required documents to get started.
             </p>
+            <a
+              href="/portal/candidate/document-upload"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Upload Documents
+            </a>
+          </div>
+
+          {/* Instructions for Candidates */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-6">
+            <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-4">How to Start Your Onboarding</h3>
+            <div className="space-y-3">
+              {[
+                { step: 1, title: 'Upload Your Signed Contract', description: 'Upload the signed employment contract you received' },
+                { step: 2, title: 'Submit Required Documents', description: 'Upload government ID and any other required documents' },
+                { step: 3, title: 'HR Verification', description: 'HR will verify your documents and create your employee profile' },
+                { step: 4, title: 'Onboarding Begins', description: 'Your onboarding checklist will appear here once verified' },
+              ].map((item) => (
+                <div key={item.step} className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0">
+                    {item.step}
+                  </div>
+                  <div>
+                    <p className="font-medium text-blue-900 dark:text-blue-100">{item.title}</p>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">{item.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

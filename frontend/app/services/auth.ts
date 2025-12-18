@@ -39,6 +39,31 @@ export interface RegisterCandidateResponse {
   candidateId: string;
 }
 
+export interface RegisterEmployeeRequest {
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  nationalId: string;
+  workEmail: string;
+  password: string;
+  employeeNumber: string;
+  dateOfHire: string;
+  roles: string[];
+  mobilePhone?: string;
+  personalEmail?: string;
+}
+
+export interface RegisterEmployeeResponse {
+  message: string;
+  employee: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    employeeNumber: string;
+    workEmail: string;
+  };
+}
+
 export interface LogoutResponse {
   message: string;
 }
@@ -65,6 +90,13 @@ export const authService = {
    */
   async registerCandidate(data: RegisterCandidateRequest) {
     return api.post<RegisterCandidateResponse>('/auth/register-candidate', data);
+  },
+
+  /**
+   * Register a new employee (admin only - requires authentication)
+   */
+  async registerEmployee(data: RegisterEmployeeRequest) {
+    return api.post<RegisterEmployeeResponse>('/auth/register-employee', data);
   },
 
   /**

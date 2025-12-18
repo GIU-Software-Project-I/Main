@@ -45,42 +45,42 @@ export default function FinanceStaffPage() {
     setError('');
     try {
       const res = await payrollExecutionService.listRuns({ page: 1, limit: 100 });
-      
+
       if (res?.error) {
         setError(res.error);
         setLoading(false);
         return;
       }
-      
+
       const data = (res?.data || res) as any;
       const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-      
+
       // Status mapping based on actual database values:
       // - "locked" = Finance approved (final state, frozen)
       // - "pending finance approval" or "approved" = Manager approved, pending finance approval
       // - "under review" / "under_review" / "processing" = Still with specialist/manager
-      
+
       const normalizeStatus = (s: string) => (s || '').toLowerCase().replace(/\s+/g, '_');
-      
+
       // Runs pending finance approval (status = pending_finance_approval or approved by manager)
       const pendingFinance = items.filter((r: any) => {
         const status = normalizeStatus(r.status);
         return status === 'pending_finance_approval' || status === 'approved';
       });
       const pending = pendingFinance.length;
-      
+
       // Total payroll pending finance approval
-      const totalPay = pendingFinance.reduce((sum: number, r: any) => 
+      const totalPay = pendingFinance.reduce((sum: number, r: any) =>
         sum + (r.totalnetpay || r.totalNetPay || 0), 0);
-      
+
       // Runs that are locked (finance approved / frozen)
       const lockedRuns = items.filter((r: any) => normalizeStatus(r.status) === 'locked');
       const fullyApprovedCount = lockedRuns.length;
-      
+
       // Count payslips - runs with locked status typically have payslips
       // For now, count locked runs as having payslips generated
       const withPayslips = lockedRuns.length;
-      
+
       setStats({
         pendingApprovals: pending,
         totalPayroll: totalPay,
@@ -88,7 +88,7 @@ export default function FinanceStaffPage() {
         fullyApproved: fullyApprovedCount,
         totalRuns: items.length,
       });
-      
+
       // Get recent runs for activity feed (sorted by date, top 5)
       const sorted = [...items].sort((a: any, b: any) => {
         const dateA = new Date(a.createdAt || 0).getTime();
@@ -110,7 +110,7 @@ export default function FinanceStaffPage() {
 
   const formatPeriod = (period: any): string => {
     if (!period) return 'N/A';
-    
+
     // Handle ISO date string like "2025-03-31T22:00:00.000Z"
     if (typeof period === 'string') {
       const d = new Date(period);
@@ -119,14 +119,14 @@ export default function FinanceStaffPage() {
       }
       return period;
     }
-    
+
     // Handle object with month/year
     if (typeof period === 'object') {
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const month = period.month !== undefined ? monthNames[period.month] || `M${period.month}` : '';
       const year = period.year || '';
       if (month && year) return `${month} ${year}`;
-      
+
       // Handle startDate/endDate
       if (period.startDate) {
         const d = new Date(period.startDate);
@@ -140,20 +140,20 @@ export default function FinanceStaffPage() {
 
   const getStatusBadge = (run: RecentRun) => {
     const status = (run.status || '').toLowerCase().replace(/\s+/g, '_');
-    
+
     // Status mapping:
     // "locked" = Finance approved (final)
     // "approved" = Manager approved, pending finance
     // "under_review" / "processing" = Pending manager
-    
+
     if (status === 'locked') {
       return <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">Finance Approved</span>;
     }
-    
+
     if (status === 'approved') {
       return <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">Pending Your Approval</span>;
     }
-    
+
     return <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">Pending Manager</span>;
   };
 
@@ -266,7 +266,7 @@ export default function FinanceStaffPage() {
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
         <h2 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link 
+          <Link
             href="/dashboard/finance-staff/runs"
             className="p-4 border border-slate-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors text-center block"
           >
@@ -274,7 +274,7 @@ export default function FinanceStaffPage() {
             <p className="font-medium text-slate-900">Approve Payroll</p>
             <p className="text-xs text-slate-500 mt-1">Final approval step</p>
           </Link>
-          <Link 
+          <Link
             href="/dashboard/finance-staff/runs"
             className="p-4 border border-slate-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors text-center block"
           >
@@ -282,7 +282,7 @@ export default function FinanceStaffPage() {
             <p className="font-medium text-slate-900">Generate Payslips</p>
             <p className="text-xs text-slate-500 mt-1">Create employee payslips</p>
           </Link>
-          <Link 
+          <Link
             href="/dashboard/finance-staff/runs"
             className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center block"
           >
@@ -290,7 +290,7 @@ export default function FinanceStaffPage() {
             <p className="font-medium text-slate-900">Financial Review</p>
             <p className="text-xs text-slate-500 mt-1">Gross-to-net breakdown</p>
           </Link>
-          <Link 
+          <Link
             href="/dashboard/finance-staff/runs"
             className="p-4 border border-slate-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors text-center block"
           >

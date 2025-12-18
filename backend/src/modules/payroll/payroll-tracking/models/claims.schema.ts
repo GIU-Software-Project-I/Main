@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory, } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
-import {  EmployeeProfile as Employee} from '../../../employee/models/employee/employee-profile.schema';
+import { EmployeeProfile as Employee } from '../../../employee/models/employee/employee-profile.schema';
 import { ClaimStatus } from '../enums/payroll-tracking-enum';
 
 export type claimsDocument = HydratedDocument<claims>
@@ -14,7 +14,13 @@ export class claims {
     description: string;
 
     @Prop({ required: true })
-    claimType: string // for example: medical, etc
+    claimType: string; // for example: medical, etc
+
+    @Prop()
+    refundStatus?: string;
+
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'refunds' })
+    refundId?: mongoose.Types.ObjectId;
 
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Employee.name, required: true })
     employeeId: mongoose.Types.ObjectId;
@@ -42,12 +48,6 @@ export class claims {
 
     @Prop()
     resolutionComment?: string;
-
-    @Prop()
-    refundStatus?: string; // 'processed' when refund is initiated
-
-    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'refunds' })
-    refundId?: mongoose.Types.ObjectId;
 
 }
 

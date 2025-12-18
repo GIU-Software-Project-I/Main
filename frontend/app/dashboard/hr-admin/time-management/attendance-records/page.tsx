@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import {
   timeManagementService,
   AttendanceRecord,
@@ -10,6 +10,30 @@ import {
   CorrectAttendanceDto,
 } from '@/app/services/time-management';
 import { useAuth } from '@/app/context/AuthContext';
+
+// Dynamically import the Lateness page component for the repeated lateness tab
+const RepeatedLatenessPage = lazy(() => import('../../../hr-manager/time-management/Lateness/page').then(mod => ({ default: mod.default })));
+
+// Issue interface for review results
+interface AttendanceIssue {
+  type: 'MISSING_PUNCH' | 'INVALID_SEQUENCE' | 'SHORT_TIME' | 'NO_PUNCH_OUT' | 'NO_PUNCH_IN' | 'HOLIDAY_PUNCH';
+  severity: 'HIGH' | 'MEDIUM' | 'LOW';
+  description: string;
+  suggestion: string;
+}
+
+
+interface ReviewResult {
+  record: AttendanceRecord;
+  issues: AttendanceIssue[];
+  canFinalize: boolean;
+}
+
+type ReviewData = {
+  record: AttendanceRecord;
+  issues: AttendanceIssue[];
+  canFinalize: boolean;
+};
 
 export default function AttendanceRecordsPage() {
   const { user } = useAuth();
@@ -21,24 +45,27 @@ export default function AttendanceRecordsPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [employeeIdFilter, setEmployeeIdFilter] = useState('');
+  const [issueFilter, setIssueFilter] = useState<'ALL' | 'MISSING_PUNCH' | 'INVALID_SEQUENCE' | 'SHORT_TIME'>('ALL');
 
   // Data state
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<ReviewResult[]>([]);
   const [pendingCorrections, setPendingCorrections] = useState<AttendanceCorrectionRequest[]>([]);
   const [pastCorrections, setPastCorrections] = useState<AttendanceCorrectionRequest[]>([]);
 
   // Modal state
   const [showCorrectionModal, setShowCorrectionModal] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<ReviewResult | null>(null);
   const [correctionForm, setCorrectionForm] = useState<{
-    action: 'addPunchIn' | 'addPunchOut' | 'replacePunches';
+    action: 'addPunchIn' | 'addPunchOut' | 'removePunch' | 'replacePunches';
     punchInTime: string;
     punchOutTime: string;
+    removePunchIndex: string;
     reason: string;
   }>({
     action: 'addPunchOut',
     punchInTime: '',
     punchOutTime: '',
+    removePunchIndex: '',
     reason: '',
   });
 
@@ -50,8 +77,54 @@ export default function AttendanceRecordsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   // Active tab
-  const [activeTab, setActiveTab] = useState<'records' | 'corrections' | 'history'>('records');
+  const [activeTab, setActiveTab] = useState<'records' | 'corrections' | 'history' | 'repeated-lateness'>('records');
 
+
+  // Handle starting review (mark as IN_REVIEW)
+  const handleStartReview = async (correction: AttendanceCorrectionRequest) => {
+    console.log('[handleStartReview] Starting review for correction:', correction._id, 'Status:', correction.status);
+    try {
+      setError(null);
+      setSubmitting(true);
+      console.log('[handleStartReview] submitting state set to true');
+
+      // Only call startReview if status is SUBMITTED
+      if (correction.status === CorrectionRequestStatus.SUBMITTED) {
+        console.log('[handleStartReview] Calling startReview API...');
+        const response = await timeManagementService.startReview(correction._id);
+        console.log('[handleStartReview] API Response:', response);
+
+        if (response?.error) {
+          throw new Error(response.error);
+        }
+
+        // Refresh corrections to show updated status
+        console.log('[handleStartReview] Refreshing corrections...');
+        await fetchCorrections();
+        console.log('[handleStartReview] Corrections refreshed');
+
+        setSuccess('Correction marked as under review');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        console.log('[handleStartReview] Correction already in review, skipping startReview call');
+      }
+
+      // Set selected correction and show modal
+      setSelectedCorrection(correction);
+      setShowReviewModal(true);
+
+      console.log('[handleStartReview] Review modal opened');
+    } catch (err: any) {
+      console.error('[handleStartReview] Error:', err);
+      const errMsg = err?.message || 'Failed to start review';
+      setError(`Failed to start review: ${errMsg}`);
+    } finally {
+      setSubmitting(false);
+      console.log('[handleStartReview] submitting state set to false');
+    }
+  };
+
+  // Fetch attendance records with review
   const fetchAttendanceRecords = useCallback(async () => {
     if (!employeeIdFilter) {
       setAttendanceRecords([]);
@@ -59,38 +132,89 @@ export default function AttendanceRecordsPage() {
     }
 
     try {
-      const response = await timeManagementService.getMonthlyAttendance(
+      setLoading(true);
+      setError(null);
+
+      // First get monthly records
+      const recordsResponse = await timeManagementService.getMonthlyAttendance(
         employeeIdFilter,
         selectedMonth,
         selectedYear
       );
 
-      if (response.data) {
-        setAttendanceRecords(Array.isArray(response.data) ? response.data : []);
+      if (recordsResponse.error) {
+        setError(recordsResponse.error);
+        setAttendanceRecords([]);
+        return;
       }
-    } catch (err: any) {
-      console.error('Failed to fetch attendance records:', err);
-    }
-  }, [employeeIdFilter, selectedMonth, selectedYear]);
 
-  const fetchPendingCorrections = useCallback(async () => {
+      const records = Array.isArray(recordsResponse.data) ? recordsResponse.data : [];
+
+      // Now review each record to get issues
+      const reviewedRecords: ReviewResult[] = [];
+      for (const record of records) {
+        try {
+          const reviewResponse = await timeManagementService.reviewAttendanceRecord(record._id);
+
+          if (reviewResponse.data) {
+            const reviewData = reviewResponse.data as ReviewData;
+            reviewedRecords.push({
+              record: reviewData.record || record,
+              issues: reviewData.issues || [],
+              canFinalize: reviewData.canFinalize || false,
+            });
+          } else {
+            reviewedRecords.push({
+              record,
+              issues: [],
+              canFinalize: false,
+            });
+          }
+        } catch (err: unknown) {
+          console.error('Failed to review record:', err);
+          reviewedRecords.push({
+            record,
+            issues: [],
+            canFinalize: false,
+          });
+        }
+      }
+
+      // Apply issue filter
+      let filtered = reviewedRecords;
+      if (issueFilter !== 'ALL') {
+        filtered = reviewedRecords.filter((r) =>
+          r.issues.some((issue) => issue.type === issueFilter)
+        );
+      }
+
+      setAttendanceRecords(filtered);
+    } catch (err: unknown) {
+      console.error('Failed to fetch attendance records:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch attendance records';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [employeeIdFilter, selectedMonth, selectedYear, issueFilter]);
+
+  // Fetch corrections
+  const fetchCorrections = useCallback(async () => {
     try {
       const response = await timeManagementService.getAllCorrections();
 
       if (response.data) {
         const allCorrections = Array.isArray(response.data) ? response.data : [];
-        // Filter pending (SUBMITTED, IN_REVIEW)
         const pending = allCorrections.filter(
           (c) => c.status === CorrectionRequestStatus.SUBMITTED || c.status === CorrectionRequestStatus.IN_REVIEW
         );
-        // Filter past (APPROVED, REJECTED)
         const past = allCorrections.filter(
           (c) => c.status === CorrectionRequestStatus.APPROVED || c.status === CorrectionRequestStatus.REJECTED
         );
         setPendingCorrections(pending);
         setPastCorrections(past);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch corrections:', err);
     }
   }, []);
@@ -98,18 +222,16 @@ export default function AttendanceRecordsPage() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([
-        fetchAttendanceRecords(),
-        fetchPendingCorrections(),
-      ]);
+      await Promise.all([fetchCorrections()]);
       setLoading(false);
     };
 
     loadData();
-  }, [fetchAttendanceRecords, fetchPendingCorrections]);
+  }, [fetchCorrections]);
 
+  // Apply correction
   const handleCorrectAttendance = async () => {
-    if (!selectedRecord) return;
+    if (!selectedRecord || !user?.id) return;
 
     if (!correctionForm.reason.trim()) {
       setError('Correction reason is required');
@@ -121,7 +243,7 @@ export default function AttendanceRecordsPage() {
       setError(null);
 
       const dto: CorrectAttendanceDto = {
-        attendanceRecordId: selectedRecord._id,
+        attendanceRecordId: selectedRecord.record._id,
         correctionReason: correctionForm.reason,
         correctedBy: user?.id,
       };
@@ -130,6 +252,8 @@ export default function AttendanceRecordsPage() {
         dto.addPunchIn = correctionForm.punchInTime;
       } else if (correctionForm.action === 'addPunchOut' && correctionForm.punchOutTime) {
         dto.addPunchOut = correctionForm.punchOutTime;
+      } else if (correctionForm.action === 'removePunch' && correctionForm.removePunchIndex) {
+        dto.removePunchIndex = parseInt(correctionForm.removePunchIndex, 10);
       } else if (correctionForm.action === 'replacePunches') {
         const punches: { type: PunchType; time: string }[] = [];
         if (correctionForm.punchInTime) {
@@ -157,17 +281,20 @@ export default function AttendanceRecordsPage() {
         action: 'addPunchOut',
         punchInTime: '',
         punchOutTime: '',
+        removePunchIndex: '',
         reason: '',
       });
       await fetchAttendanceRecords();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to correct attendance record');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to correct attendance record';
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Review correction
   const handleReviewCorrection = async (action: 'APPROVE' | 'REJECT') => {
     if (!selectedCorrection || !user?.id) return;
 
@@ -191,15 +318,17 @@ export default function AttendanceRecordsPage() {
       setShowReviewModal(false);
       setSelectedCorrection(null);
       setReviewNote('');
-      await fetchPendingCorrections();
+      await fetchCorrections();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || `Failed to ${action.toLowerCase()} correction request`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : `Failed to ${action.toLowerCase()} correction request`;
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Utilities
   const formatDateTime = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleString();
@@ -230,6 +359,19 @@ export default function AttendanceRecordsPage() {
     }
   };
 
+  const getSeverityColor = (severity: 'HIGH' | 'MEDIUM' | 'LOW') => {
+    switch (severity) {
+      case 'HIGH':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'MEDIUM':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
+      case 'LOW':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
+
   const getRecordDate = (record: AttendanceRecord) => {
     if (record.punches && record.punches.length > 0) {
       return formatDate(record.punches[0].time);
@@ -237,7 +379,7 @@ export default function AttendanceRecordsPage() {
     return 'N/A';
   };
 
-  if (loading) {
+  if (loading && activeTab === 'records' && employeeIdFilter) {
     return (
       <div className="p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
@@ -258,7 +400,7 @@ export default function AttendanceRecordsPage() {
           <div>
             <h1 className="text-2xl font-semibold text-foreground">Attendance Management</h1>
             <p className="text-muted-foreground mt-1">
-              View, record, and correct attendance records manually
+              Review, record, and correct attendance records
             </p>
           </div>
         </div>
@@ -318,15 +460,25 @@ export default function AttendanceRecordsPage() {
           >
             Correction History
           </button>
+          <button
+            onClick={() => setActiveTab('repeated-lateness')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'repeated-lateness'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Repeated Lateness
+          </button>
         </div>
 
-        {/* Attendance Records Tab */}
+        {/* ATTENDANCE RECORDS TAB */}
         {activeTab === 'records' && (
           <div className="space-y-6">
             {/* Filters */}
             <div className="bg-card rounded-xl border border-border p-6">
-              <h2 className="font-semibold text-foreground mb-4">Search Attendance Records</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <h2 className="font-semibold text-foreground mb-4">Search & Review Attendance</h2>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">Employee ID</label>
                   <input
@@ -365,12 +517,26 @@ export default function AttendanceRecordsPage() {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">Issue Filter</label>
+                  <select
+                    value={issueFilter}
+                    onChange={(e) => setIssueFilter(e.target.value as 'ALL' | 'MISSING_PUNCH' | 'INVALID_SEQUENCE' | 'SHORT_TIME')}
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="ALL">All Issues</option>
+                    <option value="MISSING_PUNCH">Missing Punches</option>
+                    <option value="INVALID_SEQUENCE">Invalid Sequences</option>
+                    <option value="SHORT_TIME">Short Time</option>
+                  </select>
+                </div>
                 <div className="flex items-end">
                   <button
                     onClick={fetchAttendanceRecords}
-                    className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
+                    disabled={loading}
+                    className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
                   >
-                    Search
+                    {loading ? 'Searching...' : 'Search'}
                   </button>
                 </div>
               </div>
@@ -396,88 +562,116 @@ export default function AttendanceRecordsPage() {
                   No attendance records found for the selected period.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Punches</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Work Time</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                        <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {attendanceRecords.map((record) => (
-                        <tr key={record._id} className="border-b border-border last:border-0">
-                          <td className="py-3 px-4">
-                            <span className="font-medium text-foreground">{getRecordDate(record)}</span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex flex-col gap-1">
-                              {record.punches && record.punches.length > 0 ? (
-                                record.punches.map((punch, idx) => (
+                <div className="space-y-4">
+                  {attendanceRecords.map((reviewResult) => (
+                    <div
+                      key={reviewResult.record._id}
+                      className="border border-border rounded-lg p-4 bg-background hover:border-primary/50 transition-colors"
+                    >
+                      {/* Record Header */}
+                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="font-semibold text-foreground text-lg">
+                              {getRecordDate(reviewResult.record)}
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {reviewResult.issues.length === 0 ? (
+                                <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                  ✓ No Issues
+                                </span>
+                              ) : (
+                                reviewResult.issues.map((issue, idx) => (
                                   <span
                                     key={idx}
-                                    className={`text-xs px-2 py-0.5 rounded inline-flex items-center gap-1 w-fit ${
-                                      punch.type === PunchType.IN
-                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                                    }`}
+                                    className={`px-2 py-1 rounded-full text-xs ${getSeverityColor(issue.severity)}`}
                                   >
-                                    {punch.type}: {formatTime(punch.time)}
+                                    {issue.type}
                                   </span>
                                 ))
-                              ) : (
-                                <span className="text-muted-foreground text-sm">No punches</span>
+                              )}
+                              {reviewResult.canFinalize && (
+                                <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                  Ready to Finalize
+                                </span>
                               )}
                             </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="text-foreground">
-                              {Math.floor(record.totalWorkMinutes / 60)}h {record.totalWorkMinutes % 60}m
+                          </div>
+
+                          {/* Punches */}
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {reviewResult.record.punches && reviewResult.record.punches.length > 0 ? (
+                              reviewResult.record.punches.map((punch, idx) => (
+                                <span
+                                  key={idx}
+                                  className={`text-xs px-2 py-1 rounded ${
+                                    punch.type === PunchType.IN
+                                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                  }`}
+                                >
+                                  {punch.type}: {formatTime(punch.time)}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-xs text-muted-foreground">No punches recorded</span>
+                            )}
+                          </div>
+
+                          {/* Work Time & Status */}
+                          <div className="flex flex-wrap items-center gap-4 text-sm">
+                            <span className="text-muted-foreground">
+                              Work Time: <span className="font-medium text-foreground">
+                                {Math.floor(reviewResult.record.totalWorkMinutes / 60)}h{' '}
+                                {reviewResult.record.totalWorkMinutes % 60}m
+                              </span>
                             </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex flex-col gap-1">
-                              {record.hasMissedPunch && (
-                                <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 w-fit">
-                                  Missing Punch
-                                </span>
-                              )}
-                              {record.finalisedForPayroll ? (
-                                <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 w-fit">
-                                  Finalized
-                                </span>
-                              ) : (
-                                <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground w-fit">
-                                  Pending
-                                </span>
-                              )}
+                            {reviewResult.record.finalisedForPayroll && (
+                              <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                Finalized for Payroll
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Issues Detail */}
+                          {reviewResult.issues.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {reviewResult.issues.map((issue, idx) => (
+                                <div key={idx} className="p-2 bg-muted/50 rounded text-sm">
+                                  <p className="font-medium text-foreground">{issue.description}</p>
+                                  {issue.suggestion && (
+                                    <p className="text-muted-foreground text-xs mt-1">
+                                      Suggestion: {issue.suggestion}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
                             </div>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <button
-                              onClick={() => {
-                                setSelectedRecord(record);
-                                setShowCorrectionModal(true);
-                              }}
-                              className="text-sm text-primary hover:text-primary/80 font-medium"
-                            >
-                              Correct
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedRecord(reviewResult);
+                              setShowCorrectionModal(true);
+                            }}
+                            className="px-4 py-2 text-sm bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap"
+                          >
+                            Correct Record
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Correction Requests Tab */}
+        {/* CORRECTION REQUESTS TAB */}
         {activeTab === 'corrections' && (
           <div className="bg-card rounded-xl border border-border p-6">
             <h2 className="font-semibold text-foreground mb-4">Pending Correction Requests</h2>
@@ -491,10 +685,10 @@ export default function AttendanceRecordsPage() {
                 {pendingCorrections.map((correction) => (
                   <div
                     key={correction._id}
-                    className="p-4 rounded-lg border border-border bg-background"
+                    className="p-4 rounded-lg border border-border bg-background hover:border-primary/50 transition-colors"
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                      <div>
+                      <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium text-foreground">
                             Correction Request
@@ -519,13 +713,11 @@ export default function AttendanceRecordsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => {
-                            setSelectedCorrection(correction);
-                            setShowReviewModal(true);
-                          }}
-                          className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                          onClick={() => handleStartReview(correction)}
+                          disabled={submitting}
+                          className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          Review
+                          {submitting ? 'Starting Review...' : 'Review'}
                         </button>
                       </div>
                     </div>
@@ -536,7 +728,7 @@ export default function AttendanceRecordsPage() {
           </div>
         )}
 
-        {/* Correction History Tab */}
+        {/* CORRECTION HISTORY TAB */}
         {activeTab === 'history' && (
           <div className="bg-card rounded-xl border border-border p-6">
             <h2 className="font-semibold text-foreground mb-4">Correction History</h2>
@@ -553,7 +745,7 @@ export default function AttendanceRecordsPage() {
                     className="p-4 rounded-lg border border-border bg-background"
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                      <div>
+                      <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium text-foreground">
                             Correction Request
@@ -575,6 +767,11 @@ export default function AttendanceRecordsPage() {
                             Submitted: {formatDateTime(correction.createdAt)}
                           </p>
                         )}
+                        {correction.updatedAt && (
+                          <p className="text-xs text-muted-foreground">
+                            Updated: {formatDateTime(correction.updatedAt)}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -584,10 +781,24 @@ export default function AttendanceRecordsPage() {
           </div>
         )}
 
-        {/* Correction Modal */}
+        {/* REPEATED LATENESS TAB */}
+        {activeTab === 'repeated-lateness' && (
+          <Suspense fallback={
+            <div className="bg-card rounded-xl border border-border p-6">
+              <div className="animate-pulse space-y-4">
+                <div className="h-8 bg-muted rounded w-1/3"></div>
+                <div className="h-64 bg-muted rounded"></div>
+              </div>
+            </div>
+          }>
+            <RepeatedLatenessPage />
+          </Suspense>
+        )}
+
+        {/* CORRECTION MODAL */}
         {showCorrectionModal && selectedRecord && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-card rounded-xl border border-border p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-card rounded-xl border border-border p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-foreground">Correct Attendance Record</h2>
                 <button
@@ -603,40 +814,65 @@ export default function AttendanceRecordsPage() {
                 </button>
               </div>
 
-              {/* Current punches */}
-              <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-                <p className="text-sm font-medium text-foreground mb-2">Current Punches:</p>
-                {selectedRecord.punches && selectedRecord.punches.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedRecord.punches.map((punch, idx) => (
-                      <span
-                        key={idx}
-                        className={`text-xs px-2 py-1 rounded ${
-                          punch.type === PunchType.IN
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                        }`}
-                      >
-                        {punch.type}: {formatDateTime(punch.time)}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No punches recorded</p>
-                )}
+              {/* Current State */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {/* Current Punches */}
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium text-foreground mb-2">Current Punches:</p>
+                  {selectedRecord.record.punches && selectedRecord.record.punches.length > 0 ? (
+                    <div className="space-y-1">
+                      {selectedRecord.record.punches.map((punch, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-xs">
+                          <span className={`px-2 py-1 rounded ${
+                            punch.type === PunchType.IN
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                          }`}>
+                            {punch.type}: {formatDateTime(punch.time)}
+                          </span>
+                          <span className="text-muted-foreground">({idx})</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No punches recorded</p>
+                  )}
+                </div>
+
+                {/* Issues Summary */}
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium text-foreground mb-2">Issues Detected:</p>
+                  {selectedRecord.issues.length > 0 ? (
+                    <div className="space-y-1">
+                      {selectedRecord.issues.map((issue, idx) => (
+                        <div key={idx} className="text-xs">
+                          <p className={`px-2 py-1 rounded ${getSeverityColor(issue.severity)}`}>
+                            {issue.type}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">✓ No issues detected</p>
+                  )}
+                </div>
               </div>
 
+              {/* Correction Form */}
               <div className="space-y-4">
-                {/* Correction action */}
+                {/* Correction Type */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Correction Type</label>
                   <select
                     value={correctionForm.action}
-                    onChange={(e) => setCorrectionForm({ ...correctionForm, action: e.target.value as any })}
+                    onChange={(e) => setCorrectionForm({ ...correctionForm, action: e.target.value as 'addPunchIn' | 'addPunchOut' | 'removePunch' | 'replacePunches' })}
                     className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   >
                     <option value="addPunchIn">Add Missing Punch In</option>
                     <option value="addPunchOut">Add Missing Punch Out</option>
+                    {selectedRecord.record.punches && selectedRecord.record.punches.length > 0 && (
+                      <option value="removePunch">Remove Duplicate Punch</option>
+                    )}
                     <option value="replacePunches">Replace All Punches</option>
                   </select>
                 </div>
@@ -673,6 +909,27 @@ export default function AttendanceRecordsPage() {
                   </div>
                 )}
 
+                {/* Remove Punch Index */}
+                {correctionForm.action === 'removePunch' && (
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">
+                      Punch Index to Remove
+                    </label>
+                    <select
+                      value={correctionForm.removePunchIndex}
+                      onChange={(e) => setCorrectionForm({ ...correctionForm, removePunchIndex: e.target.value })}
+                      className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">Select a punch to remove</option>
+                      {selectedRecord.record.punches?.map((punch, idx) => (
+                        <option key={idx} value={idx}>
+                          {idx}: {punch.type} - {formatDateTime(punch.time)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Reason */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">
@@ -681,7 +938,7 @@ export default function AttendanceRecordsPage() {
                   <textarea
                     value={correctionForm.reason}
                     onChange={(e) => setCorrectionForm({ ...correctionForm, reason: e.target.value })}
-                    placeholder="Enter the reason for this correction"
+                    placeholder="Explain why this correction is needed"
                     rows={3}
                     className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                   />
@@ -711,7 +968,7 @@ export default function AttendanceRecordsPage() {
           </div>
         )}
 
-        {/* Review Correction Modal */}
+        {/* REVIEW CORRECTION MODAL */}
         {showReviewModal && selectedCorrection && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-card rounded-xl border border-border p-6 max-w-lg w-full">
@@ -722,6 +979,7 @@ export default function AttendanceRecordsPage() {
                     setShowReviewModal(false);
                     setSelectedCorrection(null);
                     setReviewNote('');
+                    setSubmitting(false);
                   }}
                   className="text-muted-foreground hover:text-foreground"
                 >
@@ -739,10 +997,17 @@ export default function AttendanceRecordsPage() {
 
                 {selectedCorrection.reason && (
                   <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Reason:</p>
+                    <p className="text-sm text-muted-foreground">Requested Change:</p>
                     <p className="font-medium text-foreground">{selectedCorrection.reason}</p>
                   </div>
                 )}
+
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Status:</p>
+                  <p className={`font-medium text-sm ${getStatusBadgeColor(selectedCorrection.status)}`}>
+                    {selectedCorrection.status}
+                  </p>
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">
@@ -751,7 +1016,7 @@ export default function AttendanceRecordsPage() {
                   <textarea
                     value={reviewNote}
                     onChange={(e) => setReviewNote(e.target.value)}
-                    placeholder="Add a note for this review"
+                    placeholder="Add comments about your decision"
                     rows={3}
                     className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                   />
@@ -777,6 +1042,7 @@ export default function AttendanceRecordsPage() {
                       setShowReviewModal(false);
                       setSelectedCorrection(null);
                       setReviewNote('');
+                      setSubmitting(false);
                     }}
                     className="px-4 py-2 border border-input text-foreground font-medium rounded-lg hover:bg-accent transition-colors"
                   >

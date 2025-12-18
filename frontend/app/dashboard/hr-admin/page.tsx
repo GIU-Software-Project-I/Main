@@ -4,10 +4,18 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { employeeProfileService } from '@/app/services/employee-profile';
+import { notificationsService } from '@/app/services/notifications';
+
+interface ShiftExpiryNotification {
+  _id: string;
+  message: string;
+  createdAt: string;
+}
 
 export default function HRAdminPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalEmployees: 0,
     pendingRequests: 0,
@@ -15,16 +23,19 @@ export default function HRAdminPage() {
     terminatedThisMonth: 0,
   });
   const [statusStats, setStatusStats] = useState<Record<string, number>>({});
+  const [shiftExpiryNotifications, setShiftExpiryNotifications] = useState<ShiftExpiryNotification[]>([]);
+  const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        const [employeesRes, pendingRes, statusRes] = await Promise.all([
+        const [employeesRes, pendingRes, statusRes, notificationsRes] = await Promise.all([
           employeeProfileService.getAllEmployees(1, 1),
           employeeProfileService.getPendingChangeRequestsCount(),
           employeeProfileService.getEmployeeCountByStatus(),
+          notificationsService.getShiftExpiryNotifications(),
         ]);
 
         // Parse employees count
@@ -53,6 +64,17 @@ export default function HRAdminPage() {
           activeEmployees: statuses['ACTIVE'] || 0,
           terminatedThisMonth: statuses['TERMINATED'] || 0,
         });
+
+        // Parse shift expiry notifications
+        const notifications = notificationsRes.data || [];
+        const validNotifications = notifications
+          .filter((n): n is (typeof n & { createdAt: string }) => n.createdAt !== undefined)
+          .map(n => ({
+            _id: n._id,
+            message: n.message,
+            createdAt: n.createdAt
+          }));
+        setShiftExpiryNotifications(validNotifications);
       } catch (err) {
         console.error('Failed to fetch stats:', err);
       } finally {
@@ -194,30 +216,39 @@ export default function HRAdminPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((stat, idx) => {
             const colors = colorClasses[stat.color];
-            const Wrapper = stat.href ? Link : 'div';
-
-            return (
-              <Wrapper
-                key={idx}
-                href={stat.href || ''}
-                className={`bg-card border border-border rounded-xl p-5 hover:shadow-md transition-shadow ${stat.href ? 'cursor-pointer' : ''}`}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                    <p className="text-3xl font-bold text-foreground mt-1">
-                      {loading ? (
-                        <span className="inline-block w-12 h-8 bg-muted animate-pulse rounded"></span>
-                      ) : (
-                        stat.value
-                      )}
-                    </p>
-                  </div>
-                  <div className={`p-2.5 rounded-xl ${colors.bg}`}>
-                    <div className={colors.text}>{stat.icon}</div>
-                  </div>
+            const content = (
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                  <p className="text-3xl font-bold text-foreground mt-1">
+                    {loading ? (
+                      <span className="inline-block w-12 h-8 bg-muted animate-pulse rounded"></span>
+                    ) : (
+                      stat.value
+                    )}
+                  </p>
                 </div>
-              </Wrapper>
+                <div className={`p-2.5 rounded-xl ${colors.bg}`}>
+                  <div className={colors.text}>{stat.icon}</div>
+                </div>
+              </div>
+            );
+
+            return stat.href ? (
+              <Link
+                key={idx}
+                href={stat.href}
+                className={`bg-card border border-border rounded-xl p-5 hover:shadow-md transition-shadow cursor-pointer`}
+              >
+                {content}
+              </Link>
+            ) : (
+              <div
+                key={idx}
+                className={`bg-card border border-border rounded-xl p-5 hover:shadow-md transition-shadow`}
+              >
+                {content}
+              </div>
             );
           })}
         </div>
@@ -279,6 +310,48 @@ export default function HRAdminPage() {
                     {status.replace(/_/g, ' ')}
                   </p>
                   <p className="text-2xl font-bold text-foreground mt-1">{count}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Shift Expiry Notifications */}
+        <div className="bg-card border border-border rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Shift Expiry Notifications</h2>
+          {loading ? (
+            <div className="animate-pulse">
+              <div className="h-4 bg-muted rounded w-full mb-2"></div>
+              <div className="h-4 bg-muted rounded w-full mb-2"></div>
+              <div className="h-4 bg-muted rounded w-full"></div>
+            </div>
+          ) : shiftExpiryNotifications.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No upcoming shift expirations.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {shiftExpiryNotifications.map((notification) => (
+                <div
+                  key={notification._id}
+                  className="p-4 bg-muted rounded-lg flex justify-between items-center"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {notification.message}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(notification.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setDismissedNotifications((prev) => new Set(prev).add(notification._id));
+                    }}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Dismiss
+                  </button>
                 </div>
               ))}
             </div>

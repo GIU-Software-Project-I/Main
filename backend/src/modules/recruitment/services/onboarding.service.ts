@@ -61,6 +61,40 @@ export class OnboardingService {
         }
     }
 
+    /**
+     * Normalize task status to handle case-insensitive comparison
+     * DB might store 'COMPLETED', 'Completed', or 'completed'
+     */
+    private normalizeTaskStatus(status: string | undefined): OnboardingTaskStatus {
+        if (!status) return OnboardingTaskStatus.PENDING;
+        const lower = status.toLowerCase();
+        if (lower === 'completed' || lower === 'complete') return OnboardingTaskStatus.COMPLETED;
+        if (lower === 'in_progress' || lower === 'inprogress' || lower === 'in-progress') return OnboardingTaskStatus.IN_PROGRESS;
+        return OnboardingTaskStatus.PENDING;
+    }
+
+    /**
+     * Check if task status equals a given status (case-insensitive)
+     */
+    private isTaskStatus(taskStatus: string | undefined, targetStatus: OnboardingTaskStatus): boolean {
+        return this.normalizeTaskStatus(taskStatus) === targetStatus;
+    }
+
+    /**
+     * Normalize all task statuses in an onboarding document before saving.
+     * This fixes the issue where existing DB data has uppercase values
+     * but schema expects lowercase enum values.
+     */
+    private normalizeAllTaskStatuses(onboarding: OnboardingDocument): void {
+        if (onboarding.tasks && Array.isArray(onboarding.tasks)) {
+            for (let i = 0; i < onboarding.tasks.length; i++) {
+                if (onboarding.tasks[i].status) {
+                    onboarding.tasks[i].status = this.normalizeTaskStatus(onboarding.tasks[i].status);
+                }
+            }
+        }
+    }
+
     // ============================================================
     // CANDIDATE DOCUMENT UPLOAD - Initiate Onboarding Process
     // User Story: As a Candidate, I want to upload signed contract and candidate
@@ -679,6 +713,7 @@ export class OnboardingService {
                 savedOnboarding.tasks[hrPayrollTaskIndex].completedAt = new Date();
                 savedOnboarding.tasks[hrPayrollTaskIndex].notes =
                     `${savedOnboarding.tasks[hrPayrollTaskIndex].notes || ''} | Auto-completed: Payroll initiated${signingBonusProcessed ? ', Signing bonus processed' : ''}`.trim();
+                this.normalizeAllTaskStatuses(savedOnboarding);
                 await savedOnboarding.save();
             }
         }
@@ -695,6 +730,105 @@ export class OnboardingService {
         }
 
         return savedOnboarding;
+    }
+
+    /**
+     * ONB-002: Get signed contracts pending employee creation
+     * Returns contracts that are fully signed but don't have an onboarding record yet
+     */
+    async getSignedContractsForOnboarding(): Promise<{
+        _id: string;
+        candidateId: string;
+        candidateName: string;
+        candidateEmail: string;
+        jobTitle: string;
+        departmentId?: string;
+        departmentName: string;
+        positionId?: string;
+        positionTitle: string;
+        contractSignedDate?: Date;
+        startDate?: Date;
+        salary: number;
+        signingBonus?: number;
+        benefits?: string[];
+        hasOnboarding: boolean;
+    }[]> {
+        // Get all contracts that are fully signed
+        const contracts = await this.contractModel
+            .find({
+                employeeSignedAt: { $exists: true, $ne: null },
+                employerSignedAt: { $exists: true, $ne: null },
+            })
+            .populate('offerId')
+            .populate('documentId')
+            .exec();
+
+        // Get all existing onboarding records to check which contracts already have onboarding
+        const existingOnboardings = await this.onboardingModel.find().exec();
+        const contractIdsWithOnboarding = new Set(
+            existingOnboardings.map(o => o.contractId.toString())
+        );
+
+        // Filter to only contracts without onboarding and build response
+        const pendingContracts: {
+            _id: string;
+            candidateId: string;
+            candidateName: string;
+            candidateEmail: string;
+            jobTitle: string;
+            departmentId?: string;
+            departmentName: string;
+            positionId?: string;
+            positionTitle: string;
+            contractSignedDate?: Date;
+            startDate?: Date;
+            salary: number;
+            signingBonus?: number;
+            benefits?: string[];
+            hasOnboarding: boolean;
+        }[] = [];
+
+        for (const contract of contracts) {
+            const hasOnboarding = contractIdsWithOnboarding.has(contract._id.toString());
+
+            // Skip if already has onboarding
+            if (hasOnboarding) continue;
+
+            // Get offer details
+            const offer = await this.offerModel.findById(contract.offerId).exec();
+            if (!offer) continue;
+
+            // Get candidate details using shared service
+            let candidate: any;
+            try {
+                candidate = await this.sharedRecruitmentService.validateCandidateExists(offer.candidateId.toString());
+            } catch {
+                continue; // Skip if candidate not found
+            }
+
+            // Check if candidate is already hired
+            if (candidate.status === 'HIRED') continue;
+
+            pendingContracts.push({
+                _id: contract._id.toString(),
+                candidateId: offer.candidateId.toString(),
+                candidateName: candidate.fullName || `${candidate.firstName} ${candidate.lastName}`,
+                candidateEmail: candidate.personalEmail || '',
+                jobTitle: contract.role || offer.role || '',
+                departmentId: candidate.departmentId?.toString(),
+                departmentName: '', // Would need department lookup
+                positionId: candidate.positionId?.toString(),
+                positionTitle: contract.role || '',
+                contractSignedDate: contract.employeeSignedAt,
+                startDate: contract.acceptanceDate,
+                salary: contract.grossSalary,
+                signingBonus: contract.signingBonus,
+                benefits: contract.benefits,
+                hasOnboarding: false,
+            });
+        }
+
+        return pendingContracts;
     }
 
     async getContractDetails(contractId: string): Promise<Contract> {
@@ -799,7 +933,7 @@ export class OnboardingService {
             throw new NotFoundException(`Onboarding with ID ${onboardingId} not found`);
         }
 
-        if (onboarding.completed && dto.status !== OnboardingTaskStatus.COMPLETED) {
+        if (onboarding.completed && !this.isTaskStatus(dto.status, OnboardingTaskStatus.COMPLETED)) {
             throw new BadRequestException('Cannot modify tasks on a completed onboarding checklist');
         }
 
@@ -814,7 +948,10 @@ export class OnboardingService {
             onboarding.tasks[taskIndex].completedAt = new Date(dto.completedAt);
         }
 
-        const allCompleted = onboarding.tasks.every(t => t.status === OnboardingTaskStatus.COMPLETED);
+        // Normalize all task statuses before saving (fix uppercase values from DB)
+        this.normalizeAllTaskStatuses(onboarding);
+
+        const allCompleted = onboarding.tasks.every(t => this.isTaskStatus(t.status, OnboardingTaskStatus.COMPLETED));
         if (allCompleted) {
             onboarding.completed = true;
             onboarding.completedAt = new Date();
@@ -849,6 +986,9 @@ export class OnboardingService {
             documentId: dto.documentId ? new Types.ObjectId(dto.documentId) : undefined,
             notes: dto.notes || '',
         });
+
+        // Normalize all task statuses before saving (fix uppercase values from DB)
+        this.normalizeAllTaskStatuses(onboarding);
 
         return onboarding.save();
     }
@@ -906,6 +1046,9 @@ export class OnboardingService {
             onboarding.tasks[taskIndex].notes = updateData.notes;
         }
 
+        // Normalize all task statuses before saving (fix uppercase values from DB)
+        this.normalizeAllTaskStatuses(onboarding);
+
         return onboarding.save();
     }
 
@@ -933,11 +1076,14 @@ export class OnboardingService {
         }
 
         // Don't allow deletion of completed tasks
-        if (onboarding.tasks[taskIndex].status === OnboardingTaskStatus.COMPLETED) {
+        if (this.isTaskStatus(onboarding.tasks[taskIndex].status, OnboardingTaskStatus.COMPLETED)) {
             throw new BadRequestException('Cannot delete a completed task');
         }
 
         onboarding.tasks.splice(taskIndex, 1);
+
+        // Normalize all task statuses before saving (fix uppercase values from DB)
+        this.normalizeAllTaskStatuses(onboarding);
 
         return onboarding.save();
     }
@@ -1084,9 +1230,12 @@ export class OnboardingService {
             throw new NotFoundException(`Task "${taskName}" not found`);
         }
 
-        if (onboarding.tasks[taskIndex].status === OnboardingTaskStatus.COMPLETED) {
+        if (this.isTaskStatus(onboarding.tasks[taskIndex].status, OnboardingTaskStatus.COMPLETED)) {
             throw new BadRequestException('Task is already completed');
         }
+
+        // Normalize all task statuses to fix uppercase values from DB
+        this.normalizeAllTaskStatuses(onboarding);
 
         onboarding.tasks[taskIndex].status = OnboardingTaskStatus.IN_PROGRESS;
 
@@ -1116,9 +1265,12 @@ export class OnboardingService {
             throw new NotFoundException(`Task "${taskName}" not found`);
         }
 
-        if (onboarding.tasks[taskIndex].status === OnboardingTaskStatus.COMPLETED) {
+        if (this.isTaskStatus(onboarding.tasks[taskIndex].status, OnboardingTaskStatus.COMPLETED)) {
             throw new BadRequestException('Task is already completed');
         }
+
+        // Normalize all task statuses to fix uppercase values from DB
+        this.normalizeAllTaskStatuses(onboarding);
 
         onboarding.tasks[taskIndex].status = OnboardingTaskStatus.COMPLETED;
         onboarding.tasks[taskIndex].completedAt = new Date();
@@ -1129,7 +1281,7 @@ export class OnboardingService {
         }
 
         // Check if all tasks are completed
-        const allCompleted = onboarding.tasks.every(t => t.status === OnboardingTaskStatus.COMPLETED);
+        const allCompleted = onboarding.tasks.every(t => this.isTaskStatus(t.status, OnboardingTaskStatus.COMPLETED));
         if (allCompleted) {
             onboarding.completed = true;
             onboarding.completedAt = new Date();
@@ -1327,6 +1479,7 @@ export class OnboardingService {
                 const taskIndex = onboarding.tasks.findIndex(t => t.name === taskName);
                 if (taskIndex !== -1) {
                     onboarding.tasks[taskIndex].documentId = new Types.ObjectId((document as any)._id);
+                    this.normalizeAllTaskStatuses(onboarding);
                     await onboarding.save();
                     linkedToTask = true;
                 }
@@ -1509,6 +1662,9 @@ export class OnboardingService {
 
         onboarding.tasks[taskIndex].documentId = new Types.ObjectId(documentId);
 
+        // Normalize all task statuses before saving (fix uppercase values from DB)
+        this.normalizeAllTaskStatuses(onboarding);
+
         return onboarding.save();
     }
 
@@ -1561,11 +1717,13 @@ export class OnboardingService {
                 onboarding.tasks[itTaskIndex].notes =
                     `${onboarding.tasks[itTaskIndex].notes || ''} | Provisioned by System Admin on ${new Date().toISOString()}`.trim();
 
+                // Normalize all task statuses before saving (fix uppercase values from DB)
+                this.normalizeAllTaskStatuses(onboarding);
                 await onboarding.save();
                 onboardingTaskUpdated = true;
 
-                // Check if all tasks completed
-                const allCompleted = onboarding.tasks.every(t => t.status === OnboardingTaskStatus.COMPLETED);
+                // Check if all tasks completed (use isTaskStatus for case-insensitive comparison)
+                const allCompleted = onboarding.tasks.every(t => this.isTaskStatus(t.status, OnboardingTaskStatus.COMPLETED));
                 if (allCompleted) {
                     onboarding.completed = true;
                     onboarding.completedAt = new Date();
@@ -1722,7 +1880,10 @@ export class OnboardingService {
                      t.name.toLowerCase().includes('workspace')
             );
 
-            if (adminTaskIndex !== -1 && onboarding.tasks[adminTaskIndex].status !== OnboardingTaskStatus.COMPLETED) {
+            // Normalize all task statuses before any comparison or update
+            this.normalizeAllTaskStatuses(onboarding);
+
+            if (adminTaskIndex !== -1 && !this.isTaskStatus(onboarding.tasks[adminTaskIndex].status, OnboardingTaskStatus.COMPLETED)) {
                 onboarding.tasks[adminTaskIndex].status = OnboardingTaskStatus.COMPLETED;
                 onboarding.tasks[adminTaskIndex].completedAt = new Date();
 
@@ -1738,7 +1899,7 @@ export class OnboardingService {
                 onboardingTaskUpdated = true;
 
                 // Check if all tasks completed
-                const allCompleted = onboarding.tasks.every(t => t.status === OnboardingTaskStatus.COMPLETED);
+                const allCompleted = onboarding.tasks.every(t => this.isTaskStatus(t.status, OnboardingTaskStatus.COMPLETED));
                 if (allCompleted) {
                     onboarding.completed = true;
                     onboarding.completedAt = new Date();

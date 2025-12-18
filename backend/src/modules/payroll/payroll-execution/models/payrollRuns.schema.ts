@@ -1,8 +1,8 @@
+
 import { Prop, Schema, SchemaFactory, } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
 import {  EmployeeProfile as Employee} from '../../../employee/models/employee/employee-profile.schema';
 import { PayRollPaymentStatus, PayRollStatus } from '../enums/payroll-execution-enum';
-import { Department } from '../../../employee/models/organization-structure/department.schema';
 
 
 export type payrollRunsDocument = HydratedDocument<payrollRuns>
@@ -17,10 +17,10 @@ export class payrollRuns {
   status: PayRollStatus;
 
   @Prop({ required: true })
-  entity: string; // name of the company/department
+  entity: string; // name of the company
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Department.name })
-  entityId?: mongoose.Schema.Types.ObjectId; // department ID for filtering employees
+  @Prop({ type: mongoose.Schema.Types.ObjectId })
+  entityId?: mongoose.Types.ObjectId; // ID reference for the entity/department
 
   @Prop({ required: true })
   employees: number;
@@ -28,32 +28,6 @@ export class payrollRuns {
   exceptions: number;
   @Prop({ required: true })
   totalnetpay: number;
-
-  // Aggregated totals from employee payroll details
-  @Prop({ default: 0 })
-  totalGrossPay: number;
-  @Prop({ default: 0 })
-  totalDeductions: number; // Total of all deductions (tax + insurance + penalties)
-  @Prop({ default: 0 })
-  totalTaxDeductions: number;
-  @Prop({ default: 0 })
-  totalInsuranceDeductions: number;
-  @Prop({ default: 0 })
-  totalPenalties: number;
-  @Prop({ default: 0 })
-  totalAllowances: number;
-  @Prop({ default: 0 })
-  totalBaseSalary: number;
-  @Prop({ default: 0 })
-  totalOvertime: number;
-  @Prop({ default: 0 })
-  totalRefunds: number;
-  
-  // Aggregated irregularities count and list
-  @Prop({ default: 0 })
-  irregularitiesCount: number;
-  @Prop({ type: [String], default: [] })
-  irregularities: string[];
 
   
   @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: Employee.name })
@@ -80,4 +54,10 @@ export class payrollRuns {
   financeApprovalDate?: Date;
 }
 
+
+
 export const payrollRunsSchema = SchemaFactory.createForClass(payrollRuns);
+
+
+
+

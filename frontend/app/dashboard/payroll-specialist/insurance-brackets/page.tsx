@@ -8,7 +8,6 @@ import { useAuth } from '@/app/context/AuthContext';
 interface InsuranceBracket {
   _id: string;
   name: string;
-  amount: number;
   status: 'draft' | 'approved' | 'rejected';
   createdBy?: string;
   createdAt: string;
@@ -69,7 +68,6 @@ export default function InsuranceBracketsPage() {
   const [formData, setFormData] = useState({
     name: '',
     customName: '',
-    amount: '',
     minSalary: '',
     maxSalary: '',
     employeeRate: '',
@@ -130,9 +128,8 @@ export default function InsuranceBracketsPage() {
     // Determine the final name
     const finalName = formData.name === 'custom' ? formData.customName : formData.name;
 
-    // Required fields validation
+    // Only validate name for new creation (not for editing)
     if (!selectedBracket) {
-      // Only validate name for new creation
       if (!formData.name) {
         errors.push('Please select an insurance type');
       } else if (formData.name === 'custom' && !formData.customName.trim()) {
@@ -151,20 +148,17 @@ export default function InsuranceBracketsPage() {
     }
 
     // Required numeric fields
-    if (!formData.amount) errors.push('Amount is required');
     if (!formData.minSalary) errors.push('Minimum salary is required');
     if (!formData.maxSalary) errors.push('Maximum salary is required');
     if (!formData.employeeRate) errors.push('Employee rate is required');
     if (!formData.employerRate) errors.push('Employer rate is required');
 
     // Numeric validation
-    const amount = parseFloat(formData.amount);
     const minSalary = parseFloat(formData.minSalary);
     const maxSalary = parseFloat(formData.maxSalary);
     const employeeRate = parseFloat(formData.employeeRate);
     const employerRate = parseFloat(formData.employerRate);
 
-    if (isNaN(amount) || amount < 0) errors.push('Amount must be a positive number');
     if (isNaN(minSalary) || minSalary < 0) errors.push('Minimum salary must be a positive number');
     if (isNaN(maxSalary) || maxSalary < 0) errors.push('Maximum salary must be a positive number');
     if (isNaN(employeeRate) || employeeRate < 0 || employeeRate > 100) errors.push('Employee rate must be between 0 and 100');
@@ -201,7 +195,6 @@ export default function InsuranceBracketsPage() {
       
       const apiData = {
         name: finalName,
-        amount: parseFloat(formData.amount),
         minSalary: parseFloat(formData.minSalary),
         maxSalary: parseFloat(formData.maxSalary),
         employeeRate: parseFloat(formData.employeeRate),
@@ -274,8 +267,6 @@ export default function InsuranceBracketsPage() {
       setError(null);
 
       const updateData = {
-        // Name is NOT included here - cannot be changed after creation
-        amount: parseFloat(formData.amount),
         minSalary: parseFloat(formData.minSalary),
         maxSalary: parseFloat(formData.maxSalary),
         employeeRate: parseFloat(formData.employeeRate),
@@ -382,7 +373,6 @@ export default function InsuranceBracketsPage() {
     setFormData({
       name: '', // Not used for editing - display only
       customName: '', // Not used for editing - display only
-      amount: bracket.amount.toString(),
       minSalary: bracket.minSalary.toString(),
       maxSalary: bracket.maxSalary.toString(),
       employeeRate: bracket.employeeRate.toString(),
@@ -409,7 +399,6 @@ export default function InsuranceBracketsPage() {
     setFormData({
       name: '',
       customName: '',
-      amount: '',
       minSalary: '',
       maxSalary: '',
       employeeRate: '',
@@ -417,6 +406,8 @@ export default function InsuranceBracketsPage() {
     });
     setSelectedBracket(null);
     setCalculationResult(null);
+    // Clear error when form is reset/closing modal
+    setError(null);
   };
 
   const handleCreateClick = () => {
@@ -430,6 +421,10 @@ export default function InsuranceBracketsPage() {
       ...prev,
       [name]: value
     }));
+    // Clear error when user starts typing/changing form
+    if (error && error.includes('already exists')) {
+      setError(null);
+    }
   };
 
   const handleCalculationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -465,6 +460,20 @@ export default function InsuranceBracketsPage() {
 
   const formatPercentage = (rate: number) => {
     return `${rate.toFixed(2)}%`;
+  };
+
+  // Helper function to get duplicate error for display in real-time
+  const getDuplicateError = () => {
+    if (!formData.name || formData.name === 'custom') return null;
+    
+    const finalName = formData.name === 'custom' ? formData.customName : formData.name;
+    if (!finalName) return null;
+    
+    const isDuplicate = brackets.some(bracket => 
+      bracket.name.toLowerCase() === finalName.toLowerCase()
+    );
+    
+    return isDuplicate ? `Insurance name "${finalName}" already exists. Please use a different name.` : null;
   };
 
   if (loading) {
@@ -523,8 +532,8 @@ export default function InsuranceBracketsPage() {
         </div>
       )}
 
-      {/* Error Alert */}
-      {error && (
+      {/* Error Alert - Only show errors not related to duplicate name when modal is closed */}
+      {error && !showModal && !error.includes('already exists') && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
           <div className="text-red-600">✕</div>
           <div>
@@ -566,7 +575,6 @@ export default function InsuranceBracketsPage() {
                   <th className="text-left py-4 px-6 font-semibold text-slate-700">Insurance Type</th>
                   <th className="text-left py-4 px-6 font-semibold text-slate-700">Salary Range</th>
                   <th className="text-left py-4 px-6 font-semibold text-slate-700">Contributions</th>
-                  <th className="text-left py-4 px-6 font-semibold text-slate-700">Amount</th>
                   <th className="text-left py-4 px-6 font-semibold text-slate-700">Status</th>
                   <th className="text-left py-4 px-6 font-semibold text-slate-700">Created</th>
                   <th className="text-left py-4 px-6 font-semibold text-slate-700">Actions</th>
@@ -595,12 +603,10 @@ export default function InsuranceBracketsPage() {
                         <p className="text-slate-600">
                           Employer: <span className="font-medium">{formatPercentage(bracket.employerRate)}</span>
                         </p>
+                        <p className="text-slate-500 text-xs mt-1">
+                          Total: {formatPercentage(bracket.employeeRate + bracket.employerRate)}
+                        </p>
                       </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="text-slate-700 font-medium">
-                        {formatCurrency(bracket.amount)}
-                      </span>
                     </td>
                     <td className="py-4 px-6">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusColors[bracket.status] || 'bg-gray-100 text-gray-800'}`}>
@@ -613,19 +619,19 @@ export default function InsuranceBracketsPage() {
                         {/* View button */}
                         <button
                           onClick={() => handleViewClick(bracket)}
-                          className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          className="px-3 py-1 text-sm border border-blue-600 text-blue-600 rounded hover:bg-blue-600 hover:text-white transition-colors"
                           title="View Details"
                         >
-                          👁️
+                          View
                         </button>
                         
                         {/* Calculate button */}
                         <button
                           onClick={() => handleCalculateClick(bracket)}
-                          className="p-1.5 text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                          className="px-3 py-1 text-sm border border-purple-600 text-purple-600 rounded hover:bg-purple-600 hover:text-white transition-colors"
                           title="Calculate Contributions"
                         >
-                          🧮
+                          Calculate
                         </button>
                         
                         {/* Edit button - Only show for DRAFT brackets */}
@@ -633,14 +639,11 @@ export default function InsuranceBracketsPage() {
                           <>
                             <button
                               onClick={() => handleEditClick(bracket)}
-                              className="p-1.5 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                              className="px-3 py-1 text-sm border border-green-600 text-green-600 rounded hover:bg-green-600 hover:text-white transition-colors"
                               title="Edit"
                             >
-                              ✏️
+                              Edit
                             </button>
-                            
-                            {/* Delete button - Only for DRAFT brackets */}
-                           
                           </>
                         )}
                       </div>
@@ -655,7 +658,7 @@ export default function InsuranceBracketsPage() {
 
       {/* Information Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-2">📋 Payroll Specialist Information - Insurance Brackets</h3>
+        <h3 className="font-semibold text-blue-900 mb-2">Payroll Specialist Information - Insurance Brackets</h3>
         <ul className="text-blue-800 text-sm space-y-2">
           <li>• As a Payroll Specialist, you can <span className="font-semibold">create draft</span> insurance brackets</li>
           <li>• You can <span className="font-semibold">edit draft</span> insurance brackets only (not approved or rejected ones)</li>
@@ -680,6 +683,19 @@ export default function InsuranceBracketsPage() {
               </h3>
             </div>
             <div className="p-6 space-y-4">
+              {/* Show error only inside modal */}
+              {(error || getDuplicateError()) && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="text-red-600 mt-0.5">✕</div>
+                    <div>
+                      <p className="text-red-800 font-medium">Validation Error</p>
+                      <p className="text-red-700 text-sm mt-1">{error || getDuplicateError()}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Insurance Type {selectedBracket && <span className="text-slate-400">(Cannot be changed)</span>}
@@ -726,7 +742,11 @@ export default function InsuranceBracketsPage() {
                     name="customName"
                     value={formData.customName}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-4 py-2 border rounded-lg font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      getDuplicateError() && formData.customName.trim() 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-slate-300'
+                    }`}
                     required={formData.name === 'custom'}
                     placeholder="e.g., Vision Insurance, Dental Insurance, etc."
                     maxLength={100}
@@ -735,10 +755,8 @@ export default function InsuranceBracketsPage() {
                     Enter a unique name for your custom insurance type. 
                     {formData.customName && (
                       <span className="ml-1">
-                        {brackets.some(bracket => 
-                          bracket.name.toLowerCase() === formData.customName.toLowerCase()
-                        ) ? (
-                          <span className="text-red-600 font-medium">⚠️ This name already exists!</span>
+                        {getDuplicateError() ? (
+                          <span className="text-red-600 font-medium">This name already exists!</span>
                         ) : (
                           <span className="text-green-600">✓ Available</span>
                         )}
@@ -846,31 +864,8 @@ export default function InsuranceBracketsPage() {
                 </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Base Amount *
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-slate-500">$</span>
-                  </div>
-                  <input
-                    type="number"
-                    name="amount"
-                    value={formData.amount}
-                    onChange={handleChange}
-                    className="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    placeholder="e.g., 500"
-                    step="0.01"
-                    min="0"
-                  />
-                </div>
-                <p className="text-xs text-slate-500 mt-1">Base insurance amount for this bracket</p>
-              </div>
-              
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="text-sm font-medium text-amber-800 mb-2">ℹ️ Important Notes</p>
+                <p className="text-sm font-medium text-amber-800 mb-2">Important Notes</p>
                 <ul className="text-xs text-amber-700 space-y-1">
                   <li>• Maximum salary must be greater than minimum salary</li>
                   <li>• Contribution rates must be between 0% and 100%</li>
@@ -883,14 +878,17 @@ export default function InsuranceBracketsPage() {
             </div>
             <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
                 className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={selectedBracket ? handleUpdateInsurance : handleCreateInsurance}
-                disabled={actionLoading}
+                disabled={actionLoading || (!selectedBracket && !!getDuplicateError())}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-slate-400 transition-colors font-medium"
               >
                 {actionLoading ? 'Saving...' : selectedBracket ? 'Update' : 'Create'}
@@ -928,11 +926,6 @@ export default function InsuranceBracketsPage() {
                   </div>
                   
                   <div>
-                    <p className="text-sm text-slate-500">Base Amount</p>
-                    <p className="font-medium text-slate-900 text-xl">{formatCurrency(selectedBracket.amount)}</p>
-                  </div>
-                  
-                  <div>
                     <p className="text-sm text-slate-500">Status</p>
                     <p className="font-medium text-slate-900">{statusLabels[selectedBracket.status]}</p>
                   </div>
@@ -942,17 +935,11 @@ export default function InsuranceBracketsPage() {
                   <div>
                     <p className="text-sm text-slate-500">Employee Contribution</p>
                     <p className="font-medium text-slate-900 text-xl">{formatPercentage(selectedBracket.employeeRate)}</p>
-                    <p className="text-sm text-slate-500 mt-1">
-                      {formatCurrency(selectedBracket.amount * selectedBracket.employeeRate / 100)} per period
-                    </p>
                   </div>
                   
                   <div>
                     <p className="text-sm text-slate-500">Employer Contribution</p>
                     <p className="font-medium text-slate-900 text-xl">{formatPercentage(selectedBracket.employerRate)}</p>
-                    <p className="text-sm text-slate-500 mt-1">
-                      {formatCurrency(selectedBracket.amount * selectedBracket.employerRate / 100)} per period
-                    </p>
                   </div>
                   
                   <div>
@@ -981,19 +968,48 @@ export default function InsuranceBracketsPage() {
                 )}
                 {selectedBracket.approvedBy && (
                   <div>
-                    <p className="text-sm text-slate-500">Approved By</p>
+                    <p className={`text-sm ${selectedBracket.status === 'rejected' ? 'text-red-600' : 'text-green-600'}`}>
+                      {selectedBracket.status === 'rejected' ? 'Rejected By' : 'Approved By'}
+                    </p>
                     <p className="font-medium text-slate-900">{selectedBracket.approvedBy}</p>
                   </div>
                 )}
                 {selectedBracket.approvedAt && (
                   <div>
-                    <p className="text-sm text-slate-500">Approved At</p>
+                    <p className={`text-sm ${selectedBracket.status === 'rejected' ? 'text-red-600' : 'text-green-600'}`}>
+                      {selectedBracket.status === 'rejected' ? 'Rejected At' : 'Approved At'}
+                    </p>
                     <p className="font-medium text-slate-900">{formatDate(selectedBracket.approvedAt)}</p>
                   </div>
                 )}
               </div>
+              
+              {selectedBracket.approvedBy && (
+                <div className={`${selectedBracket.status === 'rejected' ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'} border rounded-lg p-4`}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className={`text-sm ${selectedBracket.status === 'rejected' ? 'text-red-600' : 'text-green-600'}`}>
+                        {selectedBracket.status === 'rejected' ? 'Rejected By' : 'Approved By'}
+                      </p>
+                      <p className={`font-medium ${selectedBracket.status === 'rejected' ? 'text-red-800' : 'text-green-800'}`}>
+                        {selectedBracket.approvedBy}
+                      </p>
+                    </div>
+                    {selectedBracket.approvedAt && (
+                      <div>
+                        <p className={`text-sm ${selectedBracket.status === 'rejected' ? 'text-red-600' : 'text-green-600'}`}>
+                          {selectedBracket.status === 'rejected' ? 'Rejected At' : 'Approved At'}
+                        </p>
+                        <p className={`font-medium ${selectedBracket.status === 'rejected' ? 'text-red-800' : 'text-green-800'}`}>
+                          {formatDate(selectedBracket.approvedAt)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+            <div className="p-6 border-t border-slate-200 flex justify-end">
               <button
                 onClick={() => setShowViewModal(false)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -1045,7 +1061,6 @@ export default function InsuranceBracketsPage() {
                   <p>• Salary Range: {formatCurrency(selectedBracket.minSalary)} - {formatCurrency(selectedBracket.maxSalary)}</p>
                   <p>• Employee Rate: {formatPercentage(selectedBracket.employeeRate)}</p>
                   <p>• Employer Rate: {formatPercentage(selectedBracket.employerRate)}</p>
-                  <p>• Base Amount: {formatCurrency(selectedBracket.amount)}</p>
                 </div>
               </div>
               
@@ -1076,7 +1091,7 @@ export default function InsuranceBracketsPage() {
                         </div>
                       </div>
                       <div className="mt-4 p-3 bg-green-100 border border-green-200 rounded-lg">
-                        <p className="text-sm font-medium text-green-800">✓ Valid Salary</p>
+                        <p className="text-sm font-medium text-green-800">Valid Salary</p>
                         <p className="text-xs text-green-700 mt-1">
                           The salary falls within this bracket's range
                         </p>
@@ -1084,7 +1099,6 @@ export default function InsuranceBracketsPage() {
                     </>
                   ) : (
                     <div className="text-center py-4">
-                      <div className="text-red-600 text-2xl mb-2">⚠️</div>
                       <p className="font-medium text-red-800">Invalid Salary</p>
                       <p className="text-red-700 text-sm mt-1">
                         The entered salary does not fall within this insurance bracket's range
