@@ -31,6 +31,42 @@ import {
 import { ApplicationStage } from '@/app/types/enums';
 
 // =====================================================
+// Helper Functions
+// =====================================================
+
+/**
+ * Helper to extract MongoDB ID from various formats
+ * Handles string IDs, ObjectId objects, and Extended JSON format
+ */
+function extractId(obj: any): string {
+  if (!obj) return '';
+  // Check for id field first (already a string)
+  if (obj.id && typeof obj.id === 'string') return obj.id;
+  // Handle _id which could be a string, object with $oid, or ObjectId-like object
+  const rawId = obj._id;
+  if (!rawId) return '';
+  if (typeof rawId === 'string') return rawId;
+  // MongoDB Extended JSON format: { "$oid": "..." }
+  if (rawId.$oid) return rawId.$oid;
+  // ObjectId with toString method
+  if (typeof rawId.toString === 'function') return rawId.toString();
+  // Fallback
+  return String(rawId);
+}
+
+/**
+ * Helper to extract a single ID value from various formats
+ */
+function extractIdValue(idValue: any): string {
+  if (!idValue) return '';
+  if (typeof idValue === 'string') return idValue;
+  if (idValue.$oid) return idValue.$oid;
+  if (idValue._id) return extractIdValue(idValue._id);
+  if (typeof idValue.toString === 'function') return idValue.toString();
+  return String(idValue);
+}
+
+// =====================================================
 // Job Templates
 // =====================================================
 
@@ -163,7 +199,12 @@ export async function getJobs(filters?: { status?: string; managerId?: string })
   if (response.error) {
     throw new Error(response.error);
   }
-  return response.data || [];
+  // Transform _id to id if needed
+  const jobs = response.data || [];
+  return jobs.map(job => ({
+    ...job,
+    id: extractId(job)
+  }));
 }
 
 /**
@@ -265,7 +306,12 @@ export async function getApplications(filters?: {
   if (response.error) {
     throw new Error(response.error);
   }
-  return response.data || [];
+  // Transform _id to id if needed
+  const apps = response.data || [];
+  return apps.map(app => ({
+    ...app,
+    id: extractId(app)
+  }));
 }
 
 /**
@@ -276,7 +322,11 @@ export async function getApplicationById(id: string): Promise<Application> {
   if (response.error || !response.data) {
     throw new Error(response.error || 'Application not found');
   }
-  return response.data;
+  const app = response.data;
+  return {
+    ...app,
+    id: extractId(app)
+  };
 }
 
 /**
@@ -426,6 +476,30 @@ export async function getInterviews(filters?: {
 }
 
 /**
+ * Get upcoming interviews (REC-010)
+ * Backend: GET /recruitment/interviews with ?days param
+ */
+export async function getUpcomingInterviews(days: number = 7): Promise<Interview[]> {
+  const response = await api.get<Interview[]>(`/recruitment/interviews?days=${days}`);
+  if (response.error) {
+    throw new Error(response.error);
+  }
+  return response.data || [];
+}
+
+/**
+ * Get interviews for a panelist/interviewer (REC-021)
+ * Backend: GET /recruitment/interviews/panelist/:panelistId
+ */
+export async function getInterviewsByPanelist(panelistId: string): Promise<Interview[]> {
+  const response = await api.get<Interview[]>(`/recruitment/interviews/panelist/${panelistId}`);
+  if (response.error) {
+    throw new Error(response.error);
+  }
+  return response.data || [];
+}
+
+/**
  * Get an interview by ID
  */
 export async function getInterviewById(id: string): Promise<Interview> {
@@ -507,10 +581,23 @@ export async function submitInterviewFeedback(data: SubmitFeedbackRequest): Prom
 }
 
 /**
+ * Get feedback/assessment results for an interview (REC-011)
+ * Backend: GET /recruitment/feedback/interview/:interviewId
+ */
+export async function getFeedbackByInterview(interviewId: string): Promise<FeedbackResult[]> {
+  const response = await api.get<FeedbackResult[]>(`/recruitment/feedback/interview/${interviewId}`);
+  if (response.error) {
+    throw new Error(response.error);
+  }
+  return response.data || [];
+}
+
+/**
  * Get assessment results for an interview
+ * @deprecated Use getFeedbackByInterview instead
  */
 export async function getAssessmentResults(interviewId: string): Promise<AssessmentResult[]> {
-  const response = await api.get<AssessmentResult[]>(`/recruitment/assessments?interviewId=${interviewId}`);
+  const response = await api.get<AssessmentResult[]>(`/recruitment/feedback/interview/${interviewId}`);
   if (response.error) {
     throw new Error(response.error);
   }
@@ -533,6 +620,24 @@ export async function updateAssessment(id: string, data: Partial<SubmitAssessmen
 // =====================================================
 
 /**
+ * Transform offer from backend to frontend format
+ * Handles MongoDB _id to id mapping
+ */
+function transformOffer(offer: any): JobOffer {
+  return {
+    ...offer,
+    id: extractId(offer),
+    applicationId: extractIdValue(offer.applicationId),
+    candidateId: extractIdValue(offer.candidateId),
+    hrEmployeeId: extractIdValue(offer.hrEmployeeId),
+    approvers: (offer.approvers || []).map((a: any) => ({
+      ...a,
+      employeeId: extractIdValue(a.employeeId),
+    })),
+  };
+}
+
+/**
  * Get all offers
  */
 export async function getOffers(filters?: {
@@ -544,44 +649,44 @@ export async function getOffers(filters?: {
   if (filters?.status) params.append('status', filters.status);
   
   const query = params.toString();
-  const response = await api.get<JobOffer[]>(`/recruitment/offers${query ? `?${query}` : ''}`);
+  const response = await api.get<any[]>(`/recruitment/offers${query ? `?${query}` : ''}`);
   if (response.error) {
     throw new Error(response.error);
   }
-  return response.data || [];
+  return (response.data || []).map(transformOffer);
 }
 
 /**
  * Get an offer by ID
  */
 export async function getOfferById(id: string): Promise<JobOffer> {
-  const response = await api.get<JobOffer>(`/recruitment/offers/${id}`);
+  const response = await api.get<any>(`/recruitment/offers/${id}`);
   if (response.error || !response.data) {
     throw new Error(response.error || 'Offer not found');
   }
-  return response.data;
+  return transformOffer(response.data);
 }
 
 /**
  * Create a new offer
  */
 export async function createOffer(data: CreateJobOfferRequest): Promise<JobOffer> {
-  const response = await api.post<JobOffer>('/recruitment/offers', data);
+  const response = await api.post<any>('/recruitment/offers', data);
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to create offer');
   }
-  return response.data;
+  return transformOffer(response.data);
 }
 
 /**
  * Update an offer
  */
 export async function updateOffer(id: string, data: Partial<CreateJobOfferRequest>): Promise<JobOffer> {
-  const response = await api.put<JobOffer>(`/recruitment/offers/${id}`, data);
+  const response = await api.put<any>(`/recruitment/offers/${id}`, data);
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to update offer');
   }
-  return response.data;
+  return transformOffer(response.data);
 }
 
 /**
@@ -589,7 +694,7 @@ export async function updateOffer(id: string, data: Partial<CreateJobOfferReques
  * Backend requires ApproveOfferDto: { approverId, status, comment? }
  */
 export async function approveOffer(id: string, approverId: string, comment?: string): Promise<JobOffer> {
-  const response = await api.patch<JobOffer>(`/recruitment/offers/${id}/approve`, {
+  const response = await api.patch<any>(`/recruitment/offers/${id}/approve`, {
     approverId,
     status: 'approved',
     comment,
@@ -597,7 +702,7 @@ export async function approveOffer(id: string, approverId: string, comment?: str
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to approve offer');
   }
-  return response.data;
+  return transformOffer(response.data);
 }
 
 /**
@@ -605,7 +710,7 @@ export async function approveOffer(id: string, approverId: string, comment?: str
  * Backend requires ApproveOfferDto: { approverId, status, comment? }
  */
 export async function rejectOffer(id: string, approverId: string, comment?: string): Promise<JobOffer> {
-  const response = await api.patch<JobOffer>(`/recruitment/offers/${id}/approve`, {
+  const response = await api.patch<any>(`/recruitment/offers/${id}/approve`, {
     approverId,
     status: 'rejected',
     comment,
@@ -613,7 +718,7 @@ export async function rejectOffer(id: string, approverId: string, comment?: stri
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to reject offer');
   }
-  return response.data;
+  return transformOffer(response.data);
 }
 
 /**
@@ -621,33 +726,34 @@ export async function rejectOffer(id: string, approverId: string, comment?: stri
  * Backend endpoint: POST /recruitment/offers/:id/send
  */
 export async function sendOffer(id: string): Promise<JobOffer> {
-  const response = await api.post<JobOffer>(`/recruitment/offers/${id}/send`, {});
+  const response = await api.post<any>(`/recruitment/offers/${id}/send`, {});
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to send offer');
   }
-  return response.data;
+  return transformOffer(response.data);
 }
 
 /**
- * Candidate responds to offer (accept/reject)
+ * Candidate responds to offer (accept/reject) (REC-018)
+ * Backend: PATCH /recruitment/offers/:id/candidate-response
  */
 export async function respondToOffer(id: string, candidateResponse: 'accepted' | 'rejected'): Promise<JobOffer> {
-  const response = await api.patch<JobOffer>(`/recruitment/offers/${id}/respond`, { response: candidateResponse });
+  const response = await api.patch<any>(`/recruitment/offers/${id}/candidate-response`, { response: candidateResponse });
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to respond to offer');
   }
-  return response.data;
+  return transformOffer(response.data);
 }
 
 /**
  * Sign offer (candidate signature)
  */
 export async function signOffer(id: string, signatureData: string): Promise<JobOffer> {
-  const response = await api.patch<JobOffer>(`/recruitment/offers/${id}/sign`, { signature: signatureData });
+  const response = await api.patch<any>(`/recruitment/offers/${id}/sign`, { signature: signatureData });
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to sign offer');
   }
-  return response.data;
+  return transformOffer(response.data);
 }
 
 // =====================================================
@@ -829,6 +935,30 @@ export async function getReferralById(id: string): Promise<unknown> {
   const response = await api.get(`/recruitment/referrals/${id}`);
   if (response.error) {
     throw new Error(response.error);
+  }
+  return response.data;
+}
+
+/**
+ * Get referral by candidate ID (REC-030)
+ * Backend: GET /recruitment/referrals/candidate/:candidateId
+ */
+export async function getReferralByCandidate(candidateId: string): Promise<unknown> {
+  const response = await api.get(`/recruitment/referrals/candidate/${candidateId}`);
+  if (response.error) {
+    throw new Error(response.error);
+  }
+  return response.data;
+}
+
+/**
+ * Check if candidate is a referral (REC-030)
+ * Backend: GET /recruitment/referrals/check/:candidateId
+ */
+export async function checkIsReferral(candidateId: string): Promise<{ isReferral: boolean }> {
+  const response = await api.get<{ isReferral: boolean }>(`/recruitment/referrals/check/${candidateId}`);
+  if (response.error || !response.data) {
+    throw new Error(response.error || 'Failed to check referral status');
   }
   return response.data;
 }
@@ -1063,14 +1193,29 @@ export async function getPublishedJobs(): Promise<JobRequisition[]> {
 
 /**
  * Get employees (for panel selection)
+ * Uses the employee-profile admin endpoint which returns paginated data
  */
 export async function getEmployees(departmentId?: string): Promise<unknown[]> {
-  const query = departmentId ? `?departmentId=${departmentId}` : '';
-  const response = await api.get<unknown[]>(`/employees${query}`);
+  const query = departmentId ? `?departmentId=${departmentId}&limit=100` : '?limit=100';
+  const response = await api.get<{ data: unknown[]; pagination: unknown }>(`/employee-profile/admin/employees${query}`);
   if (response.error) {
     throw new Error(response.error);
   }
-  return response.data || [];
+  // Backend returns paginated response with { data: [], pagination: {} }
+  const result = response.data;
+  let employees: any[] = [];
+  
+  if (result && Array.isArray(result.data)) {
+    employees = result.data;
+  } else if (Array.isArray(result)) {
+    employees = result;
+  }
+  
+  // Transform employees to ensure id is set (backend returns _id)
+  return employees.map((emp: any) => ({
+    ...emp,
+    id: extractId(emp),
+  }));
 }
 
 // Export all functions as a service object for convenience
@@ -1113,6 +1258,8 @@ const recruitmentService = {
   
   // Interviews
   getInterviews,
+  getUpcomingInterviews,
+  getInterviewsByPanelist,
   getInterviewById,
   scheduleInterview,
   updateInterview,
@@ -1123,6 +1270,7 @@ const recruitmentService = {
   
   // Feedback / Assessments
   submitInterviewFeedback,
+  getFeedbackByInterview,
   getAssessmentResults,
   updateAssessment,
   getFeedbackByApplication,
@@ -1165,6 +1313,8 @@ const recruitmentService = {
   createReferral,
   getReferrals,
   getReferralById,
+  getReferralByCandidate,
+  checkIsReferral,
   updateReferralStatus,
   
   // Notifications (BR-11, BR-36, REC-017, REC-022)

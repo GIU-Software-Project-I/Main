@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
-import { JobOffer } from '@/app/types/recruitment';
+import { JobOffer, Candidate, Application, JobRequisition } from '@/app/types/recruitment';
 import { OfferFinalStatus, OfferResponseStatus, ApprovalStatus } from '@/app/types/enums';
 import { useAuth } from '@/app/context/AuthContext';
 import {
@@ -13,6 +13,9 @@ import {
   approveOffer,
   rejectOffer,
   sendOffer,
+  getCandidateById,
+  getApplicationById,
+  getJobById,
 } from '@/app/services/recruitment';
 
 // ==================== INTERFACES ====================
@@ -26,11 +29,20 @@ interface OfferDetail {
   salary: number;
   bonus?: number;
   benefits: string[];
+  conditions?: string;
+  insurances?: string;
   startDate: string;
   expirationDate: string;
   status: 'pending_approval' | 'approved' | 'rejected' | 'sent' | 'pending_signature' | 'signed' | 'accepted' | 'declined';
   createdAt: string;
   createdBy: string;
+  approvers?: Array<{
+    employeeId: string;
+    role: string;
+    status: string;
+    actionDate?: string;
+    comment?: string;
+  }>;
   approvedBy?: string;
   approvedAt?: string;
   sentAt?: string;
@@ -38,6 +50,7 @@ interface OfferDetail {
   rejectionReason?: string;
   declineReason?: string;
   offerLetterUrl?: string;
+  rawOffer: JobOffer;
 }
 
 interface TimelineEvent {
@@ -50,7 +63,12 @@ interface TimelineEvent {
 }
 
 // ==================== HELPER FUNCTIONS ====================
-const mapJobOfferToOfferDetail = (jobOffer: JobOffer): OfferDetail => {
+const mapJobOfferToOfferDetail = (
+  jobOffer: JobOffer,
+  candidate?: Candidate | null,
+  application?: Application | null,
+  job?: JobRequisition | null
+): OfferDetail => {
   // Map API status to local status
   let status: OfferDetail['status'] = 'pending_approval';
   
@@ -68,26 +86,41 @@ const mapJobOfferToOfferDetail = (jobOffer: JobOffer): OfferDetail => {
     status = 'approved';
   }
 
+  // Get candidate info
+  const candidateName = candidate 
+    ? (candidate.fullName || `${candidate.firstName} ${candidate.lastName}`)
+    : (jobOffer.candidateName || 'Unknown Candidate');
+  const candidateEmail = candidate?.personalEmail || '';
+  const candidatePhone = candidate?.mobilePhone || '';
+
+  // Get job info
+  const jobTitle = job?.templateTitle || jobOffer.positionTitle || jobOffer.role || 'Unknown Position';
+  const department = application?.departmentName || jobOffer.departmentName || 'Unknown';
+
   return {
     id: jobOffer.id,
-    candidateName: jobOffer.candidateName || 'Unknown',
-    candidateEmail: '', // Would need to fetch from candidate
-    candidatePhone: '', // Would need to fetch from candidate
-    jobTitle: jobOffer.positionTitle || jobOffer.role || 'Unknown Position',
-    department: jobOffer.departmentName || 'Unknown',
+    candidateName,
+    candidateEmail,
+    candidatePhone,
+    jobTitle,
+    department,
     salary: jobOffer.grossSalary,
     bonus: jobOffer.signingBonus,
     benefits: jobOffer.benefits || [],
+    conditions: jobOffer.conditions,
+    insurances: jobOffer.insurances,
     startDate: jobOffer.deadline || 'TBD',
     expirationDate: jobOffer.deadline || 'TBD',
     status,
     createdAt: jobOffer.createdAt,
     createdBy: 'HR Team',
+    approvers: jobOffer.approvers || [],
     approvedBy: jobOffer.approvers?.find(a => a.status === ApprovalStatus.APPROVED)?.employeeId,
     approvedAt: jobOffer.approvers?.find(a => a.status === ApprovalStatus.APPROVED)?.actionDate,
     sentAt: jobOffer.finalStatus === OfferFinalStatus.APPROVED ? jobOffer.updatedAt : undefined,
     signedAt: jobOffer.candidateSignedAt,
     offerLetterUrl: undefined, // Would need document handling
+    rawOffer: jobOffer,
   };
 };
 
@@ -224,7 +257,7 @@ export default function OfferDetailPage() {
   const [processing, setProcessing] = useState(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
 
-  // Load offer from API
+  // Load offer from API with related data
   const loadOffer = useCallback(async () => {
     try {
       setLoading(true);
@@ -233,7 +266,32 @@ export default function OfferDetailPage() {
       if (!offerData) {
         throw new Error('Offer not found');
       }
-      setOffer(mapJobOfferToOfferDetail(offerData));
+
+      // Fetch related data (candidate, application, job)
+      let candidate: Candidate | null = null;
+      let application: Application | null = null;
+      let job: JobRequisition | null = null;
+
+      try {
+        if (offerData.candidateId) {
+          candidate = await getCandidateById(offerData.candidateId);
+        }
+      } catch {
+        // Candidate lookup failed
+      }
+
+      try {
+        if (offerData.applicationId) {
+          application = await getApplicationById(offerData.applicationId);
+          if (application?.requisitionId) {
+            job = await getJobById(application.requisitionId);
+          }
+        }
+      } catch {
+        // Application/Job lookup failed
+      }
+
+      setOffer(mapJobOfferToOfferDetail(offerData, candidate, application, job));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load offer');
     } finally {
@@ -378,6 +436,19 @@ export default function OfferDetailPage() {
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP' }).format(amount);
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch {
+      return dateString;
+    }
   };
 
   const handleTriggerOnboarding = () => {
@@ -545,16 +616,67 @@ export default function OfferDetailPage() {
             <div className="mt-6 pt-6 border-t border-slate-100">
               <h4 className="text-sm font-medium text-slate-500 mb-3">Benefits Package</h4>
               <div className="flex flex-wrap gap-2">
-                {offer.benefits.map((benefit, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm"
-                  >
-                    {benefit}
-                  </span>
-                ))}
+                {offer.benefits && offer.benefits.length > 0 ? (
+                  offer.benefits.map((benefit, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm"
+                    >
+                      {benefit}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-slate-400 text-sm">No benefits specified</span>
+                )}
               </div>
             </div>
+
+            {/* Conditions */}
+            {offer.conditions && (
+              <div className="mt-6 pt-6 border-t border-slate-100">
+                <h4 className="text-sm font-medium text-slate-500 mb-3">Conditions</h4>
+                <p className="text-slate-700">{offer.conditions}</p>
+              </div>
+            )}
+
+            {/* Insurances */}
+            {offer.insurances && (
+              <div className="mt-6 pt-6 border-t border-slate-100">
+                <h4 className="text-sm font-medium text-slate-500 mb-3">Insurance Details</h4>
+                <p className="text-slate-700">{offer.insurances}</p>
+              </div>
+            )}
+
+            {/* Approvers */}
+            {offer.approvers && offer.approvers.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-slate-100">
+                <h4 className="text-sm font-medium text-slate-500 mb-3">Approval Chain</h4>
+                <div className="space-y-2">
+                  {offer.approvers.map((approver, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                      <div>
+                        <span className="font-medium text-slate-900">{approver.role}</span>
+                        <span className="text-slate-500 text-sm ml-2">({approver.employeeId})</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          approver.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                          approver.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {approver.status === 'approved' ? 'Approved' :
+                           approver.status === 'rejected' ? 'Rejected' :
+                           'Pending'}
+                        </span>
+                        {approver.actionDate && (
+                          <span className="text-slate-400 text-xs">{formatDate(approver.actionDate)}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Download Offer Letter */}
             {offer.offerLetterUrl && (

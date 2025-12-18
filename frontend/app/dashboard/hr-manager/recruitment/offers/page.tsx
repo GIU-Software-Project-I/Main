@@ -5,24 +5,45 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
-import { getOffers, approveOffer, rejectOffer } from '@/app/services/recruitment';
+import { 
+  getOffers, 
+  approveOffer, 
+  rejectOffer,
+  getCandidateById,
+  getApplicationById,
+  getJobById
+} from '@/app/services/recruitment';
 import { useAuth } from '@/app/context/AuthContext';
+import { JobOffer, Candidate, Application, JobRequisition } from '@/app/types/recruitment';
 
 // ==================== INTERFACES ====================
-interface Offer {
+// Local display interface that combines offer + denormalized data
+interface OfferDisplay {
   id: string;
+  applicationId: string;
+  candidateId: string;
   candidateName: string;
   candidateEmail: string;
   jobTitle: string;
   department: string;
   salary: number;
-  startDate: string;
+  signingBonus?: number;
+  benefits?: string[];
+  deadline: string;
   status: 'pending_approval' | 'approved' | 'rejected' | 'sent' | 'accepted' | 'declined';
   createdAt: string;
-  createdBy: string;
+  approvers: Array<{
+    employeeId: string;
+    role: string;
+    status: string;
+    actionDate?: string;
+    comment?: string;
+  }>;
   approvedBy?: string;
   approvedAt?: string;
   rejectionReason?: string;
+  // Raw offer data for API calls
+  rawOffer: JobOffer;
 }
 
 interface CommunicationLog {
@@ -38,17 +59,30 @@ interface CommunicationLog {
 export default function OffersPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [offers, setOffers] = useState<Offer[]>([]);
+  const [offers, setOffers] = useState<OfferDisplay[]>([]);
   const [logs, setLogs] = useState<CommunicationLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<OfferDisplay | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showLogsPanel, setShowLogsPanel] = useState(false);
   const [processing, setProcessing] = useState(false);
+
+  // Helper to map API status to local status
+  const mapOfferStatus = (
+    finalStatus?: string,
+    applicantResponse?: string,
+  ): OfferDisplay['status'] => {
+    if (applicantResponse === 'accepted') return 'accepted';
+    if (applicantResponse === 'rejected') return 'declined';
+    if (finalStatus === 'rejected') return 'rejected';
+    if (finalStatus === 'approved') return 'approved';
+    if (finalStatus === 'sent') return 'sent';
+    return 'pending_approval';
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -57,29 +91,68 @@ export default function OffersPage() {
       
       const offersData = await getOffers();
       
-      // Transform API response to local interface
-      // Note: JobOffer type matches backend offer.schema.ts
-      const transformedOffers: Offer[] = offersData.map((o) => {
-        // Check if any approver has approved/rejected
-        const approvedApprover = o.approvers?.find(a => a.status === 'approved');
-        const rejectedApprover = o.approvers?.find(a => a.status === 'rejected');
-        
-        return {
-          id: o.id,
-          candidateName: o.candidateName || 'Unknown',
-          candidateEmail: '', // Not in schema, would need candidate lookup
-          jobTitle: o.positionTitle || o.role || '',
-          department: o.departmentName || '',
-          salary: o.grossSalary || 0,
-          startDate: o.deadline || '',
-          status: mapOfferStatus(o.finalStatus, o.applicantResponse),
-          createdAt: o.createdAt || '',
-          createdBy: 'HR Team', // Not tracked in schema
-          approvedBy: approvedApprover?.employeeId,
-          approvedAt: approvedApprover?.actionDate,
-          rejectionReason: rejectedApprover?.comment,
-        };
-      });
+      // Fetch related data for each offer (candidate + application + job)
+      const transformedOffers: OfferDisplay[] = await Promise.all(
+        offersData.map(async (offer) => {
+          let candidateName = 'Unknown Candidate';
+          let candidateEmail = '';
+          let jobTitle = offer.role || 'Unknown Position';
+          let department = '';
+
+          // Try to fetch candidate details
+          try {
+            if (offer.candidateId) {
+              const candidate = await getCandidateById(offer.candidateId);
+              candidateName = candidate.fullName || `${candidate.firstName} ${candidate.lastName}`;
+              candidateEmail = candidate.personalEmail || '';
+            }
+          } catch {
+            // Candidate lookup failed, use fallback
+            candidateName = offer.candidateName || 'Unknown Candidate';
+          }
+
+          // Try to fetch application and job details
+          try {
+            if (offer.applicationId) {
+              const application = await getApplicationById(offer.applicationId);
+              if (application.requisitionId) {
+                const job = await getJobById(application.requisitionId);
+                jobTitle = job.templateTitle || offer.role || 'Unknown Position';
+                department = application.departmentName || '';
+              }
+            }
+          } catch {
+            // Application/Job lookup failed, use offer.role as fallback
+            jobTitle = offer.positionTitle || offer.role || 'Unknown Position';
+            department = offer.departmentName || '';
+          }
+
+          // Check if any approver has approved/rejected
+          const approvedApprover = offer.approvers?.find(a => a.status === 'approved');
+          const rejectedApprover = offer.approvers?.find(a => a.status === 'rejected');
+
+          return {
+            id: offer.id,
+            applicationId: offer.applicationId,
+            candidateId: offer.candidateId,
+            candidateName,
+            candidateEmail,
+            jobTitle,
+            department,
+            salary: offer.grossSalary || 0,
+            signingBonus: offer.signingBonus,
+            benefits: offer.benefits,
+            deadline: offer.deadline || '',
+            status: mapOfferStatus(offer.finalStatus, offer.applicantResponse),
+            createdAt: offer.createdAt || '',
+            approvers: offer.approvers || [],
+            approvedBy: approvedApprover?.employeeId,
+            approvedAt: approvedApprover?.actionDate,
+            rejectionReason: rejectedApprover?.comment,
+            rawOffer: offer,
+          };
+        })
+      );
       
       setOffers(transformedOffers);
       setLogs([]);
@@ -90,29 +163,17 @@ export default function OffersPage() {
     }
   }, []);
 
-  // Helper to map API status to local status
-  const mapOfferStatus = (
-    finalStatus?: string,
-    applicantResponse?: string,
-  ): Offer['status'] => {
-    if (applicantResponse === 'accepted') return 'accepted';
-    if (applicantResponse === 'rejected') return 'declined';
-    if (finalStatus === 'rejected') return 'rejected';
-    if (finalStatus === 'approved') return 'approved';
-    return 'pending_approval';
-  };
-
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   // ==================== HANDLERS ====================
-  const handleApprove = (offer: Offer) => {
+  const handleApprove = (offer: OfferDisplay) => {
     setSelectedOffer(offer);
     setShowApprovalModal(true);
   };
 
-  const handleReject = (offer: Offer) => {
+  const handleReject = (offer: OfferDisplay) => {
     setSelectedOffer(offer);
     setRejectionReason('');
     setShowRejectModal(true);
@@ -212,8 +273,8 @@ export default function OffersPage() {
   const pendingCount = offers.filter((o) => o.status === 'pending_approval').length;
 
   // ==================== STATUS HELPERS ====================
-  const getStatusBadge = (status: Offer['status']) => {
-    const styles: Record<Offer['status'], string> = {
+  const getStatusBadge = (status: OfferDisplay['status']) => {
+    const styles: Record<OfferDisplay['status'], string> = {
       pending_approval: 'bg-amber-100 text-amber-700',
       approved: 'bg-blue-100 text-blue-700',
       rejected: 'bg-red-100 text-red-700',
@@ -221,7 +282,7 @@ export default function OffersPage() {
       accepted: 'bg-emerald-100 text-emerald-700',
       declined: 'bg-slate-100 text-slate-700',
     };
-    const labels: Record<Offer['status'], string> = {
+    const labels: Record<OfferDisplay['status'], string> = {
       pending_approval: 'Pending Approval',
       approved: 'Approved',
       rejected: 'Rejected',
@@ -238,6 +299,19 @@ export default function OffersPage() {
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP' }).format(amount);
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch {
+      return dateString;
+    }
   };
 
   // ==================== RENDER ====================
@@ -368,9 +442,14 @@ export default function OffersPage() {
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          Start: {offer.startDate}
+                          Deadline: {formatDate(offer.deadline)}
                         </span>
                       </div>
+                      {offer.signingBonus && offer.signingBonus > 0 && (
+                        <p className="mt-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-1 rounded inline-block">
+                          Signing Bonus: {formatCurrency(offer.signingBonus)}
+                        </p>
+                      )}
                       {offer.rejectionReason && (
                         <p className="mt-2 text-sm text-red-600 bg-red-50 px-3 py-1 rounded">
                           Reason: {offer.rejectionReason}
@@ -407,13 +486,19 @@ export default function OffersPage() {
 
                   {/* Meta */}
                   <div className="flex items-center gap-4 mt-4 pt-4 border-t border-slate-100 text-xs text-slate-400">
-                    <span>Created by {offer.createdBy}</span>
-                    <span>•</span>
-                    <span>{offer.createdAt}</span>
-                    {offer.approvedBy && (
+                    <span>Created: {formatDate(offer.createdAt)}</span>
+                    {offer.approvers && offer.approvers.length > 0 && (
                       <>
                         <span>•</span>
-                        <span>Approved by {offer.approvedBy} on {offer.approvedAt}</span>
+                        <span>
+                          Approvers: {offer.approvers.map(a => `${a.role} (${a.status})`).join(', ')}
+                        </span>
+                      </>
+                    )}
+                    {offer.approvedBy && offer.approvedAt && (
+                      <>
+                        <span>•</span>
+                        <span>Approved: {formatDate(offer.approvedAt)}</span>
                       </>
                     )}
                   </div>
@@ -491,9 +576,15 @@ export default function OffersPage() {
                     <span className="text-slate-500">Salary</span>
                     <span className="font-medium">{formatCurrency(selectedOffer.salary)}/month</span>
                   </div>
+                  {selectedOffer.signingBonus && selectedOffer.signingBonus > 0 && (
+                    <div className="flex justify-between mb-1">
+                      <span className="text-slate-500">Signing Bonus</span>
+                      <span className="font-medium text-emerald-600">{formatCurrency(selectedOffer.signingBonus)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Start Date</span>
-                    <span className="font-medium">{selectedOffer.startDate}</span>
+                    <span className="text-slate-500">Deadline</span>
+                    <span className="font-medium">{formatDate(selectedOffer.deadline)}</span>
                   </div>
                 </div>
                 <div className="flex gap-3">

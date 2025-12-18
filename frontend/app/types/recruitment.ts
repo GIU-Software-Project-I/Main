@@ -71,14 +71,29 @@ export interface JobTemplate {
 
 export interface JobRequisition {
   id: string;
+  _id?: string; // MongoDB ID
   requisitionId: string;
   templateId?: string;
   openings: number;
+  numberOfOpenings?: number; // Alias for openings
   location?: string;
   hiringManagerId: string;
   publishStatus: 'draft' | 'published' | 'closed';
   postingDate?: string;
   expiryDate?: string;
+
+  // Template data (populated from templateId)
+  title?: string;
+  department?: string;
+  description?: string;
+  qualifications?: string[];
+  skills?: string[];
+  employmentType?: string;
+  salaryRange?: {
+    min: number;
+    max: number;
+    currency: string;
+  };
 
   // Denormalized
   templateTitle?: string;
@@ -103,6 +118,7 @@ export interface CreateJobRequisitionRequest {
 
 export interface Candidate {
   id: string;
+  _id?: string; // MongoDB ID
   firstName: string;
   middleName?: string;
   lastName: string;
@@ -129,6 +145,7 @@ export interface Candidate {
 
 export interface Application {
   id: string;
+  _id?: string; // MongoDB ID
   candidateId: string;
   requisitionId: string;
   assignedHr?: string;
@@ -248,6 +265,7 @@ export interface FeedbackResult {
 
 export interface JobOffer {
   id: string;
+  _id?: string; // MongoDB ID fallback
   applicationId: string;
   candidateId: string;
   hrEmployeeId?: string;
@@ -344,6 +362,8 @@ export interface RecruitmentDocument {
   ownerType: 'candidate' | 'employee';
   documentType: DocumentType;
   fileUrl: string;
+  filePath?: string; // File storage path
+  url?: string; // URL to access document
   fileName: string;
   uploadedAt: string;
   verifiedAt?: string;
