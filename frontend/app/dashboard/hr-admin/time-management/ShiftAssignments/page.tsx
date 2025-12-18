@@ -575,19 +575,43 @@ export default function ShiftAssignmentsPage() {
                                   ShiftAssignmentStatus.CANCELLED
                                 )
                               }
-                              className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700"
+                              className="mr-2 rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700"
                             >
                               Reject
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleStatusUpdate(
+                                  assignment._id,
+                                  ShiftAssignmentStatus.CANCELLED
+                                )
+                              }
+                              className="rounded bg-gray-600 px-3 py-1 text-white hover:bg-gray-700"
+                            >
+                              Cancel
                             </button>
                           </>
                         )}
                         {assignment.status === ShiftAssignmentStatus.APPROVED && (
-                          <button
-                            onClick={() => handleExpireAssignment(assignment._id)}
-                            className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700"
-                          >
-                            Expire
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleExpireAssignment(assignment._id)}
+                              className="mr-2 rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700"
+                            >
+                              Expire
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleStatusUpdate(
+                                  assignment._id,
+                                  ShiftAssignmentStatus.CANCELLED
+                                )
+                              }
+                              className="rounded bg-gray-600 px-3 py-1 text-white hover:bg-gray-700"
+                            >
+                              Cancel
+                            </button>
+                          </>
                         )}
                       </td>
                     </tr>
