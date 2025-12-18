@@ -7,11 +7,14 @@ import { Connection } from 'mongoose';
 @Injectable()
 export class TimeExceptionEscalationScheduler {
     private readonly logger = new Logger(TimeExceptionEscalationScheduler.name);
+    private isRunning = false;
 
     constructor(
         @InjectConnection() private readonly connection: Connection,
     ) {
-        this.runCatchUp();
+        // Disabled catch-up on startup to prevent blocking and infinite loops
+        // The CRON job at 08:00 will handle daily escalations
+        // this.runCatchUp();
     }
 
     private async runCatchUp(): Promise<void> {
@@ -28,9 +31,17 @@ export class TimeExceptionEscalationScheduler {
      * Runs daily at 8:00 AM (2 hours before shift expiry check at 10:00 AM)
      * Escalates unreviewed time exceptions before payroll cut-off
      * References payroll cutoff from active PayrollRuns
+     * PUBLIC - can be called manually for testing
      */
     @Cron('0 8 * * *')
-    async escalateUnreviewedTimeExceptions() {
+    public async escalateUnreviewedTimeExceptions() {
+        // Prevent concurrent runs - only one instance should execute at a time
+        if (this.isRunning) {
+            this.logger.warn('[TimeExceptionEscalation] Scheduler is already running, skipping this execution');
+            return;
+        }
+
+        this.isRunning = true;
         try {
             const now = new Date();
             const currentDay = now.getDate();
@@ -145,6 +156,8 @@ export class TimeExceptionEscalationScheduler {
             );
         } catch (error) {
             this.logger.error('[TimeExceptionEscalation] Scheduler execution failed', error);
+        } finally {
+            this.isRunning = false;
         }
     }
 
