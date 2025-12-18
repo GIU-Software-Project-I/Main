@@ -1490,6 +1490,11 @@ async getLeaveCompensation(employeeId: string) {
 
     console.log(`[getApprovedDisputes] Found ${disputes.length} disputes with APPROVED status`);
 
+    // Fetch any refunds related to these disputes so we can compute refund status without modifying the dispute schema
+    const disputeIds = disputes.map(d => d._id).filter(Boolean);
+    const relatedRefunds = disputeIds.length ? await this.refundsModel.find({ disputeId: { $in: disputeIds } }).lean().exec() : [];
+    const refundByDisputeId = new Map<string, any>(relatedRefunds.map((r: any) => [String(r.disputeId), r]));
+
     // Transform to expected format - NO POPULATION, return pure strings only
     const result = disputes.map((dispute: any) => {
       // Helper to safely convert to string - NEVER returns objects
@@ -1501,6 +1506,7 @@ async getLeaveCompensation(employeeId: string) {
         }
         return String(val);
       };
+      const refund = refundByDisputeId.get(String(dispute._id));
       
       return {
         id: toStr(dispute._id),
@@ -1515,8 +1521,8 @@ async getLeaveCompensation(employeeId: string) {
         approvedAt: dispute.updatedAt || dispute.createdAt,
         approvedBy: toStr(dispute.approvedBy || 'System'),
         priority: toStr(dispute.priority || 'medium'),
-        refundStatus: toStr(dispute.refundStatus || 'pending'),
-        refundId: dispute.refundId,
+        refundStatus: toStr(refund ? refund.status : 'pending'),
+        refundId: refund ? refund._id : null,
         needsRefund: Boolean(dispute.needsRefund)
       };
     });
@@ -1615,6 +1621,11 @@ async getLeaveCompensation(employeeId: string) {
       ).exec();
     }
     
+    // Fetch any refunds related to these claims so we can compute refund status without modifying the claim schema
+    const claimIds = claims.map(c => c._id).filter(Boolean);
+    const relatedClaimRefunds = claimIds.length ? await this.refundsModel.find({ claimId: { $in: claimIds } }).lean().exec() : [];
+    const refundByClaimId = new Map<string, any>(relatedClaimRefunds.map((r: any) => [String(r.claimId), r]));
+
     // Transform to expected format - NO POPULATION, return pure strings only
     const result = claims.map((claim: any) => {
       // Helper to safely convert to string - NEVER returns objects
@@ -1626,6 +1637,7 @@ async getLeaveCompensation(employeeId: string) {
         }
         return String(val);
       };
+      const refund = refundByClaimId.get(String(claim._id));
       
       return {
         id: toStr(claim._id),
@@ -1641,8 +1653,8 @@ async getLeaveCompensation(employeeId: string) {
         approvedAt: claim.updatedAt || claim.createdAt,
         approvedBy: toStr(claim.approvedBy || 'System'),
         priority: toStr(claim.priority || 'medium'),
-        refundStatus: toStr(claim.refundStatus || 'pending'),
-        refundId: claim.refundId,
+        refundStatus: toStr(refund ? refund.status : 'pending'),
+        refundId: refund ? refund._id : null,
         needsRefund: Boolean(claim.needsRefund)
       };
     });
@@ -1689,11 +1701,8 @@ async getLeaveCompensation(employeeId: string) {
       status: RefundStatus.PENDING
     });
     
-    // Update dispute refund status
-    dispute.refundStatus = 'processed';
-    dispute.refundId = refund._id;
-    await dispute.save();
-    
+    // No direct modifications to dispute schema — refunds are tracked in the `refunds` collection.
+    // The refund document already captures the association (disputeId), so we just save the refund.
     return refund.save();
   }
 
@@ -1733,11 +1742,8 @@ async getLeaveCompensation(employeeId: string) {
       status: RefundStatus.PENDING
     });
     
-    // Update claim refund status
-    claim.refundStatus = 'processed';
-    claim.refundId = refund._id;
-    await claim.save();
-    
+    // No direct modifications to claim schema — refunds are tracked in the `refunds` collection.
+    // The refund document already captures the association (claimId), so we just save the refund.
     return refund.save();
   }
 
