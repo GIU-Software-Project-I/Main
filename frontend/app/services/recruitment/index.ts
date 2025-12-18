@@ -896,11 +896,14 @@ export async function getTimeToHireReport(params?: { startDate?: string; endDate
 
 /**
  * Create a referral
+ * REC-030: Tag candidates as referrals for preferential filtering
+ * Note: candidateId should be the MongoDB ObjectId from application._id
  */
 export async function createReferral(data: {
-  candidateId: string;
-  referrerId: string;
-  requisitionId?: string;
+  referringEmployeeId: string;
+  candidateId: string; // MongoDB ObjectId
+  role?: string;
+  level?: string;
 }): Promise<unknown> {
   const response = await api.post('/recruitment/referrals', data);
   if (response.error) {

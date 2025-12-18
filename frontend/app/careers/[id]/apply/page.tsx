@@ -5,6 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getJobById, applyToJob, createCandidate, uploadDocument } from '@/app/services/recruitment';
 import { JobRequisition } from '@/app/types/recruitment';
+import ConsentCheckbox from '@/app/components/recruitment/compliance/ConsentCheckbox';
+import GdprTooltip from '@/app/components/recruitment/compliance/GdprTooltip';
+import DataUsageNotice from '@/app/components/recruitment/compliance/DataUsageNotice';
 
 /**
  * REC-007: Candidate Application Form
@@ -360,36 +363,45 @@ export default function ApplyPage() {
               />
             </div>
 
-            {/* GDPR Consent (REC-028, BR-28) */}
+            {/* GDPR Consent (REC-028, BR-28) - Using reusable compliance components */}
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="font-semibold text-gray-900 mb-3">Data Processing Consent</h3>
-              
-              <div className="flex items-start mb-3">
-                <input
-                  type="checkbox"
-                  id="dataConsent"
-                  checked={formData.dataProcessingConsent}
-                  onChange={(e) => setFormData({ ...formData, dataProcessingConsent: e.target.checked })}
-                  className="mt-1 mr-3"
-                />
-                <label htmlFor="dataConsent" className="text-sm text-gray-700">
-                  <span className="text-red-500">*</span> I consent to the processing of my personal data for recruitment purposes in accordance with GDPR regulations. (Required)
-                </label>
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="font-semibold text-gray-900">Data Processing Consent</h3>
+                <GdprTooltip>
+                  <button type="button" className="text-blue-600 hover:text-blue-700">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                </GdprTooltip>
               </div>
-              {formErrors.dataProcessingConsent && (
-                <p className="text-red-500 text-sm mb-3">{formErrors.dataProcessingConsent}</p>
-              )}
+              
+              {/* Data Usage Notice */}
+              <DataUsageNotice className="mb-4" />
+              
+              {/* Primary GDPR Consent - Required */}
+              <ConsentCheckbox
+                checked={formData.dataProcessingConsent}
+                onChange={(checked) => setFormData({ ...formData, dataProcessingConsent: checked })}
+                required={true}
+                error={!!formErrors.dataProcessingConsent}
+                errorMessage={formErrors.dataProcessingConsent}
+                id="dataConsent"
+                name="dataProcessingConsent"
+                className="mb-4"
+              />
 
-              <div className="flex items-start">
+              {/* Background Check Consent - Optional */}
+              <div className="flex items-start mt-4 pt-4 border-t border-blue-200">
                 <input
                   type="checkbox"
                   id="backgroundConsent"
                   checked={formData.backgroundCheckConsent}
                   onChange={(e) => setFormData({ ...formData, backgroundCheckConsent: e.target.checked })}
-                  className="mt-1 mr-3"
+                  className="mt-1 mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <label htmlFor="backgroundConsent" className="text-sm text-gray-700">
-                  I consent to background checks if required for this position. (Optional)
+                  I consent to background checks if required for this position. <span className="text-gray-500">(Optional)</span>
                 </label>
               </div>
             </div>

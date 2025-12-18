@@ -136,6 +136,58 @@ class ApiService {
   async delete<T>(endpoint: string, headers?: HeadersInit): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: 'DELETE', headers });
   }
+
+  async postFormData<T>(endpoint: string, formData: FormData, headers?: HeadersInit): Promise<ApiResponse<T>> {
+    const url = `${this.baseUrl}${endpoint}`;
+    console.log('[API] Making FormData request to:', url);
+
+    const defaultHeaders: Record<string, string> = {};
+
+    // Add authorization header if we have a token
+    const token = getAccessToken();
+    if (token) {
+      defaultHeaders['Authorization'] = `Bearer ${token}`;
+    }
+
+    const config: RequestInit = {
+      method: 'POST',
+      body: formData,
+      headers: {
+        ...defaultHeaders,
+        ...headers,
+      },
+      credentials: 'include',
+    };
+
+    try {
+      const response = await fetch(url, config);
+
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      }
+
+      if (!response.ok) {
+        return {
+          error: data?.message || `HTTP error! status: ${response.status}`,
+          status: response.status,
+        };
+      }
+
+      return {
+        data,
+        status: response.status,
+      };
+    } catch (error) {
+      console.error('[API] FormData request failed:', url);
+      console.error('[API] Error:', error);
+      return {
+        error: error instanceof Error ? error.message : 'Network error - Is the backend running?',
+        status: 0,
+      };
+    }
+  }
 }
 
 const apiService = new ApiService(API_BASE_URL);

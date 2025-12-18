@@ -12,6 +12,8 @@ import {
   getInterviews, 
   getApplications, 
   scheduleInterview,
+  cancelInterview,
+  rescheduleInterview,
   getEmployees 
 } from '@/app/services/recruitment';
 
@@ -274,21 +276,30 @@ export default function InterviewSchedulingPage() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [editingInterviewId, setEditingInterviewId] = useState<string | null>(null);
+  const [cancellingInterviewId, setCancellingInterviewId] = useState<string | null>(null);
 
   // Load data from API
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch applications that are ready for interviews
+      // Fetch ALL applications (not filtered by stage)
       const [apps, interviews, employees] = await Promise.all([
-        getApplications({ stage: ApplicationStage.DEPARTMENT_INTERVIEW }),
+        getApplications(), // Get all applications
         getInterviews(),
         getEmployees(),
       ]);
 
+      // Filter applications that can have interviews scheduled (not rejected/withdrawn)
+      const eligibleApps = apps.filter(app => 
+        app.currentStage === ApplicationStage.SCREENING ||
+        app.currentStage === ApplicationStage.DEPARTMENT_INTERVIEW ||
+        app.currentStage === ApplicationStage.HR_INTERVIEW
+      );
+
       // Map applications for interview selection
-      const appList: ApplicationForInterview[] = apps.map((app) => ({
+      const appList: ApplicationForInterview[] = eligibleApps.map((app) => ({
         id: app.id,
         applicationId: app.id,
         candidateName: app.candidateName || 'Unknown',
@@ -297,22 +308,37 @@ export default function InterviewSchedulingPage() {
         departmentName: app.departmentName || 'Not specified',
         currentStage: app.currentStage,
       }));
+      
+      console.log('📊 Interview Scheduling - Data Loaded:');
+      console.log('  Total Applications:', apps.length);
+      console.log('  Eligible Applications:', eligibleApps.length);
+      console.log('  Interviews:', interviews.length);
+      console.log('  Panel Members:', employees.length);
+      console.log('  Applications List:', appList);
+      
       setApplications(appList);
 
-      // Map interviews
-      const interviewList: ScheduledInterview[] = interviews.map((int) => ({
-        id: int.id,
-        applicationId: int.applicationId,
-        candidateName: int.panelMembers?.[0]?.employeeName || 'Unknown',
-        jobTitle: '',
-        scheduledDate: int.scheduledDate.split('T')[0],
-        startTime: new Date(int.scheduledDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-        endTime: '',
-        method: int.method,
-        panelMembers: int.panelMembers?.map(p => p.employeeName) || [],
-        status: int.status,
-        videoLink: int.videoLink,
-      }));
+      // Map interviews - get candidate names from applications
+      const interviewList: ScheduledInterview[] = await Promise.all(
+        interviews.map(async (int) => {
+          // Find the application to get candidate details
+          const app = eligibleApps.find(a => a.id === int.applicationId);
+          
+          return {
+            id: int.id,
+            applicationId: int.applicationId,
+            candidateName: app?.candidateName || 'Unknown Candidate',
+            jobTitle: app?.jobTitle || 'Unknown Position',
+            scheduledDate: int.scheduledDate.split('T')[0],
+            startTime: new Date(int.scheduledDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+            endTime: '',
+            method: int.method,
+            panelMembers: int.panelMembers?.map(p => p.employeeName) || [],
+            status: int.status,
+            videoLink: int.videoLink,
+          };
+        })
+      );
       setScheduledInterviews(interviewList);
 
       // Map employees as panel members
@@ -389,6 +415,55 @@ export default function InterviewSchedulingPage() {
   const handleScheduleClick = () => {
     if (validateForm()) {
       setShowConfirmation(true);
+    }
+  };
+
+  // Handle reschedule interview (Test Case 10.10)
+  const handleReschedule = (interviewId: string) => {
+    const interview = scheduledInterviews.find(i => i.id === interviewId);
+    if (interview) {
+      setNewInterview({
+        applicationId: interview.applicationId,
+        stage: ApplicationStage.DEPARTMENT_INTERVIEW,
+        selectedPanel: [],
+        selectedSlot: '',
+        method: interview.method,
+        videoLink: interview.videoLink || '',
+        location: interview.location || '',
+        notes: '',
+      });
+      setEditingInterviewId(interviewId);
+      setShowScheduleForm(true);
+    }
+  };
+
+  // Handle cancel interview (Test Case 10.11)
+  const handleCancelInterview = async (interviewId: string) => {
+    const reason = prompt('Please provide a reason for cancellation (optional):');
+    
+    if (!confirm('Are you sure you want to cancel this interview? Notifications will be sent to all participants.')) {
+      return;
+    }
+    
+    setCancellingInterviewId(interviewId);
+    try {
+      // Call cancel API endpoint (BR-19d: notifications sent automatically)
+      await cancelInterview(interviewId, reason || undefined);
+      
+      // Update local state
+      setScheduledInterviews(prev => 
+        prev.map(i => 
+          i.id === interviewId 
+            ? { ...i, status: InterviewStatus.CANCELLED } 
+            : i
+        )
+      );
+      setSuccessMessage('Interview cancelled successfully. Notifications sent to all participants.');
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel interview');
+    } finally {
+      setCancellingInterviewId(null);
     }
   };
 
@@ -568,10 +643,26 @@ export default function InterviewSchedulingPage() {
                 <option value="">Choose a candidate...</option>
                 {applications.map((app) => (
                   <option key={app.id} value={app.id}>
-                    {app.candidateName} - {app.jobTitle}
+                    {app.candidateName} - {app.jobTitle} ({app.departmentName})
                   </option>
                 ))}
               </select>
+              {selectedApplication && (
+                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm">
+                    <strong>Candidate:</strong> {selectedApplication.candidateName}
+                  </p>
+                  <p className="text-sm">
+                    <strong>Position:</strong> {selectedApplication.jobTitle}
+                  </p>
+                  <p className="text-sm">
+                    <strong>Department:</strong> {selectedApplication.departmentName}
+                  </p>
+                  <p className="text-sm">
+                    <strong>Current Stage:</strong> {selectedApplication.currentStage}
+                  </p>
+                </div>
+              )}
               {errors.applicationId && (
                 <p className="text-red-600 text-sm mt-1">{errors.applicationId}</p>
               )}
@@ -606,6 +697,7 @@ export default function InterviewSchedulingPage() {
                     key={member.id}
                     onClick={() => member.available && togglePanelMember(member.id)}
                     disabled={!member.available}
+                    title={`${member.name} - ${member.role} (${member.department}) - ${member.email}${!member.available ? ' - Unavailable' : ''}`}
                     className={`p-3 rounded-lg border text-left transition-colors ${
                       newInterview.selectedPanel.includes(member.id)
                         ? 'border-indigo-500 bg-indigo-50'
@@ -615,24 +707,58 @@ export default function InterviewSchedulingPage() {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-slate-900">{member.name}</p>
-                        <p className="text-sm text-slate-500">{member.role}</p>
-                        <p className="text-xs text-slate-400">{member.department}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900 truncate">{member.name}</p>
+                        <p className="text-sm text-slate-500 truncate">{member.role}</p>
+                        <p className="text-xs text-slate-400 truncate">{member.department}</p>
+                        {member.available && (
+                          <p className="text-xs text-emerald-600 mt-0.5">✓ Available</p>
+                        )}
                       </div>
-                      {newInterview.selectedPanel.includes(member.id) && (
-                        <svg className="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                      {!member.available && (
-                        <span className="text-xs text-red-500">Unavailable</span>
-                      )}
+                      <div className="flex-shrink-0 ml-2">
+                        {newInterview.selectedPanel.includes(member.id) && (
+                          <svg className="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                        {!member.available && (
+                          <span className="text-xs text-red-600 font-medium">✗ Busy</span>
+                        )}
+                      </div>
                     </div>
                   </button>
                 ))}
               </div>
               {errors.panel && <p className="text-red-600 text-sm mt-1">{errors.panel}</p>}
+              
+              {/* Selected Panel Summary */}
+              {newInterview.selectedPanel.length > 0 && (
+                <div className="mt-3 bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+                  <p className="text-sm font-medium text-indigo-900 mb-2">
+                    Selected Panel Members ({newInterview.selectedPanel.length}):
+                  </p>
+                  <div className="space-y-1">
+                    {panelMembers
+                      .filter(m => newInterview.selectedPanel.includes(m.id))
+                      .map(member => (
+                        <div key={member.id} className="flex items-center justify-between text-sm">
+                          <span className="text-indigo-700">
+                            {member.name} - {member.role}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              togglePanelMember(member.id);
+                            }}
+                            className="text-indigo-600 hover:text-indigo-800"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Time Slot Selection (BR-19) */}
@@ -843,11 +969,20 @@ export default function InterviewSchedulingPage() {
                         )}
                         {interview.status === InterviewStatus.SCHEDULED && (
                           <>
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleReschedule(interview.id)}
+                            >
                               Reschedule
                             </Button>
-                            <Button variant="destructive" size="sm">
-                              Cancel
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => handleCancelInterview(interview.id)}
+                              disabled={cancellingInterviewId === interview.id}
+                            >
+                              {cancellingInterviewId === interview.id ? 'Cancelling...' : 'Cancel'}
                             </Button>
                           </>
                         )}

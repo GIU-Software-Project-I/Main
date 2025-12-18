@@ -11,7 +11,8 @@ import {
   rejectOffer,
   getCandidateById,
   getApplicationById,
-  getJobById
+  getJobById,
+  triggerPreboarding
 } from '@/app/services/recruitment';
 import { useAuth } from '@/app/context/AuthContext';
 import { JobOffer, Candidate, Application, JobRequisition } from '@/app/types/recruitment';
@@ -70,6 +71,9 @@ export default function OffersPage() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [showLogsPanel, setShowLogsPanel] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [triggeringPreboarding, setTriggeringPreboarding] = useState<string | null>(null);
+  const [showPreboardingModal, setShowPreboardingModal] = useState(false);
+  const [preboardingOffer, setPreboardingOffer] = useState<OfferDisplay | null>(null);
 
   // Helper to map API status to local status
   const mapOfferStatus = (
@@ -256,6 +260,44 @@ export default function OffersPage() {
       setError(err instanceof Error ? err.message : 'Failed to reject offer');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  // Pre-boarding trigger handler (REC-029: Trigger pre-boarding tasks for accepted offers)
+  const handleTriggerPreboarding = (offer: OfferDisplay) => {
+    setPreboardingOffer(offer);
+    setShowPreboardingModal(true);
+  };
+
+  const confirmPreboarding = async () => {
+    if (!preboardingOffer) return;
+
+    try {
+      setTriggeringPreboarding(preboardingOffer.id);
+      setError(null);
+
+      await triggerPreboarding(preboardingOffer.applicationId);
+
+      // Add success log
+      const newLog: CommunicationLog = {
+        id: Date.now().toString(),
+        offerId: preboardingOffer.id,
+        type: 'system',
+        message: `Pre-boarding triggered for ${preboardingOffer.candidateName}. Onboarding module initialized.`,
+        timestamp: new Date().toLocaleString(),
+        user: `${user?.firstName} ${user?.lastName}`,
+      };
+      setLogs((prev) => [newLog, ...prev]);
+
+      setShowPreboardingModal(false);
+      setPreboardingOffer(null);
+      
+      // Show success message
+      alert(`Pre-boarding initiated successfully for ${preboardingOffer.candidateName}. The candidate will receive onboarding documents and tasks.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to trigger pre-boarding');
+    } finally {
+      setTriggeringPreboarding(null);
     }
   };
 
@@ -474,6 +516,32 @@ export default function OffersPage() {
                           </Button>
                         </>
                       )}
+                      {/* REC-029: Pre-boarding trigger for accepted offers */}
+                      {offer.status === 'accepted' && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleTriggerPreboarding(offer)}
+                          disabled={triggeringPreboarding === offer.id}
+                          className="bg-indigo-600 hover:bg-indigo-700"
+                        >
+                          {triggeringPreboarding === offer.id ? (
+                            <>
+                              <svg className="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                              </svg>
+                              Start Pre-boarding
+                            </>
+                          )}
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -630,6 +698,69 @@ export default function OffersPage() {
                   </Button>
                   <Button variant="destructive" className="w-full" onClick={confirmRejection} disabled={!rejectionReason.trim()}>
                     Confirm Rejection
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pre-boarding Confirmation Modal (REC-029) */}
+      {showPreboardingModal && preboardingOffer && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setShowPreboardingModal(false)} />
+            <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Trigger Pre-boarding</h3>
+                <p className="text-sm text-slate-600 mb-4">
+                  Start the onboarding process for <strong>{preboardingOffer.candidateName}</strong>?
+                </p>
+                <div className="bg-indigo-50 rounded-lg p-4 mb-6 text-left">
+                  <h4 className="font-medium text-indigo-900 mb-2">This will initiate:</h4>
+                  <ul className="text-sm text-indigo-800 space-y-1">
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Employment contract preparation
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Document collection requests
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      IT equipment setup tasks
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Welcome email to candidate
+                    </li>
+                  </ul>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="w-full" onClick={() => setShowPreboardingModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="w-full bg-indigo-600 hover:bg-indigo-700" 
+                    onClick={confirmPreboarding}
+                    disabled={triggeringPreboarding !== null}
+                  >
+                    {triggeringPreboarding ? 'Processing...' : 'Start Pre-boarding'}
                   </Button>
                 </div>
               </div>

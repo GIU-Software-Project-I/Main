@@ -55,18 +55,22 @@ interface ProcessTemplate {
 const STORAGE_KEY = 'hr_process_templates';
 
 // =====================================================
-// Default Template (matches backend ApplicationStage enum)
+// Default Template (BR-9: 5 stages as per requirements)
 // =====================================================
+// Requirements state: "Screening, Shortlisting, Interview, Offer, Hired"
+// Backend enum maps: SCREENING, DEPARTMENT_INTERVIEW, HR_INTERVIEW, OFFER
+// "Hired" is a final ApplicationStatus, not a stage - but shown for progress visualization
 
 const DEFAULT_TEMPLATE: ProcessTemplate = {
   id: 'default-template',
   name: 'Standard Hiring Process',
-  description: 'Default hiring workflow aligned with backend ApplicationStage enum',
+  description: 'Default hiring workflow with 5 stages (BR-9: Screening → Shortlisting → Interview → Offer → Hired)',
   stages: [
-    { id: 'stage-screening', name: 'Screening', order: 1, percentage: 25, description: 'Initial application review' },
-    { id: 'stage-dept-interview', name: 'Department Interview', order: 2, percentage: 25, description: 'Technical/Department interview' },
-    { id: 'stage-hr-interview', name: 'HR Interview', order: 3, percentage: 25, description: 'HR interview for culture fit' },
-    { id: 'stage-offer', name: 'Offer', order: 4, percentage: 25, description: 'Offer preparation and extension' },
+    { id: 'stage-screening', name: 'Screening', order: 1, percentage: 20, description: 'Initial application review and filtering' },
+    { id: 'stage-shortlisting', name: 'Shortlisting', order: 2, percentage: 20, description: 'Shortlist qualified candidates for interviews' },
+    { id: 'stage-interview', name: 'Interview', order: 3, percentage: 20, description: 'Department & HR interviews' },
+    { id: 'stage-offer', name: 'Offer', order: 4, percentage: 20, description: 'Offer preparation and extension' },
+    { id: 'stage-hired', name: 'Hired', order: 5, percentage: 20, description: 'Candidate accepted offer and onboarding begins' },
   ],
   isDefault: true,
   createdAt: new Date().toISOString(),
@@ -217,10 +221,13 @@ export default function ProcessTemplatesPage() {
   const handleOpenCreate = () => {
     setEditingTemplate(null);
     setFormData({ name: '', description: '' });
+    // Default 5 stages as per BR-9 requirements
     setStages([
-      { id: `new_${Date.now()}_1`, name: 'Screening', order: 1, percentage: 25 },
-      { id: `new_${Date.now()}_2`, name: 'Interview', order: 2, percentage: 50 },
-      { id: `new_${Date.now()}_3`, name: 'Offer', order: 3, percentage: 25 },
+      { id: `new_${Date.now()}_1`, name: 'Screening', order: 1, percentage: 20 },
+      { id: `new_${Date.now()}_2`, name: 'Shortlisting', order: 2, percentage: 20 },
+      { id: `new_${Date.now()}_3`, name: 'Interview', order: 3, percentage: 20 },
+      { id: `new_${Date.now()}_4`, name: 'Offer', order: 4, percentage: 20 },
+      { id: `new_${Date.now()}_5`, name: 'Hired', order: 5, percentage: 20 },
     ]);
     setErrors({});
     setShowModal(true);

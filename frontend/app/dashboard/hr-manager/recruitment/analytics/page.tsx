@@ -87,6 +87,10 @@ function getDateRange(filter: string): { start: Date; end: Date } {
   let start = new Date(now);
 
   switch (filter) {
+    case 'all':
+      // Return a very old date to include all records
+      start = new Date('2000-01-01');
+      break;
     case 'last7':
       start.setDate(now.getDate() - 7);
       break;
@@ -119,7 +123,7 @@ export default function RecruitmentAnalyticsPage() {
   const [departments, setDepartments] = useState<string[]>(['all']);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dateFilter, setDateFilter] = useState('last30');
+  const [dateFilter, setDateFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
 
   // Cache for raw data
@@ -151,6 +155,15 @@ export default function RecruitmentAnalyticsPage() {
         getApplications(),
         getInterviews(),
       ]);
+
+      console.log('📊 Analytics Data Loaded:', {
+        dashboardData,
+        jobsCount: jobs.length,
+        templatesCount: templates.length,
+        applicationsCount: applications.length,
+        interviewsCount: interviews.length,
+        sampleApplication: applications[0],
+      });
 
       // Store raw data
       setRawData({
@@ -212,7 +225,21 @@ export default function RecruitmentAnalyticsPage() {
       return inDateRange;
     });
 
-    // Calculate analytics
+    console.log('🔍 Filtered Applications:', {
+      totalApps: applications.length,
+      filteredCount: filteredApps.length,
+      dateRange: { start, end },
+      dateFilter,
+      departmentFilter,
+      sampleDates: applications.slice(0, 3).map(a => ({
+        id: a.id,
+        createdAt: a.createdAt,
+        status: a.status,
+        stage: a.currentStage,
+      })),
+    });
+
+    // Calculate analytics from filtered applications
     const activeCandidates = filteredApps.filter(
       a => a.status !== 'rejected' && a.status !== 'hired'
     ).length;
@@ -245,7 +272,7 @@ export default function RecruitmentAnalyticsPage() {
       return template?.department === departmentFilter;
     });
 
-    // Open jobs count (from filtered)
+    // Open jobs count (from filtered jobs)
     const openJobs = filteredJobs.filter(j => j.publishStatus === 'published').length;
 
     setAnalytics({
@@ -264,6 +291,12 @@ export default function RecruitmentAnalyticsPage() {
       stageCount[stage] = (stageCount[stage] || 0) + 1;
     });
 
+    console.log('📈 Pipeline Stage Counts:', {
+      stageCount,
+      STAGE_CONFIG_keys: Object.keys(STAGE_CONFIG),
+      sampleStages: filteredApps.slice(0, 5).map(a => a.currentStage),
+    });
+
     const total = filteredApps.length || 1;
     const pipelineData: PipelineStage[] = Object.entries(STAGE_CONFIG)
       .sort((a, b) => a[1].order - b[1].order)
@@ -273,6 +306,8 @@ export default function RecruitmentAnalyticsPage() {
         percentage: Math.round(((stageCount[key] || 0) / total) * 100),
         color: config.color,
       }));
+
+    console.log('📊 Pipeline Data:', pipelineData);
 
     setPipeline(pipelineData);
 
@@ -359,6 +394,73 @@ export default function RecruitmentAnalyticsPage() {
     return validDays.length > 0 ? Math.max(...validDays) : 30;
   }, [timeToHire]);
 
+  // Export to CSV function
+  const exportToCSV = () => {
+    if (!analytics) return;
+
+    // Prepare CSV content
+    const csvRows: string[] = [];
+    
+    // Header
+    csvRows.push('Recruitment Analytics Report');
+    csvRows.push(`Generated: ${new Date().toLocaleString()}`);
+    csvRows.push(`Date Range: ${dateFilter === 'all' ? 'All Time' : dateFilter}`);
+    csvRows.push(`Department: ${departmentFilter === 'all' ? 'All Departments' : departmentFilter}`);
+    csvRows.push('');
+
+    // KPIs
+    csvRows.push('Key Performance Indicators');
+    csvRows.push('Metric,Value');
+    csvRows.push(`Open Jobs,${analytics.openJobs}`);
+    csvRows.push(`Active Candidates,${analytics.activeCandidates}`);
+    csvRows.push(`Avg Time to Hire (days),${analytics.avgTimeToHire}`);
+    csvRows.push(`Hired (Period),${analytics.hiredThisMonth}`);
+    csvRows.push(`Total Applications,${analytics.totalApplications}`);
+    csvRows.push(`Interviews Scheduled,${analytics.interviewsScheduled}`);
+    csvRows.push('');
+
+    // Pipeline by Stage
+    csvRows.push('Pipeline by Stage');
+    csvRows.push('Stage,Count,Percentage');
+    pipeline.forEach(stage => {
+      csvRows.push(`${stage.name},${stage.count},${stage.percentage}%`);
+    });
+    csvRows.push('');
+
+    // Time to Hire Trend
+    csvRows.push('Time-to-Hire Trend');
+    csvRows.push('Month,Days,Hired Count');
+    timeToHire.forEach(t => {
+      csvRows.push(`${t.month},${t.days},${t.count}`);
+    });
+    csvRows.push('');
+
+    // Job Performance
+    csvRows.push('Job Performance Metrics');
+    csvRows.push('Position,Department,Applicants,Interviews,Offers,Hired,Avg Days,Status');
+    filteredJobMetrics.forEach(job => {
+      csvRows.push(`"${job.title}","${job.department}",${job.applicants},${job.interviews},${job.offers},${job.hired},${job.avgDays > 0 ? job.avgDays : '-'},${job.status}`);
+    });
+
+    // Create CSV blob and download
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `recruitment_analytics_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Export to PDF (using browser print)
+  const exportToPDF = () => {
+    window.print();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -377,30 +479,60 @@ export default function RecruitmentAnalyticsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 print:space-y-4">
+      {/* Print Header - Only visible when printing */}
+      <div className="hidden print:block mb-6">
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">Recruitment Analytics Report</h1>
+        <div className="flex justify-between text-sm text-slate-600 border-b border-slate-300 pb-2">
+          <div>
+            <p><strong>Generated:</strong> {new Date().toLocaleString()}</p>
+            <p><strong>Date Range:</strong> {dateFilter === 'all' ? 'All Time' : dateFilter}</p>
+            <p><strong>Department:</strong> {departmentFilter === 'all' ? 'All Departments' : departmentFilter}</p>
+          </div>
+          <div className="text-right">
+            <p><strong>Organization:</strong> HRMS</p>
+            <p><strong>Module:</strong> Recruitment</p>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:mb-4">
         <div>
-          <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+          <div className="flex items-center gap-2 text-sm text-slate-500 mb-2 print:hidden">
             <Link href="/dashboard/hr-manager/recruitment" className="hover:text-slate-700">
               Recruitment
             </Link>
             <span>/</span>
             <span>Analytics</span>
           </div>
-          <h1 className="text-2xl font-semibold text-slate-900">Recruitment Analytics</h1>
-          <p className="text-sm text-slate-500 mt-1">Monitor recruitment progress and metrics (BR-33)</p>
+          <h1 className="text-2xl font-semibold text-slate-900 print:hidden">Recruitment Analytics</h1>
+          <p className="text-sm text-slate-500 mt-1 print:hidden">Monitor recruitment progress and metrics (BR-33)</p>
         </div>
-        <Button variant="outline" onClick={fetchData}>
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Refresh
-        </Button>
+        <div className="flex gap-2 no-print">
+          <Button variant="outline" onClick={exportToCSV}>
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export CSV
+          </Button>
+          <Button variant="outline" onClick={exportToPDF}>
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Print/PDF
+          </Button>
+          <Button variant="outline" onClick={fetchData}>
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Filters (BR-33) */}
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4 no-print">
         <div>
           <label className="block text-xs font-medium text-slate-500 mb-1">Date Range</label>
           <select
@@ -408,6 +540,7 @@ export default function RecruitmentAnalyticsPage() {
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
           >
+            <option value="all">All Time</option>
             <option value="last7">Last 7 days</option>
             <option value="last30">Last 30 days</option>
             <option value="last90">Last 90 days</option>

@@ -8,9 +8,11 @@ import {
   respondToOffer,
   getInterviews,
   getOfferByApplication,
+  signOffer,
 } from '@/app/services/recruitment';
 import { Application as ApiApplication, JobOffer, Interview as ApiInterview } from '@/app/types/recruitment';
 import { ApplicationStage as ApiApplicationStage, ApplicationStatus, OfferResponseStatus, InterviewStatus, InterviewMethod } from '@/app/types/enums';
+import SignatureCapture from '@/app/components/recruitment/SignatureCapture';
 
 // =====================================================
 // TypeScript Interfaces
@@ -514,10 +516,11 @@ interface OfferSectionProps {
   offer: Offer;
   onAccept: () => void;
   onReject: () => void;
+  onSign: () => void;
   isProcessing: boolean;
 }
 
-const OfferSection = ({ offer, onAccept, onReject, isProcessing }: OfferSectionProps) => {
+const OfferSection = ({ offer, onAccept, onReject, onSign, isProcessing }: OfferSectionProps) => {
   const daysUntilDeadline = getDaysUntil(offer.deadline);
   const isExpired = daysUntilDeadline < 0;
   const isUrgent = daysUntilDeadline <= 3 && daysUntilDeadline >= 0;
@@ -615,27 +618,48 @@ const OfferSection = ({ offer, onAccept, onReject, isProcessing }: OfferSectionP
       )}
 
       {offer.status === 'pending' && !isExpired && (
-        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200">
+        <div className="flex flex-col gap-4 pt-4 border-t border-slate-200">
+          {/* Electronic Signature Button (REC-018) */}
           <button
-            onClick={onAccept}
+            onClick={onSign}
             disabled={isProcessing}
-            className="btn-success flex-1 flex items-center justify-center gap-2"
+            className="btn-primary w-full flex items-center justify-center gap-2 py-3"
           >
             {isProcessing ? (
               <LoadingSpinner size="sm" />
             ) : (
-              <CheckCircleIcon className="w-5 h-5" />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
             )}
-            <span>Accept Offer</span>
+            <span>Sign & Accept Offer</span>
           </button>
-          <button
-            onClick={onReject}
-            disabled={isProcessing}
-            className="btn-danger flex-1 flex items-center justify-center gap-2"
-          >
-            {isProcessing ? <LoadingSpinner size="sm" /> : <XCircleIcon className="w-5 h-5" />}
-            <span>Decline Offer</span>
-          </button>
+          <p className="text-xs text-slate-500 text-center">
+            By signing, you electronically accept the offer terms
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={onAccept}
+              disabled={isProcessing}
+              className="btn-success flex-1 flex items-center justify-center gap-2"
+            >
+              {isProcessing ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                <CheckCircleIcon className="w-5 h-5" />
+              )}
+              <span>Accept Without Signature</span>
+            </button>
+            <button
+              onClick={onReject}
+              disabled={isProcessing}
+              className="btn-danger flex-1 flex items-center justify-center gap-2"
+            >
+              {isProcessing ? <LoadingSpinner size="sm" /> : <XCircleIcon className="w-5 h-5" />}
+              <span>Decline Offer</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -684,6 +708,7 @@ export default function ApplicationStatusPage() {
   const [application, setApplication] = useState<ApplicationDetails | null>(null);
   const [processingOffer, setProcessingOffer] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState<'accept' | 'reject' | null>(null);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
 
   // Load application details from API (BR-27: Application tracking with interviews)
   const loadApplication = useCallback(async () => {
@@ -748,6 +773,32 @@ export default function ApplicationStatusPage() {
       await loadApplication();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to respond to offer');
+    } finally {
+      setProcessingOffer(false);
+    }
+  };
+
+  // Handle electronic signature submission (REC-018)
+  const handleSignOffer = async (signatureData: string) => {
+    if (!application?.offer) return;
+
+    setProcessingOffer(true);
+    setError(null);
+
+    try {
+      // Sign the offer with electronic signature
+      await signOffer(application.offer.id, signatureData);
+      
+      // Also mark as accepted
+      await respondToOffer(application.offer.id, 'accepted');
+
+      // Reload application to get updated state
+      await loadApplication();
+      
+      setShowSignatureModal(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to sign offer');
+      throw err; // Re-throw for SignatureCapture component to handle
     } finally {
       setProcessingOffer(false);
     }
@@ -886,6 +937,7 @@ export default function ApplicationStatusPage() {
           offer={application.offer}
           onAccept={() => setShowConfirmModal('accept')}
           onReject={() => setShowConfirmModal('reject')}
+          onSign={() => setShowSignatureModal(true)}
           isProcessing={processingOffer}
         />
       )}
@@ -986,6 +1038,17 @@ export default function ApplicationStatusPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Electronic Signature Modal (REC-018) */}
+      {showSignatureModal && (
+        <SignatureCapture
+          onSign={handleSignOffer}
+          onCancel={() => setShowSignatureModal(false)}
+          signerName={application?.jobTitle ? `Candidate for ${application.jobTitle}` : 'Candidate'}
+          documentTitle="Employment Offer Letter"
+          isSubmitting={processingOffer}
+        />
       )}
     </div>
   );

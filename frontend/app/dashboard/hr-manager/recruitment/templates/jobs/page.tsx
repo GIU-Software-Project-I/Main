@@ -6,6 +6,7 @@ import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { getJobTemplates, createJobTemplate, updateJobTemplate, deleteJobTemplate } from '@/app/services/recruitment';
+import { organizationStructureService } from '@/app/services/organization-structure';
 import { JobTemplate as ApiJobTemplate } from '@/app/types/recruitment';
 
 // ==================== INTERFACES ====================
@@ -73,12 +74,11 @@ const transformLocalToApi = (formData: FormData) => ({
   skills: stringToArray(formData.skills),
 });
 
-// ==================== STATIC DATA ====================
-const departments = ['Engineering', 'Product', 'Human Resources', 'Finance', 'Marketing', 'Sales', 'Operations'];
-
 // ==================== MAIN COMPONENT ====================
 export default function JobTemplatesPage() {
   const [templates, setTemplates] = useState<JobTemplate[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -94,6 +94,24 @@ export default function JobTemplatesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [saving, setSaving] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<JobTemplate | null>(null);
+
+  // Fetch departments from Organization Structure module (REC-003 integration)
+  const fetchDepartments = useCallback(async () => {
+    try {
+      setLoadingDepartments(true);
+      const deptData = await organizationStructureService.getDepartments();
+      // Extract department names from the response
+      const deptNames = (deptData || []).map((dept: any) => dept.name || dept.departmentName || dept.title).filter(Boolean);
+      // Fallback to static list if API returns empty
+      setDepartments(deptNames.length > 0 ? deptNames : ['Engineering', 'Product', 'Human Resources', 'Finance', 'Marketing', 'Sales', 'Operations']);
+    } catch (err) {
+      console.error('Failed to load departments:', err);
+      // Fallback to static list on error
+      setDepartments(['Engineering', 'Product', 'Human Resources', 'Finance', 'Marketing', 'Sales', 'Operations']);
+    } finally {
+      setLoadingDepartments(false);
+    }
+  }, []);
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -113,7 +131,8 @@ export default function JobTemplatesPage() {
 
   useEffect(() => {
     fetchTemplates();
-  }, [fetchTemplates]);
+    fetchDepartments();
+  }, [fetchTemplates, fetchDepartments]);
 
   // ==================== VALIDATION (BR-2) ====================
   const validateForm = (): boolean => {

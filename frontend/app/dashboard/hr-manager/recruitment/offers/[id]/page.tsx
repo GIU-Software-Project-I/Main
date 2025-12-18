@@ -17,6 +17,7 @@ import {
   getApplicationById,
   getJobById,
 } from '@/app/services/recruitment';
+import OfferLetterGenerator from '@/app/components/recruitment/OfferLetterGenerator';
 
 // ==================== INTERFACES ====================
 interface OfferDetail {
@@ -256,6 +257,7 @@ export default function OfferDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const [showOfferLetterGenerator, setShowOfferLetterGenerator] = useState(false);
 
   // Load offer from API with related data
   const loadOffer = useCallback(async () => {
@@ -689,6 +691,24 @@ export default function OfferDetailPage() {
                 </Button>
               </div>
             )}
+
+            {/* Generate Offer Letter (REC-018) */}
+            <div className="mt-6 pt-6 border-t border-slate-100">
+              <h4 className="text-sm font-medium text-slate-500 mb-3">Offer Letter Document</h4>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowOfferLetterGenerator(true)}
+                className="w-full sm:w-auto"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Generate Offer Letter
+              </Button>
+              <p className="mt-2 text-xs text-slate-500">
+                Generate a professional offer letter document for printing or PDF download
+              </p>
+            </div>
           </Card>
 
           {/* Signature Status */}
@@ -878,6 +898,27 @@ export default function OfferDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Offer Letter Generator Modal (REC-018) */}
+      {showOfferLetterGenerator && offer && (
+        <OfferLetterGenerator
+          offer={{
+            candidateName: offer.candidateName,
+            candidateEmail: offer.candidateEmail,
+            jobTitle: offer.jobTitle,
+            department: offer.department,
+            salary: offer.salary,
+            bonus: offer.bonus,
+            benefits: offer.benefits,
+            conditions: offer.conditions,
+            insurances: offer.insurances,
+            startDate: offer.startDate,
+            expirationDate: offer.expirationDate,
+            createdAt: offer.createdAt,
+          }}
+          onClose={() => setShowOfferLetterGenerator(false)}
+        />
       )}
     </div>
   );

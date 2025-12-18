@@ -5,7 +5,7 @@ import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
-import { getJobs } from '@/app/services/recruitment';
+import { getJobs, publishJob, closeJob } from '@/app/services/recruitment';
 import { JobRequisition } from '@/app/types/recruitment';
 
 // =====================================================
@@ -281,9 +281,6 @@ function EmployerBrandingSection({ branding }: { branding: EmployerBranding }) {
             ))}
           </div>
         </div>
-        <Button variant="outline" size="sm">
-          Edit Branding
-        </Button>
       </div>
     </Card>
   );
@@ -300,6 +297,8 @@ export default function HREmployeeJobsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedJob, setSelectedJob] = useState<JobWithDetails | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Load jobs from API
   const loadJobs = useCallback(async () => {
@@ -358,6 +357,44 @@ export default function HREmployeeJobsPage() {
       </div>
     );
   }
+
+  // Handle Publish Job (REC-023: Test 3.6)
+  const handlePublish = async (jobRequisitionId: string) => {
+    console.log('[Publish] Job Requisition ID:', jobRequisitionId);
+    if (!confirm('Publish this job to the public careers page?')) return;
+    try {
+      setIsPublishing(true);
+      setError(null);
+      // publishJob uses requisitionId which is the MongoDB _id
+      await publishJob(jobRequisitionId, true);
+      await loadJobs();
+      setSelectedJob(null);
+      // Show success message
+      alert('Job published successfully! It will now appear on the careers page.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to publish job');
+      console.error('Publish error:', err);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  // Handle Unpublish Job (REC-023: Test 3.10)
+  const handleUnpublish = async (jobRequisitionId: string) => {
+    console.log('[Unpublish] Job Requisition ID:', jobRequisitionId);
+    if (!confirm('Unpublish this job? It will be removed from the public careers page.')) return;
+    try {
+      setError(null);
+      // closeJob uses requisitionId which is the MongoDB _id
+      await closeJob(jobRequisitionId);
+      await loadJobs();
+      // Show success message
+      alert('Job unpublished successfully! It is no longer visible on the careers page.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to unpublish job');
+      console.error('Unpublish error:', err);
+    }
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -494,13 +531,35 @@ export default function HREmployeeJobsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
+                        {/* REC-023: Test 3.5 - Preview Button */}
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedJob(job)}
                         >
-                          View Details
+                          Preview
                         </Button>
+                        {/* REC-023: Test 3.6 - Publish Button */}
+                        {job.publishStatus === 'draft' && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handlePublish(job.requisitionId)}
+                            disabled={isPublishing}
+                          >
+                            Publish
+                          </Button>
+                        )}
+                        {/* REC-023: Test 3.10 - Unpublish Button */}
+                        {job.publishStatus === 'published' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleUnpublish(job.requisitionId)}
+                          >
+                            Unpublish
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -511,16 +570,56 @@ export default function HREmployeeJobsPage() {
         </div>
       </Card>
 
-      {/* Job Preview Modal */}
+      {/* Job Preview Modal (REC-023: Test 3.5) */}
       {selectedJob && (
         <JobPreviewModal
           job={selectedJob}
           branding={defaultEmployerBranding}
           onClose={() => setSelectedJob(null)}
-          onPublish={() => {}} /* HR Employee cannot publish */
-          isPublishing={false}
-          showPublishButton={false}
+          onPublish={() => handlePublish(selectedJob.requisitionId)}
+          isPublishing={isPublishing}
+          showPublishButton={selectedJob.publishStatus === 'draft'}
         />
+      )}
+
+      {/* Create Job Modal (REC-023: Test 3.2) */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-3xl w-full p-6">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Job Creation Notice</h2>
+                <p className="text-slate-600 mb-4">
+                  Job creation is currently managed through the HR Manager dashboard where job templates are configured.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-blue-800 mb-2">
+                    <strong>Current Process:</strong>
+                  </p>
+                  <ol className="list-decimal list-inside space-y-1 text-sm text-blue-700">
+                    <li>HR Manager creates job requisitions using templates</li>
+                    <li>Job requisitions appear in your dashboard as "Draft"</li>
+                    <li>You can preview and publish approved jobs to the careers page</li>
+                    <li>You can manage employer branding and job visibility</li>
+                  </ol>
+                </div>
+                <p className="text-sm text-slate-500">
+                  If you need to create a new job, please contact your HR Manager or use the HR Manager role dashboard.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
