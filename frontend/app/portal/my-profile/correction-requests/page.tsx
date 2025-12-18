@@ -144,8 +144,8 @@ export default function CorrectionRequestsPage() {
                 {activeTab === 'attendance' && (
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button className="bg-slate-900 text-white hover:bg-slate-800 shadow-sm">
-                                + New Attendance Request
+                            <Button className="bg-foreground text-background hover:opacity-90 shadow-lg shadow-foreground/10 rounded-full px-6 transition-all active:scale-95">
+                                New Attendance Request
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[500px]">
@@ -224,8 +224,8 @@ export default function CorrectionRequestsPage() {
                 )}
                 {activeTab === 'profile' && (
                     <Link href="/portal/my-profile/edit">
-                        <Button>
-                            + New Profile Correction
+                        <Button className="rounded-full px-6 shadow-lg shadow-primary/10 transition-all active:scale-95">
+                            New Profile Correction
                         </Button>
                     </Link>
                 )}
@@ -237,13 +237,13 @@ export default function CorrectionRequestsPage() {
                     <TabsTrigger value="attendance">Attendance</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="profile" className="mt-6">
-                    <Card className="border-border shadow-sm">
-                        <CardHeader>
-                            <CardTitle>Profile Data Corrections</CardTitle>
-                            <CardDescription>Requests to change your personal or employment details.</CardDescription>
+                <TabsContent value="profile" className="mt-8">
+                    <Card className="border-border/50 shadow-xl shadow-black/5 rounded-3xl overflow-hidden">
+                        <CardHeader className="bg-muted/10 border-b border-border/40 pb-6 px-8">
+                            <CardTitle className="text-xl font-black uppercase tracking-tight">Profile Data Corrections</CardTitle>
+                            <CardDescription className="text-sm font-medium">History of requests to change your personal or employment details.</CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-8">
                             {profileRequests.length === 0 ? (
                                 <div className="text-center py-10 text-muted-foreground">
                                     No profile correction requests found.
@@ -286,13 +286,13 @@ export default function CorrectionRequestsPage() {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="attendance" className="mt-6">
-                    <Card className="border-border shadow-sm">
-                        <CardHeader>
-                            <CardTitle>Attendance Correction History</CardTitle>
-                            <CardDescription>View the status of your submitted attendance requests.</CardDescription>
+                <TabsContent value="attendance" className="mt-8">
+                    <Card className="border-border/50 shadow-xl shadow-black/5 rounded-3xl overflow-hidden">
+                        <CardHeader className="bg-muted/10 border-b border-border/40 pb-6 px-8">
+                            <CardTitle className="text-xl font-black uppercase tracking-tight">Attendance History</CardTitle>
+                            <CardDescription className="text-sm font-medium">Status of your submitted attendance correction requests.</CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-8">
                             {requests.length === 0 ? (
                                 <div className="text-center py-10 text-muted-foreground">
                                     No attendance correction requests found.

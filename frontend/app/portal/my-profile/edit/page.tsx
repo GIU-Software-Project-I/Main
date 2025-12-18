@@ -294,69 +294,62 @@ export default function EditProfilePage() {
 
             {/* Success Message */}
             {successMessage && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <p className="text-green-800 font-medium">✓ {successMessage}</p>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 animate-in slide-in-from-top-1 duration-300">
+                    <p className="text-emerald-800 text-sm font-medium flex items-center gap-2">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                        {successMessage}
+                    </p>
                 </div>
             )}
 
             {/* Error Message */}
             {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p className="text-red-800 font-medium">⚠ {error}</p>
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 animate-in slide-in-from-top-1 duration-300">
+                    <p className="text-red-800 text-sm font-medium flex items-center gap-2">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                        {error}
+                    </p>
                 </div>
             )}
 
             {/* Profile Header Card */}
-            <div className="bg-primary rounded-lg p-8 text-primary-foreground shadow-lg">
-                <div className="flex items-center gap-6">
-                    <div className="text-8xl">👤</div>
+            <div className="bg-foreground rounded-2xl p-8 text-background shadow-xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg className="w-24 h-24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                </div>
+                <div className="flex items-center gap-8 relative z-10">
+                    <div className="w-24 h-24 flex items-center justify-center bg-background/10 rounded-full border border-background/20 backdrop-blur-sm">
+                        <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                    </div>
                     <div>
-                        <h2 className="text-3xl font-bold">
-                            {profile.firstName} {profile.lastName}
-                        </h2>
-                        <p className="text-primary-foreground/80 mt-2">{profile.positionName || 'N/A'}</p>
-                        <p className="text-primary-foreground/80">{profile.departmentName || 'N/A'}</p>
+                        <h2 className="text-3xl font-black tracking-tight">{profile.firstName} {profile.lastName}</h2>
+                        <div className="flex items-center gap-4 mt-2">
+                            <span className="px-3 py-1 bg-background/10 rounded-full text-xs font-bold uppercase tracking-widest">{profile.positionName || 'N/A'}</span>
+                            <span className="text-background/60 text-xs font-medium">{profile.departmentName || 'N/A'}</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="flex gap-4 border-b border-border">
-                <button
-                    onClick={() => setActiveTab('contact')}
-                    className={`px-4 py-3 font-medium transition-colors ${activeTab === 'contact'
-                        ? 'border-b-2 border-primary text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                >
-                    📞 Contact Information
-                </button>
-                <button
-                    onClick={() => setActiveTab('bio')}
-                    className={`px-4 py-3 font-medium transition-colors ${activeTab === 'bio'
-                        ? 'border-b-2 border-primary text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                >
-                    ✍️ Biography & Photo
-                </button>
-                <button
-                    onClick={() => setActiveTab('emergency')}
-                    className={`px-4 py-3 font-medium transition-colors ${activeTab === 'emergency'
-                        ? 'border-b-2 border-primary text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                >
-                    🚨 Emergency Contacts
-                </button>
-                <button
-                    onClick={() => setActiveTab('correction')}
-                    className={`px-4 py-3 font-medium transition-colors ${activeTab === 'correction'
-                        ? 'border-b-2 border-primary text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                >
-                    📝 Request Correction
-                </button>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide border-b border-border">
+                {[
+                    { id: 'contact', label: 'Contact Details', icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.81 12.81 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg> },
+                    { id: 'bio', label: 'Bio & Photo', icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg> },
+                    { id: 'emergency', label: 'Emergency', icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg> },
+                    { id: 'correction', label: 'Corrections', icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg> },
+                ].map((tab: any) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as any)}
+                        className={`px-5 py-3 text-sm font-bold flex items-center gap-2.5 transition-all border-b-2 whitespace-nowrap ${activeTab === tab.id
+                            ? 'border-primary text-primary bg-primary/5'
+                            : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                            }`}
+                    >
+                        {tab.icon}
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
             {activeTab === 'contact' && (
@@ -397,41 +390,41 @@ export default function EditProfilePage() {
                             <InputWithLabel
                                 label="Street Address"
                                 value={contactInfo.address.streetAddress}
-                                onChange={(e) => setContactInfo({
-                                    ...contactInfo,
-                                    address: { ...contactInfo.address, streetAddress: e.target.value }
-                                })}
+                                onChange={(e) => setContactInfo(prev => ({
+                                    ...prev,
+                                    address: { ...prev.address, streetAddress: e.target.value }
+                                }))}
                                 placeholder="123 Main Street, Apt 4B"
                             />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <InputWithLabel
                                     label="City"
                                     value={contactInfo.address.city}
-                                    onChange={(e) => setContactInfo({
-                                        ...contactInfo,
-                                        address: { ...contactInfo.address, city: e.target.value }
-                                    })}
+                                    onChange={(e) => setContactInfo(prev => ({
+                                        ...prev,
+                                        address: { ...prev.address, city: e.target.value }
+                                    }))}
                                     placeholder="New York"
                                 />
                                 <InputWithLabel
                                     label="Country"
                                     value={contactInfo.address.country}
-                                    onChange={(e) => setContactInfo({
-                                        ...contactInfo,
-                                        address: { ...contactInfo.address, country: e.target.value }
-                                    })}
+                                    onChange={(e) => setContactInfo(prev => ({
+                                        ...prev,
+                                        address: { ...prev.address, country: e.target.value }
+                                    }))}
                                     placeholder="United States"
                                 />
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex gap-4 mt-8">
-                        <LoadingButton type="submit" isLoading={saving}>
-                            💾 Save Contact Information
+                    <div className="flex gap-4 mt-8 pt-6 border-t border-border/50">
+                        <LoadingButton type="submit" isLoading={saving} className="min-w-[160px]">
+                            Update Contact Details
                         </LoadingButton>
                         <Link href="/portal/my-profile">
-                            <Button type="button" variant="outline">
+                            <Button type="button" variant="ghost">
                                 Cancel
                             </Button>
                         </Link>
@@ -456,7 +449,7 @@ export default function EditProfilePage() {
                             <div className="flex flex-col md:flex-row gap-6 items-start">
                                 {/* Current/Preview Image */}
                                 <div className="flex-shrink-0">
-                                    <div className="w-32 h-32 rounded-full border-2 border-border overflow-hidden bg-muted flex items-center justify-center">
+                                    <div className="w-32 h-32 rounded-full border border-border shadow-inner overflow-hidden bg-muted/40 flex items-center justify-center">
                                         {bioInfo.profilePictureUrl ? (
                                             <img
                                                 src={bioInfo.profilePictureUrl}
@@ -468,7 +461,9 @@ export default function EditProfilePage() {
                                                 }}
                                             />
                                         ) : (
-                                            <div className="text-6xl">👤</div>
+                                            <div className="text-muted-foreground/30">
+                                                <svg className="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -502,18 +497,20 @@ export default function EditProfilePage() {
 
                                         <label
                                             htmlFor="profile-picture-upload"
-                                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors cursor-pointer font-medium"
+                                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-foreground text-background rounded-full hover:opacity-90 transition-all cursor-pointer font-bold text-xs uppercase tracking-widest shadow-lg shadow-foreground/10"
                                         >
-                                            📸 Choose Photo
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+                                            Upload Photo
                                         </label>
 
                                         {bioInfo.profilePictureUrl && (
                                             <button
                                                 type="button"
                                                 onClick={() => setBioInfo({ ...bioInfo, profilePictureUrl: '' })}
-                                                className="inline-flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-colors font-medium ml-2"
+                                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-destructive/5 text-destructive border border-destructive/20 rounded-full hover:bg-destructive/10 transition-all font-bold text-xs uppercase tracking-widest ml-3"
                                             >
-                                                🗑️ Remove Photo
+                                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                                                Remove
                                             </button>
                                         )}
                                     </div>
@@ -542,12 +539,12 @@ export default function EditProfilePage() {
                         </div>
                     </div>
 
-                    <div className="flex gap-4 mt-8">
-                        <LoadingButton type="submit" isLoading={saving}>
-                            💾 Save Biography
+                    <div className="flex gap-4 mt-8 pt-6 border-t border-border/50">
+                        <LoadingButton type="submit" isLoading={saving} className="min-w-[160px]">
+                            Update Biography
                         </LoadingButton>
                         <Link href="/portal/my-profile">
-                            <Button type="button" variant="outline">
+                            <Button type="button" variant="ghost">
                                 Cancel
                             </Button>
                         </Link>
@@ -577,11 +574,13 @@ export default function EditProfilePage() {
                             </div>
 
                             {emergencyContacts.length === 0 ? (
-                                <div className="text-center py-12 bg-muted/50 rounded-lg border border-border border-dashed">
-                                    <div className="text-4xl mb-4">🚨</div>
-                                    <h4 className="text-lg font-medium text-foreground">No Emergency Contacts</h4>
-                                    <p className="text-muted-foreground mt-2 mb-6">You haven't added any emergency contacts yet.</p>
-                                    <Button onClick={() => setShowContactForm(true)}>Add Your First Contact</Button>
+                                <div className="text-center py-16 bg-muted/20 rounded-3xl border border-border/50 border-dashed">
+                                    <div className="w-16 h-16 bg-muted/40 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <svg className="w-8 h-8 text-muted-foreground/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                                    </div>
+                                    <h4 className="text-xl font-black text-foreground uppercase tracking-tight">No Emergency Contacts</h4>
+                                    <p className="text-muted-foreground text-sm mt-2 mb-8 max-w-xs mx-auto">Safety first! Please provide at least one contact for emergency situations.</p>
+                                    <Button onClick={() => setShowContactForm(true)} className="rounded-full px-8">Add Initial Contact</Button>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -597,12 +596,14 @@ export default function EditProfilePage() {
                                                 <p className="text-muted-foreground font-medium">{contact.relationship}</p>
                                             </div>
                                             <div className="space-y-2 text-sm text-foreground mb-6">
-                                                <div className="flex items-center gap-2">
-                                                    <span>📞</span> {contact.phone}
+                                                <div className="flex items-center gap-3">
+                                                    <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.81 12.81 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                                                    {contact.phone}
                                                 </div>
                                                 {contact.email && (
-                                                    <div className="flex items-center gap-2">
-                                                        <span>📧</span> {contact.email}
+                                                    <div className="flex items-center gap-3">
+                                                        <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+                                                        {contact.email}
                                                     </div>
                                                 )}
                                             </div>
@@ -690,11 +691,13 @@ export default function EditProfilePage() {
 
             {activeTab === 'correction' && (
                 <div className="space-y-6">
-                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                        <h4 className="font-semibold text-primary mb-2">📋 About Correction Requests</h4>
-                        <p className="text-primary/80 text-sm">
-                            Use this form to request changes to critical profile data such as name, date of birth,
-                            national ID, or employment details. These requests require HR approval before being applied.
+                    <div className="bg-foreground text-background rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-5">
+                            <svg className="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+                        </div>
+                        <h4 className="font-black uppercase tracking-widest text-xs mb-2">Profile Revision Requests</h4>
+                        <p className="text-background/70 text-sm leading-relaxed max-w-md">
+                            Changes to sensitive data like legal names, IDs, or contracts require HR verification for compliance and security.
                         </p>
                     </div>
 
@@ -733,29 +736,32 @@ export default function EditProfilePage() {
                             </div>
                         </div>
 
-                        <div className="flex gap-4 mt-8">
-                            <LoadingButton type="submit" isLoading={saving}>
-                                📨 Submit Request
+                        <div className="flex gap-4 mt-8 pt-6 border-t border-border/50">
+                            <LoadingButton type="submit" isLoading={saving} className="min-w-[180px]">
+                                Submit Formal Request
                             </LoadingButton>
                             <Button
                                 type="button"
-                                variant="outline"
+                                variant="ghost"
                                 onClick={() => setCorrectionRequest({ requestDescription: '', reason: '' })}
                             >
-                                Clear Form
+                                Reset Form
                             </Button>
                         </div>
                     </form>
 
                     {/* View My Requests Link */}
-                    <div className="bg-muted/50 border border-border rounded-lg p-6">
-                        <h4 className="font-semibold text-foreground mb-2">Track Your Requests</h4>
-                        <p className="text-muted-foreground text-sm mb-4">
-                            Want to see the status of your previous correction requests?
-                        </p>
+                    <div className="bg-muted/10 border border-border/40 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="text-center md:text-left">
+                            <h4 className="font-bold text-foreground">Archive & Tracking</h4>
+                            <p className="text-muted-foreground text-sm mt-1">
+                                Interested in monitoring your submission history?
+                            </p>
+                        </div>
                         <Link href="/portal/my-profile/correction-requests">
-                            <Button variant="outline" size="sm">
-                                View My Correction Requests →
+                            <Button variant="secondary" className="rounded-full px-8">
+                                View Your Revision History
+                                <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
                             </Button>
                         </Link>
                     </div>

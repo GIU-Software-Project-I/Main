@@ -620,41 +620,120 @@ export class EmployeeProfileService {
         requestId: string,
         status: ProfileChangeStatus.APPROVED | ProfileChangeStatus.REJECTED,
         adminUserId?: string,
-        rejectionReason?: string
+        rejectionReason?: string,
+        proposedChanges?: Record<string, any>
     ): Promise<EmployeeProfileChangeRequest> {
-        const request = await this.changeRequestModel.findOne({ requestId })
-            .populate('employeeProfileId');
+        try {
+            // Find request without population to avoid nested validation issues on save
+            const request = await this.changeRequestModel.findOne({ requestId });
 
-        if (!request) {
-            throw new NotFoundException('Change request not found');
+            if (!request) {
+                throw new NotFoundException('Change request not found');
+            }
+
+            request.status = status;
+            request.processedAt = new Date();
+            if (adminUserId) {
+                request.processedBy = new Types.ObjectId(adminUserId);
+            }
+
+            if (rejectionReason) {
+                request.rejectionReason = rejectionReason;
+            }
+
+            // Store proposed changes if provided
+            if (proposedChanges) {
+                request.set('proposedChanges', proposedChanges);
+                request.markModified('proposedChanges');
+            }
+
+            // Auto-apply changes if approved and proposedChanges provided
+            if (status === ProfileChangeStatus.APPROVED && proposedChanges && Object.keys(proposedChanges).length > 0) {
+                const targetProfileId = request.employeeProfileId?.toString();
+
+                if (targetProfileId) {
+                    await this.applyChangeRequestToProfile(targetProfileId, proposedChanges);
+                }
+            }
+
+            const savedRequest = await request.save();
+
+            // Notify user (fetch profile separately to avoid population issues)
+            if (request.employeeProfileId) {
+                const profileId = request.employeeProfileId.toString();
+                await this.sharedEmployeeService.sendChangeRequestProcessedNotification(
+                    profileId,
+                    requestId,
+                    status,
+                    rejectionReason
+                );
+            }
+
+            return savedRequest;
+        } catch (error) {
+            console.error('[ERROR] processChangeRequest failed:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Apply approved changes to employee profile
+     * Only allows updating specific safe fields
+     */
+    private async applyChangeRequestToProfile(
+        employeeId: string,
+        changes: Record<string, any>
+    ): Promise<void> {
+        const allowedFields = [
+            // Contact Information
+            'mobilePhone',
+            'homePhone',
+            'personalEmail',
+            'address.city',
+            'address.streetAddress',
+            'address.country',
+            'address', // For full address object
+            // Personal Information
+            'biography',
+            'profilePictureUrl',
+            // Banking (if allowed by policy)
+            'bankName',
+            'bankAccountNumber',
+        ];
+
+        const profile = await this.employeeProfileModel.findById(employeeId);
+        if (!profile) return;
+
+        let hasChanges = false;
+
+        for (const [field, value] of Object.entries(changes)) {
+            if (!allowedFields.includes(field)) continue;
+
+            // Handle nested address fields
+            if (field.startsWith('address.')) {
+                if (!profile.address) {
+                    profile.address = {} as any;
+                }
+                const subField = field.split('.')[1];
+                (profile.address as any)[subField] = value;
+                profile.markModified('address');
+                hasChanges = true;
+            } else {
+                // Handle top-level fields
+                profile.set(field, value);
+                hasChanges = true;
+            }
         }
 
-        if (request.status !== ProfileChangeStatus.PENDING) {
-            throw new BadRequestException(
-                `Cannot process a request with status ${request.status}. Only PENDING requests can be processed.`
+        if (hasChanges) {
+            await profile.save();
+
+            // Send notification about profile update
+            await this.sharedEmployeeService.sendProfileUpdatedNotification(
+                employeeId,
+                profile.fullName || 'Employee'
             );
         }
-
-        if (status === ProfileChangeStatus.REJECTED && !rejectionReason) {
-            throw new BadRequestException('Rejection reason is required when rejecting a request');
-        }
-
-        request.status = status;
-        request.processedAt = new Date();
-
-        const savedRequest = await request.save();
-
-        const employeeProfile = request.employeeProfileId as any;
-        if (employeeProfile?._id) {
-            await this.sharedEmployeeService.sendChangeRequestProcessedNotification(
-                employeeProfile._id.toString(),
-                requestId,
-                status,
-                rejectionReason
-            );
-        }
-
-        return savedRequest;
     }
 
     async getEmployeeCountByStatus(): Promise<Record<string, number>> {
