@@ -311,6 +311,8 @@ export default function TaxRulesPage() {
       rate: '',
     });
     setSelectedTaxRule(null);
+    // Clear error when form is reset/closing modal
+    setError(null);
   };
 
   const handleCreateClick = () => {
@@ -324,6 +326,10 @@ export default function TaxRulesPage() {
       ...prev,
       [name]: value
     }));
+    // Clear error when user starts typing/changing form
+    if (error && error.includes('already exists')) {
+      setError(null);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -343,6 +349,27 @@ export default function TaxRulesPage() {
   const formatPercentage = (rate: number) => {
     if (rate === undefined || rate === null) return '—';
     return `${rate.toFixed(2)}%`;
+  };
+
+  // Helper function to get duplicate error for display in real-time
+  const getDuplicateError = () => {
+    if (formData.useCustomName) {
+      if (!formData.customName.trim()) return null;
+      
+      const isDuplicate = taxRules.some(rule => 
+        rule.name.toLowerCase() === formData.customName.toLowerCase()
+      );
+      
+      return isDuplicate ? `Tax rule name "${formData.customName}" already exists. Please use a different name.` : null;
+    } else {
+      if (!formData.name) return null;
+      
+      const isDuplicate = taxRules.some(rule => 
+        rule.name.toLowerCase() === formData.name.toLowerCase()
+      );
+      
+      return isDuplicate ? `Tax rule name "${formData.name}" already exists. Please use a different name.` : null;
+    }
   };
 
   if (loading) {
@@ -401,8 +428,8 @@ export default function TaxRulesPage() {
         </div>
       )}
 
-      {/* Error Alert */}
-      {error && (
+      {/* Error Alert - Only show errors not related to duplicate name when modal is closed */}
+      {error && !showModal && !error.includes('already exists') && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
           <div className="text-red-600">✕</div>
           <div>
@@ -480,10 +507,10 @@ export default function TaxRulesPage() {
                         {/* View button */}
                         <button
                           onClick={() => handleViewClick(taxRule)}
-                          className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          className="px-3 py-1 text-sm border border-blue-600 text-blue-600 rounded hover:bg-blue-600 hover:text-white transition-colors"
                           title="View Details"
                         >
-                          👁️
+                          View
                         </button>
                        
                         {/* Edit button - Only show for DRAFT rules */}
@@ -491,13 +518,11 @@ export default function TaxRulesPage() {
                           <>
                             <button
                               onClick={() => handleEditClick(taxRule)}
-                              className="p-1.5 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                              className="px-3 py-1 text-sm border border-green-600 text-green-600 rounded hover:bg-green-600 hover:text-white transition-colors"
                               title="Edit"
                             >
-                              ✏️
+                              Edit
                             </button>
-                           
-                       
                           </>
                         )}
                       </div>
@@ -512,11 +537,10 @@ export default function TaxRulesPage() {
 
       {/* Information Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-2">📋 Legal & Policy Admin Information - Tax Rules</h3>
+        <h3 className="font-semibold text-blue-900 mb-2">Legal & Policy Admin Information - Tax Rules</h3>
         <ul className="text-blue-800 text-sm space-y-2">
           <li>• As a Legal & Policy Admin, you can <span className="font-semibold">create draft</span> tax rules</li>
           <li>• You can <span className="font-semibold">edit draft</span> tax rules only (not approved or rejected ones)</li>
-   
           <li>• You can <span className="font-semibold">view all</span> tax rules (draft, approved, rejected)</li>
           <li>• <span className="font-semibold">Approved</span> and <span className="font-semibold">rejected</span> rules cannot be modified</li>
           <li>• Tax rules define tax rates, exemptions, and thresholds for payroll calculations</li>
@@ -537,6 +561,19 @@ export default function TaxRulesPage() {
               </h3>
             </div>
             <div className="p-6 space-y-4">
+              {/* Show error only inside modal */}
+              {(error || getDuplicateError()) && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="text-red-600 mt-0.5">✕</div>
+                    <div>
+                      <p className="text-red-800 font-medium">Validation Error</p>
+                      <p className="text-red-700 text-sm mt-1">{error || getDuplicateError()}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Tax Rule Name *
@@ -569,7 +606,11 @@ export default function TaxRulesPage() {
                     name="customName"
                     value={formData.customName}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-4 py-2 border rounded-lg font-medium text-slate-900 focus:outline-none focus:ring-2 ${
+                      getDuplicateError() && formData.customName.trim() 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-slate-300 focus:ring-blue-500'
+                    }`}
                     required
                     placeholder="Enter custom tax rule name..."
                     maxLength={100}
@@ -580,7 +621,11 @@ export default function TaxRulesPage() {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-4 py-2 border rounded-lg font-medium text-slate-900 focus:outline-none focus:ring-2 ${
+                      getDuplicateError() && formData.name 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-slate-300 focus:ring-blue-500'
+                    }`}
                     required
                     disabled={!!selectedTaxRule}
                   >
@@ -596,6 +641,15 @@ export default function TaxRulesPage() {
                   {formData.useCustomName 
                     ? 'Enter a custom name for your tax rule' 
                     : 'Select from predefined tax types or enable custom name'}
+                  {!selectedTaxRule && formData.name && !formData.useCustomName && (
+                    <span className="ml-1">
+                      {getDuplicateError() ? (
+                        <span className="text-red-600 font-medium">This name already exists!</span>
+                      ) : (
+                        <span className="text-green-600">✓ Available</span>
+                      )}
+                    </span>
+                  )}
                 </p>
                 {selectedTaxRule && (
                   <p className="text-xs text-amber-600 mt-1">Tax rule name cannot be changed after creation</p>
@@ -645,7 +699,7 @@ export default function TaxRulesPage() {
               </div>
              
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="text-sm font-medium text-amber-800 mb-2">ℹ️ Important Notes</p>
+                <p className="text-sm font-medium text-amber-800 mb-2">Important Notes</p>
                 <ul className="text-xs text-amber-700 space-y-1">
                   <li>• Tax rate must be between 0% and 100%</li>
                   <li>• Once created, tax rule name cannot be changed</li>
@@ -657,14 +711,17 @@ export default function TaxRulesPage() {
             </div>
             <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
                 className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={selectedTaxRule ? handleUpdateTaxRule : handleCreateTaxRule}
-                disabled={actionLoading}
+                disabled={actionLoading || (!selectedTaxRule && !!getDuplicateError())}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-slate-400 transition-colors font-medium"
               >
                 {actionLoading ? 'Saving...' : selectedTaxRule ? 'Update' : 'Create'}
