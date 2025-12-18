@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRight, TrendingUp, Zap, Mail } from 'lucide-react'
+import { ArrowRight, TrendingUp, Zap, Mail, Briefcase } from 'lucide-react'
 import { Button } from '@/app/components/ui/button'
 import { Badge } from '@/app/components/ui/badge'
 import { Separator } from '@/app/components/ui/separator'
@@ -61,11 +61,27 @@ export function CTASection() {
                   </Link>
                 </Button>
                 <Button variant='outline' size='lg' className='cursor-pointer px-8 py-6 text-lg font-medium group' asChild>
-                  <Link href='#contact'>
-                    <Mail className='me-2 size-5' />
-                    Contact Sales
+                  <Link href='/careers'>
+                    <Briefcase className='me-2 size-5' />
+                    View Careers
                     <ArrowRight className='ms-2 size-4 transition-transform group-hover:translate-x-1' />
                   </Link>
+                </Button>
+                <Button 
+                  variant='outline' 
+                  size='lg' 
+                  className='cursor-pointer px-8 py-6 text-lg font-medium group'
+                  onClick={(e) => {
+                    e.preventDefault()
+                    const element = document.getElementById('contact')
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }
+                  }}
+                >
+                  <Mail className='me-2 size-5' />
+                  Contact Sales
+                  <ArrowRight className='ms-2 size-4 transition-transform group-hover:translate-x-1' />
                 </Button>
               </div>
 

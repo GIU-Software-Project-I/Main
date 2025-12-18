@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Menu, X, Zap } from 'lucide-react'
+import { Menu, Zap, Briefcase } from 'lucide-react'
 import { Button } from '@/app/components/ui/button'
+import { Badge } from '@/app/components/ui/badge'
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -18,26 +20,58 @@ import {
   SheetHeader,
   SheetTitle
 } from '@/app/components/ui/sheet'
-import { useTheme } from '@/app/hooks/use-theme'
 
 const navigationItems = [
   { name: 'Home', href: '/' },
   { name: 'Features', href: '#features' },
   { name: 'Modules', href: '#modules' },
-  { name: 'Career Vision', href: '#career-vision' },
+  { name: 'Careers', href: '/careers', highlight: true },
   { name: 'Contact', href: '#contact' },
 ]
 
 export function LandingNavbar() {
   const [isOpen, setIsOpen] = useState(false)
-  const { setTheme, theme } = useTheme()
+  const pathname = usePathname()
+
+  // Handle smooth scrolling for hash links
+  useEffect(() => {
+    const handleHashClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const link = target.closest('a[href^="#"]')
+      if (link) {
+        const href = link.getAttribute('href')
+        if (href && href.startsWith('#')) {
+          e.preventDefault()
+          const id = href.substring(1)
+          const element = document.getElementById(id)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }
+      }
+    }
+
+    document.addEventListener('click', handleHashClick)
+    return () => document.removeEventListener('click', handleHashClick)
+  }, [])
+
+  const handleLinkClick = (href: string) => {
+    if (href.startsWith('#')) {
+      const id = href.substring(1)
+      const element = document.getElementById(id)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }
+    setIsOpen(false)
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
         {/* Logo */}
         <div className="flex items-center space-x-2">
-          <Link href="/" className="flex items-center space-x-2 cursor-pointer">
+          <Link href="/" className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Zap className="h-5 w-5" />
             </div>
@@ -52,11 +86,33 @@ export function LandingNavbar() {
           <NavigationMenuList>
             {navigationItems.map((item) => (
               <NavigationMenuItem key={item.name}>
-                <NavigationMenuLink asChild>
-                  <Link href={item.href} className={navigationMenuTriggerStyle()}>
+                {item.href.startsWith('#') ? (
+                  <a
+                    href={item.href}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleLinkClick(item.href)
+                    }}
+                    className={navigationMenuTriggerStyle()}
+                  >
                     {item.name}
-                  </Link>
-                </NavigationMenuLink>
+                  </a>
+                ) : (
+                  <NavigationMenuLink asChild>
+                    <Link 
+                      href={item.href} 
+                      className={`${navigationMenuTriggerStyle()} ${item.highlight ? 'text-primary font-semibold' : ''}`}
+                    >
+                      {item.name}
+                      {item.highlight && (
+                        <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/20 text-[10px]">
+                          <Briefcase className="w-3 h-3 mr-1" />
+                          Jobs
+                        </Badge>
+                      )}
+                    </Link>
+                  </NavigationMenuLink>
+                )}
               </NavigationMenuItem>
             ))}
           </NavigationMenuList>
@@ -92,14 +148,34 @@ export function LandingNavbar() {
               </SheetHeader>
               <div className="flex flex-col gap-4">
                 {navigationItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className="text-lg font-medium hover:text-primary transition-colors py-2"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
+                  item.href.startsWith('#') ? (
+                    <a
+                      key={item.name}
+                      href={item.href}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        handleLinkClick(item.href)
+                      }}
+                      className="text-lg font-medium hover:text-primary transition-colors py-2"
+                    >
+                      {item.name}
+                    </a>
+                  ) : (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={`text-lg font-medium hover:text-primary transition-colors py-2 ${item.highlight ? 'text-primary font-semibold' : ''}`}
+                      onClick={() => setIsOpen(false)}
+                    >
+                      {item.name}
+                      {item.highlight && (
+                        <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/20 text-[10px]">
+                          <Briefcase className="w-3 h-3 mr-1" />
+                          Jobs
+                        </Badge>
+                      )}
+                    </Link>
+                  )
                 ))}
                 <div className="border-t pt-4 mt-2 flex flex-col gap-2">
                   <Button variant="outline" className="w-full justify-start" asChild>

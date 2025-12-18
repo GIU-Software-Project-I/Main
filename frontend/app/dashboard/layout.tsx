@@ -5,13 +5,14 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Sidebar from "@/app/components/Sidebar";
 import DashboardHeader from "@/app/components/DashboardHeader";
+import { SystemRole } from "@/app/types";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, isLoading, getDashboardRoute } = useAuth();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
@@ -19,17 +20,65 @@ export default function DashboardLayout({
 
 
   useEffect(() => {
+    if (isLoading) return;
+
     // Redirect to login if not authenticated
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       router.push('/login');
+      return;
     }
-  }, [isAuthenticated, router]);
+
+    // Candidates should ONLY access their own dashboard
+    // Block them from accessing any other dashboard route
+    if (user.role === SystemRole.JOB_CANDIDATE) {
+      const currentPath = window.location.pathname;
+      const candidateDashboard = '/dashboard/job-candidate';
+      
+      // If candidate tries to access any other dashboard, redirect to their own
+      if (!currentPath.startsWith(candidateDashboard)) {
+        router.replace(candidateDashboard);
+        return;
+      }
+    }
+
+    // Employees should not access candidate dashboard
+    if (user.role !== SystemRole.JOB_CANDIDATE) {
+      const currentPath = window.location.pathname;
+      const candidateDashboard = '/dashboard/job-candidate';
+      
+      if (currentPath.startsWith(candidateDashboard)) {
+        router.replace(getDashboardRoute());
+        return;
+      }
+    }
+  }, [isAuthenticated, isLoading, user, router, getDashboardRoute]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-muted-foreground mt-4">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   
 
   // Block rendering if not authenticated
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return null;
+  }
+
+  // Block rendering if candidate tries to access other dashboards
+  if (user.role === SystemRole.JOB_CANDIDATE) {
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+    const candidateDashboard = '/dashboard/job-candidate';
+    if (!currentPath.startsWith(candidateDashboard)) {
+      return null; // Will redirect in useEffect
+    }
   }
 
   return (

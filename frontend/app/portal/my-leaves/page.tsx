@@ -5,6 +5,10 @@ import Link from 'next/link';
 import { leavesService } from '@/app/services/leaves';
 import { notificationsService, type Notification } from '@/app/services/notifications';
 import { useAuth } from '@/app/context/AuthContext';
+import { GlassCard } from '@/app/components/ui/glass-card';
+import { Button } from '@/app/components/ui/button';
+import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
+import { RefreshCw, Plus, AlertCircle, Bell, Calendar } from 'lucide-react';
 import type { LeaveBalanceSummary } from '@/app/types/leaves';
 
 type LeaveBalance = LeaveBalanceSummary[];
@@ -432,14 +436,11 @@ export default function MyLeavesPage() {
     return (
       <div className="p-6 lg:p-8">
         <div className="max-w-5xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="grid grid-cols-3 gap-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-32 bg-white rounded-xl shadow-sm"></div>
-              ))}
-            </div>
-            <div className="h-64 bg-white rounded-xl shadow-sm"></div>
+          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+            <LoadingSpinner size="lg" className="text-primary" />
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">
+              Loading Leave Data
+            </p>
           </div>
         </div>
       </div>
@@ -452,64 +453,67 @@ export default function MyLeavesPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-semibold text-gray-900">My Leaves</h1>
-            <p className="text-gray-500 mt-1">
+            <h1 className="text-2xl lg:text-3xl font-black tracking-tighter text-foreground">My Leaves</h1>
+            <p className="text-sm text-muted-foreground mt-2">
               View your leave balance and manage requests
               {lastUpdated && (
-                <span className="ml-2 text-xs text-gray-400">
+                <span className="ml-2 text-xs text-muted-foreground/70">
                   • Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               )}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
               onClick={manualRefresh}
               disabled={isRefreshing}
-              className="inline-flex items-center gap-2 px-3 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
               title="Refresh data"
             >
-              <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-            <Link
-              href="/portal/my-leaves/request"
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Request Leave
-            </Link>
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button asChild className="rounded-xl">
+              <Link href="/portal/my-leaves/request">
+                <Plus className="w-4 h-4 mr-2" />
+                Request Leave
+              </Link>
+            </Button>
           </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error}
-          </div>
+          <GlassCard variant="strong" className="p-4 border-destructive/20">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-destructive">Error</p>
+                <p className="text-sm text-destructive/80 mt-1">{error}</p>
+              </div>
+            </div>
+          </GlassCard>
         )}
 
         {/* Leave Notifications */}
         {visibleNotifications.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <GlassCard className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
+              <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Bell className="w-4 h-4 text-primary" />
                 Recent Updates
               </h3>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">{visibleNotifications.length} notification{visibleNotifications.length !== 1 ? 's' : ''}</span>
+                <span className="text-xs text-muted-foreground">{visibleNotifications.length} notification{visibleNotifications.length !== 1 ? 's' : ''}</span>
                 {visibleNotifications.length > 0 && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setDismissedNotifications(new Set(notifications.map(n => n._id)))}
-                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    className="text-xs h-auto p-1"
                   >
                     Dismiss all
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -557,7 +561,7 @@ export default function MyLeavesPage() {
                 );
               })}
             </div>
-          </div>
+          </GlassCard>
         )}
 
         {/* Balance Cards - original 3-card layout using real balances */}
@@ -602,7 +606,7 @@ export default function MyLeavesPage() {
         </div>
 
         {/* Quick Stats */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <GlassCard className="p-4">
           <div className="flex flex-wrap gap-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
@@ -664,21 +668,21 @@ export default function MyLeavesPage() {
               </div>
             )}
           </div>
-        </div>
+        </GlassCard>
 
         {/* Leave Requests */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
+        <GlassCard className="overflow-hidden">
+          <div className="px-6 py-4 border-b border-border">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <h2 className="font-semibold text-gray-900">Leave Requests</h2>
-                <span className="text-sm text-gray-500">({totalRequests} total)</span>
+                <h2 className="font-semibold text-foreground">Leave Requests</h2>
+                <span className="text-sm text-muted-foreground">({totalRequests} total)</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                    showFilters ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-xl transition-colors ${
+                    showFilters ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -698,10 +702,10 @@ export default function MyLeavesPage() {
                 <button
                   key={status}
                   onClick={() => setFilterStatus(status)}
-                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  className={`px-3 py-1.5 text-sm rounded-xl transition-colors ${
                     filterStatus === status
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-foreground text-background'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
                 >
                   {status === 'all' ? 'All' : status === 'RETURNED_FOR_CORRECTION' ? 'Needs Correction' : status.charAt(0) + status.slice(1).toLowerCase()}
@@ -711,15 +715,15 @@ export default function MyLeavesPage() {
 
             {/* Advanced Filters Panel */}
             {showFilters && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="mt-4 p-4 bg-muted/30 rounded-xl border border-border">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Leave Type Filter */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Leave Type</label>
+                    <label className="block text-sm font-medium text-foreground mb-1">Leave Type</label>
                     <select
                       value={filterLeaveType}
                       onChange={(e) => setFilterLeaveType(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                     >
                       <option value="all">All Types</option>
                       {leaveTypes.map((type) => (
@@ -732,33 +736,33 @@ export default function MyLeavesPage() {
 
                   {/* Date From Filter */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                    <label className="block text-sm font-medium text-foreground mb-1">From Date</label>
                     <input
                       type="date"
                       value={filterDateFrom}
                       onChange={(e) => setFilterDateFrom(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                     />
                   </div>
 
                   {/* Date To Filter */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                    <label className="block text-sm font-medium text-foreground mb-1">To Date</label>
                     <input
                       type="date"
                       value={filterDateTo}
                       onChange={(e) => setFilterDateTo(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                     />
                   </div>
 
                   {/* Sort By */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                    <label className="block text-sm font-medium text-foreground mb-1">Sort By</label>
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                     >
                       <option value="-dates.from">Date (Newest First)</option>
                       <option value="dates.from">Date (Oldest First)</option>
@@ -823,61 +827,69 @@ export default function MyLeavesPage() {
               )}
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border">
               {requests.map((request) => {
                 const statusConfig = getStatusConfig(request.status);
                 return (
-                  <div key={request._id} className="p-4 sm:p-5 hover:bg-gray-50 transition-colors">
+                  <div key={request._id} className="p-4 sm:p-5 hover:bg-muted/30 transition-colors">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="flex items-center gap-3 flex-1">
                         <div className={`w-1 h-12 rounded-full ${getLeaveTypeColor(request.type)}`}></div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-medium text-gray-900 capitalize">{request.type || 'Unknown'} Leave</h3>
+                            <h3 className="font-medium text-foreground capitalize">{request.type || 'Unknown'} Leave</h3>
                             <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
                               {statusConfig.label}
                             </span>
                           </div>
-                          <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                          <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
+                              <Calendar className="w-4 h-4" />
                               {new Date(request.startDate).toLocaleDateString()} - {new Date(request.endDate).toLocaleDateString()}
                             </span>
                             <span>{request.days} day{request.days !== 1 ? 's' : ''}</span>
                           </div>
                           {request.reason && (
-                            <p className="text-sm text-gray-600 mt-2 line-clamp-1">{request.reason}</p>
+                            <p className="text-sm text-foreground/80 mt-2 line-clamp-1">{request.reason}</p>
                           )}
                           {request.rejectionReason && (
-                            <p className="text-sm text-red-600 mt-2">Reason: {request.rejectionReason}</p>
+                            <p className="text-sm text-destructive mt-2">Reason: {request.rejectionReason}</p>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 sm:ml-auto">
                         {request.status === 'PENDING' && (
-                          <button
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleCancel(request._id)}
-                            className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="rounded-xl text-destructive hover:text-destructive"
                           >
                             Cancel
-                          </button>
+                          </Button>
                         )}
                         {request.status === 'RETURNED_FOR_CORRECTION' && (
-                          <Link
-                            href={`/portal/my-leaves/request/${request._id}/edit`}
-                            className="px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="rounded-xl"
                           >
-                            Resubmit
-                          </Link>
+                            <Link href={`/portal/my-leaves/request/${request._id}/edit`}>
+                              Resubmit
+                            </Link>
+                          </Button>
                         )}
-                        <Link
-                          href={`/portal/my-leaves/request/${request._id}`}
-                          className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          asChild
+                          className="rounded-xl"
                         >
-                          View
-                        </Link>
+                          <Link href={`/portal/my-leaves/request/${request._id}`}>
+                            View
+                          </Link>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -885,25 +897,23 @@ export default function MyLeavesPage() {
               })}
             </div>
           )}
-        </div>
+        </GlassCard>
 
         {/* Help Card */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-6">
+        <GlassCard className="p-6 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <div className="w-10 h-10 bg-background/50 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm border border-border/50">
+              <AlertCircle className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">Leave Policy</h3>
-              <p className="text-gray-600 mt-1 text-sm">
+              <h3 className="font-semibold text-foreground">Leave Policy</h3>
+              <p className="text-muted-foreground mt-1 text-sm">
                 Leave requests require approval from your manager. Medical certificates may be required for sick leave exceeding 1 day.
                 For questions about leave policies, please contact HR.
               </p>
             </div>
           </div>
-        </div>
+        </GlassCard>
       </div>
     </div>
   );
@@ -940,22 +950,20 @@ function BalanceCard({
   const colors = colorClasses[color];
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <GlassCard className="p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-medium text-gray-900">{title}</h3>
+        <h3 className="font-medium text-foreground">{title}</h3>
         <div className={`w-8 h-8 ${colors.light} rounded-lg flex items-center justify-center`}>
-          <svg className={`w-4 h-4 ${colors.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
+          <Calendar className={`w-4 h-4 ${colors.text}`} />
         </div>
       </div>
 
       <div className="mb-3">
-        <span className="text-3xl font-bold text-gray-900">{available}</span>
-        <span className="text-gray-500 ml-1">/ {totalEntitled} days</span>
+        <span className="text-3xl font-black text-foreground">{available}</span>
+        <span className="text-muted-foreground ml-1">/ {totalEntitled} days</span>
       </div>
 
-      <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
+      <div className="w-full bg-muted rounded-full h-2 mb-3">
         <div
           className={`h-2 rounded-full ${colors.bg}`}
           style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -963,10 +971,10 @@ function BalanceCard({
       </div>
 
       <div className="flex justify-between text-sm">
-        <span className="text-gray-500">Used: {taken}</span>
-        {pending > 0 && <span className="text-amber-600">Pending: {pending}</span>}
+        <span className="text-muted-foreground">Used: {taken}</span>
+        {pending > 0 && <span className="text-amber-600 dark:text-amber-400">Pending: {pending}</span>}
       </div>
-    </div>
+    </GlassCard>
   );
 }
 

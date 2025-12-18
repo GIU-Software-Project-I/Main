@@ -1,9 +1,10 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
+import { SystemRole } from '@/app/types';
 
 interface PortalLayoutProps {
   children: ReactNode;
@@ -183,8 +184,42 @@ function NavItem({ item, isActive, pathname }: NavItemProps) {
 
 export default function PortalLayout({ children }: PortalLayoutProps) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const router = useRouter();
+  const { user, logout, isAuthenticated, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Block candidates from accessing employee portal
+  useEffect(() => {
+    if (isLoading) return;
+    
+    if (!isAuthenticated || !user) {
+      router.push('/login');
+      return;
+    }
+
+    // Candidates should not access employee portal - redirect to their dashboard
+    if (user.role === SystemRole.JOB_CANDIDATE) {
+      router.push('/dashboard/job-candidate');
+      return;
+    }
+  }, [isAuthenticated, isLoading, user, router]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-muted-foreground mt-4">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Block rendering if not authenticated or is candidate
+  if (!isAuthenticated || !user || user.role === SystemRole.JOB_CANDIDATE) {
+    return null;
+  }
 
   const isActive = (href: string) => {
     if (href === '/portal/my-profile') {
@@ -234,7 +269,7 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
       >
         {/* Logo/Brand */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-border flex-shrink-0">
-          <Link href={getRoleDashboardUrl() || '/dashboard/department-employee'} className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3" title="Go to Home">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-primary-foreground font-bold text-sm">HR</span>
             </div>
@@ -271,12 +306,20 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <div className="space-y-1">
+            {/* Go to Home */}
+            <Link
+              href="/"
+              className="flex items-center gap-3 px-3 py-2.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground rounded-lg transition-colors mb-2"
+            >
+              <NavIcon name="home" className="w-5 h-5" />
+              <span>Go to Home</span>
+            </Link>
             {/* Back to Dashboard */}
             <Link
               href={getRoleDashboardUrl() || '/dashboard/department-employee'}
               className="flex items-center gap-3 px-3 py-2.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground rounded-lg transition-colors mb-4"
             >
-              <NavIcon name="home" className="w-5 h-5" />
+              <NavIcon name="layout-dashboard" className="w-5 h-5" />
               <span>Back to Dashboard</span>
             </Link>
 

@@ -8,7 +8,7 @@ import { GlassCard } from '@/app/components/ui/glass-card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { DotPattern } from '@/app/components/dot-pattern';
-import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,14 +18,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !isLoading) {
+      setIsRedirecting(true);
       const dashboardRoute = getDashboardRoute();
-      router.push(dashboardRoute);
+      // Add a small delay before redirecting to show loading state
+      setTimeout(() => {
+        router.push(dashboardRoute);
+      }, 300);
     }
-  }, [isAuthenticated, router, getDashboardRoute]);
+  }, [isAuthenticated, isLoading, router, getDashboardRoute]);
 
   // Clear errors when component mounts
   useEffect(() => {
@@ -46,10 +51,33 @@ export default function LoginPage() {
 
     const success = await login(email, password);
     if (success) {
+      setIsRedirecting(true);
       const dashboardRoute = getDashboardRoute();
-      router.push(dashboardRoute);
+      // Add a small delay before redirecting to show loading state
+      setTimeout(() => {
+        router.push(dashboardRoute);
+      }, 300);
     }
   };
+
+  // Show loading state while checking authentication or redirecting
+  if (isLoading || isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div className="space-y-2">
+            <p className="text-lg font-semibold">
+              {isRedirecting ? 'Redirecting to dashboard...' : 'Loading...'}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {isRedirecting ? 'Please wait' : 'Please wait while we verify your session'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4 bg-background overflow-hidden">
@@ -61,6 +89,16 @@ export default function LoginPage() {
       </div>
 
       <div className="w-full max-w-md relative z-10">
+        {/* Back to Home Button */}
+        <div className="mb-6">
+          <Link href="/">
+            <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Home
+            </Button>
+          </Link>
+        </div>
+
         <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <Link href="/" className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-primary to-blue-600 rounded-xl mb-4 shadow-lg shadow-primary/20 hover:scale-105 transition-transform duration-300">
             <span className="text-white font-bold text-xl">HR</span>

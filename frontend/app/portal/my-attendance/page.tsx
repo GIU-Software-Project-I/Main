@@ -284,7 +284,7 @@ export default function MyAttendancePage() {
       case 'REJECTED':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -624,7 +624,7 @@ export default function MyAttendancePage() {
       case 'RESOLVED':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300';
+        return 'bg-muted text-muted-foreground';
     }
   };
 

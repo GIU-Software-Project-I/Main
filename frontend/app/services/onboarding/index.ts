@@ -322,9 +322,22 @@ class OnboardingService {
 
   // Get onboarding by ID
   async getOnboardingById(id: string): Promise<Onboarding> {
-    const response = await apiService.get<Onboarding>(`/onboarding/${id}`);
+    const response = await apiService.get<any>(`/onboarding/${id}`);
     if (response.error) throw new Error(response.error);
-    return response.data as Onboarding;
+    const data = response.data;
+    
+    // Transform populated fields to strings
+    const transformed: Onboarding = {
+      ...data,
+      employeeId: typeof data.employeeId === 'object' 
+        ? (data.employeeId._id || data.employeeId.id || String(data.employeeId))
+        : (data.employeeId || ''),
+      contractId: typeof data.contractId === 'object'
+        ? (data.contractId._id || data.contractId.id || String(data.contractId))
+        : (data.contractId || ''),
+    };
+    
+    return transformed;
   }
 
   // ONB-004: Get onboarding by employee ID (New Hire tracker view)

@@ -193,7 +193,7 @@ export async function getJobs(filters?: { status?: string; managerId?: string })
   const params = new URLSearchParams();
   if (filters?.status) params.append('status', filters.status);
   if (filters?.managerId) params.append('managerId', filters.managerId);
-  
+
   const query = params.toString();
   const response = await api.get<JobRequisition[]>(`/recruitment/job-requisitions${query ? `?${query}` : ''}`);
   if (response.error) {
@@ -300,52 +300,52 @@ export async function getApplications(filters?: {
   if (filters?.status) params.append('status', filters.status);
   if (filters?.stage) params.append('stage', filters.stage);
   if (filters?.hrId) params.append('hrId', filters.hrId);
-  
+
   const query = params.toString();
-  
+
   // Fetch applications, candidates, and jobs in parallel
   const [appsResponse, candidatesResponse, jobsResponse] = await Promise.all([
     api.get<any[]>(`/recruitment/applications${query ? `?${query}` : ''}`),
     api.get<any[]>('/recruitment/candidates'),
     api.get<any[]>('/recruitment/job-requisitions'),
   ]);
-  
+
   if (appsResponse.error) {
     throw new Error(appsResponse.error);
   }
-  
+
   const apps = appsResponse.data || [];
   const candidates = candidatesResponse.data || [];
   const jobs = jobsResponse.data || [];
-  
+
   // Create lookup maps
   const candidateMap: Record<string, any> = {};
   candidates.forEach(c => {
     const id = extractId(c);
     if (id) candidateMap[id] = c;
   });
-  
+
   const jobMap: Record<string, any> = {};
   jobs.forEach(j => {
     const id = extractId(j);
     if (id) jobMap[id] = j;
   });
-  
+
   // Enrich applications with candidate and job data
   return apps.map(app => {
     const appId = extractId(app);
     const candidateId = extractIdValue(app.candidateId);
     const requisitionId = extractIdValue(app.requisitionId);
-    
+
     const candidate = candidateMap[candidateId];
     const job = jobMap[requisitionId];
-    
+
     return {
       ...app,
       id: appId,
       candidateId,
       requisitionId,
-      candidateName: candidate 
+      candidateName: candidate
         ? `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || candidate.email || 'Unknown'
         : 'Unknown Candidate',
       candidateEmail: candidate?.email || '',
@@ -393,7 +393,7 @@ export async function applyToJob(applicationData: PublicApplicationRequest): Pro
   if (!applicationData.dataProcessingConsent) {
     throw new Error('Data processing consent is required to submit application (GDPR compliance)');
   }
-  
+
   const response = await api.post<Application>('/recruitment/applications', applicationData);
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to submit application');
@@ -449,11 +449,22 @@ export async function updateApplicationStatus(id: string, data: UpdateApplicatio
  * Reject an application
  */
 export async function rejectApplication(id: string, reason?: string): Promise<Application> {
-  const response = await api.patch<Application>(`/recruitment/applications/${id}/reject`, { reason });
-  if (response.error || !response.data) {
-    throw new Error(response.error || 'Failed to reject application');
+  try {
+    const response = await api.patch<Application>(`/recruitment/applications/${id}/reject`, reason ? { reason } : {});
+    if (response.error || !response.data) {
+      throw new Error(response.error || 'Failed to reject application');
+    }
+    return response.data;
+  } catch (error: any) {
+    // Provide more specific error messages
+    if (error.response?.status === 400) {
+      throw new Error(error.response?.data?.message || 'Invalid request. Application may already be rejected or hired.');
+    }
+    if (error.response?.status === 404) {
+      throw new Error('Application not found');
+    }
+    throw error;
   }
-  return response.data;
 }
 
 /**
@@ -466,6 +477,7 @@ export async function getApplicationHistory(id: string): Promise<unknown[]> {
   }
   return response.data || [];
 }
+
 
 /**
  * Get applications by candidate
@@ -495,13 +507,35 @@ export async function triggerPreboarding(applicationId: string): Promise<unknown
 
 /**
  * Transform interview from backend to frontend format
- * Handles MongoDB _id to id mapping
+ * Handles MongoDB _id to id mapping and populated fields
  */
 function transformInterview(interview: any): Interview {
+  // Handle populated applicationId (could be object or string)
+  const applicationId = extractIdValue(interview.applicationId);
+  
+  // Handle populated panel array (could contain objects or strings)
+  const panel = Array.isArray(interview.panel)
+    ? interview.panel.map((p: any) => extractIdValue(p))
+    : [];
+
+  // Extract full application data if populated
+  const applicationData = typeof interview.applicationId === 'object' && interview.applicationId
+    ? interview.applicationId
+    : undefined;
+
+  // Extract full panel data if populated
+  const panelData = Array.isArray(interview.panel) && interview.panel.some((p: any) => typeof p === 'object')
+    ? interview.panel
+    : undefined;
+
   return {
     ...interview,
     id: extractId(interview),
-    applicationId: extractIdValue(interview.applicationId),
+    applicationId,
+    panel,
+    // Preserve full populated data for display
+    applicationData,
+    panelData,
   };
 }
 
@@ -513,13 +547,15 @@ export async function getInterviews(filters?: {
   interviewerId?: string;
   type?: string;
   status?: string;
+  days?: number;
 }): Promise<Interview[]> {
   const params = new URLSearchParams();
   if (filters?.applicationId) params.append('applicationId', filters.applicationId);
   if (filters?.interviewerId) params.append('interviewerId', filters.interviewerId);
   if (filters?.type) params.append('type', filters.type);
   if (filters?.status) params.append('status', filters.status);
-  
+  if (filters?.days !== undefined) params.append('days', filters.days.toString());
+
   const query = params.toString();
   const response = await api.get<any[]>(`/recruitment/interviews${query ? `?${query}` : ''}`);
   if (response.error) {
@@ -639,15 +675,35 @@ export async function submitInterviewFeedback(data: SubmitFeedbackRequest): Prom
 }
 
 /**
+ * Transform feedback/assessment result from backend to frontend format
+ * Handles populated interviewerId and interviewId fields
+ */
+function transformFeedback(feedback: any): FeedbackResult {
+  // Handle interviewId and interviewerId (may be objects or strings)
+  const interviewId = extractIdValue(feedback.interviewId);
+  const interviewerId = extractIdValue(feedback.interviewerId);
+
+  return {
+    ...feedback,
+    id: extractId(feedback),
+    interviewId,
+    interviewerId,
+    // Preserve full data if populated (backend doesn't populate these anymore, but keep for compatibility)
+    interviewData: typeof feedback.interviewId === 'object' ? feedback.interviewId : undefined,
+    interviewerData: typeof feedback.interviewerId === 'object' ? feedback.interviewerId : undefined,
+  };
+}
+
+/**
  * Get feedback/assessment results for an interview (REC-011)
  * Backend: GET /recruitment/feedback/interview/:interviewId
  */
 export async function getFeedbackByInterview(interviewId: string): Promise<FeedbackResult[]> {
-  const response = await api.get<FeedbackResult[]>(`/recruitment/feedback/interview/${interviewId}`);
+  const response = await api.get<any[]>(`/recruitment/feedback/interview/${interviewId}`);
   if (response.error) {
     throw new Error(response.error);
   }
-  return response.data || [];
+  return (response.data || []).map(transformFeedback);
 }
 
 /**
@@ -679,19 +735,43 @@ export async function updateAssessment(id: string, data: Partial<SubmitAssessmen
 
 /**
  * Transform offer from backend to frontend format
- * Handles MongoDB _id to id mapping
+ * Handles MongoDB _id to id mapping and populated fields
  */
 function transformOffer(offer: any): JobOffer {
+  // Handle populated applicationId, candidateId, hrEmployeeId
+  const applicationId = extractIdValue(offer.applicationId);
+  const candidateId = extractIdValue(offer.candidateId);
+  const hrEmployeeId = extractIdValue(offer.hrEmployeeId);
+  
+  // Handle populated approvers array
+  const approvers = (offer.approvers || []).map((a: any) => ({
+    ...a,
+    employeeId: extractIdValue(a.employeeId),
+    // Preserve populated employee data if needed for display
+    employeeData: typeof a.employeeId === 'object' ? a.employeeId : undefined,
+  }));
+
+  // Extract full application data if populated (now includes all fields)
+  const applicationData = typeof offer.applicationId === 'object' && offer.applicationId
+    ? offer.applicationId
+    : undefined;
+
+  // Extract full candidate data if populated (now includes all fields)
+  const candidateData = typeof offer.candidateId === 'object' && offer.candidateId
+    ? offer.candidateId
+    : undefined;
+
   return {
     ...offer,
     id: extractId(offer),
-    applicationId: extractIdValue(offer.applicationId),
-    candidateId: extractIdValue(offer.candidateId),
-    hrEmployeeId: extractIdValue(offer.hrEmployeeId),
-    approvers: (offer.approvers || []).map((a: any) => ({
-      ...a,
-      employeeId: extractIdValue(a.employeeId),
-    })),
+    applicationId,
+    candidateId,
+    hrEmployeeId,
+    approvers,
+    // Preserve full populated data for display
+    applicationData,
+    candidateData,
+    hrEmployeeData: typeof offer.hrEmployeeId === 'object' ? offer.hrEmployeeId : undefined,
   };
 }
 
@@ -705,7 +785,7 @@ export async function getOffers(filters?: {
   const params = new URLSearchParams();
   if (filters?.applicationId) params.append('applicationId', filters.applicationId);
   if (filters?.status) params.append('status', filters.status);
-  
+
   const query = params.toString();
   const response = await api.get<any[]>(`/recruitment/offers${query ? `?${query}` : ''}`);
   if (response.error) {
@@ -783,12 +863,12 @@ export async function rejectOffer(id: string, approverId: string, comment?: stri
  * Send offer to candidate (REC-018)
  * Backend endpoint: POST /recruitment/offers/:id/send
  */
-export async function sendOffer(id: string): Promise<JobOffer> {
-  const response = await api.post<any>(`/recruitment/offers/${id}/send`, {});
+export async function sendOffer(id: string): Promise<{ sent: boolean; message: string }> {
+  const response = await api.post<{ sent: boolean; message: string }>(`/recruitment/offers/${id}/send`, {});
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to send offer');
   }
-  return transformOffer(response.data);
+  return response.data;
 }
 
 /**
@@ -828,7 +908,7 @@ export async function getCandidates(filters?: {
   const params = new URLSearchParams();
   if (filters?.status) params.append('status', filters.status);
   if (filters?.source) params.append('source', filters.source);
-  
+
   const query = params.toString();
   const response = await api.get<Candidate[]>(`/recruitment/candidates${query ? `?${query}` : ''}`);
   if (response.error) {
@@ -939,7 +1019,7 @@ export async function getTimeToHireReport(params?: { startDate?: string; endDate
   const searchParams = new URLSearchParams();
   if (params?.startDate) searchParams.append('startDate', params.startDate);
   if (params?.endDate) searchParams.append('endDate', params.endDate);
-  
+
   const query = searchParams.toString();
   const response = await api.get(`/recruitment/analytics/time-to-hire${query ? `?${query}` : ''}`);
   if (response.error) {
@@ -980,7 +1060,7 @@ export async function getReferrals(filters?: {
   const params = new URLSearchParams();
   if (filters?.referrerId) params.append('referrerId', filters.referrerId);
   if (filters?.status) params.append('status', filters.status);
-  
+
   const query = params.toString();
   const response = await api.get<unknown[]>(`/recruitment/referrals${query ? `?${query}` : ''}`);
   if (response.error) {
@@ -1049,7 +1129,7 @@ export async function getNotifications(params?: {
   const searchParams = new URLSearchParams();
   if (params?.unreadOnly) searchParams.append('unreadOnly', 'true');
   if (params?.limit) searchParams.append('limit', params.limit.toString());
-  
+
   const query = searchParams.toString();
   const response = await api.get<RecruitmentNotification[]>(`/recruitment/notifications${query ? `?${query}` : ''}`);
   if (response.error) {
@@ -1147,7 +1227,7 @@ export async function getAuditLogs(
   const searchParams = new URLSearchParams();
   searchParams.append('entityId', entityId);
   if (entityType) searchParams.append('entityType', entityType);
-  
+
   const response = await api.get<AuditLog[]>(`/recruitment/audit-logs?${searchParams.toString()}`);
   if (response.error) {
     throw new Error(response.error);
@@ -1171,7 +1251,7 @@ export async function getAnalyticsSummary(params?: {
   if (params?.startDate) searchParams.append('startDate', params.startDate);
   if (params?.endDate) searchParams.append('endDate', params.endDate);
   if (params?.departmentId) searchParams.append('departmentId', params.departmentId);
-  
+
   const query = searchParams.toString();
   const response = await api.get<AnalyticsSummary>(`/recruitment/analytics/summary${query ? `?${query}` : ''}`);
   if (response.error || !response.data) {
@@ -1199,22 +1279,22 @@ export async function getRecruitmentDashboard(): Promise<unknown> {
  * Get interviews by application
  */
 export async function getInterviewsByApplication(applicationId: string): Promise<Interview[]> {
-  const response = await api.get<Interview[]>(`/recruitment/interviews?applicationId=${applicationId}`);
+  const response = await api.get<any[]>(`/recruitment/interviews?applicationId=${applicationId}`);
   if (response.error) {
     throw new Error(response.error);
   }
-  return response.data || [];
+  return (response.data || []).map(transformInterview);
 }
 
 /**
  * Get feedback by application
  */
-export async function getFeedbackByApplication(applicationId: string): Promise<unknown[]> {
-  const response = await api.get<unknown[]>(`/recruitment/feedback/application/${applicationId}`);
+export async function getFeedbackByApplication(applicationId: string): Promise<FeedbackResult[]> {
+  const response = await api.get<any[]>(`/recruitment/feedback/application/${applicationId}`);
   if (response.error) {
     throw new Error(response.error);
   }
-  return response.data || [];
+  return (response.data || []).map(transformFeedback);
 }
 
 /**
@@ -1245,11 +1325,67 @@ export async function getOfferByApplication(applicationId: string): Promise<JobO
  * Get published jobs (public endpoint for careers page)
  */
 export async function getPublishedJobs(): Promise<JobRequisition[]> {
-  const response = await api.get<JobRequisition[]>('/recruitment/job-requisitions?status=published');
+  const response = await api.get<any[]>('/recruitment/job-requisitions/published');
   if (response.error) {
     throw new Error(response.error);
   }
-  return response.data || [];
+  const jobs = response.data || [];
+  
+  // Transform and filter jobs
+  return jobs
+    .map(job => {
+      // Extract ID
+      const id = job._id || job.id || job.requisitionId;
+      
+      // Extract title from template or direct field
+      const title = job.title || job.templateTitle || (job.templateId?.title) || (job.templateId?.templateTitle) || '';
+      
+      // Transform job data
+      return {
+        ...job,
+        id: typeof id === 'object' ? (id._id || id.id || String(id)) : id,
+        _id: typeof id === 'object' ? (id._id || id.id || String(id)) : id,
+        requisitionId: typeof id === 'object' ? (id._id || id.id || String(id)) : id,
+        title: title,
+        templateTitle: title,
+        numberOfOpenings: job.numberOfOpenings || job.openings || 0,
+        department: job.department || job.templateId?.department || '',
+        location: job.location || job.templateId?.location || '',
+        employmentType: job.employmentType || job.templateId?.employmentType || '',
+        description: job.description || job.templateId?.description || '',
+      } as JobRequisition;
+    })
+    .filter(job => {
+      // Must have an ID
+      if (!job.id && !job._id && !job.requisitionId) {
+        console.warn('Job missing ID:', job);
+        return false;
+      }
+      
+      // Must have a title
+      if (!job.title && !job.templateTitle) {
+        console.warn('Job missing title:', job);
+        return false;
+      }
+      
+      // Must have at least one opening
+      const openings = job.numberOfOpenings || job.openings || 0;
+      if (openings <= 0) {
+        console.warn('Job has no openings:', job);
+        return false;
+      }
+      
+      // Check if expired
+      if (job.expiryDate) {
+        const expiry = new Date(job.expiryDate);
+        if (expiry < new Date()) {
+          console.warn('Job expired:', job);
+          return false;
+        }
+      }
+      
+      return true;
+    });
 }
 
 /**
@@ -1267,19 +1403,19 @@ export async function getEmployees(departmentId?: string): Promise<unknown[]> {
   // Backend returns paginated response with { data: [], pagination: {} }
   const result = response.data;
   let employees: any[] = [];
-  
+
   if (result && Array.isArray(result.data)) {
     employees = result.data;
   } else if (Array.isArray(result)) {
     employees = result;
   }
-  
+
   // Transform employees to ensure id and fullName are set
   return employees.map((emp: any) => {
     const firstName = emp.firstName || emp.first_name || '';
     const lastName = emp.lastName || emp.last_name || '';
     const fullName = `${firstName} ${lastName}`.trim();
-    
+
     return {
       ...emp,
       id: extractId(emp),
@@ -1296,14 +1432,14 @@ const recruitmentService = {
   createJobTemplate,
   updateJobTemplate,
   deleteJobTemplate,
-  
+
   // Process Templates
   getProcessTemplates,
   getProcessTemplateById,
   createProcessTemplate,
   updateProcessTemplate,
   deleteProcessTemplate,
-  
+
   // Jobs (Job Requisitions)
   getJobs,
   getJobById,
@@ -1312,7 +1448,7 @@ const recruitmentService = {
   publishJob,
   closeJob,
   getRequisitionProgress,
-  
+
   // Applications
   getApplications,
   getApplicationById,
@@ -1325,7 +1461,7 @@ const recruitmentService = {
   getApplicationHistory,
   getApplicationsByCandidate,
   triggerPreboarding,
-  
+
   // Interviews
   getInterviews,
   getUpcomingInterviews,
@@ -1337,7 +1473,7 @@ const recruitmentService = {
   completeInterview,
   rescheduleInterview,
   getInterviewsByApplication,
-  
+
   // Feedback / Assessments
   submitInterviewFeedback,
   getFeedbackByInterview,
@@ -1345,7 +1481,7 @@ const recruitmentService = {
   updateAssessment,
   getFeedbackByApplication,
   getAverageScore,
-  
+
   // Offers
   getOffers,
   getOfferById,
@@ -1357,28 +1493,28 @@ const recruitmentService = {
   respondToOffer,
   signOffer,
   getOfferByApplication,
-  
+
   // Candidates
   getCandidates,
   getCandidateById,
   createCandidate,
   updateCandidate,
-  
+
   // Documents
   uploadDocument,
   getDocuments,
   deleteDocument,
-  
+
   // Analytics
   getRecruitmentStats,
   getRecruitmentPipeline,
   getTimeToHireReport,
   getAnalyticsSummary,
   getRecruitmentDashboard,
-  
+
   // Jobs (public)
   getPublishedJobs,
-  
+
   // Referrals
   createReferral,
   getReferrals,
@@ -1386,7 +1522,7 @@ const recruitmentService = {
   getReferralByCandidate,
   checkIsReferral,
   updateReferralStatus,
-  
+
   // Notifications (BR-11, BR-36, REC-017, REC-022)
   getNotifications,
   sendStatusUpdateNotification,
@@ -1395,10 +1531,10 @@ const recruitmentService = {
   markNotificationRead,
   markAllNotificationsRead,
   getUnreadNotificationCount,
-  
+
   // Audit Logs (BR-37, BR-26)
   getAuditLogs,
-  
+
   // Employees
   getEmployees,
 };
