@@ -35,6 +35,7 @@ export default function InsuranceBracketsPage() {
   const [brackets, setBrackets] = useState<InsuranceBracket[]>([]);
   const [filter, setFilter] = useState<ConfigStatus | "all">("all");
   const [edit, setEdit] = useState<EditState>(null);
+  const [view, setView] = useState<InsuranceBracket | null>(null);
 
   const filtered = useMemo(() => {
     if (filter === "all") return brackets;
@@ -76,6 +77,12 @@ export default function InsuranceBracketsPage() {
   }, []);
 
   const beginEdit = (bracket: InsuranceBracket) => {
+    // Only allow editing brackets in DRAFT status
+    if (bracket.status !== ConfigStatus.DRAFT) {
+      setError("Only DRAFT insurance brackets can be edited.");
+      return;
+    }
+
     setEdit({
       id: bracket.id,
       minSalary: String(bracket.minSalary),
@@ -89,6 +96,15 @@ export default function InsuranceBracketsPage() {
     setEdit(null);
   };
 
+  const viewItem = (b: InsuranceBracket) => {
+    setEdit(null);
+    setError(null);
+    setSuccess(null);
+    setView(b);
+  };
+
+  const closeView = () => setView(null);
+
   const saveEdit = async () => {
     if (!edit) return;
 
@@ -96,6 +112,14 @@ export default function InsuranceBracketsPage() {
     setSuccess(null);
 
     try {
+      // Double-check current status before saving (in case it changed)
+      const current = brackets.find((b) => b.id === edit.id);
+      if (!current || current.status !== ConfigStatus.DRAFT) {
+        setError("Cannot edit an insurance bracket unless it is in DRAFT status.");
+        setEdit(null);
+        return;
+      }
+
       const payload = {
         minSalary: Number(edit.minSalary),
         maxSalary: Number(edit.maxSalary),
@@ -338,7 +362,7 @@ export default function InsuranceBracketsPage() {
                         </div>
                       ) : (
                         <div className="flex flex-wrap gap-2">
-                          {b.status === ConfigStatus.DRAFT && (
+                          {b.status === ConfigStatus.DRAFT ? (
                             <>
                               <button
                                 className="px-3 py-1 border rounded hover:bg-green-50 text-xs"
@@ -359,12 +383,25 @@ export default function InsuranceBracketsPage() {
                                 Edit
                               </button>
                               <button
+                                className="px-3 py-1 border rounded hover:bg-blue-50 text-xs"
+                                onClick={() => viewItem(b)}
+                              >
+                                View
+                              </button>
+                              <button
                                 className="px-3 py-1 border rounded hover:bg-red-50 text-xs"
                                 onClick={() => deleteItem(b.id)}
                               >
                                 Delete
                               </button>
                             </>
+                          ) : (
+                            <button
+                              className="px-3 py-1 border rounded hover:bg-blue-50 text-xs"
+                              onClick={() => viewItem(b)}
+                            >
+                              View
+                            </button>
                           )}
                         </div>
                       )}
@@ -388,6 +425,52 @@ export default function InsuranceBracketsPage() {
           <li>Approved brackets are immediately applied to payroll calculations</li>
         </ul>
       </div>
+
+      {/* View Modal */}
+      {view && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={closeView} />
+          <div className="relative bg-white w-[95vw] max-w-xl rounded-xl shadow-xl border border-slate-200">
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">{view.name || 'Insurance Bracket'}</h3>
+                <p className="text-xs text-slate-500 mt-0.5">ID: {view.id}</p>
+              </div>
+              <span className={`px-2 py-1 rounded text-xs border ${
+                view.status === ConfigStatus.APPROVED
+                  ? 'bg-green-50 border-green-200 text-green-700'
+                  : view.status === ConfigStatus.REJECTED
+                  ? 'bg-red-50 border-red-200 text-red-700'
+                  : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}>
+                {view.status}
+              </span>
+            </div>
+            <div className="px-6 py-5 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <KV label="Salary Min" value={view.minSalary} />
+                <KV label="Salary Max" value={view.maxSalary} />
+                <KV label="Employee Rate" value={`${view.employeeRate}%`} />
+                <KV label="Employer Rate" value={`${view.employerRate}%`} />
+                <KV label="Created" value={view.createdAt ? new Date(view.createdAt).toLocaleDateString() : '—'} />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex justify-end">
+              <button onClick={closeView} className="px-3 py-1 border rounded hover:bg-slate-50 text-sm">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Small helper for key/value display in the view modal
+function KV({ label, value }: { label: string; value: any }) {
+  return (
+    <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+      <div className="text-xs text-slate-500">{label}</div>
+      <div className="text-sm font-medium text-slate-900">{value ?? '—'}</div>
     </div>
   );
 }
