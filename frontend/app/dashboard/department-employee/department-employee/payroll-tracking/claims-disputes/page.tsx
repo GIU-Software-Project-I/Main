@@ -330,7 +330,7 @@ export default function ClaimsDisputesPage() {
             <h2 className="text-xl font-bold">Request Tracking</h2>
             <p className="text-orange-100 mt-1">Manage your payroll-related requests</p>
           </div>
-          <div className="text-6xl">⚠️</div>
+          <div className="text-6xl"></div>
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
@@ -357,13 +357,13 @@ export default function ClaimsDisputesPage() {
       <div className="flex gap-4 flex-wrap">
         <button
           onClick={() => setShowDisputeForm(true)}
-          className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium flex items-center gap-2"
+          className="px-6 py-3 bg-white border border-slate-200 rounded-lg shadow-sm font-medium flex items-center gap-2 text-slate-900 hover:shadow-md"
         >
           File a Dispute
         </button>
         <button
           onClick={() => setShowClaimForm(true)}
-          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2"
+          className="px-6 py-3 bg-white border border-slate-200 rounded-lg shadow-sm font-medium flex items-center gap-2 text-slate-900 hover:shadow-md"
         >
           Submit a Claim
         </button>
@@ -434,7 +434,7 @@ export default function ClaimsDisputesPage() {
             
             {disputes.length === 0 ? (
               <div className="text-center py-6 text-slate-500">
-                <div className="text-3xl mb-2">✅</div>
+                <div className="text-3xl mb-2"></div>
                 <p>No disputes filed</p>
               </div>
             ) : (
@@ -468,7 +468,7 @@ export default function ClaimsDisputesPage() {
             
             {claims.length === 0 ? (
               <div className="text-center py-6 text-slate-500">
-                <div className="text-3xl mb-2">📋</div>
+                <div className="text-3xl mb-2"></div>
                 <p>No claims submitted</p>
               </div>
             ) : (
@@ -497,7 +497,7 @@ export default function ClaimsDisputesPage() {
             <h3 className="text-lg font-bold text-slate-900">My Disputes</h3>
             <button
               onClick={() => setShowDisputeForm(true)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
+              className="px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-sm font-medium text-slate-900 hover:shadow-md"
             >
               + File New Dispute
             </button>
@@ -505,7 +505,7 @@ export default function ClaimsDisputesPage() {
           
           {disputes.length === 0 ? (
             <div className="p-8 text-center">
-              <div className="text-6xl mb-4">✅</div>
+              <div className="text-6xl mb-4"></div>
               <h3 className="text-xl font-semibold text-slate-900 mb-2">No Disputes</h3>
               <p className="text-slate-600">You haven&apos;t filed any payroll disputes.</p>
             </div>
@@ -558,7 +558,7 @@ export default function ClaimsDisputesPage() {
             <h3 className="text-lg font-bold text-slate-900">My Claims</h3>
             <button
               onClick={() => setShowClaimForm(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+              className="px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-sm font-medium text-slate-900 hover:shadow-md"
             >
               + Submit New Claim
             </button>
@@ -566,7 +566,7 @@ export default function ClaimsDisputesPage() {
           
           {claims.length === 0 ? (
             <div className="p-8 text-center">
-              <div className="text-6xl mb-4">📋</div>
+              <div className="text-6xl mb-4"></div>
               <h3 className="text-xl font-semibold text-slate-900 mb-2">No Claims</h3>
               <p className="text-slate-600">You haven&apos;t submitted any expense claims.</p>
             </div>

@@ -213,7 +213,7 @@ export default function SalaryHistoryPage() {
               <p className="text-green-100 mt-2">No salary information available</p>
             )}
           </div>
-          <div className="text-6xl">💵</div>
+          <div className="text-6xl"></div>
         </div>
       </div>
 
@@ -410,7 +410,7 @@ export default function SalaryHistoryPage() {
       {/* No Data State */}
       {!baseSalaryInfo && activeTab === 'current' && (
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
-          <div className="text-6xl mb-4">📋</div>
+              <div className="text-6xl mb-4"></div>
           <h3 className="text-xl font-semibold text-slate-900 mb-2">No Salary Information Available</h3>
           <p className="text-slate-600">Your salary details will appear here once they are configured.</p>
         </div>

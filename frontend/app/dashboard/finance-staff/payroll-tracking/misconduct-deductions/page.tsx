@@ -326,7 +326,7 @@ export default function MisconductDeductionsPage() {
               {/* Attendance-Based Deductions */}
               {!attendanceData || !attendanceData.deductions || attendanceData.deductions.length === 0 ? (
                 <div className="bg-slate-50 rounded-lg border border-slate-200 shadow-sm p-12 text-center">
-                  <div className="text-6xl mb-4">✅</div>
+                  <div className="text-6xl mb-4"></div>
                   <p className="text-slate-700 font-medium text-lg">No attendance-based deductions</p>
                   <p className="text-slate-500 text-sm mt-2">
                     No deductions from unapproved absences or time management violations

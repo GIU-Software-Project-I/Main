@@ -281,11 +281,11 @@ export default function DeductionsPage() {
   };
 
   const tabs = [
-    { id: 'tax', label: 'Tax Deductions', icon: '🏛️', count: taxDeductions.length },
-    { id: 'insurance', label: 'Insurance', icon: '🏥', count: insuranceDeductions.length },
+    { id: 'tax', label: 'Tax Deductions', icon: '', count: taxDeductions.length },
+    { id: 'insurance', label: 'Insurance', icon: '', count: insuranceDeductions.length },
     { id: 'misconduct', label: 'Misconduct', icon: '', count: misconductDeductions.length },
     { id: 'unpaid', label: 'Unpaid Leave', icon: '', count: unpaidLeaveDeductions.length },
-    { id: 'attendance', label: 'Attendance', icon: '⏰', count: attendanceDeductions.length },
+    { id: 'attendance', label: 'Attendance', icon: '', count: attendanceDeductions.length },
   ];
 
   if (loading) {
@@ -393,14 +393,14 @@ export default function DeductionsPage() {
       {/* Tax Deductions Tab */}
       {activeTab === 'tax' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">🏛️ Tax Deductions</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Tax Deductions</h3>
           <p className="text-slate-600 text-sm mb-6">
             Detailed breakdown of tax deductions including income tax and social contributions.
           </p>
           
           {taxDeductions.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-2">📋</div>
+              <div className="text-4xl mb-2"></div>
               No tax deductions recorded
             </div>
           ) : (
@@ -587,7 +587,7 @@ export default function DeductionsPage() {
       {/* Attendance Deductions Tab */}
       {activeTab === 'attendance' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">⏰ Attendance-Based Deductions</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Attendance-Based Deductions</h3>
           <p className="text-slate-600 text-sm mb-6">
             Deductions based on attendance records such as late arrivals or early departures.
           </p>
