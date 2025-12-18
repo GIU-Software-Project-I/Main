@@ -97,35 +97,48 @@ export default function MyNotificationsPage() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
+        setLoading(true);
         // Get user ID from session storage
-        const userId = sessionStorage.getItem('userId');
+        let userId = typeof window !== 'undefined' ? sessionStorage.getItem('userId') : null;
+
+        // Helper to check if string is valid MongoDB ObjectId
+        const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
+
+        // Check if userId is invalid (not a 24-char hex string)
+        if (userId && !isValidObjectId(userId)) {
+          console.warn('Invalid User ID detected in session storage, clearing:', userId);
+          sessionStorage.removeItem('userId');
+          userId = null;
+        }
 
         if (!userId) {
           // Try to fetch from auth endpoint
-          const authResponse = await fetch('/api/auth/me', {
-            credentials: 'include',
-          });
+          try {
+            const authResponse = await fetch('/api/auth/me', {
+              credentials: 'include',
+            });
 
-          if (!authResponse.ok) {
-            console.error('Failed to get user ID');
-            setLoading(false);
-            return;
-          }
-
-          const authData = await authResponse.json();
-          const id = authData.data?.employeeProfileId || authData.data?._id;
-          if (id) {
-            sessionStorage.setItem('userId', id);
-          } else {
-            setLoading(false);
-            return;
+            if (authResponse.ok) {
+              const authData = await authResponse.json();
+              const id = authData.data?.employeeProfileId || authData.data?._id;
+              if (id && isValidObjectId(id)) {
+                sessionStorage.setItem('userId', id);
+                userId = id;
+              }
+            }
+          } catch (e) {
+            console.error('Failed to get user ID from auth endpoint:', e);
           }
         }
 
+        if (!userId) {
+          console.warn('No valid userId found, cannot fetch notifications.');
+          setLoading(false);
+          return;
+        }
+
         // Fetch real notifications from backend
-        const response = await notificationsService.getUserNotifications(
-          userId || sessionStorage.getItem('userId')!
-        );
+        const response = await notificationsService.getUserNotifications(userId);
 
         if (response.data && Array.isArray(response.data)) {
           // Convert API notifications to UI format
@@ -290,27 +303,24 @@ export default function MyNotificationsPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  filter === 'all'
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${filter === 'all'
                     ? 'bg-gray-900 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 All
               </button>
               <button
                 onClick={() => setFilter('unread')}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${
-                  filter === 'unread'
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${filter === 'unread'
                     ? 'bg-gray-900 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 Unread
                 {unreadCount > 0 && (
-                  <span className={`px-2 py-0.5 text-xs rounded-full ${
-                    filter === 'unread' ? 'bg-white text-gray-900' : 'bg-blue-600 text-white'
-                  }`}>
+                  <span className={`px-2 py-0.5 text-xs rounded-full ${filter === 'unread' ? 'bg-white text-gray-900' : 'bg-blue-600 text-white'
+                    }`}>
                     {unreadCount}
                   </span>
                 )}
@@ -348,9 +358,8 @@ export default function MyNotificationsPage() {
               return (
                 <div
                   key={notification._id}
-                  className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all ${
-                    !notification.read ? `${styles.border} border-l-4` : 'border-gray-100'
-                  }`}
+                  className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all ${!notification.read ? `${styles.border} border-l-4` : 'border-gray-100'
+                    }`}
                 >
                   <div className="p-4">
                     <div className="flex gap-4">

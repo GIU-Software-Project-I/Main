@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { notificationsService } from '@/app/services/notifications';
+import api from '@/app/services/api';
 import Link from 'next/link';
 
 // Simple notification type
@@ -29,23 +30,51 @@ export default function NotificationDropdown() {
     const fetchNotifications = async () => {
       try {
         setLoading(true);
-        const userId = typeof window !== 'undefined' ? sessionStorage.getItem('userId') : null;
+        let userId = typeof window !== 'undefined' ? sessionStorage.getItem('userId') : null;
 
+        // If no ID, try to get from backend
         if (!userId) {
-          // Try to get from auth endpoint
-          const authResponse = await fetch('/api/auth/me', { credentials: 'include' });
-          if (authResponse.ok) {
-            const authData = await authResponse.json();
-            const id = authData.data?.employeeProfileId || authData.data?._id;
-            if (id && typeof window !== 'undefined') {
-              sessionStorage.setItem('userId', id);
-              fetchUserNotifications(id);
+          try {
+            const authResponse = await api.get<{ _id: string, employeeProfileId: string }>('/employee-profile/me');
+            if (authResponse.data) {
+              const id = authResponse.data.employeeProfileId || authResponse.data._id;
+              if (id) {
+                sessionStorage.setItem('userId', id);
+                userId = id;
+              }
             }
+          } catch (e) {
+            console.warn('Backend auth failed');
           }
-          return;
         }
 
-        fetchUserNotifications(userId);
+        // Helper to check if string is valid MongoDB ObjectId
+        const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
+
+        // Check if userId is invalid (not a 24-char hex string)
+        if (userId && !isValidObjectId(userId)) {
+          console.warn('Invalid User ID detected, clearing and refreshing:', userId);
+          sessionStorage.removeItem('userId');
+
+          // Force re-fetch from backend
+          try {
+            const authResponse = await api.get<{ _id: string, employeeProfileId: string }>('/employee-profile/me');
+            if (authResponse.data) {
+              const id = authResponse.data.employeeProfileId || authResponse.data._id;
+              if (id) {
+                sessionStorage.setItem('userId', id);
+                userId = id;
+              }
+            }
+          } catch (e) { console.warn('Backend refresh failed'); }
+        }
+
+        if (userId && isValidObjectId(userId)) {
+          fetchUserNotifications(userId);
+        } else {
+          console.warn('No valid userId found or retrieved, cannot fetch notifications.');
+          setLoading(false);
+        }
       } catch (error) {
         console.error('Error fetching notifications:', error);
         setLoading(false);
@@ -213,9 +242,8 @@ export default function NotificationDropdown() {
                 <div
                   key={notification._id}
                   onClick={() => markNotificationRead(notification._id)}
-                  className={`px-4 py-3 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-slate-50 transition-colors ${
-                    !notification.read ? 'bg-blue-50/50' : ''
-                  }`}
+                  className={`px-4 py-3 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-slate-50 transition-colors ${!notification.read ? 'bg-blue-50/50' : ''
+                    }`}
                 >
                   <div className="flex items-start space-x-3">
                     {getNotificationIcon(notification.type)}
