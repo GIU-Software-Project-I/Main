@@ -45,10 +45,7 @@ const SELF_SERVICE_SECTION: NavSection = {
       label: 'My Attendance',
       href: '/portal/my-attendance',
       icon: 'clock',
-      children: [
-        { label: 'Attendance Records', href: '/portal/my-attendance', icon: 'clock' },
-        { label: 'Corrections', href: '/portal/my-attendance/corrections', icon: 'edit-3' },
-      ],
+
     },
     {
       label: 'My Leaves',
@@ -198,7 +195,7 @@ const DEPARTMENT_HEAD_SECTIONS: NavSection[] = [
         href: '/dashboard/department-head/time-management',
         icon: 'clock',
         children: [
-          { label: 'Attendance Records', href: '/dashboard/department-head/time-management/attendance-records', icon: 'clipboard-list' },
+          { label: 'Manage Attendance', href: '/dashboard/department-head/time-management/attendance-records', icon: 'clipboard-list' },
         ],
       },
     ],
@@ -351,17 +348,18 @@ const HR_ADMIN_SECTIONS: NavSection[] = [
         icon: 'edit',
         badge: 'New',
       },
-      {
-        label: 'Time Management',
-        href: '/dashboard/hr-admin/time-management',
-        icon: 'clock',
-        children: [
-          { label: 'Attendance Records', href: '/dashboard/hr-admin/time-management/attendance-records', icon: 'clipboard-list' },
-          { label: 'Break Permissions', href: '/dashboard/hr-admin/time-management/break-permissions', icon: 'clipboard-list' },
-          { label: 'Holidays', href: '/dashboard/hr-admin/time-management/Holidays', icon: 'clipboard-list' },
-          { label: 'Shift Assignments', href: '/dashboard/hr-admin/time-management/ShiftAssignments', icon: 'clipboard-list' },
-        ],
-      },
+        {
+            label: 'Time Management',
+            href: '/dashboard/hr-manager/time-management',
+            icon: 'clock',
+            children: [
+                { label: 'Manage Attendance', href: '/dashboard/hr-admin/time-management/attendance-records', icon: 'clipboard-list' },
+                { label: 'Break Permissions', href: '/dashboard/hr-admin/time-management/break-permissions', icon: 'clipboard-list' },
+                { label: 'Holidays', href: '/dashboard/hr-admin/time-management/Holidays', icon: 'clipboard-list' },
+              { label: 'Shift Assignments', href: '/dashboard/hr-admin/time-management/ShiftAssignments', icon: 'clipboard-list' },
+
+            ],
+        },
       {
         label: 'Role Assignment',
         href: '/dashboard/hr-admin/role-assignment',

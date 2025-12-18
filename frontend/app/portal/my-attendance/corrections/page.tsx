@@ -14,6 +14,9 @@ export default function AttendanceCorrectionPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
+  const [correctionSummary, setCorrectionSummary] = useState<{ [key: string]: number }>({});
+  const [allCorrections, setAllCorrections] = useState<any[]>([]);
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     attendanceRecordId: '',
@@ -50,6 +53,33 @@ export default function AttendanceCorrectionPage() {
           // Filter records that have punches
           const recordsWithPunches = response.data.filter((r: any) => r.punches && r.punches.length > 0);
           setAttendanceRecords(recordsWithPunches);
+        }
+
+        // Also fetch corrections to show summary
+        try {
+          const correctionsResponse = await timeManagementService.getEmployeeCorrections(user.id);
+          console.log('Corrections Response:', correctionsResponse);
+
+          if (correctionsResponse.data && Array.isArray(correctionsResponse.data)) {
+            console.log('Corrections Data:', correctionsResponse.data);
+
+            // Store all corrections
+            setAllCorrections(correctionsResponse.data);
+
+            // Count corrections by status
+            const statusCounts: { [key: string]: number } = {};
+            correctionsResponse.data.forEach((correction: any) => {
+              const status = correction.status || 'UNKNOWN';
+              statusCounts[status] = (statusCounts[status] || 0) + 1;
+            });
+
+            console.log('Status Counts:', statusCounts);
+            setCorrectionSummary(statusCounts);
+          } else {
+            console.warn('No corrections data received or data is not an array');
+          }
+        } catch (corrErr) {
+          console.error('Failed to fetch corrections summary:', corrErr);
         }
       } catch (err) {
         console.error('Failed to fetch attendance records:', err);
@@ -104,6 +134,53 @@ export default function AttendanceCorrectionPage() {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
+  };
+
+  // Parse dd/MM/yyyy format string to Date object
+  const parseDateString = (dateStr: string): Date | null => {
+    if (!dateStr) return null;
+
+    // Try parsing dd/MM/yyyy format
+    const ddMmYyyyRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const match = dateStr.match(ddMmYyyyRegex);
+
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1; // Month is 0-indexed
+      const year = parseInt(match[3], 10);
+      return new Date(year, month, day);
+    }
+
+    // Fallback to standard parsing
+    try {
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? null : date;
+    } catch {
+      return null;
+    }
+  };
+
+  // Format date for display
+  const formatDateForDisplay = (dateStr: string | Date | undefined): string => {
+    if (!dateStr) return 'Invalid Date';
+
+    let date: Date | null = null;
+
+    if (dateStr instanceof Date) {
+      date = dateStr;
+    } else if (typeof dateStr === 'string') {
+      date = parseDateString(dateStr);
+    }
+
+    if (!date || isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+
+    return date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -198,6 +275,158 @@ export default function AttendanceCorrectionPage() {
             <p className="text-muted-foreground mt-1">Submit a correction for your attendance record</p>
           </div>
         </div>
+
+        {/* Correction Status Summary */}
+        {Object.keys(correctionSummary).length > 0 && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Your Correction Requests</h3>
+              {selectedStatusFilter && (
+                <button
+                  onClick={() => setSelectedStatusFilter(null)}
+                  className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {/* Status Configuration */}
+              {[
+                {
+                  key: 'SUBMITTED',
+                  label: 'Submitted',
+                  color: 'text-yellow-600 dark:text-yellow-400',
+                  description: 'Waiting for review'
+                },
+                {
+                  key: 'IN_REVIEW',
+                  label: 'In Review',
+                  color: 'text-blue-600 dark:text-blue-400',
+                  description: 'Being reviewed'
+                },
+                {
+                  key: 'APPROVED',
+                  label: 'Approved',
+                  color: 'text-green-600 dark:text-green-400',
+                  description: 'Ready to apply'
+                },
+                {
+                  key: 'REJECTED',
+                  label: 'Rejected',
+                  color: 'text-red-600 dark:text-red-400',
+                  description: 'Needs revision'
+                },
+                {
+                  key: 'ESCALATED',
+                  label: 'Escalated',
+                  color: 'text-orange-600 dark:text-orange-400',
+                  description: 'Higher review'
+                }
+              ].map((status) =>
+                correctionSummary[status.key] !== undefined && (
+                  <button
+                    key={status.key}
+                    onClick={() => setSelectedStatusFilter(selectedStatusFilter === status.key ? null : status.key)}
+                    className={`bg-white dark:bg-blue-950 rounded-lg p-3 text-center hover:shadow-md transition-all cursor-pointer border-2 ${
+                      selectedStatusFilter === status.key
+                        ? 'border-primary shadow-md'
+                        : 'border-transparent hover:border-primary/30'
+                    }`}
+                  >
+                    <div className={`text-2xl font-bold ${status.color}`}>
+                      {correctionSummary[status.key]}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1 font-medium">{status.label}</div>
+                    <div className="text-xs text-muted-foreground/70">{status.description}</div>
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Filtered Corrections List */}
+        {selectedStatusFilter && allCorrections.filter(c => c.status === selectedStatusFilter).length > 0 && (
+          <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              {selectedStatusFilter} Corrections ({allCorrections.filter(c => c.status === selectedStatusFilter).length})
+            </h3>
+            <div className="space-y-3">
+              {allCorrections
+                .filter(c => c.status === selectedStatusFilter)
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((correction) => (
+                  <div key={correction._id} className="p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Request Status</p>
+                        <p className="text-sm font-medium text-foreground mt-1">
+                          <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                            correction.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100' :
+                            correction.status === 'IN_REVIEW' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' :
+                            correction.status === 'APPROVED' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' :
+                            correction.status === 'REJECTED' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100' :
+                            'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100'
+                          }`}>
+                            {correction.status}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Reason for Correction</p>
+                        <p className="text-sm text-foreground mt-1">{correction.reason || 'No reason provided'}</p>
+                      </div>
+                      {correction.attendanceRecord && (
+                        <>
+                          {correction.attendanceRecord.punches && correction.attendanceRecord.punches.length > 0 && (
+                            <>
+                              <div>
+                                <p className="text-xs text-muted-foreground uppercase tracking-wide">Attendance Date</p>
+                                <p className="text-sm font-medium text-foreground mt-1">
+                                  {correction.attendanceRecord.punches[0]
+                                    ? new Date(correction.attendanceRecord.punches[0].time).toLocaleDateString(undefined, {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric'
+                                      })
+                                    : 'N/A'
+                                  }
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground uppercase tracking-wide">Recorded Punches</p>
+                                <p className="text-sm text-foreground mt-1">
+                                  {correction.attendanceRecord.punches.map((punch: any, idx: number) => (
+                                    <span key={idx} className="inline-block mr-2">
+                                      <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium mr-1 ${
+                                        punch.type === 'IN' 
+                                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' 
+                                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
+                                      }`}>
+                                        {punch.type}
+                                      </span>
+                                      {new Date(punch.time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                                    </span>
+                                  ))}
+                                </p>
+                              </div>
+                            </>
+                          )}
+                          {(!correction.attendanceRecord.punches || correction.attendanceRecord.punches.length === 0) && (
+                            <div className="md:col-span-2">
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide">Attendance Record</p>
+                              <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">No punches recorded - likely a missing punch correction</p>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
@@ -295,8 +524,8 @@ export default function AttendanceCorrectionPage() {
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
               {formData.correctionType.includes('MISSING')
-                ? `Missing ${formData.correctionType.includes('IN') ? 'Clock In' : 'Clock Out'} Time`
-                : `Correct ${formData.correctionType.includes('IN') ? 'Clock In' : 'Clock Out'} Time`
+                ? `Missing ${formData.correctionType.endsWith('IN') ? 'Clock In' : 'Clock Out'} Time`
+                : `Correct ${formData.correctionType.endsWith('IN') ? 'Clock In' : 'Clock Out'} Time`
               }
             </label>
             <input

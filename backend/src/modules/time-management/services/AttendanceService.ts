@@ -295,9 +295,7 @@ export class AttendanceService {
             ],
             status: {
                 $in: [
-                    ShiftAssignmentStatus.PENDING,
                     ShiftAssignmentStatus.APPROVED,
-                    'pending',
                     'approved'
                 ]
             }
@@ -317,6 +315,69 @@ export class AttendanceService {
 
         // If no assignment found, block punch and provide clear error message
         if (!assignment) {
+            // Check for non-APPROVED assignments to provide specific error messages
+            const nonApprovedAssignment = await this.shiftAssignmentModel.findOne({
+                employeeId: empOid,
+                $or: [
+                    {
+                        startDate: { $lte: punchTime },
+                        $or: [
+                            { endDate: { $exists: false } },
+                            { endDate: null },
+                            { endDate: { $gte: punchTime } }
+                        ]
+                    },
+                    {
+                        startDate: { $lte: dayEnd },
+                        $or: [
+                            { endDate: { $exists: false } },
+                            { endDate: null },
+                            { endDate: { $gte: dayStart } }
+                        ]
+                    }
+                ],
+                status: {
+                    $in: [
+                        ShiftAssignmentStatus.PENDING,
+                        ShiftAssignmentStatus.CANCELLED,
+                        ShiftAssignmentStatus.EXPIRED,
+                        'pending',
+                        'cancelled',
+                        'expired'
+                    ]
+                }
+            }).lean();
+
+            if (nonApprovedAssignment) {
+                const statusUpper = String(nonApprovedAssignment.status).toUpperCase();
+
+                if (statusUpper === 'PENDING') {
+                    this.logger.warn(`[DEBUG] Shift assignment exists for employee ${empOid} but is PENDING - blocking punch`);
+                    return {
+                        isValid: false,
+                        error: 'Your shift assignment is pending approval. Please wait for HR to approve your shift assignment before punching in.',
+                        isRestDay: false,
+                        debugInfo: { status: 'PENDING' }
+                    };
+                } else if (statusUpper === 'CANCELLED') {
+                    this.logger.warn(`[DEBUG] Shift assignment exists for employee ${empOid} but is CANCELLED - blocking punch`);
+                    return {
+                        isValid: false,
+                        error: 'Your shift assignment has been cancelled. Please contact HR to request a new shift assignment.',
+                        isRestDay: false,
+                        debugInfo: { status: 'CANCELLED' }
+                    };
+                } else if (statusUpper === 'EXPIRED') {
+                    this.logger.warn(`[DEBUG] Shift assignment exists for employee ${empOid} but is EXPIRED - blocking punch`);
+                    return {
+                        isValid: false,
+                        error: 'Your shift assignment has expired. Please contact HR to renew or request a new shift assignment.',
+                        isRestDay: false,
+                        debugInfo: { status: 'EXPIRED' }
+                    };
+                }
+            }
+
             this.logger.warn(`[DEBUG] No active shift assignment found for employee ${empOid} on ${dayStart.toISOString()} - blocking punch`);
             return {
                 isValid: false,

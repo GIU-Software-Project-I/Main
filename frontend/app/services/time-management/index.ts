@@ -152,6 +152,32 @@ export interface UpdateShortTimeRuleDto {
     approved?: boolean;
 }
 
+// Lateness Rule interfaces
+export interface LatenessRule {
+    _id: string;
+    name: string;
+    description?: string;
+    gracePeriodMinutes: number;
+    deductionForEachMinute: number;
+    active: boolean;
+}
+
+export interface CreateLatenessRuleDto {
+    name: string;
+    description?: string;
+    gracePeriodMinutes?: number;
+    deductionForEachMinute?: number;
+    active?: boolean;
+}
+
+export interface UpdateLatenessRuleDto {
+    name?: string;
+    description?: string;
+    gracePeriodMinutes?: number;
+    deductionForEachMinute?: number;
+    active?: boolean;
+}
+
 // Attendance Record interfaces
 export enum PunchType {
     IN = 'IN',
@@ -418,6 +444,11 @@ export const timeManagementService = {
         return apiService.get('/attendance-correction/pending');
     },
 
+    // Start reviewing correction (mark as IN_REVIEW) - POST /attendance-correction/start-review
+    startReview: async (correctionRequestId: string) => {
+        return apiService.post('/attendance-correction/start-review', { correctionRequestId });
+    },
+
     // Review correction (approve/reject) - PUT /attendance-correction/review
     reviewCorrection: async (data: { correctionRequestId: string; action: 'APPROVE' | 'REJECT'; reviewerId: string; note?: string }) => {
         return apiService.put('/attendance-correction/review', data);
@@ -545,6 +576,30 @@ export const timeManagementService = {
     },
 
     // ============================================================
+    // LATENESS RULE OPERATIONS
+    // ============================================================
+
+    // Create lateness rule - POST /time-management/lateness-rules
+    createLatenessRule: async (data: CreateLatenessRuleDto) => {
+        return apiService.post<LatenessRule>('/time-management/lateness-rules', data);
+    },
+
+    // Get all lateness rules - GET /time-management/lateness-rules
+    getLatenessRules: async () => {
+        return apiService.get<LatenessRule[]>('/time-management/lateness-rules');
+    },
+
+    // Update lateness rule - PATCH /time-management/lateness-rules/:id
+    updateLatenessRule: async (id: string, data: UpdateLatenessRuleDto) => {
+        return apiService.patch<LatenessRule>(`/time-management/lateness-rules/${id}`, data);
+    },
+
+    // Delete lateness rule - DELETE /time-management/lateness-rules/:id
+    deleteLatenessRule: async (id: string) => {
+        return apiService.delete<LatenessRule>(`/time-management/lateness-rules/${id}`);
+    },
+
+    // ============================================================
     // ATTENDANCE RECORD OPERATIONS
     // ============================================================
 
@@ -625,6 +680,49 @@ export const timeManagementService = {
     // Update assignment status - PATCH /time-management/assignments/:id/status
     updateAssignmentStatus: async (id: string, data: UpdateShiftAssignmentStatusDto) => {
         return apiService.patch<ShiftAssignment>(`/time-management/assignments/${id}/status`, data);
+    },
+
+    // Get shift expiry notifications - GET /notifications/user/:userId (for shift assignments)
+    getShiftExpiryNotifications: async (userId: string) => {
+        return apiService.get<any[]>(`/notifications/user/${userId}`);
+    },
+
+    // Get expiring assignments for employee (utility function - calculates locally)
+    getExpiringAssignmentsForEmployee: async (employeeId: string, thresholdDays: number = 7) => {
+        try {
+            const assignments = await timeManagementService.getAssignmentsForEmployee(employeeId);
+            const assignmentList = Array.isArray(assignments.data) ? assignments.data : [];
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const expiring = assignmentList.filter((assignment: ShiftAssignment) => {
+                // Only check approved assignments with end dates
+                if (assignment.status !== ShiftAssignmentStatus.APPROVED || !assignment.endDate) {
+                    return false;
+                }
+
+                const endDate = new Date(assignment.endDate);
+                endDate.setHours(0, 0, 0, 0);
+
+                // Calculate days until expiry
+                const timeDiff = endDate.getTime() - today.getTime();
+                const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+                // Return true if assignment expires within threshold and hasn't expired yet
+                return daysDiff <= thresholdDays && daysDiff >= 0;
+            });
+
+            return {
+                data: expiring,
+                error: null,
+            };
+        } catch (err) {
+            return {
+                data: [],
+                error: err instanceof Error ? err.message : 'Failed to fetch expiring assignments',
+            };
+        }
     },
 
     // ============================================================
