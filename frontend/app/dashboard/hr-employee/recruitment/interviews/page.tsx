@@ -319,37 +319,54 @@ export default function InterviewSchedulingPage() {
       setApplications(appList);
 
       // Map interviews - get candidate names from applications
-      const interviewList: ScheduledInterview[] = await Promise.all(
-        interviews.map(async (int) => {
-          // Find the application to get candidate details
-          const app = eligibleApps.find(a => a.id === int.applicationId);
-          
-          return {
-            id: int.id,
-            applicationId: int.applicationId,
-            candidateName: app?.candidateName || 'Unknown Candidate',
-            jobTitle: app?.jobTitle || 'Unknown Position',
-            scheduledDate: int.scheduledDate.split('T')[0],
-            startTime: new Date(int.scheduledDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-            endTime: '',
-            method: int.method,
-            panelMembers: int.panelMembers?.map(p => p.employeeName) || [],
-            status: int.status,
-            videoLink: int.videoLink,
-          };
-        })
-      );
+      // Also lookup from all apps not just eligible ones
+      const interviewList: ScheduledInterview[] = interviews.map((int: any) => {
+        // Find the application to get candidate details
+        const app = apps.find(a => a.id === int.applicationId);
+        
+        // Handle panel members - could be array of objects with employeeName or array of IDs
+        let panelNames: string[] = [];
+        if (int.panelMembers && Array.isArray(int.panelMembers)) {
+          panelNames = int.panelMembers.map((p: any) => {
+            if (typeof p === 'string') return p;
+            if (p.employeeName) return p.employeeName;
+            if (p.name) return p.name;
+            return 'Unknown';
+          });
+        } else if (int.panel && Array.isArray(int.panel)) {
+          panelNames = int.panel.map((id: string) => {
+            const emp = employees.find((e: any) => e.id === id) as any;
+            return emp?.fullName || emp?.name || id;
+          });
+        }
+        
+        return {
+          id: int.id,
+          applicationId: int.applicationId,
+          candidateName: app?.candidateName || 'Unknown Candidate',
+          jobTitle: app?.jobTitle || 'Unknown Position',
+          scheduledDate: int.scheduledDate?.split('T')[0] || '',
+          startTime: int.scheduledDate ? new Date(int.scheduledDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '',
+          endTime: '',
+          method: int.method,
+          panelMembers: panelNames,
+          status: int.status,
+          videoLink: int.videoLink,
+        };
+      });
+      console.log('Interviews mapped:', interviewList);
       setScheduledInterviews(interviewList);
 
       // Map employees as panel members
-      const panelList: PanelMember[] = (employees as { id: string; firstName?: string; lastName?: string; position?: { title?: string }; department?: { name?: string }; workEmail?: string }[]).map((emp) => ({
+      const panelList: PanelMember[] = (employees as any[]).map((emp) => ({
         id: emp.id,
-        name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unknown',
-        role: emp.position?.title || 'Employee',
-        department: emp.department?.name || 'Not specified',
-        email: emp.workEmail || '',
+        name: emp.fullName || emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unknown',
+        role: emp.position?.title || emp.position || emp.jobTitle || 'Employee',
+        department: emp.department?.name || emp.departmentName || emp.department || 'Not specified',
+        email: emp.workEmail || emp.email || '',
         available: true,
       }));
+      console.log('Panel members mapped:', panelList);
       setPanelMembers(panelList);
 
       // Generate time slots
@@ -482,14 +499,27 @@ export default function InterviewSchedulingPage() {
 
       const scheduledDate = new Date(`${selectedSlot.date}T${selectedSlot.startTime}:00`);
       
-      const createdInterview = await scheduleInterview({
-        applicationId: newInterview.applicationId,
-        stage: newInterview.stage,
-        scheduledDate: scheduledDate.toISOString(),
-        method: newInterview.method,
-        panel: newInterview.selectedPanel,
-        videoLink: newInterview.method === InterviewMethod.VIDEO ? newInterview.videoLink : undefined,
-      });
+      let createdInterview;
+      try {
+        createdInterview = await scheduleInterview({
+          applicationId: newInterview.applicationId,
+          stage: newInterview.stage,
+          scheduledDate: scheduledDate.toISOString(),
+          method: newInterview.method,
+          panel: newInterview.selectedPanel,
+          videoLink: newInterview.method === InterviewMethod.VIDEO ? newInterview.videoLink : undefined,
+        });
+      } catch (scheduleErr: any) {
+        const errMsg = scheduleErr.message || '';
+        if (errMsg.includes('409') || errMsg.includes('Conflict') || errMsg.includes('already exists')) {
+          setError('An interview for this stage already exists for this application. Please choose a different stage or reschedule the existing interview.');
+        } else {
+          setError(errMsg || 'Failed to schedule interview');
+        }
+        setIsSubmitting(false);
+        setShowConfirmation(false);
+        return;
+      }
 
       const selectedApp = applications.find((a) => a.id === newInterview.applicationId);
       const selectedPanelNames = panelMembers

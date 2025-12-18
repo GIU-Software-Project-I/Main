@@ -287,7 +287,7 @@ export async function getRequisitionProgress(id: string): Promise<unknown> {
 // =====================================================
 
 /**
- * Get all applications
+ * Get all applications with enriched candidate and job data
  */
 export async function getApplications(filters?: {
   requisitionId?: string;
@@ -302,16 +302,57 @@ export async function getApplications(filters?: {
   if (filters?.hrId) params.append('hrId', filters.hrId);
   
   const query = params.toString();
-  const response = await api.get<Application[]>(`/recruitment/applications${query ? `?${query}` : ''}`);
-  if (response.error) {
-    throw new Error(response.error);
+  
+  // Fetch applications, candidates, and jobs in parallel
+  const [appsResponse, candidatesResponse, jobsResponse] = await Promise.all([
+    api.get<any[]>(`/recruitment/applications${query ? `?${query}` : ''}`),
+    api.get<any[]>('/recruitment/candidates'),
+    api.get<any[]>('/recruitment/job-requisitions'),
+  ]);
+  
+  if (appsResponse.error) {
+    throw new Error(appsResponse.error);
   }
-  // Transform _id to id if needed
-  const apps = response.data || [];
-  return apps.map(app => ({
-    ...app,
-    id: extractId(app)
-  }));
+  
+  const apps = appsResponse.data || [];
+  const candidates = candidatesResponse.data || [];
+  const jobs = jobsResponse.data || [];
+  
+  // Create lookup maps
+  const candidateMap: Record<string, any> = {};
+  candidates.forEach(c => {
+    const id = extractId(c);
+    if (id) candidateMap[id] = c;
+  });
+  
+  const jobMap: Record<string, any> = {};
+  jobs.forEach(j => {
+    const id = extractId(j);
+    if (id) jobMap[id] = j;
+  });
+  
+  // Enrich applications with candidate and job data
+  return apps.map(app => {
+    const appId = extractId(app);
+    const candidateId = extractIdValue(app.candidateId);
+    const requisitionId = extractIdValue(app.requisitionId);
+    
+    const candidate = candidateMap[candidateId];
+    const job = jobMap[requisitionId];
+    
+    return {
+      ...app,
+      id: appId,
+      candidateId,
+      requisitionId,
+      candidateName: candidate 
+        ? `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || candidate.email || 'Unknown'
+        : 'Unknown Candidate',
+      candidateEmail: candidate?.email || '',
+      jobTitle: job?.title || job?.jobTitle || 'Unknown Position',
+      departmentName: job?.department || '',
+    };
+  });
 }
 
 /**
@@ -453,6 +494,18 @@ export async function triggerPreboarding(applicationId: string): Promise<unknown
 // =====================================================
 
 /**
+ * Transform interview from backend to frontend format
+ * Handles MongoDB _id to id mapping
+ */
+function transformInterview(interview: any): Interview {
+  return {
+    ...interview,
+    id: extractId(interview),
+    applicationId: extractIdValue(interview.applicationId),
+  };
+}
+
+/**
  * Get all interviews
  */
 export async function getInterviews(filters?: {
@@ -468,11 +521,11 @@ export async function getInterviews(filters?: {
   if (filters?.status) params.append('status', filters.status);
   
   const query = params.toString();
-  const response = await api.get<Interview[]>(`/recruitment/interviews${query ? `?${query}` : ''}`);
+  const response = await api.get<any[]>(`/recruitment/interviews${query ? `?${query}` : ''}`);
   if (response.error) {
     throw new Error(response.error);
   }
-  return response.data || [];
+  return (response.data || []).map(transformInterview);
 }
 
 /**
@@ -480,11 +533,11 @@ export async function getInterviews(filters?: {
  * Backend: GET /recruitment/interviews with ?days param
  */
 export async function getUpcomingInterviews(days: number = 7): Promise<Interview[]> {
-  const response = await api.get<Interview[]>(`/recruitment/interviews?days=${days}`);
+  const response = await api.get<any[]>(`/recruitment/interviews?days=${days}`);
   if (response.error) {
     throw new Error(response.error);
   }
-  return response.data || [];
+  return (response.data || []).map(transformInterview);
 }
 
 /**
@@ -492,77 +545,82 @@ export async function getUpcomingInterviews(days: number = 7): Promise<Interview
  * Backend: GET /recruitment/interviews/panelist/:panelistId
  */
 export async function getInterviewsByPanelist(panelistId: string): Promise<Interview[]> {
-  const response = await api.get<Interview[]>(`/recruitment/interviews/panelist/${panelistId}`);
+  const response = await api.get<any[]>(`/recruitment/interviews/panelist/${panelistId}`);
   if (response.error) {
     throw new Error(response.error);
   }
-  return response.data || [];
+  return (response.data || []).map(transformInterview);
 }
 
 /**
  * Get an interview by ID
  */
 export async function getInterviewById(id: string): Promise<Interview> {
-  const response = await api.get<Interview>(`/recruitment/interviews/${id}`);
+  const response = await api.get<any>(`/recruitment/interviews/${id}`);
   if (response.error || !response.data) {
     throw new Error(response.error || 'Interview not found');
   }
-  return response.data;
+  return transformInterview(response.data);
 }
 
 /**
  * Schedule a new interview
  */
 export async function scheduleInterview(data: CreateInterviewRequest): Promise<Interview> {
-  const response = await api.post<Interview>('/recruitment/interviews', data);
+  // Ensure applicationId is a valid string (MongoDB ObjectId)
+  const payload = {
+    ...data,
+    applicationId: extractIdValue(data.applicationId),
+  };
+  const response = await api.post<any>('/recruitment/interviews', payload);
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to schedule interview');
   }
-  return response.data;
+  return transformInterview(response.data);
 }
 
 /**
  * Update an interview
  */
 export async function updateInterview(id: string, data: Partial<Interview>): Promise<Interview> {
-  const response = await api.put<Interview>(`/recruitment/interviews/${id}`, data);
+  const response = await api.put<any>(`/recruitment/interviews/${id}`, data);
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to update interview');
   }
-  return response.data;
+  return transformInterview(response.data);
 }
 
 /**
  * Cancel an interview
  */
 export async function cancelInterview(id: string, reason?: string): Promise<Interview> {
-  const response = await api.patch<Interview>(`/recruitment/interviews/${id}/cancel`, { reason });
+  const response = await api.patch<any>(`/recruitment/interviews/${id}/cancel`, { reason });
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to cancel interview');
   }
-  return response.data;
+  return transformInterview(response.data);
 }
 
 /**
  * Complete an interview
  */
 export async function completeInterview(id: string): Promise<Interview> {
-  const response = await api.patch<Interview>(`/recruitment/interviews/${id}/complete`, {});
+  const response = await api.patch<any>(`/recruitment/interviews/${id}/complete`, {});
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to complete interview');
   }
-  return response.data;
+  return transformInterview(response.data);
 }
 
 /**
  * Reschedule an interview
  */
 export async function rescheduleInterview(id: string, data: { scheduledAt: string; duration?: number; location?: string }): Promise<Interview> {
-  const response = await api.patch<Interview>(`/recruitment/interviews/${id}/reschedule`, data);
+  const response = await api.patch<any>(`/recruitment/interviews/${id}/reschedule`, data);
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to reschedule interview');
   }
-  return response.data;
+  return transformInterview(response.data);
 }
 
 // =====================================================
@@ -1202,7 +1260,9 @@ export async function getEmployees(departmentId?: string): Promise<unknown[]> {
   const query = departmentId ? `?departmentId=${departmentId}&limit=100` : '?limit=100';
   const response = await api.get<{ data: unknown[]; pagination: unknown }>(`/employee-profile/admin/employees${query}`);
   if (response.error) {
-    throw new Error(response.error);
+    // If employee endpoint fails, return empty array instead of throwing
+    console.warn('Failed to fetch employees:', response.error);
+    return [];
   }
   // Backend returns paginated response with { data: [], pagination: {} }
   const result = response.data;
@@ -1214,11 +1274,18 @@ export async function getEmployees(departmentId?: string): Promise<unknown[]> {
     employees = result;
   }
   
-  // Transform employees to ensure id is set (backend returns _id)
-  return employees.map((emp: any) => ({
-    ...emp,
-    id: extractId(emp),
-  }));
+  // Transform employees to ensure id and fullName are set
+  return employees.map((emp: any) => {
+    const firstName = emp.firstName || emp.first_name || '';
+    const lastName = emp.lastName || emp.last_name || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    
+    return {
+      ...emp,
+      id: extractId(emp),
+      fullName: fullName || emp.name || emp.email || `Employee ${extractId(emp)?.slice(-6) || 'Unknown'}`,
+    };
+  });
 }
 
 // Export all functions as a service object for convenience

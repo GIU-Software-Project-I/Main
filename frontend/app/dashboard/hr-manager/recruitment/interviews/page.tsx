@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   getUpcomingInterviews,
   scheduleInterview,
   cancelInterview,
   completeInterview,
+  updateInterview,
   getApplications,
   getEmployees,
 } from '@/app/services/recruitment';
@@ -24,6 +25,17 @@ export default function InterviewsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
+
+  // Create a map of applicationId to application for quick lookup
+  const applicationMap = useMemo(() => {
+    const map: Record<string, Application> = {};
+    applications.forEach(app => {
+      map[app.id] = app;
+    });
+    return map;
+  }, [applications]);
 
   // Schedule form state
   const [formData, setFormData] = useState({
@@ -33,6 +45,17 @@ export default function InterviewsPage() {
     method: InterviewMethod.ONSITE,
     panel: [] as string[],
     videoLink: '',
+    location: '',
+    notes: '',
+  });
+
+  // Reschedule form state
+  const [rescheduleData, setRescheduleData] = useState({
+    scheduledDate: '',
+    method: InterviewMethod.ONSITE,
+    videoLink: '',
+    location: '',
+    notes: '',
   });
 
   useEffect(() => {
@@ -46,7 +69,7 @@ export default function InterviewsPage() {
 
       const [interviewsData, appsData, employeesData] = await Promise.all([
         getUpcomingInterviews(30), // Get next 30 days
-        getApplications({ status: 'in_process' }),
+        getApplications({}), // Get all applications
         getEmployees(),
       ]);
 
@@ -61,13 +84,40 @@ export default function InterviewsPage() {
     }
   };
 
+  // Get candidate info from application
+  const getCandidateInfo = (applicationId: string) => {
+    const app = applicationMap[applicationId];
+    if (app) {
+      return {
+        name: app.candidateName || 'Unknown Candidate',
+        jobTitle: app.jobTitle || 'Unknown Position',
+      };
+    }
+    return { name: 'Unknown Candidate', jobTitle: 'Unknown Position' };
+  };
+
   const handleSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.applicationId) {
+      alert('Please select an application');
+      return;
+    }
+    if (formData.panel.length === 0) {
+      alert('Please select at least one panel member');
+      return;
+    }
+    if (!formData.scheduledDate) {
+      alert('Please select a date and time');
+      return;
+    }
+    
     try {
       await scheduleInterview({
         applicationId: formData.applicationId,
         stage: formData.stage,
-        scheduledDate: formData.scheduledDate,
+        scheduledDate: new Date(formData.scheduledDate).toISOString(),
         method: formData.method,
         panel: formData.panel,
         videoLink: formData.videoLink || undefined,
@@ -80,11 +130,59 @@ export default function InterviewsPage() {
         method: InterviewMethod.ONSITE,
         panel: [],
         videoLink: '',
+        location: '',
+        notes: '',
+      });
+      await fetchData();
+      alert('Interview scheduled successfully!');
+    } catch (err: any) {
+      // Handle specific error cases
+      const errorMsg = err.message || 'Failed to schedule interview';
+      if (errorMsg.includes('409') || errorMsg.includes('Conflict') || errorMsg.includes('already exists')) {
+        alert('An interview for this stage already exists for this application. Please choose a different stage or cancel the existing interview first.');
+      } else if (errorMsg.includes('400') || errorMsg.includes('Bad Request')) {
+        alert('Invalid data. Please check all fields and try again.');
+      } else {
+        alert(`Failed to schedule interview: ${errorMsg}`);
+      }
+    }
+  };
+
+  const handleReschedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedInterview) return;
+    
+    try {
+      await updateInterview(selectedInterview.id, {
+        scheduledDate: rescheduleData.scheduledDate,
+        method: rescheduleData.method,
+        videoLink: rescheduleData.videoLink || undefined,
+      });
+      setShowRescheduleModal(false);
+      setSelectedInterview(null);
+      setRescheduleData({
+        scheduledDate: '',
+        method: InterviewMethod.ONSITE,
+        videoLink: '',
+        location: '',
+        notes: '',
       });
       await fetchData();
     } catch (err: any) {
-      alert(`Failed to schedule interview: ${err.message}`);
+      alert(`Failed to reschedule interview: ${err.message}`);
     }
+  };
+
+  const openRescheduleModal = (interview: Interview) => {
+    setSelectedInterview(interview);
+    setRescheduleData({
+      scheduledDate: interview.scheduledDate.slice(0, 16), // Format for datetime-local input
+      method: interview.method,
+      videoLink: interview.videoLink || '',
+      location: '',
+      notes: '',
+    });
+    setShowRescheduleModal(true);
   };
 
   const handleCancel = async (interviewId: string) => {
@@ -215,52 +313,81 @@ export default function InterviewsPage() {
                   </td>
                 </tr>
               ) : (
-                interviews.map((interview) => (
-                  <tr key={interview.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">Application #{interview.applicationId}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {getStageLabel(interview.stage)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(interview.scheduledDate).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {getMethodLabel(interview.method)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {interview.panel?.length || 0} members
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(
-                          interview.status
-                        )}`}
-                      >
-                        {interview.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                      {interview.status === InterviewStatus.SCHEDULED && (
-                        <>
+                interviews.map((interview) => {
+                  const candidateInfo = getCandidateInfo(interview.applicationId);
+                  return (
+                    <tr key={interview.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{candidateInfo.name}</div>
+                        <div className="text-xs text-gray-500">{candidateInfo.jobTitle}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {getStageLabel(interview.stage)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(interview.scheduledDate).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {getMethodLabel(interview.method)}
+                        {interview.videoLink && (
+                          <a href={interview.videoLink} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:text-blue-800">
+                            🔗
+                          </a>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {interview.panel?.length || 0} members
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(
+                            interview.status
+                          )}`}
+                        >
+                          {interview.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                        {interview.status === InterviewStatus.SCHEDULED && (
+                          <>
+                            <button
+                              onClick={() => openRescheduleModal(interview)}
+                              className="text-blue-600 hover:text-blue-900"
+                            >
+                              Reschedule
+                            </button>
+                            <button
+                              onClick={() => router.push(`/dashboard/hr-manager/recruitment/interviews/${interview.id}/feedback`)}
+                              className="text-purple-600 hover:text-purple-900"
+                            >
+                              Feedback
+                            </button>
+                            <button
+                              onClick={() => handleComplete(interview.id)}
+                              className="text-green-600 hover:text-green-900"
+                            >
+                              Complete
+                            </button>
+                            <button
+                              onClick={() => handleCancel(interview.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {interview.status === InterviewStatus.COMPLETED && (
                           <button
-                            onClick={() => handleComplete(interview.id)}
-                            className="text-green-600 hover:text-green-900"
+                            onClick={() => router.push(`/dashboard/hr-manager/recruitment/interviews/${interview.id}/feedback`)}
+                            className="text-purple-600 hover:text-purple-900"
                           >
-                            Complete
+                            View Feedback
                           </button>
-                          <button
-                            onClick={() => handleCancel(interview.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -349,6 +476,28 @@ export default function InterviewsPage() {
               )}
 
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="e.g., Meeting Room A, Floor 3"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Additional notes for the interview..."
+                  rows={2}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Interview Panel * (Select at least one)
                 </label>
@@ -385,6 +534,109 @@ export default function InterviewsPage() {
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Schedule
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule Modal */}
+      {showRescheduleModal && selectedInterview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">Reschedule Interview</h2>
+            <div className="mb-4 p-3 bg-gray-50 rounded-md">
+              <p className="text-sm text-gray-600">
+                <strong>Candidate:</strong> {getCandidateInfo(selectedInterview.applicationId).name}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>Position:</strong> {getCandidateInfo(selectedInterview.applicationId).jobTitle}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>Current Date:</strong> {new Date(selectedInterview.scheduledDate).toLocaleString()}
+              </p>
+            </div>
+            <form onSubmit={handleReschedule} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Date & Time *
+                </label>
+                <input
+                  required
+                  type="datetime-local"
+                  value={rescheduleData.scheduledDate}
+                  onChange={(e) => setRescheduleData({ ...rescheduleData, scheduledDate: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Method</label>
+                <select
+                  value={rescheduleData.method}
+                  onChange={(e) => setRescheduleData({ ...rescheduleData, method: e.target.value as InterviewMethod })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  <option value={InterviewMethod.ONSITE}>Onsite</option>
+                  <option value={InterviewMethod.VIDEO}>Video</option>
+                  <option value={InterviewMethod.PHONE}>Phone</option>
+                </select>
+              </div>
+
+              {rescheduleData.method === InterviewMethod.VIDEO && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Video Link
+                  </label>
+                  <input
+                    type="url"
+                    value={rescheduleData.videoLink}
+                    onChange={(e) => setRescheduleData({ ...rescheduleData, videoLink: e.target.value })}
+                    placeholder="https://zoom.us/..."
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input
+                  type="text"
+                  value={rescheduleData.location}
+                  onChange={(e) => setRescheduleData({ ...rescheduleData, location: e.target.value })}
+                  placeholder="e.g., Meeting Room A, Floor 3"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea
+                  value={rescheduleData.notes}
+                  onChange={(e) => setRescheduleData({ ...rescheduleData, notes: e.target.value })}
+                  placeholder="Reason for rescheduling or additional notes..."
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRescheduleModal(false);
+                    setSelectedInterview(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Reschedule
                 </button>
               </div>
             </form>
