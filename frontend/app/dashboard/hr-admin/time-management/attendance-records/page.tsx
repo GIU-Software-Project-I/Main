@@ -77,39 +77,42 @@ export default function AttendanceRecordsPage() {
 
   // Handle starting review (mark as IN_REVIEW)
   const handleStartReview = async (correction: AttendanceCorrectionRequest) => {
-    alert('Review button clicked! ID: ' + correction._id);
-    console.log('[handleStartReview] Starting review for correction:', correction._id);
+    console.log('[handleStartReview] Starting review for correction:', correction._id, 'Status:', correction.status);
     try {
       setError(null);
       setSubmitting(true);
       console.log('[handleStartReview] submitting state set to true');
 
-      console.log('[handleStartReview] Calling startReview API...');
-      const response = await timeManagementService.startReview(correction._id);
-      console.log('[handleStartReview] API Response:', response);
+      // Only call startReview if status is SUBMITTED
+      if (correction.status === CorrectionRequestStatus.SUBMITTED) {
+        console.log('[handleStartReview] Calling startReview API...');
+        const response = await timeManagementService.startReview(correction._id);
+        console.log('[handleStartReview] API Response:', response);
 
-      if (response?.error) {
-        throw new Error(response.error);
+        if (response?.error) {
+          throw new Error(response.error);
+        }
+
+        // Refresh corrections to show updated status
+        console.log('[handleStartReview] Refreshing corrections...');
+        await fetchCorrections();
+        console.log('[handleStartReview] Corrections refreshed');
+
+        setSuccess('Correction marked as under review');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        console.log('[handleStartReview] Correction already in review, skipping startReview call');
       }
-
-      // Refresh corrections to show updated status
-      console.log('[handleStartReview] Refreshing corrections...');
-      await fetchCorrections();
-      console.log('[handleStartReview] Corrections refreshed');
 
       // Set selected correction and show modal
       setSelectedCorrection(correction);
       setShowReviewModal(true);
 
-      setSuccess('Correction marked as under review');
-      setTimeout(() => setSuccess(null), 3000);
-
-      console.log('[handleStartReview] Review started successfully');
+      console.log('[handleStartReview] Review modal opened');
     } catch (err: any) {
       console.error('[handleStartReview] Error:', err);
       const errMsg = err?.message || 'Failed to start review';
       setError(`Failed to start review: ${errMsg}`);
-      alert('Error: ' + errMsg);
     } finally {
       setSubmitting(false);
       console.log('[handleStartReview] submitting state set to false');
