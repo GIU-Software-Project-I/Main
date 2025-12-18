@@ -320,6 +320,17 @@ const HR_EMPLOYEE_SECTIONS: NavSection[] = [
         href: '/dashboard/hr-employee/performance',
         icon: 'trending-up',
       },
+      {
+        label: 'Recruitment',
+        href: '/dashboard/hr-employee/recruitment/jobs',
+        icon: 'user-plus',
+        children: [
+          { label: 'Job Publishing', href: '/dashboard/hr-employee/recruitment/jobs', icon: 'briefcase' },
+          { label: 'Applications', href: '/dashboard/hr-employee/recruitment/applications', icon: 'inbox' },
+          { label: 'Interviews', href: '/dashboard/hr-employee/recruitment/interviews', icon: 'calendar' },
+          { label: 'Offers', href: '/dashboard/hr-employee/recruitment/offers', icon: 'file-text' },
+        ],
+      },
     ],
   },
   SELF_SERVICE_SECTION,
@@ -354,7 +365,7 @@ const HR_ADMIN_SECTIONS: NavSection[] = [
             icon: 'clock',
             children: [
                 { label: 'Manage Attendance', href: '/dashboard/hr-admin/time-management/attendance-records', icon: 'clipboard-list' },
-                { label: 'Break Permissions', href: '/dashboard/hr-admin/time-management/break-permissions', icon: 'clipboard-list' },
+                { label: 'TimeExceptions', href: '/dashboard/hr-admin/time-management/time-exceptions', icon: 'clipboard-list' },
                 { label: 'Holidays', href: '/dashboard/hr-admin/time-management/Holidays', icon: 'clipboard-list' },
               { label: 'Shift Assignments', href: '/dashboard/hr-admin/time-management/ShiftAssignments', icon: 'clipboard-list' },
 

@@ -383,26 +383,6 @@ export interface BreakPermission {
     updatedAt?: string;
 }
 
-export interface BreakPermissionDto {
-    employeeId: string;
-    attendanceRecordId: string;
-    startTime: Date | string;
-    endTime: Date | string;
-    reason: string;
-}
-
-export interface ApproveBreakPermissionDto {
-    approvedBy: string;
-}
-
-export interface RejectBreakPermissionDto {
-    rejectionReason: string;
-}
-
-export interface PermissionLimitDto {
-    maxMinutes: number;
-    setBy?: string;
-}
 
 export const timeManagementService = {
     // ============================================================
@@ -819,52 +799,7 @@ export const timeManagementService = {
         return apiService.delete<{ ok: boolean }>(`/holidays/${id}`);
     },
 
-    // ============================================================
-    // BREAK PERMISSION OPERATIONS
-    // ============================================================
 
-    // Create break permission - POST /break-permissions
-    createBreakPermission: async (data: {
-        employeeId: string;
-        attendanceRecordId: string;
-        startTime: Date | string;
-        endTime: Date | string;
-        reason: string;
-    }) => {
-        return apiService.post('/break-permissions', data);
-    },
-
-    // Get break permissions for employee - GET /break-permissions/employee/:employeeId
-    getEmployeeBreakPermissions: async (employeeId: string) => {
-        return apiService.get(`/break-permissions/employee/${employeeId}`);
-    },
-
-    // Get all break permissions - GET /break-permissions
-    getAllBreakPermissions: async (employeeId?: string, status?: string) => {
-        let query = '';
-        if (employeeId || status) {
-            const params = new URLSearchParams();
-            if (employeeId) params.set('employeeId', employeeId);
-            if (status) params.set('status', status);
-            query = `?${params.toString()}`;
-        }
-        return apiService.get(`/break-permissions${query}`);
-    },
-
-    // Approve break permission - POST /break-permissions/:permissionId/approve
-    approveBreakPermission: async (permissionId: string, approvedBy: string) => {
-        return apiService.post(`/break-permissions/${permissionId}/approve`, { approvedBy });
-    },
-
-    // Reject break permission - POST /break-permissions/:permissionId/reject
-    rejectBreakPermission: async (permissionId: string, rejectionReason: string) => {
-        return apiService.post(`/break-permissions/${permissionId}/reject`, { rejectionReason });
-    },
-
-    // Delete break permission - DELETE /break-permissions/:employeeId/:permissionId
-    deleteBreakPermission: async (employeeId: string, permissionId: string) => {
-        return apiService.delete(`/break-permissions/${employeeId}/${permissionId}`);
-    },
 
     // Get break permission max limit - GET /break-permissions/limit
     getBreakPermissionLimit: async () => {
@@ -944,4 +879,3 @@ export const timeManagementService = {
 };
 
 export default timeManagementService;
-

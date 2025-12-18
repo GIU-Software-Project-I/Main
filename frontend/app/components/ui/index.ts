@@ -33,3 +33,7 @@ export default {
   Input,
 }
 
+// State Components (UX Completion)
+export { default as EmptyState, type EmptyStateVariant } from './EmptyState';
+export { default as ErrorState, type ErrorStateVariant } from './ErrorState';
+export { default as AccessDenied } from './AccessDenied';

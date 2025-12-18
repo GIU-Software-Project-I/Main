@@ -61,11 +61,11 @@ async function bootstrap() {
     // });
 
     app.enableCors({
-
+        // Allow all localhost origins during development
         origin: (origin, callback) => {
-
+            // Allow requests with no origin (like mobile apps, curl, Postman)
             if (!origin) return callback(null, true);
-
+            // Allow any localhost/127.0.0.1 origin during development
             if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
                 return callback(null, true);
             }
@@ -80,7 +80,6 @@ async function bootstrap() {
         allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
         exposedHeaders: ['Set-Cookie'],
     });
-
     const config = new DocumentBuilder()
         .setTitle('HR System API')
         .setDescription('API documentation — limited to safe public models (no secrets).')
