@@ -878,4 +878,17 @@ export class UnifiedLeaveController {
   ) {
     return this.service.getAdjustmentHistory(employeeId, leaveTypeId);
   }
+
+  @Post('fix-unpaid-balances')
+  @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  async fixUnpaidLeaveBalances(
+    @Query('employeeId') employeeId?: string,
+    @Query('addDays') addDays?: string,
+  ) {
+    const daysToAdd = addDays ? parseInt(addDays, 10) : 0;
+    if (isNaN(daysToAdd) || daysToAdd < 0) {
+      return { error: 'addDays must be a non-negative number' };
+    }
+    return this.service.fixUnpaidLeaveBalances(employeeId, daysToAdd);
+  }
 }
