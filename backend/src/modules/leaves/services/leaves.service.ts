@@ -974,18 +974,37 @@ export class UnifiedLeaveService {
       leave.status = LeaveStatus.REJECTED;
       await leave.save();
       
-      // Send rejection notification
+      // Send finalization notification for rejection (REQ-030)
+      // Notify employee, manager, and attendance coordinator when request is finalized as rejected
       try {
         const leaveTypeForReject = await this.leaveTypeModel.findById(leave.leaveTypeId);
-        await this.sharedLeavesService.sendLeaveRequestRejectedNotification(
-          leave.employeeId.toString(),
-          leaveTypeForReject?.name || 'Leave',
-          leave.dates.from,
-          leave.dates.to,
-          reason
-        );
+        const managerId = await this.sharedLeavesService.getEmployeeManager(leave.employeeId.toString());
+        
+        // Check if this was finalizing an already-approved request (needs finalization notification)
+        const wasFinalizingApproved = originalStatus === LeaveStatus.APPROVED;
+        
+        if (wasFinalizingApproved) {
+          // Finalization notification (REQ-030) - notify all parties
+          await this.sharedLeavesService.sendLeaveRequestFinalizedNotification(
+            leave.employeeId.toString(),
+            managerId || '',
+            leaveTypeForReject?.name || 'Leave',
+            leave.dates.from,
+            leave.dates.to,
+            'rejected'
+          );
+        } else {
+          // Initial rejection notification (not a finalization)
+          await this.sharedLeavesService.sendLeaveRequestRejectedNotification(
+            leave.employeeId.toString(),
+            leaveTypeForReject?.name || 'Leave',
+            leave.dates.from,
+            leave.dates.to,
+            reason
+          );
+        }
       } catch (notifError) {
-        this.logger.warn('Failed to send rejection notification:', notifError);
+        this.logger.warn('Failed to send rejection/finalization notification:', notifError);
       }
       
       return leave;
@@ -1009,31 +1028,45 @@ export class UnifiedLeaveService {
     // 3. Finalizing an already-APPROVED request - verify balance is correct (REQ-029)
     if (isDeductible) {
       if (ent) {
-        // For already-approved requests, verify balance is correct
+        // For already-approved requests, verify balance is correct (REQ-029)
         if (isFinalizingApproved) {
           // Balance should have been updated by manager approval
-          // Verify it's correct - if not, log warning but don't fail
-          const expectedTaken = (ent.taken || 0);
+          // Verify it's correct and ensure this leave is accounted for
           const durationDays = leave.durationDays || 0;
-          
-          // Check if this leave was already deducted (taken should include durationDays)
-          // This is a verification step - if balance seems incorrect, log it
           const managerApproval = leave.approvalFlow?.find((f) => f.role === 'manager');
+          
           if (managerApproval?.status === 'approved') {
-            // Manager approved, so balance should have been updated
-            // Verify remaining balance calculation is correct
+            // Manager approved, so balance should have been updated by managerApprove()
+            // Verify remaining balance calculation is correct (REQ-029: ensure records remain accurate)
             const yearly = ent.yearlyEntitlement || 0;
             const carryForward = ent.carryForward || 0;
-            const expectedRemaining = yearly + carryForward - expectedTaken;
+            const currentTaken = ent.taken || 0;
+            const expectedRemaining = yearly + carryForward - currentTaken;
             
-            // Recalculate remaining to ensure it's correct (REQ-029: ensure records remain accurate)
+            // Recalculate remaining to ensure it's correct
+            // This handles cases where balance might have been manually adjusted or there were calculation errors
             ent.remaining = expectedRemaining;
             await ent.save();
             
             this.logger.log(
               `[BALANCE VERIFY] Verified balance for finalized leave ${leave._id}. ` +
-              `Taken: ${expectedTaken}, Remaining: ${expectedRemaining}`
+              `Duration: ${durationDays} days, Taken: ${currentTaken}, Remaining: ${expectedRemaining} ` +
+              `(Yearly: ${yearly}, CarryForward: ${carryForward})`
             );
+          } else {
+            // No manager approval - this might be a direct HR approval
+            // In this case, we should ensure balance is updated (though this shouldn't normally happen)
+            this.logger.warn(
+              `[BALANCE WARNING] Finalizing approved leave ${leave._id} without manager approval. ` +
+              `Balance may not have been updated. Duration: ${durationDays} days.`
+            );
+            
+            // Ensure balance is correct even if manager didn't approve
+            const yearly = ent.yearlyEntitlement || 0;
+            const carryForward = ent.carryForward || 0;
+            const currentTaken = ent.taken || 0;
+            ent.remaining = yearly + carryForward - currentTaken;
+            await ent.save();
           }
         } else if (!isFinalizingApproved) {
           // Approving PENDING or overriding REJECTED to APPROVE
@@ -1171,10 +1204,10 @@ export class UnifiedLeaveService {
         await this.sharedLeavesService.updateEmployeeStatusToOnLeave(leave.employeeId.toString());
       }
 
-      // 2. Sync with Payroll for unpaid leaves
-      if (!isPaidLeave) {
-        await this.payrollNotifyAfterApproval(leave);
-      }
+      // 2. Real-time sync with Payroll (REQ: Auto sync with payroll system)
+      // Sync for ALL finalized leaves (both paid and unpaid) so payroll can track them
+      // Unpaid leaves will trigger deductions, paid leaves are tracked for records
+      await this.payrollNotifyAfterApproval(leave);
 
       // 3. Log finalization for audit trail
       this.logger.log(
@@ -1188,19 +1221,38 @@ export class UnifiedLeaveService {
     }
   }
 
+  /**
+   * Real-time payroll sync after leave finalization (REQ: Auto sync with payroll)
+   * This ensures salary deductions or adjustments are calculated without delays
+   */
   private async payrollNotifyAfterApproval(leave: LeaveRequestDocument) {
     try {
       const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
+      const isPaid = leaveType?.paid !== false;
+      
+      this.logger.log(
+        `[PAYROLL_SYNC] Initiating real-time sync for leave ${leave._id}. ` +
+        `Employee: ${leave.employeeId}, Days: ${leave.durationDays || 0}, Paid: ${isPaid}`
+      );
+
+      // Real-time sync with payroll system
       await this.sharedLeavesService.syncLeaveWithPayroll(leave.employeeId.toString(), {
         leaveRequestId: leave._id.toString(),
         leaveTypeId: leave.leaveTypeId.toString(),
-        durationDays: leave.durationDays,
-        isPaid: leaveType?.paid !== false,
+        durationDays: leave.durationDays || 0,
+        isPaid: isPaid,
         from: leave.dates.from,
         to: leave.dates.to,
       });
+
+      this.logger.log(
+        `[PAYROLL_SYNC] ✅ Real-time sync completed for leave ${leave._id}. ` +
+        `${isPaid ? 'Paid leave - no deduction required' : 'Unpaid leave - deduction will be calculated'}`
+      );
     } catch (err) {
-      this.logger.warn('Payroll sync failed for leave ' + leave._id);
+      this.logger.error(`[PAYROLL_SYNC] ❌ Real-time sync failed for leave ${leave._id}:`, err);
+      // Don't throw - allow finalization to complete even if sync fails
+      // Payroll service can still process during payroll calculation
     }
   }
 

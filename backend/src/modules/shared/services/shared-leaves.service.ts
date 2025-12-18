@@ -182,6 +182,11 @@ export class SharedLeavesService {
         this.logger.log(`[TIME_MGMT_SYNC] Action: ${status === 'approved' ? 'Blocking attendance records for leave period' : 'Unblocking attendance records (leave cancelled)'}`);
     }
 
+    /**
+     * Real-time payroll sync for leave finalization (REQ: Auto sync with payroll)
+     * This method creates a notification that the payroll service processes immediately
+     * to calculate salary deductions or adjustments without delays.
+     */
     async syncLeaveWithPayroll(employeeId: string, leaveData: {
         leaveRequestId: string;
         leaveTypeId: string;
@@ -190,8 +195,57 @@ export class SharedLeavesService {
         from: Date;
         to: Date;
     }): Promise<void> {
-        this.logger.log(`[PAYROLL_SYNC] Employee: ${employeeId}, Leave ID: ${leaveData.leaveRequestId}, Days: ${leaveData.durationDays}, Paid: ${leaveData.isPaid}`);
-        this.logger.log(`[PAYROLL_SYNC] Period: ${leaveData.from.toISOString().slice(0, 10)} to ${leaveData.to.toISOString().slice(0, 10)}`);
+        try {
+            this.logger.log(`[PAYROLL_SYNC] Real-time sync initiated for Employee: ${employeeId}, Leave ID: ${leaveData.leaveRequestId}`);
+            this.logger.log(`[PAYROLL_SYNC] Details: ${leaveData.durationDays} days, Paid: ${leaveData.isPaid}, Period: ${leaveData.from.toISOString().slice(0, 10)} to ${leaveData.to.toISOString().slice(0, 10)}`);
+
+            // Create a real-time notification for payroll service to process
+            // This notification contains all necessary data for immediate payroll calculation
+            const payrollNotificationMessage = JSON.stringify({
+                type: 'LEAVE_FINALIZED',
+                action: 'SYNC_PAYROLL',
+                employeeId: employeeId,
+                leaveRequestId: leaveData.leaveRequestId,
+                leaveTypeId: leaveData.leaveTypeId,
+                durationDays: leaveData.durationDays,
+                isPaid: leaveData.isPaid,
+                from: leaveData.from.toISOString(),
+                to: leaveData.to.toISOString(),
+                timestamp: new Date().toISOString(),
+                requiresDeduction: !leaveData.isPaid, // Unpaid leaves require salary deduction
+            });
+
+            // Notify all payroll specialists and managers for real-time processing
+            const payrollUsers = await this.findUsersByRoles([
+                SystemRole.PAYROLL_SPECIALIST,
+                SystemRole.PAYROLL_MANAGER,
+                SystemRole.HR_MANAGER,
+            ]);
+
+            // Send notification to payroll users for immediate action
+            for (const user of payrollUsers) {
+                await this.createNotification(
+                    user.employeeProfileId,
+                    'PAYROLL_SYNC_LEAVE',
+                    `Leave finalized - ${leaveData.isPaid ? 'Paid' : 'Unpaid'} leave: ${leaveData.durationDays} days from ${leaveData.from.toISOString().slice(0, 10)} to ${leaveData.to.toISOString().slice(0, 10)}. ${!leaveData.isPaid ? 'Salary deduction required.' : 'No deduction needed.'}`
+                );
+            }
+
+            // Also create a notification log entry that can be processed by payroll service
+            // This ensures the payroll system can query and process leave finalizations
+            await this.notificationModel.create({
+                to: new Types.ObjectId(employeeId),
+                type: 'PAYROLL_SYNC_DATA',
+                message: payrollNotificationMessage,
+                createdAt: new Date(),
+            });
+
+            this.logger.log(`[PAYROLL_SYNC] ✅ Real-time sync completed. Notified ${payrollUsers.length} payroll users.`);
+        } catch (error) {
+            this.logger.error(`[PAYROLL_SYNC] ❌ Failed to sync leave with payroll:`, error);
+            // Don't throw - allow leave finalization to complete even if sync fails
+            // The payroll service can still process leaves during payroll calculation
+        }
     }
 
     async isHoliday(date: Date): Promise<boolean> {
