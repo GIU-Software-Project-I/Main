@@ -764,13 +764,9 @@ export default function TerminationBenefitsPage() {
         <ul className="text-blue-800 text-sm space-y-2">
           <li>• As a Payroll Specialist, you can <span className="font-semibold">create draft</span> termination/resignation benefit policies</li>
           <li>• You can <span className="font-semibold">edit draft</span> termination benefit policies only</li>
-          <li>• You can <span className="font-semibold">delete draft</span> termination benefit policies only</li>
           <li>• You can <span className="font-semibold">view all</span> termination benefits (draft, approved, rejected)</li>
           <li>• <span className="font-semibold">Approved</span> and <span className="font-semibold">rejected</span> benefits cannot be modified or deleted</li>
           <li>• Only Payroll Managers can <span className="font-semibold">approve</span> or <span className="font-semibold">reject</span> benefit policies</li>
-          <li>• <span className="font-semibold">BR27:</span> Manual adjustments to approved benefits require specialist approval</li>
-          <li>• <span className="font-semibold">BR26:</span> HR clearance is required before final approval</li>
-          <li>• These policies ensure legally compliant offboarding processes</li>
           <li>• Duplicate benefit names are not allowed</li>
           <li>• <span className="font-semibold">Note:</span> Terms & Conditions field is optional</li>
         </ul>
@@ -857,10 +853,7 @@ export default function TerminationBenefitsPage() {
                 <ul className="text-xs text-amber-700 space-y-1">
                   <li>• Benefit will be created as <span className="font-semibold">DRAFT</span></li>
                   <li>• Payroll Manager approval is required before use</li>
-                  <li>• HR clearance is required (BR26) before final approval</li>
                   <li>• Duplicate benefit names are not allowed</li>
-                  <li>• Only you can edit or delete your draft benefits</li>
-                  <li>• Manual adjustments to approved benefits require specialist approval (BR27)</li>
                   <li>• Terms & Conditions field is optional</li>
                 </ul>
               </div>
