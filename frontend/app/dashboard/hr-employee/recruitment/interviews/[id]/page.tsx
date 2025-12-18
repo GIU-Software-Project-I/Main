@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import Link from 'next/link';
-import Button from '@/app/components/ui/Button';
-import Card from '@/app/components/ui/Card';
-import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
+import { Button } from '@/app/components/ui/button';
+import { Card } from '@/app/components/ui/card';
+import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
 import { ApplicationStage, InterviewMethod, InterviewStatus } from '@/app/types/enums';
+import { getInterviewById, submitInterviewFeedback, getApplicationById } from '@/app/services/recruitment';
+import { SubmitFeedbackRequest } from '@/app/types/recruitment';
 
 // =====================================================
 // Types
@@ -54,30 +56,10 @@ interface AssessmentSubmission {
 }
 
 // =====================================================
-// Mock Data
+// Static Assessment Criteria
 // =====================================================
 
-const mockInterview: InterviewDetail = {
-  id: 'int-2',
-  applicationId: '3',
-  candidateName: 'Omar Khaled',
-  candidateEmail: 'omar.khaled@email.com',
-  jobTitle: 'Product Manager',
-  departmentName: 'Product',
-  stage: ApplicationStage.HR_INTERVIEW,
-  scheduledDate: '2024-12-16',
-  startTime: '14:00',
-  endTime: '15:00',
-  method: InterviewMethod.ONSITE,
-  location: 'Meeting Room A, 3rd Floor',
-  panelMembers: [
-    { id: 'emp-004', name: 'Fatima Khalid', role: 'HR Manager' },
-    { id: 'emp-005', name: 'Omar Youssef', role: 'Product Manager' },
-  ],
-  status: InterviewStatus.COMPLETED,
-};
-
-const mockAssessmentCriteria: AssessmentCriterion[] = [
+const assessmentCriteria: AssessmentCriterion[] = [
   {
     id: 'crit-1',
     name: 'Technical Skills',
@@ -218,6 +200,7 @@ export default function InterviewFeedbackPage({
   const [interview, setInterview] = useState<InterviewDetail | null>(null);
   const [criteria, setCriteria] = useState<AssessmentCriterion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -230,28 +213,76 @@ export default function InterviewFeedbackPage({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Initialize scores when criteria load
-  useEffect(() => {
-    const loadData = async () => {
+  // Load interview data from API
+  const loadData = useCallback(async () => {
+    try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setInterview(mockInterview);
-      setCriteria(mockAssessmentCriteria);
+      setError(null);
+      
+      const interviewData = await getInterviewById(resolvedParams.id);
+      
+      // Get application data for denormalized fields
+      let candidateName = 'Unknown';
+      let candidateEmail = '';
+      let jobTitle = '';
+      let departmentName = '';
+      
+      try {
+        const appData = await getApplicationById(interviewData.applicationId);
+        candidateName = appData.candidateName || 'Unknown';
+        candidateEmail = appData.candidateEmail || '';
+        jobTitle = appData.jobTitle || '';
+        departmentName = appData.departmentName || '';
+      } catch (appErr) {
+        // If we can't get application data, use defaults
+        console.warn('Could not load application data for interview');
+      }
+      
+      // Transform API response to local interface
+      const interviewDetail: InterviewDetail = {
+        id: interviewData.id,
+        applicationId: interviewData.applicationId || '',
+        candidateName,
+        candidateEmail,
+        jobTitle,
+        departmentName,
+        stage: interviewData.stage || ApplicationStage.SCREENING,
+        scheduledDate: interviewData.scheduledDate || '',
+        startTime: '',
+        endTime: '',
+        method: interviewData.method || InterviewMethod.VIDEO,
+        videoLink: interviewData.videoLink,
+        location: undefined,
+        panelMembers: interviewData.panelMembers ? interviewData.panelMembers.map(pm => ({
+          id: pm.employeeId,
+          name: pm.employeeName,
+          role: 'Panelist'
+        })) : [],
+        status: interviewData.status || InterviewStatus.SCHEDULED,
+      };
+      
+      setInterview(interviewDetail);
+      setCriteria(assessmentCriteria);
       
       // Initialize scores
       setAssessment((prev) => ({
         ...prev,
-        scores: mockAssessmentCriteria.map((c) => ({
+        scores: assessmentCriteria.map((c) => ({
           criterionId: c.id,
           score: 0,
           comments: '',
         })),
       }));
-      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load interview details');
+    } finally {
       setLoading(false);
-    };
-    loadData();
+    }
   }, [resolvedParams.id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Update criterion score
   const updateCriterionScore = (criterionId: string, score: number) => {
@@ -308,12 +339,28 @@ export default function InterviewFeedbackPage({
 
   // Submit feedback (BR-21, BR-23)
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    if (!validateForm() || !interview) return;
 
-    setSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setSubmitting(false);
-    setSubmitted(true);
+    try {
+      setSubmitting(true);
+      setError(null);
+      
+      // Submit simple feedback with score and comments
+      const feedbackData: SubmitFeedbackRequest = {
+        interviewId: interview.id,
+        interviewerId: 'current-user', // Should be the actual interviewer ID from auth context
+        score: assessment.overallScore,
+        comments: assessment.generalComments,
+      };
+      
+      await submitInterviewFeedback(feedbackData);
+      
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to submit feedback');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Get recommendation label
@@ -341,7 +388,7 @@ export default function InterviewFeedbackPage({
       <div className="p-6 text-center">
         <p className="text-slate-600">Interview not found.</p>
         <Link href="/dashboard/hr-employee/recruitment/interviews">
-          <Button variant="primary" className="mt-4">
+          <Button variant="default" className="mt-4">
             Back to Interviews
           </Button>
         </Link>
@@ -376,7 +423,7 @@ export default function InterviewFeedbackPage({
               <Button variant="outline">Back to Interviews</Button>
             </Link>
             <Link href={`/dashboard/hr-employee/recruitment/applications/${interview.applicationId}`}>
-              <Button variant="primary">View Application</Button>
+              <Button variant="default">View Application</Button>
             </Link>
           </div>
         </Card>
@@ -437,7 +484,7 @@ export default function InterviewFeedbackPage({
       </Card>
 
       {/* Assessment Form (BR-21, BR-23) */}
-      <Card title="Assessment Criteria" subtitle="Rate the candidate on each criterion (BR-21, BR-23)" className="mb-6">
+      <Card className="mb-6">
         <p className="text-sm text-slate-600 mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
           <strong>Note:</strong> Use the pre-set criteria to ensure consistent and fair evaluation. 
           All scores and comments are required for submission.
@@ -462,7 +509,7 @@ export default function InterviewFeedbackPage({
       </Card>
 
       {/* Overall Assessment */}
-      <Card title="Overall Assessment" className="mb-6">
+      <Card className="mb-6">
         {/* Overall Score Display */}
         <div className="bg-slate-50 rounded-lg p-4 mb-6 text-center">
           <p className="text-sm text-slate-600 mb-1">Calculated Overall Score</p>
@@ -532,9 +579,9 @@ export default function InterviewFeedbackPage({
         <div className="flex gap-3">
           <Button variant="secondary">Save Draft</Button>
           <Button
-            variant="primary"
+            variant="default"
             onClick={handleSubmit}
-            isLoading={submitting}
+            disabled={submitting}
           >
             Submit Feedback
           </Button>

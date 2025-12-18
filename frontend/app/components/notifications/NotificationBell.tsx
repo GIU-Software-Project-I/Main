@@ -45,10 +45,11 @@ export default function NotificationBell({
   const fetchNotifications = useCallback(async () => {
     try {
       const response = await getNotifications();
-      setNotifications(response.data);
+      // Service now returns data directly or throws error
+      setNotifications(response);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
-      // TODO: Handle error state when backend is available
+      // Keep existing notifications on error
     } finally {
       setIsLoading(false);
     }

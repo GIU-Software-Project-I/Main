@@ -1,13 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Button from '@/app/components/ui/Button';
-import Card from '@/app/components/ui/Card';
-import Input from '@/app/components/ui/Input';
-import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
-import { OfferResponseStatus, OfferFinalStatus } from '@/app/types/enums';
+import { Button } from '@/app/components/ui/button';
+import { Card } from '@/app/components/ui/card';
+import { Input } from '@/app/components/ui/input';
+import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
+import { OfferResponseStatus, OfferFinalStatus, ApplicationStage } from '@/app/types/enums';
+import { 
+  getOffers, 
+  createOffer, 
+  sendOffer,
+  getApplications,
+  getAverageScore,
+} from '@/app/services/recruitment';
+import { CreateJobOfferRequest } from '@/app/types/recruitment';
 
 // =====================================================
 // Types
@@ -16,6 +24,7 @@ import { OfferResponseStatus, OfferFinalStatus } from '@/app/types/enums';
 interface CandidateForOffer {
   id: string;
   applicationId: string;
+  candidateId: string;
   candidateName: string;
   candidateEmail: string;
   jobTitle: string;
@@ -23,122 +32,39 @@ interface CandidateForOffer {
   averageScore: number;
 }
 
-interface JobOffer {
+// Local interface for UI display (different from API JobOffer type)
+interface LocalJobOffer {
   id: string;
   applicationId: string;
   candidateId: string;
   candidateName: string;
-  candidateEmail: string;
+  candidateEmail?: string;
   positionTitle: string;
-  departmentName: string;
+  departmentName?: string;
   grossSalary: number;
   signingBonus?: number;
   benefits: string[];
-  startDate: string;
-  deadline: string;
+  role?: string;
+  deadline?: string;
   applicantResponse: OfferResponseStatus;
   finalStatus: OfferFinalStatus;
-  sentAt?: string;
-  respondedAt?: string;
-  preboardingTriggered: boolean;
   createdAt: string;
 }
 
 interface NewOffer {
   applicationId: string;
+  candidateId: string;
   grossSalary: number;
   signingBonus: number;
   benefits: string[];
-  startDate: string;
+  role: string;
   deadline: string;
   conditions: string;
 }
 
 // =====================================================
-// Mock Data
+// Available Benefits
 // =====================================================
-
-const mockCandidatesForOffer: CandidateForOffer[] = [
-  {
-    id: '4',
-    applicationId: 'APP-2024-004',
-    candidateName: 'Fatima Ibrahim',
-    candidateEmail: 'fatima.ibrahim@email.com',
-    jobTitle: 'UX Designer',
-    departmentName: 'Design',
-    averageScore: 95,
-  },
-  {
-    id: '3',
-    applicationId: 'APP-2024-003',
-    candidateName: 'Omar Khaled',
-    candidateEmail: 'omar.khaled@email.com',
-    jobTitle: 'Product Manager',
-    departmentName: 'Product',
-    averageScore: 92,
-  },
-];
-
-const mockOffers: JobOffer[] = [
-  {
-    id: 'offer-1',
-    applicationId: '1',
-    candidateId: 'CAND-001',
-    candidateName: 'Ahmed Mohamed',
-    candidateEmail: 'ahmed.mohamed@email.com',
-    positionTitle: 'Senior Software Engineer',
-    departmentName: 'Engineering',
-    grossSalary: 25000,
-    signingBonus: 5000,
-    benefits: ['Health Insurance', 'Remote Work', 'Annual Bonus'],
-    startDate: '2025-01-15',
-    deadline: '2024-12-25',
-    applicantResponse: OfferResponseStatus.ACCEPTED,
-    finalStatus: OfferFinalStatus.APPROVED,
-    sentAt: '2024-12-10',
-    respondedAt: '2024-12-12',
-    preboardingTriggered: true,
-    createdAt: '2024-12-10',
-  },
-  {
-    id: 'offer-2',
-    applicationId: '5',
-    candidateId: 'CAND-005',
-    candidateName: 'Youssef Gamal',
-    candidateEmail: 'youssef.gamal@email.com',
-    positionTitle: 'Junior Developer',
-    departmentName: 'Engineering',
-    grossSalary: 12000,
-    benefits: ['Health Insurance', 'Learning Budget'],
-    startDate: '2025-02-01',
-    deadline: '2024-12-30',
-    applicantResponse: OfferResponseStatus.PENDING,
-    finalStatus: OfferFinalStatus.PENDING,
-    sentAt: '2024-12-15',
-    preboardingTriggered: false,
-    createdAt: '2024-12-14',
-  },
-  {
-    id: 'offer-3',
-    applicationId: '7',
-    candidateId: 'CAND-007',
-    candidateName: 'Karim Sayed',
-    candidateEmail: 'karim.sayed@email.com',
-    positionTitle: 'Product Manager',
-    departmentName: 'Product',
-    grossSalary: 22000,
-    signingBonus: 3000,
-    benefits: ['Health Insurance', 'Stock Options'],
-    startDate: '2025-01-10',
-    deadline: '2024-12-20',
-    applicantResponse: OfferResponseStatus.REJECTED,
-    finalStatus: OfferFinalStatus.REJECTED,
-    sentAt: '2024-12-05',
-    respondedAt: '2024-12-08',
-    preboardingTriggered: false,
-    createdAt: '2024-12-05',
-  },
-];
 
 const availableBenefits = [
   'Health Insurance',
@@ -177,37 +103,21 @@ function OfferStatusBadge({ status }: { status: OfferResponseStatus }) {
 
 function PreboardingButton({
   offer,
-  onTrigger,
-  isTriggering,
 }: {
-  offer: JobOffer;
-  onTrigger: (offerId: string) => void;
-  isTriggering: boolean;
+  offer: LocalJobOffer;
+  onTrigger?: (offerId: string) => void;
+  isTriggering?: boolean;
 }) {
   if (offer.applicantResponse !== OfferResponseStatus.ACCEPTED) {
     return null;
   }
 
-  if (offer.preboardingTriggered) {
-    return (
-      <span className="inline-flex items-center gap-1 text-emerald-600 text-sm">
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-        </svg>
-        Pre-boarding Started
-      </span>
-    );
-  }
-
+  // HR Employee cannot trigger pre-boarding - only HR Manager can (REC-029)
+  // Show informational badge instead
   return (
-    <Button
-      variant="primary"
-      size="sm"
-      onClick={() => onTrigger(offer.id)}
-      isLoading={isTriggering}
-    >
-      Trigger Pre-boarding
-    </Button>
+    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+      Ready for Pre-boarding
+    </span>
   );
 }
 
@@ -220,37 +130,96 @@ export default function OffersPage() {
   const preselectedAppId = searchParams.get('applicationId');
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<CandidateForOffer[]>([]);
-  const [offers, setOffers] = useState<JobOffer[]>([]);
+  const [offers, setOffers] = useState<LocalJobOffer[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isSending, setIsSending] = useState<string | null>(null);
-  const [isTriggering, setIsTriggering] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [newOffer, setNewOffer] = useState<NewOffer>({
     applicationId: preselectedAppId || '',
+    candidateId: '',
     grossSalary: 0,
     signingBonus: 0,
     benefits: [],
-    startDate: '',
+    role: '',
     deadline: '',
     conditions: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Load data
-  useEffect(() => {
-    const loadData = async () => {
+  // Load data from API
+  const loadData = useCallback(async () => {
+    try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setCandidates(mockCandidatesForOffer);
-      setOffers(mockOffers);
+      setError(null);
+      
+      // Get applications at offer stage and existing offers
+      const [apps, offersData] = await Promise.all([
+        getApplications({ stage: ApplicationStage.OFFER }),
+        getOffers()
+      ]);
+      
+      // Transform applications to candidates for offer
+      const candidatesForOffer: CandidateForOffer[] = [];
+      for (const app of apps) {
+        // Only show applications that don't have offers yet
+        const hasOffer = offersData.some(o => o.applicationId === app.id);
+        if (!hasOffer) {
+          // Get average score for the application
+          let avgScore = 0;
+          try {
+            const scoreResult = await getAverageScore(app.id);
+            avgScore = scoreResult.averageScore || 0;
+          } catch {
+            // Score might not be available
+          }
+          
+          candidatesForOffer.push({
+            id: app.id,
+            applicationId: app.id,
+            candidateId: app.candidateId || '',
+            candidateName: app.candidateName || 'Unknown',
+            candidateEmail: app.candidateEmail || '',
+            jobTitle: app.jobTitle || '',
+            departmentName: app.departmentName || '',
+            averageScore: avgScore,
+          });
+        }
+      }
+      
+      setCandidates(candidatesForOffer);
+      // Map offers to local interface
+      setOffers(offersData.map(o => ({
+        id: o.id,
+        applicationId: o.applicationId,
+        candidateId: o.candidateId,
+        candidateName: o.candidateName || 'Unknown',
+        candidateEmail: o.candidateName, // Use candidateName as fallback since candidateEmail isn't in API type
+        positionTitle: o.positionTitle || '',
+        departmentName: o.departmentName || '',
+        grossSalary: o.grossSalary,
+        signingBonus: o.signingBonus,
+        benefits: o.benefits || [],
+        role: o.role,
+        deadline: o.deadline,
+        applicantResponse: o.applicantResponse,
+        finalStatus: o.finalStatus,
+        createdAt: o.createdAt,
+      })));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load offers data');
+    } finally {
       setLoading(false);
-    };
-    loadData();
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Auto-open form if applicationId is provided
   useEffect(() => {
@@ -282,20 +251,10 @@ export default function OffersPage() {
       newErrors.grossSalary = 'Please enter a valid salary';
     }
 
-    if (!newOffer.startDate) {
-      newErrors.startDate = 'Please select a start date';
-    } else if (new Date(newOffer.startDate) < new Date()) {
-      newErrors.startDate = 'Start date must be in the future';
-    }
-
     if (!newOffer.deadline) {
       newErrors.deadline = 'Please select a response deadline';
     } else if (new Date(newOffer.deadline) < new Date()) {
       newErrors.deadline = 'Deadline must be in the future';
-    }
-
-    if (newOffer.benefits.length === 0) {
-      newErrors.benefits = 'Please select at least one benefit';
     }
 
     setErrors(newErrors);
@@ -306,85 +265,89 @@ export default function OffersPage() {
   const handleCreateOffer = async () => {
     if (!validateForm()) return;
 
-    setIsCreating(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const selectedCandidate = candidates.find((c) => c.applicationId === newOffer.applicationId);
-    
-    if (selectedCandidate) {
-      const newOfferData: JobOffer = {
-        id: `offer-${Date.now()}`,
+    try {
+      setIsCreating(true);
+      setError(null);
+      
+      const selectedCandidate = candidates.find(c => c.applicationId === newOffer.applicationId);
+      
+      const offerData: CreateJobOfferRequest = {
         applicationId: newOffer.applicationId,
-        candidateId: selectedCandidate.id,
-        candidateName: selectedCandidate.candidateName,
-        candidateEmail: selectedCandidate.candidateEmail,
-        positionTitle: selectedCandidate.jobTitle,
-        departmentName: selectedCandidate.departmentName,
+        candidateId: selectedCandidate?.candidateId || newOffer.candidateId,
+        role: newOffer.role || selectedCandidate?.jobTitle || 'Position',
         grossSalary: newOffer.grossSalary,
         signingBonus: newOffer.signingBonus || undefined,
         benefits: newOffer.benefits,
-        startDate: newOffer.startDate,
         deadline: newOffer.deadline,
-        applicantResponse: OfferResponseStatus.PENDING,
-        finalStatus: OfferFinalStatus.PENDING,
-        preboardingTriggered: false,
-        createdAt: new Date().toISOString(),
+        conditions: newOffer.conditions || undefined,
+        approvers: [], // Default to empty, HR manager will approve
       };
-
-      setOffers((prev) => [newOfferData, ...prev]);
+      
+      const createdOffer = await createOffer(offerData);
+      
+      // Map the created offer to local interface
+      const newOfferLocal: LocalJobOffer = {
+        id: createdOffer.id,
+        applicationId: createdOffer.applicationId,
+        candidateId: createdOffer.candidateId,
+        candidateName: selectedCandidate?.candidateName || createdOffer.candidateName || 'Unknown',
+        candidateEmail: selectedCandidate?.candidateEmail,
+        positionTitle: selectedCandidate?.jobTitle || createdOffer.positionTitle || '',
+        departmentName: selectedCandidate?.departmentName || createdOffer.departmentName || '',
+        grossSalary: createdOffer.grossSalary,
+        signingBonus: createdOffer.signingBonus,
+        benefits: createdOffer.benefits || [],
+        role: createdOffer.role,
+        deadline: createdOffer.deadline,
+        applicantResponse: createdOffer.applicantResponse,
+        finalStatus: createdOffer.finalStatus,
+        createdAt: createdOffer.createdAt,
+      };
+      
+      setOffers((prev) => [newOfferLocal, ...prev]);
       
       // Remove candidate from list
       setCandidates((prev) => prev.filter((c) => c.applicationId !== newOffer.applicationId));
+
+      setShowCreateForm(false);
+      setNewOffer({
+        applicationId: '',
+        candidateId: '',
+        grossSalary: 0,
+        signingBonus: 0,
+        benefits: [],
+        role: '',
+        deadline: '',
+        conditions: '',
+      });
+
+      setSuccessMessage('Offer created successfully! You can now send it to the candidate.');
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create offer');
+    } finally {
+      setIsCreating(false);
     }
-
-    setIsCreating(false);
-    setShowCreateForm(false);
-    setNewOffer({
-      applicationId: '',
-      grossSalary: 0,
-      signingBonus: 0,
-      benefits: [],
-      startDate: '',
-      deadline: '',
-      conditions: '',
-    });
-
-    setSuccessMessage('Offer created successfully! You can now send it to the candidate.');
-    setTimeout(() => setSuccessMessage(null), 5000);
   };
 
   // Send offer
   const handleSendOffer = async (offerId: string) => {
-    setIsSending(offerId);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      setIsSending(offerId);
+      setError(null);
+      
+      await sendOffer(offerId);
 
-    setOffers((prev) =>
-      prev.map((offer) =>
-        offer.id === offerId
-          ? { ...offer, sentAt: new Date().toISOString() }
-          : offer
-      )
-    );
+      // Reload offers to get updated state
+      await loadData();
 
-    setIsSending(null);
-    setSuccessMessage('Offer sent to candidate successfully!');
-    setTimeout(() => setSuccessMessage(null), 5000);
-  };
-
-  // Trigger pre-boarding (REC-029)
-  const handleTriggerPreboarding = async (offerId: string) => {
-    setIsTriggering(offerId);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    setOffers((prev) =>
-      prev.map((offer) =>
-        offer.id === offerId ? { ...offer, preboardingTriggered: true } : offer
-      )
-    );
-
-    setIsTriggering(null);
-    setSuccessMessage('Pre-boarding tasks have been triggered! The onboarding module has been notified.');
-    setTimeout(() => setSuccessMessage(null), 5000);
+      setSuccessMessage('Offer sent to candidate successfully!');
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send offer');
+    } finally {
+      setIsSending(null);
+    }
   };
 
   // Stats
@@ -392,8 +355,9 @@ export default function OffersPage() {
     total: offers.length,
     pending: offers.filter((o) => o.applicantResponse === OfferResponseStatus.PENDING).length,
     accepted: offers.filter((o) => o.applicantResponse === OfferResponseStatus.ACCEPTED).length,
+    // Ready for pre-boarding (accepted offers)
     preboardingReady: offers.filter(
-      (o) => o.applicantResponse === OfferResponseStatus.ACCEPTED && !o.preboardingTriggered
+      (o) => o.applicantResponse === OfferResponseStatus.ACCEPTED
     ).length,
   };
 
@@ -415,7 +379,7 @@ export default function OffersPage() {
             Create, send, and track job offers to candidates
           </p>
         </div>
-        <Button variant="primary" onClick={() => setShowCreateForm(true)}>
+        <Button variant="default" onClick={() => setShowCreateForm(true)}>
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
@@ -430,6 +394,22 @@ export default function OffersPage() {
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
           </svg>
           <span className="text-emerald-800 font-medium">{successMessage}</span>
+        </div>
+      )}
+
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+          <span className="text-red-800 font-medium">{error}</span>
+          <button 
+            onClick={() => setError(null)}
+            className="ml-auto text-red-600 hover:text-red-800"
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -455,7 +435,7 @@ export default function OffersPage() {
 
       {/* Create Offer Form (BR-26) */}
       {showCreateForm && (
-        <Card className="mb-6" title="Create New Offer">
+        <Card className="mb-6">
           <div className="space-y-6">
             {/* Select Candidate */}
             <div>
@@ -511,8 +491,8 @@ export default function OffersPage() {
                   value={newOffer.grossSalary || ''}
                   onChange={(e) => setNewOffer({ ...newOffer, grossSalary: parseInt(e.target.value) || 0 })}
                   placeholder="e.g., 20000"
-                  error={errors.grossSalary}
                 />
+                {errors.grossSalary && <p className="text-red-600 text-sm mt-1">{errors.grossSalary}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -527,17 +507,17 @@ export default function OffersPage() {
               </div>
             </div>
 
-            {/* Start Date & Deadline */}
+            {/* Role & Deadline */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Proposed Start Date <span className="text-red-500">*</span>
+                  Role/Position Title
                 </label>
                 <Input
-                  type="date"
-                  value={newOffer.startDate}
-                  onChange={(e) => setNewOffer({ ...newOffer, startDate: e.target.value })}
-                  error={errors.startDate}
+                  type="text"
+                  value={newOffer.role}
+                  onChange={(e) => setNewOffer({ ...newOffer, role: e.target.value })}
+                  placeholder="Leave empty to use job title"
                 />
               </div>
               <div>
@@ -548,8 +528,8 @@ export default function OffersPage() {
                   type="date"
                   value={newOffer.deadline}
                   onChange={(e) => setNewOffer({ ...newOffer, deadline: e.target.value })}
-                  error={errors.deadline}
                 />
+                {errors.deadline && <p className="text-red-600 text-sm mt-1">{errors.deadline}</p>}
               </div>
             </div>
 
@@ -598,10 +578,9 @@ export default function OffersPage() {
                 Cancel
               </Button>
               <Button
-                variant="primary"
+                variant="default"
                 onClick={handleCreateOffer}
-                isLoading={isCreating}
-                disabled={candidates.length === 0}
+                disabled={isCreating || candidates.length === 0}
               >
                 Create Offer
               </Button>
@@ -611,7 +590,7 @@ export default function OffersPage() {
       )}
 
       {/* Offers List */}
-      <Card title="All Offers" padding="none">
+      <Card className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -666,35 +645,28 @@ export default function OffersPage() {
                     </td>
                     <td className="px-6 py-4">
                       <OfferStatusBadge status={offer.applicantResponse} />
-                      {offer.sentAt ? (
-                        <p className="text-xs text-slate-500 mt-1">
-                          Sent: {new Date(offer.sentAt).toLocaleDateString()}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-amber-600 mt-1">Not sent yet</p>
-                      )}
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-slate-900">{new Date(offer.deadline).toLocaleDateString()}</p>
-                      <p className="text-sm text-slate-500">Start: {new Date(offer.startDate).toLocaleDateString()}</p>
+                      {offer.deadline ? (
+                        <p className="text-slate-900">{new Date(offer.deadline).toLocaleDateString()}</p>
+                      ) : (
+                        <p className="text-slate-500">No deadline set</p>
+                      )}
+                      {offer.role && (
+                        <p className="text-sm text-slate-500">Role: {offer.role}</p>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex flex-col items-end gap-2">
-                        {!offer.sentAt && (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => handleSendOffer(offer.id)}
-                            isLoading={isSending === offer.id}
-                          >
-                            Send Offer
-                          </Button>
-                        )}
-                        <PreboardingButton
-                          offer={offer}
-                          onTrigger={handleTriggerPreboarding}
-                          isTriggering={isTriggering === offer.id}
-                        />
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleSendOffer(offer.id)}
+                          disabled={isSending === offer.id || offer.applicantResponse !== OfferResponseStatus.PENDING}
+                        >
+                          {isSending === offer.id ? 'Sending...' : 'Send Offer'}
+                        </Button>
+                        <PreboardingButton offer={offer} />
                         <Link href={`/dashboard/hr-employee/recruitment/applications/${offer.applicationId}`}>
                           <Button variant="outline" size="sm">
                             View Application

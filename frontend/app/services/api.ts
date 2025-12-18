@@ -136,6 +136,96 @@ class ApiService {
   async delete<T>(endpoint: string, headers?: HeadersInit): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: 'DELETE', headers });
   }
+
+<<<<<<<<< Temporary merge branch 1
+  async postFormData<T>(endpoint: string, formData: FormData): Promise<ApiResponse<T>> {
+    const url = `${this.baseUrl}${endpoint}`;
+    
+    const headers: HeadersInit = {};
+    const token = getAccessToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    // Note: Don't set Content-Type for FormData - browser sets it with boundary
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+        credentials: 'include',
+      });
+
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      }
+
+      if (!response.ok) {
+        return {
+          error: data?.message || `HTTP error! status: ${response.status}`,
+=========
+  async downloadFile(endpoint: string): Promise<{ blob?: Blob; filename?: string; error?: string; status: number }> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    const defaultHeaders: HeadersInit = {};
+
+    // Add authorization header if we have a token
+    const token = getAccessToken();
+    if (token) {
+      (defaultHeaders as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: defaultHeaders,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        return {
+          error: `HTTP error! status: ${response.status}`,
+>>>>>>>>> Temporary merge branch 2
+          status: response.status,
+        };
+      }
+
+<<<<<<<<< Temporary merge branch 1
+      return {
+        data,
+        status: response.status,
+      };
+    } catch (error) {
+      console.error('[API] FormData request failed:', url);
+=========
+      // Extract filename from Content-Disposition header if available
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename: string | undefined;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, '');
+        }
+      }
+
+      const blob = await response.blob();
+      return {
+        blob,
+        filename,
+        status: response.status,
+      };
+    } catch (error) {
+      console.error('[API] Download failed:', url);
+>>>>>>>>> Temporary merge branch 2
+      console.error('[API] Error:', error);
+      return {
+        error: error instanceof Error ? error.message : 'Network error - Is the backend running?',
+        status: 0,
+      };
+    }
+  }
 }
 
 const apiService = new ApiService(API_BASE_URL);

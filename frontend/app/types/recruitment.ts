@@ -19,6 +19,9 @@ import { Address } from './employee';
 
 // =====================================================
 // Hiring Stage (for pipeline tracking)
+// @deprecated - Backend uses fixed ApplicationStage enum, not dynamic stages
+// The actual hiring stages are: SCREENING -> DEPARTMENT_INTERVIEW -> HR_INTERVIEW -> OFFER
+// See: src/modules/recruitment/enums/application-stage.enum.ts
 // =====================================================
 
 export interface HiringStage {
@@ -30,18 +33,34 @@ export interface HiringStage {
 }
 
 // =====================================================
+// Process Template (for hiring process workflows)
+// @deprecated - Backend does NOT have process templates API
+// The hiring workflow is fixed and defined in ApplicationStage enum
+// This interface is kept for backwards compatibility only
+// =====================================================
+
+export interface ProcessTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  stages: HiringStage[];
+  isDefault?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// =====================================================
 // Job Template (matches backend job-template.schema.ts)
 // =====================================================
 
 export interface JobTemplate {
   id: string;
+  _id?: string; // MongoDB ID
   title: string;
+  department: string;
   description?: string;
-  requirements?: string[];
-  qualifications?: string[];
-  responsibilities?: string[];
-  departmentId?: string;
-  positionId?: string;
+  qualifications: string[];
+  skills: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -52,14 +71,29 @@ export interface JobTemplate {
 
 export interface JobRequisition {
   id: string;
+  _id?: string; // MongoDB ID
   requisitionId: string;
   templateId?: string;
   openings: number;
+  numberOfOpenings?: number; // Alias for openings
   location?: string;
   hiringManagerId: string;
   publishStatus: 'draft' | 'published' | 'closed';
   postingDate?: string;
   expiryDate?: string;
+
+  // Template data (populated from templateId)
+  title?: string;
+  department?: string;
+  description?: string;
+  qualifications?: string[];
+  skills?: string[];
+  employmentType?: string;
+  salaryRange?: {
+    min: number;
+    max: number;
+    currency: string;
+  };
 
   // Denormalized
   templateTitle?: string;
@@ -84,6 +118,7 @@ export interface CreateJobRequisitionRequest {
 
 export interface Candidate {
   id: string;
+  _id?: string; // MongoDB ID
   firstName: string;
   middleName?: string;
   lastName: string;
@@ -110,6 +145,7 @@ export interface Candidate {
 
 export interface Application {
   id: string;
+  _id?: string; // MongoDB ID
   candidateId: string;
   requisitionId: string;
   assignedHr?: string;
@@ -205,12 +241,31 @@ export interface SubmitAssessmentRequest {
   comments?: string;
 }
 
+// REC-011: Simple feedback submission (matches backend SubmitFeedbackDto)
+export interface SubmitFeedbackRequest {
+  interviewId: string;
+  interviewerId: string;
+  score: number;
+  comments?: string;
+}
+
+// Feedback result returned from backend
+export interface FeedbackResult {
+  id: string;
+  interviewId: string;
+  interviewerId: string;
+  score: number;
+  comments?: string;
+  createdAt: string;
+}
+
 // =====================================================
 // Job Offer (matches backend offer.schema.ts)
 // =====================================================
 
 export interface JobOffer {
   id: string;
+  _id?: string; // MongoDB ID fallback
   applicationId: string;
   candidateId: string;
   hrEmployeeId?: string;
@@ -254,16 +309,24 @@ export interface OfferApprover {
   comment?: string;
 }
 
+export interface CreateJobOfferApprover {
+  employeeId: string;
+  role: string;
+}
+
 export interface CreateJobOfferRequest {
   applicationId: string;
+  candidateId: string;
+  hrEmployeeId?: string;
+  role: string;
   grossSalary: number;
   signingBonus?: number;
   benefits?: string[];
-  conditions?: string;
   insurances?: string;
+  conditions?: string;
   content?: string;
-  role?: string;
-  deadline?: string;
+  deadline: string;
+  approvers: CreateJobOfferApprover[];
 }
 
 export interface RespondToOfferRequest {
@@ -299,6 +362,8 @@ export interface RecruitmentDocument {
   ownerType: 'candidate' | 'employee';
   documentType: DocumentType;
   fileUrl: string;
+  filePath?: string; // File storage path
+  url?: string; // URL to access document
   fileName: string;
   uploadedAt: string;
   verifiedAt?: string;

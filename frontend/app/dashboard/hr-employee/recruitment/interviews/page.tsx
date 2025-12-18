@@ -1,13 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Button from '@/app/components/ui/Button';
-import Card from '@/app/components/ui/Card';
-import Input from '@/app/components/ui/Input';
-import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
+import { Button } from '@/app/components/ui/button';
+import { Card } from '@/app/components/ui/card';
+import { Input } from '@/app/components/ui/input';
+import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
 import { ApplicationStage, InterviewMethod, InterviewStatus } from '@/app/types/enums';
+import { 
+  getInterviews, 
+  getApplications, 
+  scheduleInterview,
+  cancelInterview,
+  rescheduleInterview,
+  getEmployees 
+} from '@/app/services/recruitment';
 
 // =====================================================
 // Types
@@ -66,65 +74,31 @@ interface NewInterview {
   notes: string;
 }
 
-// =====================================================
-// Mock Data
-// =====================================================
-
-const mockPanelMembers: PanelMember[] = [
-  { id: 'emp-001', name: 'Ahmed Hassan', role: 'Engineering Manager', department: 'Engineering', email: 'ahmed.hassan@company.com', available: true },
-  { id: 'emp-002', name: 'Sara Ali', role: 'Senior Developer', department: 'Engineering', email: 'sara.ali@company.com', available: true },
-  { id: 'emp-003', name: 'Mohamed Ibrahim', role: 'Tech Lead', department: 'Engineering', email: 'mohamed.ibrahim@company.com', available: false },
-  { id: 'emp-004', name: 'Fatima Khalid', role: 'HR Manager', department: 'Human Resources', email: 'fatima.khalid@company.com', available: true },
-  { id: 'emp-005', name: 'Omar Youssef', role: 'Product Manager', department: 'Product', email: 'omar.youssef@company.com', available: true },
-  { id: 'emp-006', name: 'Nour Ahmed', role: 'UX Lead', department: 'Design', email: 'nour.ahmed@company.com', available: true },
-];
-
-const mockTimeSlots: TimeSlot[] = [
-  { id: 'slot-1', date: '2024-12-18', startTime: '09:00', endTime: '10:00', available: true },
-  { id: 'slot-2', date: '2024-12-18', startTime: '10:30', endTime: '11:30', available: true },
-  { id: 'slot-3', date: '2024-12-18', startTime: '14:00', endTime: '15:00', available: false },
-  { id: 'slot-4', date: '2024-12-19', startTime: '09:00', endTime: '10:00', available: true },
-  { id: 'slot-5', date: '2024-12-19', startTime: '11:00', endTime: '12:00', available: true },
-  { id: 'slot-6', date: '2024-12-20', startTime: '10:00', endTime: '11:00', available: true },
-  { id: 'slot-7', date: '2024-12-20', startTime: '14:30', endTime: '15:30', available: true },
-  { id: 'slot-8', date: '2024-12-23', startTime: '09:00', endTime: '10:00', available: true },
-];
-
-const mockApplicationsForInterview: ApplicationForInterview[] = [
-  { id: '1', applicationId: 'APP-2024-001', candidateName: 'Ahmed Mohamed', candidateEmail: 'ahmed.mohamed@email.com', jobTitle: 'Senior Software Engineer', departmentName: 'Engineering', currentStage: ApplicationStage.DEPARTMENT_INTERVIEW },
-  { id: '2', applicationId: 'APP-2024-002', candidateName: 'Sara Hassan', candidateEmail: 'sara.hassan@email.com', jobTitle: 'Senior Software Engineer', departmentName: 'Engineering', currentStage: ApplicationStage.DEPARTMENT_INTERVIEW },
-  { id: '3', applicationId: 'APP-2024-003', candidateName: 'Omar Khaled', candidateEmail: 'omar.khaled@email.com', jobTitle: 'Product Manager', departmentName: 'Product', currentStage: ApplicationStage.HR_INTERVIEW },
-  { id: '6', applicationId: 'APP-2024-006', candidateName: 'Nour Adel', candidateEmail: 'nour.adel@email.com', jobTitle: 'HR Coordinator', departmentName: 'Human Resources', currentStage: ApplicationStage.DEPARTMENT_INTERVIEW },
-];
-
-const mockScheduledInterviews: ScheduledInterview[] = [
-  {
-    id: 'int-1',
-    applicationId: '2',
-    candidateName: 'Sara Hassan',
-    jobTitle: 'Senior Software Engineer',
-    scheduledDate: '2024-12-17',
-    startTime: '10:00',
-    endTime: '11:00',
-    method: InterviewMethod.VIDEO,
-    panelMembers: ['Ahmed Hassan', 'Sara Ali'],
-    status: InterviewStatus.SCHEDULED,
-    videoLink: 'https://meet.google.com/abc-defg-hij',
-  },
-  {
-    id: 'int-2',
-    applicationId: '3',
-    candidateName: 'Omar Khaled',
-    jobTitle: 'Product Manager',
-    scheduledDate: '2024-12-16',
-    startTime: '14:00',
-    endTime: '15:00',
-    method: InterviewMethod.ONSITE,
-    panelMembers: ['Omar Youssef', 'Fatima Khalid'],
-    status: InterviewStatus.COMPLETED,
-    location: 'Meeting Room A, 3rd Floor',
-  },
-];
+// Generate time slots for the next 7 days
+function generateTimeSlots(): TimeSlot[] {
+  const slots: TimeSlot[] = [];
+  const today = new Date();
+  
+  for (let day = 1; day <= 7; day++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + day);
+    
+    // Skip weekends
+    if (date.getDay() === 0 || date.getDay() === 6) continue;
+    
+    const dateStr = date.toISOString().split('T')[0];
+    
+    // Morning slots
+    slots.push({ id: `${dateStr}-0900`, date: dateStr, startTime: '09:00', endTime: '10:00', available: true });
+    slots.push({ id: `${dateStr}-1030`, date: dateStr, startTime: '10:30', endTime: '11:30', available: true });
+    
+    // Afternoon slots
+    slots.push({ id: `${dateStr}-1400`, date: dateStr, startTime: '14:00', endTime: '15:00', available: true });
+    slots.push({ id: `${dateStr}-1530`, date: dateStr, startTime: '15:30', endTime: '16:30', available: true });
+  }
+  
+  return slots;
+}
 
 // =====================================================
 // Components
@@ -262,7 +236,7 @@ function ConfirmationModal({
           <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={onConfirm} isLoading={isSubmitting}>
+          <Button variant="default" onClick={onConfirm} disabled={isSubmitting}>
             Schedule Interview
           </Button>
         </div>
@@ -280,6 +254,7 @@ export default function InterviewSchedulingPage() {
   const preselectedAppId = searchParams.get('applicationId');
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [applications, setApplications] = useState<ApplicationForInterview[]>([]);
   const [panelMembers, setPanelMembers] = useState<PanelMember[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
@@ -301,20 +276,111 @@ export default function InterviewSchedulingPage() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [editingInterviewId, setEditingInterviewId] = useState<string | null>(null);
+  const [cancellingInterviewId, setCancellingInterviewId] = useState<string | null>(null);
 
-  // Load data
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setApplications(mockApplicationsForInterview);
-      setPanelMembers(mockPanelMembers);
-      setTimeSlots(mockTimeSlots);
-      setScheduledInterviews(mockScheduledInterviews);
+  // Load data from API
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Fetch ALL applications (not filtered by stage)
+      const [apps, interviews, employees] = await Promise.all([
+        getApplications(), // Get all applications
+        getInterviews(),
+        getEmployees(),
+      ]);
+
+      // Filter applications that can have interviews scheduled (not rejected/withdrawn)
+      const eligibleApps = apps.filter(app => 
+        app.currentStage === ApplicationStage.SCREENING ||
+        app.currentStage === ApplicationStage.DEPARTMENT_INTERVIEW ||
+        app.currentStage === ApplicationStage.HR_INTERVIEW
+      );
+
+      // Map applications for interview selection
+      const appList: ApplicationForInterview[] = eligibleApps.map((app) => ({
+        id: app.id,
+        applicationId: app.id,
+        candidateName: app.candidateName || 'Unknown',
+        candidateEmail: app.candidateEmail || '',
+        jobTitle: app.jobTitle || 'Untitled Position',
+        departmentName: app.departmentName || 'Not specified',
+        currentStage: app.currentStage,
+      }));
+      
+      console.log('📊 Interview Scheduling - Data Loaded:');
+      console.log('  Total Applications:', apps.length);
+      console.log('  Eligible Applications:', eligibleApps.length);
+      console.log('  Interviews:', interviews.length);
+      console.log('  Panel Members:', employees.length);
+      console.log('  Applications List:', appList);
+      
+      setApplications(appList);
+
+      // Map interviews - get candidate names from applications
+      // Also lookup from all apps not just eligible ones
+      const interviewList: ScheduledInterview[] = interviews.map((int: any) => {
+        // Find the application to get candidate details
+        const app = apps.find(a => a.id === int.applicationId);
+        
+        // Handle panel members - could be array of objects with employeeName or array of IDs
+        let panelNames: string[] = [];
+        if (int.panelMembers && Array.isArray(int.panelMembers)) {
+          panelNames = int.panelMembers.map((p: any) => {
+            if (typeof p === 'string') return p;
+            if (p.employeeName) return p.employeeName;
+            if (p.name) return p.name;
+            return 'Unknown';
+          });
+        } else if (int.panel && Array.isArray(int.panel)) {
+          panelNames = int.panel.map((id: string) => {
+            const emp = employees.find((e: any) => e.id === id) as any;
+            return emp?.fullName || emp?.name || id;
+          });
+        }
+        
+        return {
+          id: int.id,
+          applicationId: int.applicationId,
+          candidateName: app?.candidateName || 'Unknown Candidate',
+          jobTitle: app?.jobTitle || 'Unknown Position',
+          scheduledDate: int.scheduledDate?.split('T')[0] || '',
+          startTime: int.scheduledDate ? new Date(int.scheduledDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '',
+          endTime: '',
+          method: int.method,
+          panelMembers: panelNames,
+          status: int.status,
+          videoLink: int.videoLink,
+        };
+      });
+      console.log('Interviews mapped:', interviewList);
+      setScheduledInterviews(interviewList);
+
+      // Map employees as panel members
+      const panelList: PanelMember[] = (employees as any[]).map((emp) => ({
+        id: emp.id,
+        name: emp.fullName || emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unknown',
+        role: emp.position?.title || emp.position || emp.jobTitle || 'Employee',
+        department: emp.department?.name || emp.departmentName || emp.department || 'Not specified',
+        email: emp.workEmail || emp.email || '',
+        available: true,
+      }));
+      console.log('Panel members mapped:', panelList);
+      setPanelMembers(panelList);
+
+      // Generate time slots
+      setTimeSlots(generateTimeSlots());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+    } finally {
       setLoading(false);
-    };
-    loadData();
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Auto-open form if applicationId is provided
   useEffect(() => {
@@ -369,59 +435,143 @@ export default function InterviewSchedulingPage() {
     }
   };
 
+  // Handle reschedule interview (Test Case 10.10)
+  const handleReschedule = (interviewId: string) => {
+    const interview = scheduledInterviews.find(i => i.id === interviewId);
+    if (interview) {
+      setNewInterview({
+        applicationId: interview.applicationId,
+        stage: ApplicationStage.DEPARTMENT_INTERVIEW,
+        selectedPanel: [],
+        selectedSlot: '',
+        method: interview.method,
+        videoLink: interview.videoLink || '',
+        location: interview.location || '',
+        notes: '',
+      });
+      setEditingInterviewId(interviewId);
+      setShowScheduleForm(true);
+    }
+  };
+
+  // Handle cancel interview (Test Case 10.11)
+  const handleCancelInterview = async (interviewId: string) => {
+    const reason = prompt('Please provide a reason for cancellation (optional):');
+    
+    if (!confirm('Are you sure you want to cancel this interview? Notifications will be sent to all participants.')) {
+      return;
+    }
+    
+    setCancellingInterviewId(interviewId);
+    try {
+      // Call cancel API endpoint (BR-19d: notifications sent automatically)
+      await cancelInterview(interviewId, reason || undefined);
+      
+      // Update local state
+      setScheduledInterviews(prev => 
+        prev.map(i => 
+          i.id === interviewId 
+            ? { ...i, status: InterviewStatus.CANCELLED } 
+            : i
+        )
+      );
+      setSuccessMessage('Interview cancelled successfully. Notifications sent to all participants.');
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel interview');
+    } finally {
+      setCancellingInterviewId(null);
+    }
+  };
+
   // Confirm and submit (BR-19)
   const handleConfirmSchedule = async () => {
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const selectedApp = applications.find((a) => a.id === newInterview.applicationId);
-    const selectedSlot = timeSlots.find((s) => s.id === newInterview.selectedSlot);
-    const selectedPanelNames = panelMembers
-      .filter((m) => newInterview.selectedPanel.includes(m.id))
-      .map((m) => m.name);
-
-    if (selectedApp && selectedSlot) {
-      const newScheduledInterview: ScheduledInterview = {
-        id: `int-${Date.now()}`,
-        applicationId: newInterview.applicationId,
-        candidateName: selectedApp.candidateName,
-        jobTitle: selectedApp.jobTitle,
-        scheduledDate: selectedSlot.date,
-        startTime: selectedSlot.startTime,
-        endTime: selectedSlot.endTime,
-        method: newInterview.method,
-        panelMembers: selectedPanelNames,
-        status: InterviewStatus.SCHEDULED,
-        videoLink: newInterview.method === InterviewMethod.VIDEO ? newInterview.videoLink : undefined,
-        location: newInterview.method === InterviewMethod.ONSITE ? newInterview.location : undefined,
-      };
-
-      setScheduledInterviews((prev) => [newScheduledInterview, ...prev]);
+    setError(null);
+    
+    try {
+      const selectedSlot = timeSlots.find((s) => s.id === newInterview.selectedSlot);
       
-      // Mark slot as unavailable
-      setTimeSlots((prev) =>
-        prev.map((slot) =>
-          slot.id === newInterview.selectedSlot ? { ...slot, available: false } : slot
-        )
-      );
+      if (!selectedSlot) {
+        setError('Please select a valid time slot');
+        return;
+      }
+
+      const scheduledDate = new Date(`${selectedSlot.date}T${selectedSlot.startTime}:00`);
+      
+      let createdInterview;
+      try {
+        createdInterview = await scheduleInterview({
+          applicationId: newInterview.applicationId,
+          stage: newInterview.stage,
+          scheduledDate: scheduledDate.toISOString(),
+          method: newInterview.method,
+          panel: newInterview.selectedPanel,
+          videoLink: newInterview.method === InterviewMethod.VIDEO ? newInterview.videoLink : undefined,
+        });
+      } catch (scheduleErr: any) {
+        const errMsg = scheduleErr.message || '';
+        if (errMsg.includes('409') || errMsg.includes('Conflict') || errMsg.includes('already exists')) {
+          setError('An interview for this stage already exists for this application. Please choose a different stage or reschedule the existing interview.');
+        } else {
+          setError(errMsg || 'Failed to schedule interview');
+        }
+        setIsSubmitting(false);
+        setShowConfirmation(false);
+        return;
+      }
+
+      const selectedApp = applications.find((a) => a.id === newInterview.applicationId);
+      const selectedPanelNames = panelMembers
+        .filter((m) => newInterview.selectedPanel.includes(m.id))
+        .map((m) => m.name);
+
+      if (selectedApp && createdInterview) {
+        const newScheduledInterview: ScheduledInterview = {
+          id: createdInterview.id,
+          applicationId: newInterview.applicationId,
+          candidateName: selectedApp.candidateName,
+          jobTitle: selectedApp.jobTitle,
+          scheduledDate: selectedSlot.date,
+          startTime: selectedSlot.startTime,
+          endTime: selectedSlot.endTime,
+          method: newInterview.method,
+          panelMembers: selectedPanelNames,
+          status: InterviewStatus.SCHEDULED,
+          videoLink: newInterview.method === InterviewMethod.VIDEO ? newInterview.videoLink : undefined,
+          location: newInterview.method === InterviewMethod.ONSITE ? newInterview.location : undefined,
+        };
+
+        setScheduledInterviews((prev) => [newScheduledInterview, ...prev]);
+        
+        // Mark slot as unavailable
+        setTimeSlots((prev) =>
+          prev.map((slot) =>
+            slot.id === newInterview.selectedSlot ? { ...slot, available: false } : slot
+          )
+        );
+      }
+
+      setShowConfirmation(false);
+      setShowScheduleForm(false);
+      setNewInterview({
+        applicationId: '',
+        stage: ApplicationStage.DEPARTMENT_INTERVIEW,
+        selectedPanel: [],
+        selectedSlot: '',
+        method: InterviewMethod.VIDEO,
+        videoLink: '',
+        location: '',
+        notes: '',
+      });
+
+      setSuccessMessage('Interview scheduled successfully! Calendar invites have been sent.');
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to schedule interview');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
-    setShowConfirmation(false);
-    setShowScheduleForm(false);
-    setNewInterview({
-      applicationId: '',
-      stage: ApplicationStage.DEPARTMENT_INTERVIEW,
-      selectedPanel: [],
-      selectedSlot: '',
-      method: InterviewMethod.VIDEO,
-      videoLink: '',
-      location: '',
-      notes: '',
-    });
-
-    setSuccessMessage('Interview scheduled successfully! Calendar invites have been sent.');
-    setTimeout(() => setSuccessMessage(null), 5000);
   };
 
   const selectedApplication = applications.find((a) => a.id === newInterview.applicationId);
@@ -445,13 +595,28 @@ export default function InterviewSchedulingPage() {
             Schedule and manage candidate interviews
           </p>
         </div>
-        <Button variant="primary" onClick={() => setShowScheduleForm(true)}>
+        <Button variant="default" onClick={() => setShowScheduleForm(true)}>
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           Schedule Interview
         </Button>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+          <span className="text-red-800 font-medium">{error}</span>
+          <button onClick={() => setError(null)} className="ml-auto text-red-600 hover:text-red-800">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Success Alert */}
       {successMessage && (
@@ -491,7 +656,7 @@ export default function InterviewSchedulingPage() {
 
       {/* Schedule Form */}
       {showScheduleForm && (
-        <Card className="mb-6" title="Schedule New Interview">
+        <Card className="mb-6">
           <div className="space-y-6">
             {/* Select Candidate */}
             <div>
@@ -508,10 +673,26 @@ export default function InterviewSchedulingPage() {
                 <option value="">Choose a candidate...</option>
                 {applications.map((app) => (
                   <option key={app.id} value={app.id}>
-                    {app.candidateName} - {app.jobTitle}
+                    {app.candidateName} - {app.jobTitle} ({app.departmentName})
                   </option>
                 ))}
               </select>
+              {selectedApplication && (
+                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm">
+                    <strong>Candidate:</strong> {selectedApplication.candidateName}
+                  </p>
+                  <p className="text-sm">
+                    <strong>Position:</strong> {selectedApplication.jobTitle}
+                  </p>
+                  <p className="text-sm">
+                    <strong>Department:</strong> {selectedApplication.departmentName}
+                  </p>
+                  <p className="text-sm">
+                    <strong>Current Stage:</strong> {selectedApplication.currentStage}
+                  </p>
+                </div>
+              )}
               {errors.applicationId && (
                 <p className="text-red-600 text-sm mt-1">{errors.applicationId}</p>
               )}
@@ -546,6 +727,7 @@ export default function InterviewSchedulingPage() {
                     key={member.id}
                     onClick={() => member.available && togglePanelMember(member.id)}
                     disabled={!member.available}
+                    title={`${member.name} - ${member.role} (${member.department}) - ${member.email}${!member.available ? ' - Unavailable' : ''}`}
                     className={`p-3 rounded-lg border text-left transition-colors ${
                       newInterview.selectedPanel.includes(member.id)
                         ? 'border-indigo-500 bg-indigo-50'
@@ -555,24 +737,58 @@ export default function InterviewSchedulingPage() {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-slate-900">{member.name}</p>
-                        <p className="text-sm text-slate-500">{member.role}</p>
-                        <p className="text-xs text-slate-400">{member.department}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900 truncate">{member.name}</p>
+                        <p className="text-sm text-slate-500 truncate">{member.role}</p>
+                        <p className="text-xs text-slate-400 truncate">{member.department}</p>
+                        {member.available && (
+                          <p className="text-xs text-emerald-600 mt-0.5">✓ Available</p>
+                        )}
                       </div>
-                      {newInterview.selectedPanel.includes(member.id) && (
-                        <svg className="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                      {!member.available && (
-                        <span className="text-xs text-red-500">Unavailable</span>
-                      )}
+                      <div className="flex-shrink-0 ml-2">
+                        {newInterview.selectedPanel.includes(member.id) && (
+                          <svg className="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                        {!member.available && (
+                          <span className="text-xs text-red-600 font-medium">✗ Busy</span>
+                        )}
+                      </div>
                     </div>
                   </button>
                 ))}
               </div>
               {errors.panel && <p className="text-red-600 text-sm mt-1">{errors.panel}</p>}
+              
+              {/* Selected Panel Summary */}
+              {newInterview.selectedPanel.length > 0 && (
+                <div className="mt-3 bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+                  <p className="text-sm font-medium text-indigo-900 mb-2">
+                    Selected Panel Members ({newInterview.selectedPanel.length}):
+                  </p>
+                  <div className="space-y-1">
+                    {panelMembers
+                      .filter(m => newInterview.selectedPanel.includes(m.id))
+                      .map(member => (
+                        <div key={member.id} className="flex items-center justify-between text-sm">
+                          <span className="text-indigo-700">
+                            {member.name} - {member.role}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              togglePanelMember(member.id);
+                            }}
+                            className="text-indigo-600 hover:text-indigo-800"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Time Slot Selection (BR-19) */}
@@ -646,8 +862,8 @@ export default function InterviewSchedulingPage() {
                   value={newInterview.videoLink}
                   onChange={(e) => setNewInterview({ ...newInterview, videoLink: e.target.value })}
                   placeholder="https://meet.google.com/..."
-                  error={errors.videoLink}
                 />
+                {errors.videoLink && <p className="text-red-600 text-sm mt-1">{errors.videoLink}</p>}
               </div>
             )}
 
@@ -661,8 +877,8 @@ export default function InterviewSchedulingPage() {
                   value={newInterview.location}
                   onChange={(e) => setNewInterview({ ...newInterview, location: e.target.value })}
                   placeholder="Meeting Room A, 3rd Floor"
-                  error={errors.location}
                 />
+                {errors.location && <p className="text-red-600 text-sm mt-1">{errors.location}</p>}
               </div>
             )}
 
@@ -685,7 +901,7 @@ export default function InterviewSchedulingPage() {
               <Button variant="outline" onClick={() => setShowScheduleForm(false)}>
                 Cancel
               </Button>
-              <Button variant="primary" onClick={handleScheduleClick}>
+              <Button variant="default" onClick={handleScheduleClick}>
                 Review & Schedule
               </Button>
             </div>
@@ -694,7 +910,7 @@ export default function InterviewSchedulingPage() {
       )}
 
       {/* Scheduled Interviews */}
-      <Card title="Scheduled Interviews" padding="none">
+      <Card className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -776,18 +992,27 @@ export default function InterviewSchedulingPage() {
                       <div className="flex justify-end gap-2">
                         {interview.status === InterviewStatus.COMPLETED && (
                           <Link href={`/dashboard/hr-employee/recruitment/interviews/${interview.id}`}>
-                            <Button variant="primary" size="sm">
+                            <Button variant="default" size="sm">
                               Add Feedback
                             </Button>
                           </Link>
                         )}
                         {interview.status === InterviewStatus.SCHEDULED && (
                           <>
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleReschedule(interview.id)}
+                            >
                               Reschedule
                             </Button>
-                            <Button variant="danger" size="sm">
-                              Cancel
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => handleCancelInterview(interview.id)}
+                              disabled={cancellingInterviewId === interview.id}
+                            >
+                              {cancellingInterviewId === interview.id ? 'Cancelling...' : 'Cancel'}
                             </Button>
                           </>
                         )}

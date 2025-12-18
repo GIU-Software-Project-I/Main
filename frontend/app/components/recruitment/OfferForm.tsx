@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import Button from '@/app/components/ui/Button';
-import Input from '@/app/components/ui/Input';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
 
 // =====================================================
 // Types
@@ -495,15 +495,19 @@ export default function OfferForm({
       />
 
       {/* Start Date */}
-      <Input
-        label="Start Date"
-        type="date"
-        value={formData.startDate}
-        onChange={(e) => updateField('startDate', e.target.value)}
-        min={minDate}
-        error={errors.startDate}
-        required
-      />
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-slate-700">
+          Start Date <span className="text-red-500">*</span>
+        </label>
+        <Input
+          type="date"
+          value={formData.startDate}
+          onChange={(e) => updateField('startDate', e.target.value)}
+          min={minDate}
+          required
+        />
+        {errors.startDate && <p className="text-sm text-red-600">{errors.startDate}</p>}
+      </div>
 
       {/* Conditions */}
       <TextArea
@@ -537,8 +541,7 @@ export default function OfferForm({
         )}
         <Button
           type="submit"
-          variant="primary"
-          isLoading={isSubmitting || isLoading}
+          variant="default"
           disabled={isSubmitting || isLoading}
         >
           Create Offer

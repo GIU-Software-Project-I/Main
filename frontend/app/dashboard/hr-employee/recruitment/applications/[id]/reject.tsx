@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Button from '@/app/components/ui/Button';
-import Card from '@/app/components/ui/Card';
-import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
+import { Button } from '@/app/components/ui/button';
+import { Card } from '@/app/components/ui/card';
+import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
+import { getApplicationById, rejectApplication, sendRejectionNotification, getEmailTemplates } from '@/app/services/recruitment';
 
 // =====================================================
 // Types
@@ -36,19 +37,8 @@ interface RejectionTemplate {
 }
 
 // =====================================================
-// Mock Data
+// Static Data
 // =====================================================
-
-const mockCandidate: CandidateInfo = {
-  id: 'CAND-001',
-  applicationId: 'APP-2024-001',
-  candidateName: 'Ahmed Mohamed',
-  candidateEmail: 'ahmed.mohamed@email.com',
-  jobTitle: 'Senior Software Engineer',
-  departmentName: 'Engineering',
-  appliedDate: '2024-12-10',
-  currentStage: 'Department Interview',
-};
 
 const rejectionReasons: RejectionReason[] = [
   {
@@ -214,6 +204,7 @@ export default function RejectApplicationPage({
 
   const [candidate, setCandidate] = useState<CandidateInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -226,16 +217,36 @@ export default function RejectApplicationPage({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Load candidate data
-  useEffect(() => {
-    const loadData = async () => {
+  // Load candidate data from API
+  const loadData = useCallback(async () => {
+    try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setCandidate(mockCandidate);
+      setError(null);
+      
+      const appData = await getApplicationById(resolvedParams.id);
+      
+      const candidateInfo: CandidateInfo = {
+        id: appData.candidateId || appData.id,
+        applicationId: `APP-${appData.id}`,
+        candidateName: appData.candidateName || 'Unknown',
+        candidateEmail: appData.candidateEmail || '',
+        jobTitle: appData.jobTitle || '',
+        departmentName: appData.departmentName || '',
+        appliedDate: appData.createdAt || '',
+        currentStage: appData.currentStage || 'Unknown',
+      };
+      
+      setCandidate(candidateInfo);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load application data');
+    } finally {
       setLoading(false);
-    };
-    loadData();
+    }
   }, [resolvedParams.id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Validate form (BR-36, BR-37)
   const validateForm = (): boolean => {
@@ -264,12 +275,33 @@ export default function RejectApplicationPage({
     }
   };
 
-  // Send rejection (BR-36, BR-37)
+  // Send rejection (BR-36, BR-37, REC-022)
   const handleSendRejection = async () => {
-    setSending(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setSending(false);
-    setSent(true);
+    try {
+      setSending(true);
+      setError(null);
+      
+      const reasonLabel = rejectionReasons.find(r => r.id === selectedReason)?.label || selectedReason;
+      const reason = `${reasonLabel}${internalNotes ? ` - Notes: ${internalNotes}` : ''}`;
+      
+      // First, reject the application to update status
+      await rejectApplication(resolvedParams.id, reason);
+      
+      // Then send the rejection notification email (REC-022)
+      await sendRejectionNotification({
+        applicationId: resolvedParams.id,
+        reason: reasonLabel,
+        templateId: useCustomMessage ? undefined : selectedTemplate,
+        customMessage: useCustomMessage ? customMessage : undefined,
+      });
+      
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send rejection');
+      setShowConfirmation(false);
+    } finally {
+      setSending(false);
+    }
   };
 
   const selectedReasonData = rejectionReasons.find((r) => r.id === selectedReason);
@@ -288,7 +320,7 @@ export default function RejectApplicationPage({
       <div className="p-6 text-center">
         <p className="text-slate-600">Application not found.</p>
         <Link href="/dashboard/hr-employee/recruitment/applications">
-          <Button variant="primary" className="mt-4">
+          <Button variant="default" className="mt-4">
             Back to Pipeline
           </Button>
         </Link>
@@ -328,7 +360,7 @@ export default function RejectApplicationPage({
               <Button variant="outline">Back to Pipeline</Button>
             </Link>
             <Link href={`/dashboard/hr-employee/recruitment/applications/${candidate.applicationId}`}>
-              <Button variant="primary">View Application</Button>
+              <Button variant="default">View Application</Button>
             </Link>
           </div>
         </Card>
@@ -390,7 +422,7 @@ export default function RejectApplicationPage({
         {/* Left Column - Form */}
         <div className="space-y-6">
           {/* Rejection Reason */}
-          <Card title="Rejection Reason">
+          <Card>
             <p className="text-sm text-slate-600 mb-4">
               Select the primary reason for rejecting this application.
             </p>
@@ -416,7 +448,7 @@ export default function RejectApplicationPage({
           </Card>
 
           {/* Email Template */}
-          <Card title="Email Template">
+          <Card>
             <div className="space-y-3">
               {rejectionTemplates.map((template) => (
                 <button
@@ -471,7 +503,7 @@ export default function RejectApplicationPage({
           </Card>
 
           {/* Internal Notes */}
-          <Card title="Internal Notes (Optional)">
+          <Card>
             <p className="text-sm text-slate-600 mb-3">
               Add notes for internal records. These will not be shared with the candidate.
             </p>
@@ -487,7 +519,7 @@ export default function RejectApplicationPage({
 
         {/* Right Column - Preview */}
         <div className="space-y-6">
-          <Card title="Email Preview">
+          <Card>
             <EmailPreview
               template={selectedTemplateData || null}
               candidate={candidate}
@@ -502,7 +534,7 @@ export default function RejectApplicationPage({
         <Link href={`/dashboard/hr-employee/recruitment/applications/${resolvedParams.id}`}>
           <Button variant="outline">Cancel</Button>
         </Link>
-        <Button variant="danger" onClick={handleConfirmClick}>
+        <Button variant="destructive" onClick={handleConfirmClick}>
           Send Rejection
         </Button>
       </div>
@@ -531,17 +563,17 @@ export default function RejectApplicationPage({
               <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  fullWidth
+                  className="w-full"
                   onClick={() => setShowConfirmation(false)}
                   disabled={sending}
                 >
                   Cancel
                 </Button>
                 <Button
-                  variant="danger"
-                  fullWidth
+                  variant="destructive"
+                  className="w-full"
                   onClick={handleSendRejection}
-                  isLoading={sending}
+                  disabled={sending}
                 >
                   Confirm & Send
                 </Button>

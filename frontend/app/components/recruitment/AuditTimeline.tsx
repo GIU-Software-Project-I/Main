@@ -147,7 +147,8 @@ export default function AuditTimeline({
     setError(null);
     try {
       const response = await getAuditLogs(entityId, entityType);
-      setLogs(response.data);
+      // Service now returns data directly or throws error
+      setLogs(response);
     } catch (err) {
       console.error('Failed to fetch audit logs:', err);
       setError('Failed to load activity history');

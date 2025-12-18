@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import Button from '@/app/components/ui/Button';
-import Card from '@/app/components/ui/Card';
-import Input from '@/app/components/ui/Input';
-import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
+import { Button } from '@/app/components/ui/button';
+import { Card } from '@/app/components/ui/card';
+import { Input } from '@/app/components/ui/input';
+import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
 import { ApplicationStage, ApplicationStatus } from '@/app/types/enums';
+import { getApplications, updateApplicationStage } from '@/app/services/recruitment';
 
 // =====================================================
 // Types
@@ -28,120 +29,6 @@ interface ApplicationCandidate {
   lastUpdated: string;
   score?: number;
 }
-
-// =====================================================
-// Mock Data
-// =====================================================
-
-const mockApplications: ApplicationCandidate[] = [
-  {
-    id: '1',
-    applicationId: 'APP-2024-001',
-    candidateId: 'CAND-001',
-    candidateName: 'Ahmed Mohamed',
-    candidateEmail: 'ahmed.mohamed@email.com',
-    jobTitle: 'Senior Software Engineer',
-    departmentName: 'Engineering',
-    currentStage: ApplicationStage.SCREENING,
-    status: ApplicationStatus.IN_PROCESS,
-    isReferral: true,
-    referredBy: 'Hassan Ali',
-    appliedDate: '2024-12-10',
-    lastUpdated: '2024-12-12',
-    score: undefined,
-  },
-  {
-    id: '2',
-    applicationId: 'APP-2024-002',
-    candidateId: 'CAND-002',
-    candidateName: 'Sara Hassan',
-    candidateEmail: 'sara.hassan@email.com',
-    jobTitle: 'Senior Software Engineer',
-    departmentName: 'Engineering',
-    currentStage: ApplicationStage.DEPARTMENT_INTERVIEW,
-    status: ApplicationStatus.IN_PROCESS,
-    isReferral: false,
-    appliedDate: '2024-12-08',
-    lastUpdated: '2024-12-14',
-    score: 85,
-  },
-  {
-    id: '3',
-    applicationId: 'APP-2024-003',
-    candidateId: 'CAND-003',
-    candidateName: 'Omar Khaled',
-    candidateEmail: 'omar.khaled@email.com',
-    jobTitle: 'Product Manager',
-    departmentName: 'Product',
-    currentStage: ApplicationStage.HR_INTERVIEW,
-    status: ApplicationStatus.IN_PROCESS,
-    isReferral: false,
-    appliedDate: '2024-12-05',
-    lastUpdated: '2024-12-15',
-    score: 92,
-  },
-  {
-    id: '4',
-    applicationId: 'APP-2024-004',
-    candidateId: 'CAND-004',
-    candidateName: 'Fatima Ibrahim',
-    candidateEmail: 'fatima.ibrahim@email.com',
-    jobTitle: 'UX Designer',
-    departmentName: 'Design',
-    currentStage: ApplicationStage.OFFER,
-    status: ApplicationStatus.OFFER,
-    isReferral: true,
-    referredBy: 'Mohamed Ali',
-    appliedDate: '2024-11-28',
-    lastUpdated: '2024-12-16',
-    score: 95,
-  },
-  {
-    id: '5',
-    applicationId: 'APP-2024-005',
-    candidateId: 'CAND-005',
-    candidateName: 'Youssef Gamal',
-    candidateEmail: 'youssef.gamal@email.com',
-    jobTitle: 'Senior Software Engineer',
-    departmentName: 'Engineering',
-    currentStage: ApplicationStage.SCREENING,
-    status: ApplicationStatus.SUBMITTED,
-    isReferral: false,
-    appliedDate: '2024-12-15',
-    lastUpdated: '2024-12-15',
-    score: undefined,
-  },
-  {
-    id: '6',
-    applicationId: 'APP-2024-006',
-    candidateId: 'CAND-006',
-    candidateName: 'Nour Adel',
-    candidateEmail: 'nour.adel@email.com',
-    jobTitle: 'HR Coordinator',
-    departmentName: 'Human Resources',
-    currentStage: ApplicationStage.DEPARTMENT_INTERVIEW,
-    status: ApplicationStatus.IN_PROCESS,
-    isReferral: false,
-    appliedDate: '2024-12-12',
-    lastUpdated: '2024-12-14',
-    score: 78,
-  },
-  {
-    id: '7',
-    applicationId: 'APP-2024-007',
-    candidateId: 'CAND-007',
-    candidateName: 'Karim Sayed',
-    candidateEmail: 'karim.sayed@email.com',
-    jobTitle: 'Product Manager',
-    departmentName: 'Product',
-    currentStage: ApplicationStage.SCREENING,
-    status: ApplicationStatus.REJECTED,
-    isReferral: false,
-    appliedDate: '2024-12-01',
-    lastUpdated: '2024-12-05',
-    score: 45,
-  },
-];
 
 // =====================================================
 // Stage Configuration
@@ -358,7 +245,7 @@ function ApplicationsList({
   onStageChange: (appId: string, newStage: ApplicationStage) => void;
 }) {
   return (
-    <Card padding="none">
+    <Card className="p-0">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-200">
@@ -451,7 +338,7 @@ function ApplicationsList({
                     </Link>
                     {app.status !== ApplicationStatus.REJECTED && (
                       <Link href={`/dashboard/hr-employee/recruitment/applications/${app.id}/reject`}>
-                        <Button variant="danger" size="sm">
+                        <Button variant="destructive" size="sm">
                           Reject
                         </Button>
                       </Link>
@@ -474,41 +361,71 @@ function ApplicationsList({
 export default function HREmployeeApplicationsPipelinePage() {
   const [applications, setApplications] = useState<ApplicationCandidate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [referralFilter, setReferralFilter] = useState<boolean | null>(null);
   const [stageChangeSuccess, setStageChangeSuccess] = useState<string | null>(null);
 
-  // Load applications
-  useEffect(() => {
-    const loadApplications = async () => {
-      setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setApplications(mockApplications);
+  // Load applications from API
+  const loadApplications = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const apps = await getApplications();
+      // Map API response to expected format
+      const mappedApplications: ApplicationCandidate[] = apps.map((app) => ({
+        id: app.id,
+        applicationId: app.id,
+        candidateId: app.candidateId,
+        candidateName: app.candidateName || 'Unknown',
+        candidateEmail: app.candidateEmail || '',
+        jobTitle: app.jobTitle || 'Untitled Position',
+        departmentName: app.departmentName || 'Not specified',
+        currentStage: app.currentStage,
+        status: app.status,
+        isReferral: false, // Would need to check referral endpoint
+        appliedDate: app.createdAt,
+        lastUpdated: app.updatedAt,
+        score: undefined, // Would need to fetch from assessment
+      }));
+      setApplications(mappedApplications);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load applications');
+    } finally {
       setLoading(false);
-    };
-    loadApplications();
+    }
   }, []);
+
+  useEffect(() => {
+    loadApplications();
+  }, [loadApplications]);
 
   // Handle stage change (BR-9, BR-14)
   const handleStageChange = async (appId: string, newStage: ApplicationStage) => {
-    // Update state optimistically
-    setApplications((prev) =>
-      prev.map((app) =>
-        app.id === appId
-          ? {
-              ...app,
-              currentStage: newStage,
-              lastUpdated: new Date().toISOString().split('T')[0],
-              status: newStage === ApplicationStage.OFFER ? ApplicationStatus.OFFER : ApplicationStatus.IN_PROCESS,
-            }
-          : app
-      )
-    );
+    try {
+      await updateApplicationStage(appId, newStage);
+      
+      // Update state optimistically
+      setApplications((prev) =>
+        prev.map((app) =>
+          app.id === appId
+            ? {
+                ...app,
+                currentStage: newStage,
+                lastUpdated: new Date().toISOString().split('T')[0],
+                status: newStage === ApplicationStage.OFFER ? ApplicationStatus.OFFER : ApplicationStatus.IN_PROCESS,
+              }
+            : app
+        )
+      );
 
-    setStageChangeSuccess(appId);
-    setTimeout(() => setStageChangeSuccess(null), 2000);
+      setStageChangeSuccess(appId);
+      setTimeout(() => setStageChangeSuccess(null), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update stage');
+    }
   };
 
   // Filter applications (BR-14, BR-25)
@@ -582,6 +499,21 @@ export default function HREmployeeApplicationsPipelinePage() {
           </button>
         </div>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+          <span className="text-red-800 font-medium">{error}</span>
+          <button onClick={() => setError(null)} className="ml-auto text-red-600 hover:text-red-800">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Success Alert */}
       {stageChangeSuccess && (

@@ -5,14 +5,21 @@ import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
-import { getJobs, publishJob, closeJob } from '@/app/services/recruitment';
-import { JobRequisition } from '@/app/types/recruitment';
+import { useAuth } from '@/app/context/AuthContext';
+import { 
+  getJobs, 
+  getJobTemplates,
+  createJob, 
+  updateJob, 
+  publishJob, 
+  closeJob 
+} from '@/app/services/recruitment';
+import { JobRequisition, JobTemplate } from '@/app/types/recruitment';
 
 // =====================================================
 // Types
 // =====================================================
 
-// Combined interface for displaying job requisitions with template data
 interface JobWithDetails {
   id: string;
   requisitionId: string;
@@ -25,11 +32,9 @@ interface JobWithDetails {
   expiryDate?: string;
   createdAt: string;
   updatedAt: string;
-  // Denormalized from template
   templateTitle?: string;
   hiringManagerName?: string;
   applicationCount?: number;
-  // Template fields for preview (may not be returned by API)
   title?: string;
   department?: string;
   description?: string;
@@ -47,26 +52,23 @@ interface EmployerBranding {
   culture: string[];
 }
 
-// Default branding - could be fetched from API in future
 const defaultEmployerBranding: EmployerBranding = {
   companyName: 'Our Company',
   logo: '/logo-placeholder.png',
   tagline: 'Building the Future Together',
-  description: 'We are a leading technology company dedicated to creating innovative solutions that transform businesses and improve lives.',
+  description: 'We are a leading technology company dedicated to creating innovative solutions.',
   benefits: [
     'Competitive Salary & Bonuses',
     'Health Insurance',
     'Remote Work Options',
     'Learning & Development Budget',
     'Flexible Working Hours',
-    'Annual Leave + Paid Time Off',
   ],
   culture: [
     'Innovation First',
     'Collaborative Environment',
     'Work-Life Balance',
     'Diversity & Inclusion',
-    'Continuous Learning',
   ],
 };
 
@@ -95,6 +97,142 @@ function StatusBadge({ status }: { status: 'draft' | 'published' | 'closed' }) {
 }
 
 // =====================================================
+// Create/Edit Job Modal
+// =====================================================
+
+interface JobFormData {
+  templateId: string;
+  openings: number;
+  location: string;
+  expiryDate: string;
+}
+
+function JobFormModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  templates,
+  initialData,
+  isEditing,
+  isLoading,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: JobFormData) => Promise<void>;
+  templates: JobTemplate[];
+  initialData?: JobFormData;
+  isEditing: boolean;
+  isLoading: boolean;
+}) {
+  const [formData, setFormData] = useState<JobFormData>(
+    initialData || {
+      templateId: '',
+      openings: 1,
+      location: '',
+      expiryDate: '',
+    }
+  );
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    } else {
+      setFormData({
+        templateId: '',
+        openings: 1,
+        location: '',
+        expiryDate: '',
+      });
+    }
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSubmit(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl max-w-lg w-full p-6">
+        <h2 className="text-xl font-bold text-slate-900 mb-4">
+          {isEditing ? 'Edit Job Requisition' : 'Create New Job Requisition'}
+        </h2>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Job Template *
+            </label>
+            <select
+              value={formData.templateId}
+              onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              required
+              disabled={isEditing}
+            >
+              <option value="">Select a template...</option>
+              {templates.map((template) => (
+                <option key={template.id || template._id} value={template.id || template._id}>
+                  {template.title} - {template.department}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Number of Openings *
+            </label>
+            <Input
+              type="number"
+              min="1"
+              value={formData.openings}
+              onChange={(e) => setFormData({ ...formData, openings: parseInt(e.target.value) || 1 })}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Location *
+            </label>
+            <Input
+              type="text"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              placeholder="e.g., Cairo, Egypt"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Expiry Date
+            </label>
+            <Input
+              type="date"
+              value={formData.expiryDate}
+              onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Saving...' : isEditing ? 'Update' : 'Create'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// =====================================================
 // Job Preview Modal
 // =====================================================
 
@@ -103,15 +241,15 @@ function JobPreviewModal({
   branding,
   onClose,
   onPublish,
+  onCloseJob,
   isPublishing,
-  showPublishButton = true,
 }: {
   job: JobWithDetails;
   branding: EmployerBranding;
   onClose: () => void;
   onPublish: () => void;
+  onCloseJob: () => void;
   isPublishing: boolean;
-  showPublishButton?: boolean;
 }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -141,7 +279,6 @@ function JobPreviewModal({
               <span className="flex items-center gap-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 {job.location}
               </span>
@@ -157,45 +294,41 @@ function JobPreviewModal({
 
         {/* Job Details */}
         <div className="p-6 space-y-6">
-          {/* Description */}
           {job.description && (
             <section>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">About This Role</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">About the Role</h3>
               <p className="text-slate-600">{job.description}</p>
             </section>
           )}
 
-          {/* Responsibilities */}
           {job.responsibilities && job.responsibilities.length > 0 && (
             <section>
               <h3 className="text-lg font-semibold text-slate-900 mb-2">Responsibilities</h3>
-              <ul className="list-disc list-inside space-y-1 text-slate-600">
-                {job.responsibilities.map((item: string, idx: number) => (
-                  <li key={idx}>{item}</li>
+              <ul className="list-disc list-inside space-y-1">
+                {job.responsibilities.map((item, idx) => (
+                  <li key={idx} className="text-slate-600">{item}</li>
                 ))}
               </ul>
             </section>
           )}
 
-          {/* Requirements */}
           {job.requirements && job.requirements.length > 0 && (
             <section>
               <h3 className="text-lg font-semibold text-slate-900 mb-2">Requirements</h3>
-              <ul className="list-disc list-inside space-y-1 text-slate-600">
-                {job.requirements.map((item: string, idx: number) => (
-                  <li key={idx}>{item}</li>
+              <ul className="list-disc list-inside space-y-1">
+                {job.requirements.map((item, idx) => (
+                  <li key={idx} className="text-slate-600">{item}</li>
                 ))}
               </ul>
             </section>
           )}
 
-          {/* Qualifications */}
           {job.qualifications && job.qualifications.length > 0 && (
             <section>
               <h3 className="text-lg font-semibold text-slate-900 mb-2">Qualifications</h3>
-              <ul className="list-disc list-inside space-y-1 text-slate-600">
-                {job.qualifications.map((item: string, idx: number) => (
-                  <li key={idx}>{item}</li>
+              <ul className="list-disc list-inside space-y-1">
+                {job.qualifications.map((item, idx) => (
+                  <li key={idx} className="text-slate-600">{item}</li>
                 ))}
               </ul>
             </section>
@@ -240,13 +373,22 @@ function JobPreviewModal({
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
-          {showPublishButton && job.publishStatus === 'draft' && (
+          {job.publishStatus === 'draft' && (
             <Button
               variant="default"
               onClick={onPublish}
               disabled={isPublishing}
             >
-              Publish Job
+              {isPublishing ? 'Publishing...' : 'Publish Job'}
+            </Button>
+          )}
+          {job.publishStatus === 'published' && (
+            <Button
+              variant="destructive"
+              onClick={onCloseJob}
+              disabled={isPublishing}
+            >
+              {isPublishing ? 'Closing...' : 'Close Job'}
             </Button>
           )}
         </div>
@@ -256,69 +398,66 @@ function JobPreviewModal({
 }
 
 // =====================================================
-// Employer Branding Section
+// Main Page Component - HR Manager Job Management
+// Permissions: Create, Update, Publish, Close, View
 // =====================================================
 
-function EmployerBrandingSection({ branding }: { branding: EmployerBranding }) {
-  return (
-    <Card className="mb-6">
-      <div className="flex items-start gap-4">
-        <div className="w-20 h-20 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-          <span className="text-indigo-600 font-bold text-2xl">TC</span>
-        </div>
-        <div className="flex-1">
-          <h2 className="text-xl font-bold text-slate-900">{branding.companyName}</h2>
-          <p className="text-indigo-600 font-medium">{branding.tagline}</p>
-          <p className="text-slate-600 mt-2 text-sm">{branding.description}</p>
-          <div className="flex flex-wrap gap-2 mt-3">
-            {branding.culture.slice(0, 4).map((item, idx) => (
-              <span
-                key={idx}
-                className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium"
-              >
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-// =====================================================
-// Main Component
-// =====================================================
-
-export default function HREmployeeJobsPage() {
+export default function HRManagerJobsPage() {
+  const { user } = useAuth();
   const [jobs, setJobs] = useState<JobWithDetails[]>([]);
+  const [templates, setTemplates] = useState<JobTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedJob, setSelectedJob] = useState<JobWithDetails | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
+  
+  // Form modal state
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingJob, setEditingJob] = useState<JobWithDetails | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load jobs from API
-  const loadJobs = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchData = useCallback(async () => {
     try {
-      const jobs = await getJobs();
-      // Map API response to expected format
-      // Handle both 'id' and '_id' from MongoDB responses
-      const mappedJobs: JobWithDetails[] = jobs.map((job: JobRequisition & { _id?: string }) => ({
-        ...job,
-        id: job.id || (job as { _id?: string })._id || job.requisitionId,
-        title: job.templateTitle || 'Untitled Position',
-        department: job.location || 'Not specified',
-        description: '',
-        requirements: [],
-        qualifications: [],
-        responsibilities: [],
-      }));
-      setJobs(mappedJobs);
+      setLoading(true);
+      setError(null);
+      
+      const [jobsData, templatesData] = await Promise.all([
+        getJobs(),
+        getJobTemplates(),
+      ]);
+
+      // Transform jobs data
+      const transformedJobs: JobWithDetails[] = (jobsData || []).map((job: JobRequisition & { _id?: string }) => {
+        const template = templatesData.find((t: JobTemplate & { _id?: string }) => 
+          (t.id || t._id) === job.templateId
+        );
+        
+        return {
+          id: job.id || job._id || '',
+          requisitionId: job.requisitionId || `REQ-${Date.now()}`,
+          templateId: job.templateId,
+          openings: job.openings || 1,
+          location: job.location || 'Not specified',
+          hiringManagerId: job.hiringManagerId || '',
+          publishStatus: job.publishStatus || 'draft',
+          postingDate: job.postingDate,
+          expiryDate: job.expiryDate,
+          createdAt: job.createdAt || new Date().toISOString(),
+          updatedAt: job.updatedAt || new Date().toISOString(),
+          templateTitle: template?.title,
+          title: template?.title || 'Untitled Position',
+          department: template?.department || 'General',
+          description: template?.description,
+          qualifications: template?.qualifications,
+          applicationCount: 0,
+        };
+      });
+
+      setJobs(transformedJobs);
+      setTemplates(templatesData || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load jobs');
     } finally {
@@ -327,10 +466,9 @@ export default function HREmployeeJobsPage() {
   }, []);
 
   useEffect(() => {
-    loadJobs();
-  }, [loadJobs]);
+    fetchData();
+  }, [fetchData]);
 
-  // Filter jobs
   const filteredJobs = jobs.filter((job) => {
     const jobTitle = job.title || job.templateTitle || '';
     const jobDepartment = job.department || '';
@@ -341,6 +479,118 @@ export default function HREmployeeJobsPage() {
     const matchesStatus = statusFilter === 'all' || job.publishStatus === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Create Job
+  const handleCreateJob = async (data: JobFormData) => {
+    if (!user?.id) {
+      setError('User not authenticated');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      await createJob({
+        templateId: data.templateId,
+        openings: data.openings,
+        location: data.location,
+        hiringManagerId: user.id,
+        expiryDate: data.expiryDate || undefined,
+      });
+      
+      setIsFormOpen(false);
+      setPublishSuccess('Job requisition created successfully!');
+      setTimeout(() => setPublishSuccess(null), 3000);
+      await fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create job');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Update Job - uses requisitionId for API calls
+  const handleUpdateJob = async (data: JobFormData) => {
+    if (!editingJob?.requisitionId) return;
+    
+    setIsSubmitting(true);
+    try {
+      await updateJob(editingJob.requisitionId, {
+        openings: data.openings,
+        location: data.location,
+        expiryDate: data.expiryDate || undefined,
+      });
+      
+      setIsFormOpen(false);
+      setEditingJob(null);
+      setPublishSuccess('Job requisition updated successfully!');
+      setTimeout(() => setPublishSuccess(null), 3000);
+      await fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update job');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Publish Job - uses requisitionId for API calls
+  const handlePublishJob = async (requisitionId: string | undefined) => {
+    if (!requisitionId) {
+      setError('Cannot publish job: Requisition ID is missing');
+      return;
+    }
+    setIsPublishing(true);
+    try {
+      await publishJob(requisitionId, true);
+      
+      setJobs((prev) =>
+        prev.map((job) =>
+          job.requisitionId === requisitionId
+            ? { ...job, publishStatus: 'published' as const, postingDate: new Date().toISOString().split('T')[0] }
+            : job
+        )
+      );
+      
+      setPublishSuccess('Job published successfully!');
+      setSelectedJob(null);
+      setTimeout(() => setPublishSuccess(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to publish job');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  // Close Job - uses requisitionId for API calls
+  const handleCloseJob = async (requisitionId: string | undefined) => {
+    if (!requisitionId) {
+      setError('Cannot close job: Requisition ID is missing');
+      return;
+    }
+    setIsPublishing(true);
+    try {
+      await closeJob(requisitionId);
+      
+      setJobs((prev) =>
+        prev.map((j) =>
+          j.requisitionId === requisitionId ? { ...j, publishStatus: 'closed' as const } : j
+        )
+      );
+      
+      setPublishSuccess('Job closed successfully!');
+      setSelectedJob(null);
+      setTimeout(() => setPublishSuccess(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to close job');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  // Open edit modal
+  const handleEditJob = (job: JobWithDetails) => {
+    setEditingJob(job);
+    setIsFormOpen(true);
+  };
 
   // Stats
   const stats = {
@@ -358,52 +608,22 @@ export default function HREmployeeJobsPage() {
     );
   }
 
-  // Handle Publish Job (REC-023: Test 3.6)
-  const handlePublish = async (jobRequisitionId: string) => {
-    console.log('[Publish] Job Requisition ID:', jobRequisitionId);
-    if (!confirm('Publish this job to the public careers page?')) return;
-    try {
-      setIsPublishing(true);
-      setError(null);
-      // publishJob uses requisitionId which is the MongoDB _id
-      await publishJob(jobRequisitionId, true);
-      await loadJobs();
-      setSelectedJob(null);
-      // Show success message
-      alert('Job published successfully! It will now appear on the careers page.');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to publish job');
-      console.error('Publish error:', err);
-    } finally {
-      setIsPublishing(false);
-    }
-  };
-
-  // Handle Unpublish Job (REC-023: Test 3.10)
-  const handleUnpublish = async (jobRequisitionId: string) => {
-    console.log('[Unpublish] Job Requisition ID:', jobRequisitionId);
-    if (!confirm('Unpublish this job? It will be removed from the public careers page.')) return;
-    try {
-      setError(null);
-      // closeJob uses requisitionId which is the MongoDB _id
-      await closeJob(jobRequisitionId);
-      await loadJobs();
-      // Show success message
-      alert('Job unpublished successfully! It is no longer visible on the careers page.');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to unpublish job');
-      console.error('Unpublish error:', err);
-    }
-  };
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Page Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Job Publishing</h1>
-        <p className="text-slate-600 mt-1">
-          Manage and publish job postings to the company careers page
-        </p>
+      <div className="mb-6 flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Job Requisitions</h1>
+          <p className="text-slate-600 mt-1">
+            Create, manage, and publish job postings
+          </p>
+        </div>
+        <Button onClick={() => { setEditingJob(null); setIsFormOpen(true); }}>
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Create New Job
+        </Button>
       </div>
 
       {/* Error Alert */}
@@ -421,8 +641,15 @@ export default function HREmployeeJobsPage() {
         </div>
       )}
 
-      {/* Employer Branding Section (BR-6, REC-023) */}
-      <EmployerBrandingSection branding={defaultEmployerBranding} />
+      {/* Success Alert */}
+      {publishSuccess && (
+        <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center gap-3">
+          <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          <span className="text-emerald-800 font-medium">{publishSuccess}</span>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
@@ -488,7 +715,7 @@ export default function HREmployeeJobsPage() {
                   Status
                 </th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Applications
+                  Openings
                 </th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
                   Posted Date
@@ -512,7 +739,7 @@ export default function HREmployeeJobsPage() {
                       <div>
                         <p className="font-medium text-slate-900">{job.title}</p>
                         <p className="text-sm text-slate-500">{job.requisitionId}</p>
-                        <p className="text-sm text-slate-500">{job.location} • {job.openings} opening{job.openings > 1 ? 's' : ''}</p>
+                        <p className="text-sm text-slate-500">{job.location}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -522,7 +749,7 @@ export default function HREmployeeJobsPage() {
                       <StatusBadge status={job.publishStatus} />
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-slate-700">{job.applicationCount}</span>
+                      <span className="text-slate-700">{job.openings}</span>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-slate-700">
@@ -531,33 +758,38 @@ export default function HREmployeeJobsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
-                        {/* REC-023: Test 3.5 - Preview Button */}
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedJob(job)}
                         >
-                          Preview
+                          View
                         </Button>
-                        {/* REC-023: Test 3.6 - Publish Button */}
                         {job.publishStatus === 'draft' && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => handlePublish(job.requisitionId)}
-                            disabled={isPublishing}
-                          >
-                            Publish
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditJob(job)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handlePublishJob(job.requisitionId)}
+                            >
+                              Publish
+                            </Button>
+                          </>
                         )}
-                        {/* REC-023: Test 3.10 - Unpublish Button */}
                         {job.publishStatus === 'published' && (
                           <Button
-                            variant="outline"
+                            variant="destructive"
                             size="sm"
-                            onClick={() => handleUnpublish(job.requisitionId)}
+                            onClick={() => handleCloseJob(job.requisitionId)}
                           >
-                            Unpublish
+                            Close
                           </Button>
                         )}
                       </div>
@@ -570,57 +802,33 @@ export default function HREmployeeJobsPage() {
         </div>
       </Card>
 
-      {/* Job Preview Modal (REC-023: Test 3.5) */}
+      {/* Job Preview Modal */}
       {selectedJob && (
         <JobPreviewModal
           job={selectedJob}
           branding={defaultEmployerBranding}
           onClose={() => setSelectedJob(null)}
-          onPublish={() => handlePublish(selectedJob.requisitionId)}
+          onPublish={() => handlePublishJob(selectedJob.requisitionId)}
+          onCloseJob={() => handleCloseJob(selectedJob.requisitionId)}
           isPublishing={isPublishing}
-          showPublishButton={selectedJob.publishStatus === 'draft'}
         />
       )}
 
-      {/* Create Job Modal (REC-023: Test 3.2) */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-3xl w-full p-6">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">Job Creation Notice</h2>
-                <p className="text-slate-600 mb-4">
-                  Job creation is currently managed through the HR Manager dashboard where job templates are configured.
-                </p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-blue-800 mb-2">
-                    <strong>Current Process:</strong>
-                  </p>
-                  <ol className="list-decimal list-inside space-y-1 text-sm text-blue-700">
-                    <li>HR Manager creates job requisitions using templates</li>
-                    <li>Job requisitions appear in your dashboard as "Draft"</li>
-                    <li>You can preview and publish approved jobs to the careers page</li>
-                    <li>You can manage employer branding and job visibility</li>
-                  </ol>
-                </div>
-                <p className="text-sm text-slate-500">
-                  If you need to create a new job, please contact your HR Manager or use the HR Manager role dashboard.
-                </p>
-              </div>
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowCreateModal(false)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Create/Edit Job Modal */}
+      <JobFormModal
+        isOpen={isFormOpen}
+        onClose={() => { setIsFormOpen(false); setEditingJob(null); }}
+        onSubmit={editingJob ? handleUpdateJob : handleCreateJob}
+        templates={templates}
+        initialData={editingJob ? {
+          templateId: editingJob.templateId || '',
+          openings: editingJob.openings,
+          location: editingJob.location || '',
+          expiryDate: editingJob.expiryDate || '',
+        } : undefined}
+        isEditing={!!editingJob}
+        isLoading={isSubmitting}
+      />
     </div>
   );
 }

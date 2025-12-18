@@ -1,8 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import Card from '@/app/components/ui/Card';
+import { useState, useEffect, useCallback } from 'react';
+import { Card } from '@/app/components/ui/card';
+import { getRecruitmentDashboard } from '@/app/services/recruitment';
+
+// Interface matching backend getRecruitmentDashboard response
+interface DashboardResponse {
+  totalOpenPositions: number;
+  totalApplications: number;
+  applicationsByStage: { _id: string; count: number }[];
+  applicationsByStatus: { _id: string; count: number }[];
+  recentApplications: unknown[];
+}
 
 interface RecruitmentStats {
   openJobs: number;
@@ -19,24 +29,54 @@ export default function RecruitmentOverviewPage() {
     hiredThisMonth: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Simulate API call
-    const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
+    try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      setError(null);
+      
+      const dashboardData = await getRecruitmentDashboard() as DashboardResponse;
+      
+      // Extract stats from backend response
+      const activeCandidates = dashboardData?.applicationsByStatus
+        ?.filter(s => s._id !== 'rejected' && s._id !== 'hired')
+        .reduce((sum, s) => sum + s.count, 0) || 0;
+      
+      const hiredCount = dashboardData?.applicationsByStatus
+        ?.find(s => s._id === 'hired')?.count || 0;
+      
+      const pendingOffers = dashboardData?.applicationsByStage
+        ?.find(s => s._id === 'offer')?.count || 0;
+      
       setStats({
-        openJobs: 12,
-        activeCandidates: 156,
-        pendingOffers: 8,
-        hiredThisMonth: 5,
+        openJobs: dashboardData?.totalOpenPositions || 0,
+        activeCandidates: activeCandidates,
+        pendingOffers: pendingOffers,
+        hiredThisMonth: hiredCount,
       });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load recruitment stats');
+    } finally {
       setLoading(false);
-    };
-    fetchStats();
+    }
   }, []);
 
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
   const modules = [
+    {
+      title: 'Job Requisitions',
+      description: 'Create, manage, publish and close job postings',
+      href: '/dashboard/hr-manager/recruitment/jobs',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      ),
+    },
     {
       title: 'Job Templates',
       description: 'Create and manage standardized job description templates',
@@ -68,8 +108,48 @@ export default function RecruitmentOverviewPage() {
       ),
     },
     {
+      title: 'Applications',
+      description: 'Track candidates through hiring stages (REC-008)',
+      href: '/dashboard/hr-manager/recruitment/applications',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      ),
+    },
+    {
+      title: 'Interviews',
+      description: 'Schedule and coordinate interview panels (REC-010, REC-021)',
+      href: '/dashboard/hr-manager/recruitment/interviews',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+    },
+    {
+      title: 'Interview Feedback',
+      description: 'Submit feedback and scores for candidates (REC-011, REC-020)',
+      href: '/dashboard/hr-manager/recruitment/feedback',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+      ),
+    },
+    {
+      title: 'Employee Referrals',
+      description: 'Manage candidate referrals for priority processing (REC-030)',
+      href: '/dashboard/hr-manager/recruitment/referrals',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      ),
+    },
+    {
       title: 'Offer Approvals',
-      description: 'Review and approve candidate offers',
+      description: 'Review and approve candidate offers (REC-014, REC-018)',
       href: '/dashboard/hr-manager/recruitment/offers',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

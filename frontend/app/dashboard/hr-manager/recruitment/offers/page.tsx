@@ -1,26 +1,50 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Card from '@/app/components/ui/Card';
-import Button from '@/app/components/ui/Button';
+import { Card } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { 
+  getOffers, 
+  approveOffer, 
+  rejectOffer,
+  getCandidateById,
+  getApplicationById,
+  getJobById,
+  triggerPreboarding
+} from '@/app/services/recruitment';
+import { useAuth } from '@/app/context/AuthContext';
+import { JobOffer, Candidate, Application, JobRequisition } from '@/app/types/recruitment';
 
 // ==================== INTERFACES ====================
-interface Offer {
+// Local display interface that combines offer + denormalized data
+interface OfferDisplay {
   id: string;
+  applicationId: string;
+  candidateId: string;
   candidateName: string;
   candidateEmail: string;
   jobTitle: string;
   department: string;
   salary: number;
-  startDate: string;
+  signingBonus?: number;
+  benefits?: string[];
+  deadline: string;
   status: 'pending_approval' | 'approved' | 'rejected' | 'sent' | 'accepted' | 'declined';
   createdAt: string;
-  createdBy: string;
+  approvers: Array<{
+    employeeId: string;
+    role: string;
+    status: string;
+    actionDate?: string;
+    comment?: string;
+  }>;
   approvedBy?: string;
   approvedAt?: string;
   rejectionReason?: string;
+  // Raw offer data for API calls
+  rawOffer: JobOffer;
 }
 
 interface CommunicationLog {
@@ -32,189 +56,249 @@ interface CommunicationLog {
   user: string;
 }
 
-// ==================== MOCK DATA ====================
-const mockOffers: Offer[] = [
-  {
-    id: '1',
-    candidateName: 'Ahmed Hassan',
-    candidateEmail: 'ahmed.hassan@email.com',
-    jobTitle: 'Software Engineer',
-    department: 'Engineering',
-    salary: 25000,
-    startDate: '2026-01-15',
-    status: 'pending_approval',
-    createdAt: '2025-12-10',
-    createdBy: 'Sarah Mohamed',
-  },
-  {
-    id: '2',
-    candidateName: 'Fatima Ali',
-    candidateEmail: 'fatima.ali@email.com',
-    jobTitle: 'Product Manager',
-    department: 'Product',
-    salary: 35000,
-    startDate: '2026-01-20',
-    status: 'pending_approval',
-    createdAt: '2025-12-12',
-    createdBy: 'Mohamed Ahmed',
-  },
-  {
-    id: '3',
-    candidateName: 'Omar Khalil',
-    candidateEmail: 'omar.khalil@email.com',
-    jobTitle: 'Marketing Specialist',
-    department: 'Marketing',
-    salary: 18000,
-    startDate: '2026-02-01',
-    status: 'approved',
-    createdAt: '2025-12-08',
-    createdBy: 'Sarah Mohamed',
-    approvedBy: 'HR Manager',
-    approvedAt: '2025-12-09',
-  },
-  {
-    id: '4',
-    candidateName: 'Nour Ibrahim',
-    candidateEmail: 'nour.ibrahim@email.com',
-    jobTitle: 'HR Coordinator',
-    department: 'Human Resources',
-    salary: 15000,
-    startDate: '2026-01-10',
-    status: 'sent',
-    createdAt: '2025-12-05',
-    createdBy: 'Mohamed Ahmed',
-    approvedBy: 'HR Manager',
-    approvedAt: '2025-12-06',
-  },
-  {
-    id: '5',
-    candidateName: 'Youssef Mansour',
-    candidateEmail: 'youssef.m@email.com',
-    jobTitle: 'Financial Analyst',
-    department: 'Finance',
-    salary: 22000,
-    startDate: '2026-01-25',
-    status: 'accepted',
-    createdAt: '2025-12-01',
-    createdBy: 'Sarah Mohamed',
-    approvedBy: 'HR Manager',
-    approvedAt: '2025-12-02',
-  },
-  {
-    id: '6',
-    candidateName: 'Layla Mahmoud',
-    candidateEmail: 'layla.m@email.com',
-    jobTitle: 'Software Engineer',
-    department: 'Engineering',
-    salary: 24000,
-    startDate: '2026-01-15',
-    status: 'rejected',
-    createdAt: '2025-12-03',
-    createdBy: 'Mohamed Ahmed',
-    rejectionReason: 'Budget constraints for this quarter',
-  },
-];
-
-const mockCommunicationLogs: CommunicationLog[] = [
-  { id: '1', offerId: '1', type: 'system', message: 'Offer created and submitted for approval', timestamp: '2025-12-10 09:30', user: 'Sarah Mohamed' },
-  { id: '2', offerId: '3', type: 'system', message: 'Offer approved by HR Manager', timestamp: '2025-12-09 14:15', user: 'HR Manager' },
-  { id: '3', offerId: '3', type: 'email', message: 'Offer letter sent to candidate', timestamp: '2025-12-09 14:30', user: 'System' },
-  { id: '4', offerId: '4', type: 'email', message: 'Offer letter sent to candidate', timestamp: '2025-12-07 10:00', user: 'System' },
-  { id: '5', offerId: '5', type: 'system', message: 'Candidate accepted the offer', timestamp: '2025-12-05 16:45', user: 'System' },
-];
-
 // ==================== MAIN COMPONENT ====================
 export default function OffersPage() {
   const router = useRouter();
-  const [offers, setOffers] = useState<Offer[]>([]);
+  const { user } = useAuth();
+  const [offers, setOffers] = useState<OfferDisplay[]>([]);
   const [logs, setLogs] = useState<CommunicationLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<OfferDisplay | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showLogsPanel, setShowLogsPanel] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [triggeringPreboarding, setTriggeringPreboarding] = useState<string | null>(null);
+  const [showPreboardingModal, setShowPreboardingModal] = useState(false);
+  const [preboardingOffer, setPreboardingOffer] = useState<OfferDisplay | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  // Helper to map API status to local status
+  const mapOfferStatus = (
+    finalStatus?: string,
+    applicantResponse?: string,
+  ): OfferDisplay['status'] => {
+    if (applicantResponse === 'accepted') return 'accepted';
+    if (applicantResponse === 'rejected') return 'declined';
+    if (finalStatus === 'rejected') return 'rejected';
+    if (finalStatus === 'approved') return 'approved';
+    if (finalStatus === 'sent') return 'sent';
+    return 'pending_approval';
+  };
+
+  const fetchData = useCallback(async () => {
+    try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setOffers(mockOffers);
-      setLogs(mockCommunicationLogs);
+      setError(null);
+      
+      const offersData = await getOffers();
+      
+      // Fetch related data for each offer (candidate + application + job)
+      const transformedOffers: OfferDisplay[] = await Promise.all(
+        offersData.map(async (offer) => {
+          let candidateName = 'Unknown Candidate';
+          let candidateEmail = '';
+          let jobTitle = offer.role || 'Unknown Position';
+          let department = '';
+
+          // Try to fetch candidate details
+          try {
+            if (offer.candidateId) {
+              const candidate = await getCandidateById(offer.candidateId);
+              candidateName = candidate.fullName || `${candidate.firstName} ${candidate.lastName}`;
+              candidateEmail = candidate.personalEmail || '';
+            }
+          } catch {
+            // Candidate lookup failed, use fallback
+            candidateName = offer.candidateName || 'Unknown Candidate';
+          }
+
+          // Try to fetch application and job details
+          try {
+            if (offer.applicationId) {
+              const application = await getApplicationById(offer.applicationId);
+              if (application.requisitionId) {
+                const job = await getJobById(application.requisitionId);
+                jobTitle = job.templateTitle || offer.role || 'Unknown Position';
+                department = application.departmentName || '';
+              }
+            }
+          } catch {
+            // Application/Job lookup failed, use offer.role as fallback
+            jobTitle = offer.positionTitle || offer.role || 'Unknown Position';
+            department = offer.departmentName || '';
+          }
+
+          // Check if any approver has approved/rejected
+          const approvedApprover = offer.approvers?.find(a => a.status === 'approved');
+          const rejectedApprover = offer.approvers?.find(a => a.status === 'rejected');
+
+          return {
+            id: offer.id,
+            applicationId: offer.applicationId,
+            candidateId: offer.candidateId,
+            candidateName,
+            candidateEmail,
+            jobTitle,
+            department,
+            salary: offer.grossSalary || 0,
+            signingBonus: offer.signingBonus,
+            benefits: offer.benefits,
+            deadline: offer.deadline || '',
+            status: mapOfferStatus(offer.finalStatus, offer.applicantResponse),
+            createdAt: offer.createdAt || '',
+            approvers: offer.approvers || [],
+            approvedBy: approvedApprover?.employeeId,
+            approvedAt: approvedApprover?.actionDate,
+            rejectionReason: rejectedApprover?.comment,
+            rawOffer: offer,
+          };
+        })
+      );
+      
+      setOffers(transformedOffers);
+      setLogs([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load offers');
+    } finally {
       setLoading(false);
-    };
-    fetchData();
+    }
   }, []);
 
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
   // ==================== HANDLERS ====================
-  const handleApprove = (offer: Offer) => {
+  const handleApprove = (offer: OfferDisplay) => {
     setSelectedOffer(offer);
     setShowApprovalModal(true);
   };
 
-  const handleReject = (offer: Offer) => {
+  const handleReject = (offer: OfferDisplay) => {
     setSelectedOffer(offer);
     setRejectionReason('');
     setShowRejectModal(true);
   };
 
-  const confirmApproval = () => {
-    if (!selectedOffer) return;
+  const confirmApproval = async () => {
+    if (!selectedOffer || !user) return;
 
-    setOffers((prev) =>
-      prev.map((o) =>
-        o.id === selectedOffer.id
-          ? {
-              ...o,
-              status: 'approved',
-              approvedBy: 'HR Manager',
-              approvedAt: new Date().toISOString().split('T')[0],
-            }
-          : o
-      )
-    );
+    try {
+      setProcessing(true);
+      setError(null);
+      
+      await approveOffer(selectedOffer.id, user.id);
 
-    // Add log
-    const newLog: CommunicationLog = {
-      id: Date.now().toString(),
-      offerId: selectedOffer.id,
-      type: 'system',
-      message: 'Offer approved by HR Manager',
-      timestamp: new Date().toLocaleString(),
-      user: 'HR Manager',
-    };
-    setLogs((prev) => [newLog, ...prev]);
+      setOffers((prev) =>
+        prev.map((o) =>
+          o.id === selectedOffer.id
+            ? {
+                ...o,
+                status: 'approved',
+                approvedBy: `${user.firstName} ${user.lastName}`,
+                approvedAt: new Date().toISOString().split('T')[0],
+              }
+            : o
+        )
+      );
 
-    setShowApprovalModal(false);
-    setSelectedOffer(null);
+      // Add log
+      const newLog: CommunicationLog = {
+        id: Date.now().toString(),
+        offerId: selectedOffer.id,
+        type: 'system',
+        message: 'Offer approved by HR Manager',
+        timestamp: new Date().toLocaleString(),
+        user: 'HR Manager',
+      };
+      setLogs((prev) => [newLog, ...prev]);
+
+      setShowApprovalModal(false);
+      setSelectedOffer(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to approve offer');
+    } finally {
+      setProcessing(false);
+    }
   };
 
-  const confirmRejection = () => {
-    if (!selectedOffer || !rejectionReason.trim()) return;
+  const confirmRejection = async () => {
+    if (!selectedOffer || !rejectionReason.trim() || !user) return;
 
-    setOffers((prev) =>
-      prev.map((o) =>
-        o.id === selectedOffer.id
-          ? { ...o, status: 'rejected', rejectionReason }
-          : o
-      )
-    );
+    try {
+      setProcessing(true);
+      setError(null);
+      
+      await rejectOffer(selectedOffer.id, user.id, rejectionReason);
 
-    // Add log
-    const newLog: CommunicationLog = {
-      id: Date.now().toString(),
-      offerId: selectedOffer.id,
-      type: 'system',
-      message: `Offer rejected: ${rejectionReason}`,
-      timestamp: new Date().toLocaleString(),
-      user: 'HR Manager',
-    };
-    setLogs((prev) => [newLog, ...prev]);
+      setOffers((prev) =>
+        prev.map((o) =>
+          o.id === selectedOffer.id
+            ? { ...o, status: 'rejected', rejectionReason }
+            : o
+        )
+      );
 
-    setShowRejectModal(false);
-    setSelectedOffer(null);
-    setRejectionReason('');
+      // Add log
+      const newLog: CommunicationLog = {
+        id: Date.now().toString(),
+        offerId: selectedOffer.id,
+        type: 'system',
+        message: `Offer rejected: ${rejectionReason}`,
+        timestamp: new Date().toLocaleString(),
+        user: `${user.firstName} ${user.lastName}`,
+      };
+      setLogs((prev) => [newLog, ...prev]);
+
+      setShowRejectModal(false);
+      setSelectedOffer(null);
+      setRejectionReason('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reject offer');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Pre-boarding trigger handler (REC-029: Trigger pre-boarding tasks for accepted offers)
+  const handleTriggerPreboarding = (offer: OfferDisplay) => {
+    setPreboardingOffer(offer);
+    setShowPreboardingModal(true);
+  };
+
+  const confirmPreboarding = async () => {
+    if (!preboardingOffer) return;
+
+    try {
+      setTriggeringPreboarding(preboardingOffer.id);
+      setError(null);
+
+      await triggerPreboarding(preboardingOffer.applicationId);
+
+      // Add success log
+      const newLog: CommunicationLog = {
+        id: Date.now().toString(),
+        offerId: preboardingOffer.id,
+        type: 'system',
+        message: `Pre-boarding triggered for ${preboardingOffer.candidateName}. Onboarding module initialized.`,
+        timestamp: new Date().toLocaleString(),
+        user: `${user?.firstName} ${user?.lastName}`,
+      };
+      setLogs((prev) => [newLog, ...prev]);
+
+      setShowPreboardingModal(false);
+      setPreboardingOffer(null);
+      
+      // Show success message
+      alert(`Pre-boarding initiated successfully for ${preboardingOffer.candidateName}. The candidate will receive onboarding documents and tasks.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to trigger pre-boarding');
+    } finally {
+      setTriggeringPreboarding(null);
+    }
   };
 
   // ==================== FILTERING ====================
@@ -231,8 +315,8 @@ export default function OffersPage() {
   const pendingCount = offers.filter((o) => o.status === 'pending_approval').length;
 
   // ==================== STATUS HELPERS ====================
-  const getStatusBadge = (status: Offer['status']) => {
-    const styles: Record<Offer['status'], string> = {
+  const getStatusBadge = (status: OfferDisplay['status']) => {
+    const styles: Record<OfferDisplay['status'], string> = {
       pending_approval: 'bg-amber-100 text-amber-700',
       approved: 'bg-blue-100 text-blue-700',
       rejected: 'bg-red-100 text-red-700',
@@ -240,7 +324,7 @@ export default function OffersPage() {
       accepted: 'bg-emerald-100 text-emerald-700',
       declined: 'bg-slate-100 text-slate-700',
     };
-    const labels: Record<Offer['status'], string> = {
+    const labels: Record<OfferDisplay['status'], string> = {
       pending_approval: 'Pending Approval',
       approved: 'Approved',
       rejected: 'Rejected',
@@ -257,6 +341,19 @@ export default function OffersPage() {
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP' }).format(amount);
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch {
+      return dateString;
+    }
   };
 
   // ==================== RENDER ====================
@@ -387,9 +484,14 @@ export default function OffersPage() {
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          Start: {offer.startDate}
+                          Deadline: {formatDate(offer.deadline)}
                         </span>
                       </div>
+                      {offer.signingBonus && offer.signingBonus > 0 && (
+                        <p className="mt-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-1 rounded inline-block">
+                          Signing Bonus: {formatCurrency(offer.signingBonus)}
+                        </p>
+                      )}
                       {offer.rejectionReason && (
                         <p className="mt-2 text-sm text-red-600 bg-red-50 px-3 py-1 rounded">
                           Reason: {offer.rejectionReason}
@@ -406,13 +508,39 @@ export default function OffersPage() {
                             </svg>
                             Approve
                           </Button>
-                          <Button variant="danger" size="sm" onClick={() => handleReject(offer)}>
+                          <Button variant="destructive" size="sm" onClick={() => handleReject(offer)}>
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                             Reject
                           </Button>
                         </>
+                      )}
+                      {/* REC-029: Pre-boarding trigger for accepted offers */}
+                      {offer.status === 'accepted' && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleTriggerPreboarding(offer)}
+                          disabled={triggeringPreboarding === offer.id}
+                          className="bg-indigo-600 hover:bg-indigo-700"
+                        >
+                          {triggeringPreboarding === offer.id ? (
+                            <>
+                              <svg className="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                              </svg>
+                              Start Pre-boarding
+                            </>
+                          )}
+                        </Button>
                       )}
                       <Button
                         variant="outline"
@@ -426,13 +554,19 @@ export default function OffersPage() {
 
                   {/* Meta */}
                   <div className="flex items-center gap-4 mt-4 pt-4 border-t border-slate-100 text-xs text-slate-400">
-                    <span>Created by {offer.createdBy}</span>
-                    <span>•</span>
-                    <span>{offer.createdAt}</span>
-                    {offer.approvedBy && (
+                    <span>Created: {formatDate(offer.createdAt)}</span>
+                    {offer.approvers && offer.approvers.length > 0 && (
                       <>
                         <span>•</span>
-                        <span>Approved by {offer.approvedBy} on {offer.approvedAt}</span>
+                        <span>
+                          Approvers: {offer.approvers.map(a => `${a.role} (${a.status})`).join(', ')}
+                        </span>
+                      </>
+                    )}
+                    {offer.approvedBy && offer.approvedAt && (
+                      <>
+                        <span>•</span>
+                        <span>Approved: {formatDate(offer.approvedAt)}</span>
                       </>
                     )}
                   </div>
@@ -445,7 +579,7 @@ export default function OffersPage() {
         {/* Communication Logs Panel (BR-37) */}
         {showLogsPanel && (
           <div className="lg:col-span-1">
-            <Card title="Communication Logs" subtitle="Activity history (BR-37)">
+            <Card>
               <div className="space-y-3 max-h-[600px] overflow-y-auto">
                 {logs.length === 0 ? (
                   <p className="text-sm text-slate-500 text-center py-4">No logs available</p>
@@ -510,16 +644,22 @@ export default function OffersPage() {
                     <span className="text-slate-500">Salary</span>
                     <span className="font-medium">{formatCurrency(selectedOffer.salary)}/month</span>
                   </div>
+                  {selectedOffer.signingBonus && selectedOffer.signingBonus > 0 && (
+                    <div className="flex justify-between mb-1">
+                      <span className="text-slate-500">Signing Bonus</span>
+                      <span className="font-medium text-emerald-600">{formatCurrency(selectedOffer.signingBonus)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Start Date</span>
-                    <span className="font-medium">{selectedOffer.startDate}</span>
+                    <span className="text-slate-500">Deadline</span>
+                    <span className="font-medium">{formatDate(selectedOffer.deadline)}</span>
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <Button variant="outline" fullWidth onClick={() => setShowApprovalModal(false)}>
+                  <Button variant="outline" className="w-full" onClick={() => setShowApprovalModal(false)}>
                     Cancel
                   </Button>
-                  <Button fullWidth onClick={confirmApproval}>
+                  <Button className="w-full" onClick={confirmApproval}>
                     Confirm Approval
                   </Button>
                 </div>
@@ -553,11 +693,74 @@ export default function OffersPage() {
                   onChange={(e) => setRejectionReason(e.target.value)}
                 />
                 <div className="flex gap-3">
-                  <Button variant="outline" fullWidth onClick={() => setShowRejectModal(false)}>
+                  <Button variant="outline" className="w-full" onClick={() => setShowRejectModal(false)}>
                     Cancel
                   </Button>
-                  <Button variant="danger" fullWidth onClick={confirmRejection} disabled={!rejectionReason.trim()}>
+                  <Button variant="destructive" className="w-full" onClick={confirmRejection} disabled={!rejectionReason.trim()}>
                     Confirm Rejection
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pre-boarding Confirmation Modal (REC-029) */}
+      {showPreboardingModal && preboardingOffer && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setShowPreboardingModal(false)} />
+            <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Trigger Pre-boarding</h3>
+                <p className="text-sm text-slate-600 mb-4">
+                  Start the onboarding process for <strong>{preboardingOffer.candidateName}</strong>?
+                </p>
+                <div className="bg-indigo-50 rounded-lg p-4 mb-6 text-left">
+                  <h4 className="font-medium text-indigo-900 mb-2">This will initiate:</h4>
+                  <ul className="text-sm text-indigo-800 space-y-1">
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Employment contract preparation
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Document collection requests
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      IT equipment setup tasks
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Welcome email to candidate
+                    </li>
+                  </ul>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="w-full" onClick={() => setShowPreboardingModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="w-full bg-indigo-600 hover:bg-indigo-700" 
+                    onClick={confirmPreboarding}
+                    disabled={triggeringPreboarding !== null}
+                  >
+                    {triggeringPreboarding ? 'Processing...' : 'Start Pre-boarding'}
                   </Button>
                 </div>
               </div>
