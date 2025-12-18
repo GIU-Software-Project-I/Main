@@ -25,6 +25,30 @@ async function bootstrap() {
 
     app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+    // Serve static files from uploads directory using NestJS method
+    const uploadsPath = join(process.cwd(), 'uploads');
+    console.log('Static files serving from:', uploadsPath);
+    
+    // Check if uploads directory exists, if not, create it
+    const fs = require('fs');
+    if (!fs.existsSync(uploadsPath)) {
+      console.warn('Uploads directory does not exist. Creating it...');
+      fs.mkdirSync(uploadsPath, { recursive: true });
+      fs.mkdirSync(join(uploadsPath, 'leaves'), { recursive: true });
+    }
+    
+    // Use Express static middleware - register it early to handle /uploads/* requests
+    // This must be before NestJS routes to work properly
+    const expressApp = app.getHttpAdapter().getInstance();
+    expressApp.use('/uploads', express.static(uploadsPath, {
+      setHeaders: (res, path) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+      },
+      // If file doesn't exist, return 404 (don't fall through to NestJS)
+      fallthrough: false
+    }));
+
     app.useGlobalPipes(new ValidationPipe({ whitelist: false, transform: true }));
 
     //

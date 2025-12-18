@@ -259,13 +259,34 @@ export const leavesService: Record<string, any> = {
   },
 
   // HR finalize (approve/reject)
-  hrFinalize: async (id: string, hrId: string, decision: 'approve' | 'reject', allowNegative?: boolean, reason?: string) => {
+  hrFinalize: async (id: string, hrId: string, decision: 'approve' | 'reject', allowNegative?: boolean, reason?: string, isOverride?: boolean) => {
     const query = new URLSearchParams();
     query.set('hrId', hrId);
     query.set('decision', decision);
     if (allowNegative) query.set('allowNegative', 'true');
     if (reason) query.set('reason', reason);
+    if (isOverride) query.set('isOverride', 'true');
     return apiService.patch(`/leaves/requests/${id}/hr-finalize?${query.toString()}`);
+  },
+
+  // Bulk process leave requests (REQ-027)
+  bulkProcessRequests: async (requestIds: string[], action: 'approve' | 'reject', actorId: string) => {
+    return apiService.post('/leaves/requests/bulk-process', {
+      requestIds,
+      action,
+      actorId,
+    });
+  },
+
+  // Get attachment details (REQ-028)
+  getAttachment: async (attachmentId: string) => {
+    return apiService.get(`/leaves/attachments/${attachmentId}`);
+  },
+
+  // Validate medical attachment (REQ-028)
+  validateMedicalAttachment: async (attachmentId: string, verifiedBy?: string) => {
+    const query = verifiedBy ? `?verifiedBy=${verifiedBy}` : '';
+    return apiService.post(`/leaves/attachments/${attachmentId}/validate-medical${query}`);
   },
 
   // HR finalize with payroll sync - updates employee records and calculates payroll adjustments
@@ -284,7 +305,14 @@ export const leavesService: Record<string, any> = {
   ): Promise<{
     ok: boolean;
     message: string;
-    request?: any;
+    request?: {
+      _id?: string;
+      id?: string;
+      employeeId?: string;
+      leaveTypeId?: string;
+      status?: string;
+      approvalFlow?: Array<{ role: string; status: string }>;
+    };
     payrollImpact?: {
       isUnpaidLeave: boolean;
       deductionAmount: number;
@@ -350,7 +378,13 @@ export const leavesService: Record<string, any> = {
         message: decision === 'approve'
           ? `Leave request approved successfully!${durationDays > 0 ? ` ${durationDays} days of ${leaveTypeName} will be deducted.` : ''}`
           : 'Leave request rejected.',
-        request: finalizeResponse.data,
+        request: finalizeResponse.data ? {
+          _id: (finalizeResponse.data as Record<string, unknown>)?._id as string | undefined,
+          id: (finalizeResponse.data as Record<string, unknown>)?.id as string | undefined,
+          employeeId: (finalizeResponse.data as Record<string, unknown>)?.employeeId as string | undefined,
+          leaveTypeId: (finalizeResponse.data as Record<string, unknown>)?.leaveTypeId as string | undefined,
+          status: (finalizeResponse.data as Record<string, unknown>)?.status as string | undefined,
+        } : undefined,
         payrollImpact,
         balanceUpdate,
       };
@@ -917,11 +951,19 @@ export const leavesService: Record<string, any> = {
       // Get leave types
       const typesResponse = await apiService.get('/leaves/types');
       const leaveTypes = Array.isArray(typesResponse.data) ? typesResponse.data : [];
-      console.log('Leave Types:', leaveTypes.map((lt: any) => `${lt.name} (${lt._id})`));
+
+      interface LeaveType {
+        name?: string;
+        code?: string;
+        _id?: string;
+        id?: string;
+      }
+
+      console.log('Leave Types:', (leaveTypes as LeaveType[]).map((lt: LeaveType) => `${lt.name} (${lt._id})`));
 
       // Find unpaid leave type IDs
       const unpaidTypeIds: string[] = [];
-      leaveTypes.forEach((lt: any) => {
+      (leaveTypes as LeaveType[]).forEach((lt: LeaveType) => {
         const name = (lt.name || '').toLowerCase();
         const code = (lt.code || '').toLowerCase();
         if (name.includes('unpaid') || code.includes('unpaid') ||
@@ -933,17 +975,31 @@ export const leavesService: Record<string, any> = {
       });
 
       // Parse requests from response
-      let requests: any[] = [];
-      const data = response.data as any;
+      interface RequestData {
+        _id?: string;
+        id?: string;
+        dates?: { from?: string | Date; to?: string | Date };
+        from?: string | Date;
+        to?: string | Date;
+        startDate?: string | Date;
+        endDate?: string | Date;
+        status?: string;
+        leaveTypeId?: string | { _id?: string; id?: string };
+        leaveTypeName?: string;
+        durationDays?: number;
+      }
+
+      let requests: RequestData[] = [];
+      const data = response.data as Record<string, unknown>;
 
       if (Array.isArray(data)) {
-        requests = data;
+        requests = data as RequestData[];
       } else if (data?.data && Array.isArray(data.data)) {
-        requests = data.data;
+        requests = data.data as RequestData[];
       } else if (data?.requests && Array.isArray(data.requests)) {
-        requests = data.requests;
+        requests = data.requests as RequestData[];
       } else if (data?.items && Array.isArray(data.items)) {
-        requests = data.items;
+        requests = data.items as RequestData[];
       }
 
       console.log('Total requests found:', requests.length);
@@ -970,8 +1026,8 @@ export const leavesService: Record<string, any> = {
         console.log('--- Checking request:', req._id || req.id);
 
         // Get dates - handle different structures
-        let reqFromStr = req.dates?.from || req.from || req.startDate;
-        let reqToStr = req.dates?.to || req.to || req.endDate;
+        const reqFromStr = req.dates?.from || req.from || req.startDate;
+        const reqToStr = req.dates?.to || req.to || req.endDate;
 
         if (!reqFromStr || !reqToStr) {
           console.log('  SKIP: No dates found');
@@ -1029,17 +1085,17 @@ export const leavesService: Record<string, any> = {
         const overlapEnd = new Date(Math.min(reqTo.getTime(), periodTo.getTime()));
         const daysInPeriod = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-        const leaveType = leaveTypes.find((lt: any) => String(lt._id || lt.id) === leaveTypeId);
+        const leaveType = (leaveTypes as LeaveType[]).find((lt: LeaveType) => String(lt._id || lt.id) === leaveTypeId);
 
         console.log('  >>> MATCHED! Days:', daysInPeriod);
 
         unpaidLeaves.push({
-          requestId: req._id || req.id,
-          from: reqFromStr,
-          to: reqToStr,
+          requestId: (req._id || req.id) as string,
+          from: String(reqFromStr),
+          to: String(reqToStr),
           durationDays: daysInPeriod,
           leaveTypeName: leaveType?.name || req.leaveTypeName || 'Unpaid Leave',
-          status: req.status,
+          status: req.status || 'PENDING',
         });
       }
 
@@ -1117,8 +1173,16 @@ export const leavesService: Record<string, any> = {
       const balanceResponse = await apiService.get(`/leaves/employees/${employeeId}/balances`);
       const balances = Array.isArray(balanceResponse.data) ? balanceResponse.data : [];
 
+      interface Balance {
+        leaveTypeName?: string;
+        entitled?: number;
+        yearlyEntitlement?: number;
+        taken?: number;
+        remaining?: number;
+      }
+
       const getBalanceForType = (typeName: string) => {
-        const balance = balances.find((b: any) => {
+        const balance = (balances as Balance[]).find((b: Balance) => {
           const name = (b.leaveTypeName || '').toLowerCase();
           return name.includes(typeName);
         });

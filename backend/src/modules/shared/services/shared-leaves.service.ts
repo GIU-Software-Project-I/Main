@@ -89,8 +89,18 @@ export class SharedLeavesService {
 
     async sendLeaveRequestFinalizedNotification(employeeId: string, managerId: string, leaveType: string, fromDate: Date, toDate: Date, status: string): Promise<void> {
         const statusStr = status === 'approved' ? 'approved' : 'rejected';
+        const dateRange = `${fromDate.toISOString().slice(0, 10)} to ${toDate.toISOString().slice(0, 10)}`;
+        
+        // Notify employee (REQ-030)
         await this.createNotification(employeeId, 'N-053', `Your ${leaveType} leave request has been finalized and ${statusStr}.`);
-        await this.createNotification(managerId, 'N-053', `Leave request for ${leaveType} from ${fromDate.toISOString().slice(0, 10)} to ${toDate.toISOString().slice(0, 10)} has been finalized.`);
+        
+        // Notify manager (REQ-030)
+        if (managerId) {
+            await this.createNotification(managerId, 'N-053', `Leave request for ${leaveType} from ${dateRange} has been finalized.`);
+        }
+        
+        // Notify attendance coordinator and HR users (REQ-030)
+        await this.notifyHRUsers('N-053', `Leave request finalized: ${leaveType} leave from ${dateRange} has been ${statusStr}. Please update attendance records accordingly.`);
     }
 
     async sendOverdueApprovalEscalationNotification(managerId: string, requestId: string, employeeName: string): Promise<void> {

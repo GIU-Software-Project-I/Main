@@ -883,20 +883,31 @@ export class UnifiedLeaveService {
     decision: 'approve' | 'reject',
     allowNegative: boolean = false,
     reason?: string,
+    isOverride: boolean = false,
   ) {
     const leave = await this.leaveRequestModel.findById(id);
     if (!leave) throw new NotFoundException('Leave request not found');
 
-    // Allow override of REJECTED status if decision is approve
-    // Also allow PENDING
-    const validStatuses: LeaveStatus[] = [LeaveStatus.PENDING];
+    // Check if already finalized (HR approval exists in approvalFlow)
+    const hrApproval = leave.approvalFlow?.find((f) => f.role === 'hr');
+    const isAlreadyFinalized = hrApproval?.status === 'approved' && leave.status === LeaveStatus.APPROVED;
+    
+    if (isAlreadyFinalized && decision === 'approve') {
+      throw new BadRequestException(
+        'This leave request has already been finalized. Employee records and payroll have been updated.',
+      );
+    }
+
+    // Allow finalizing APPROVED requests (for finalization step)
+    // Also allow PENDING and REJECTED (for initial approval/rejection)
+    const validStatuses: LeaveStatus[] = [LeaveStatus.PENDING, LeaveStatus.APPROVED];
     if (decision === 'approve') {
       validStatuses.push(LeaveStatus.REJECTED); // Allow override
     }
 
     if (!validStatuses.includes(leave.status as LeaveStatus)) {
       throw new BadRequestException(
-        `Cannot finalize request in status ${leave.status}`,
+        `Cannot finalize request in status ${leave.status}. Only PENDING, APPROVED, or REJECTED requests can be finalized.`,
       );
     }
 
@@ -911,20 +922,59 @@ export class UnifiedLeaveService {
       } as any;
     }
 
+    // Track override in approval flow for audit trail (REQ-026)
     leave.approvalFlow[1] = {
       role: 'hr',
       status: decision === 'approve' ? 'approved' : 'rejected',
       decidedBy: new Types.ObjectId(hrId),
       decidedAt: new Date(),
+      ...(isOverride && { overrideReason: reason, isOverride: true }),
     } as any;
 
-    leave.status =
-      decision === 'approve'
-        ? LeaveStatus.APPROVED
-        : LeaveStatus.REJECTED;
+    // Log override for audit trail
+    if (isOverride) {
+      this.logger.log(
+        `[OVERRIDE] HR ${hrId} overrode manager decision for leave ${id}. Reason: ${reason || 'Not provided'}`
+      );
+    }
+
+    // Store original status before changing it
+    const originalStatus = leave.status;
 
     if (decision === 'reject') {
+      // If already approved, we need to reverse the entitlement deduction
+      if (originalStatus === LeaveStatus.APPROVED) {
+        const ent = await this.entitlementModel.findOne({
+          employeeId: leave.employeeId,
+          leaveTypeId: leave.leaveTypeId,
+        });
+        const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
+        const isDeductible = leaveType?.deductible ?? true;
+
+        if (isDeductible && ent) {
+          // Reverse the deduction - restore balance
+          const durationDays = leave.durationDays || 0;
+          ent.taken = Math.max(0, (ent.taken || 0) - durationDays);
+          ent.remaining = (ent.remaining || 0) + durationDays;
+          
+          // If this was moved from pending, restore pending too
+          // Check if there was a pending deduction
+          const managerApproval = leave.approvalFlow?.find((f) => f.role === 'manager');
+          if (managerApproval?.status === 'approved') {
+            // Manager had approved, so it was moved from pending to taken
+            // Restore to pending instead
+            ent.pending = (ent.pending || 0) + durationDays;
+            ent.taken = Math.max(0, (ent.taken || 0) - durationDays);
+          }
+          
+          await ent.save();
+        }
+      }
+
+      leave.status = LeaveStatus.REJECTED;
       await leave.save();
+      
+      // Send rejection notification
       try {
         const leaveTypeForReject = await this.leaveTypeModel.findById(leave.leaveTypeId);
         await this.sharedLeavesService.sendLeaveRequestRejectedNotification(
@@ -937,9 +987,13 @@ export class UnifiedLeaveService {
       } catch (notifError) {
         this.logger.warn('Failed to send rejection notification:', notifError);
       }
+      
       return leave;
     }
 
+    // APPROVE/FINALIZE decision
+    const isFinalizingApproved = originalStatus === LeaveStatus.APPROVED;
+    const isOverridingRejection = originalStatus === LeaveStatus.REJECTED && decision === 'approve';
     const ent = await this.entitlementModel.findOne({
       employeeId: leave.employeeId,
       leaveTypeId: leave.leaveTypeId,
@@ -947,52 +1001,143 @@ export class UnifiedLeaveService {
 
     const leaveType = await this.leaveTypeModel.findById(leave.leaveTypeId);
     const isDeductible = leaveType?.deductible ?? true;
+    const isPaidLeave = leaveType?.paid !== false;
 
+    // Update entitlements in the following cases:
+    // 1. Approving a PENDING request (initial approval)
+    // 2. Overriding a REJECTED request to APPROVE (REQ-029: auto update balance after final approval)
+    // 3. Finalizing an already-APPROVED request - verify balance is correct (REQ-029)
     if (isDeductible) {
       if (ent) {
-        if (!allowNegative) {
-          const remaining = ent.remaining ?? 0;
-          if (leave.durationDays > remaining) {
-            throw new BadRequestException(`Insufficient balance for approval. Request: ${leave.durationDays}, Remaining: ${remaining}. Use allowNegative=true to override.`);
+        // For already-approved requests, verify balance is correct
+        if (isFinalizingApproved) {
+          // Balance should have been updated by manager approval
+          // Verify it's correct - if not, log warning but don't fail
+          const expectedTaken = (ent.taken || 0);
+          const durationDays = leave.durationDays || 0;
+          
+          // Check if this leave was already deducted (taken should include durationDays)
+          // This is a verification step - if balance seems incorrect, log it
+          const managerApproval = leave.approvalFlow?.find((f) => f.role === 'manager');
+          if (managerApproval?.status === 'approved') {
+            // Manager approved, so balance should have been updated
+            // Verify remaining balance calculation is correct
+            const yearly = ent.yearlyEntitlement || 0;
+            const carryForward = ent.carryForward || 0;
+            const expectedRemaining = yearly + carryForward - expectedTaken;
+            
+            // Recalculate remaining to ensure it's correct (REQ-029: ensure records remain accurate)
+            ent.remaining = expectedRemaining;
+            await ent.save();
+            
+            this.logger.log(
+              `[BALANCE VERIFY] Verified balance for finalized leave ${leave._id}. ` +
+              `Taken: ${expectedTaken}, Remaining: ${expectedRemaining}`
+            );
           }
-        }
+        } else if (!isFinalizingApproved) {
+          // Approving PENDING or overriding REJECTED to APPROVE
+          if (!allowNegative) {
+            const remaining = ent.remaining ?? 0;
+            if (leave.durationDays > remaining) {
+              throw new BadRequestException(`Insufficient balance for approval. Request: ${leave.durationDays}, Remaining: ${remaining}. Use allowNegative=true to override.`);
+            }
+          }
 
-        ent.taken = (ent.taken || 0) + (leave.durationDays || 0);
-        ent.remaining = (ent.remaining || 0) - (leave.durationDays || 0);
-        await ent.save();
-      } else {
-        // No entitlement exists
-        if (!allowNegative) {
-          throw new BadRequestException('No entitlement found. Cannot approve without allowNegative override.');
+          // Handle override of rejected request: pending was already removed by manager rejection
+          // So we need to deduct directly from remaining, not from pending
+          if (isOverridingRejection) {
+            // Overriding rejection: balance was never deducted (manager rejected removed from pending only)
+            // So we deduct directly from remaining balance
+            const durationDays = leave.durationDays || 0;
+            ent.taken = (ent.taken || 0) + durationDays;
+            ent.remaining = (ent.remaining || 0) - durationDays;
+            // Pending was already removed by manager rejection, so no need to adjust it
+            this.logger.log(
+              `[BALANCE UPDATE] Override rejection to approval: Deducted ${durationDays} days from balance for leave ${leave._id}`
+            );
+          } else {
+            // Normal approval: Move from pending to taken
+            const durationDays = leave.durationDays || 0;
+            const pendingDays = Math.max(0, (ent.pending || 0) - durationDays);
+            ent.pending = pendingDays;
+            ent.taken = (ent.taken || 0) + durationDays;
+            ent.remaining = (ent.remaining || 0) - durationDays;
+            this.logger.log(
+              `[BALANCE UPDATE] Approved pending request: Moved ${durationDays} days from pending to taken for leave ${leave._id}`
+            );
+          }
+          
+          await ent.save();
         }
-        await this.entitlementModel.create({
-          employeeId: leave.employeeId,
-          leaveTypeId: leave.leaveTypeId,
-          yearlyEntitlement: 0,
-          accruedActual: 0,
-          accruedRounded: 0,
-          carryForward: 0,
-          taken: leave.durationDays || 0,
-          pending: 0,
-          remaining: -(leave.durationDays || 0),
-          lastAccrualDate: null,
-          nextResetDate: null,
-        });
+      } else {
+        // No entitlement exists - only create if approving (not finalizing already-approved)
+        if (!isFinalizingApproved) {
+          if (!allowNegative) {
+            throw new BadRequestException('No entitlement found. Cannot approve without allowNegative override.');
+          }
+          await this.entitlementModel.create({
+            employeeId: leave.employeeId,
+            leaveTypeId: leave.leaveTypeId,
+            yearlyEntitlement: 0,
+            accruedActual: 0,
+            accruedRounded: 0,
+            carryForward: 0,
+            taken: leave.durationDays || 0,
+            pending: 0,
+            remaining: -(leave.durationDays || 0),
+            lastAccrualDate: null,
+            nextResetDate: null,
+          });
+          this.logger.log(
+            `[BALANCE UPDATE] Created entitlement with negative balance for leave ${leave._id} (allowNegative=true)`
+          );
+        } else {
+          // Finalizing already-approved but no entitlement exists - this is an error
+          this.logger.warn(
+            `[BALANCE WARNING] Finalizing approved leave ${leave._id} but no entitlement found. ` +
+            `Balance may not have been updated correctly.`
+          );
+        }
       }
     }
 
-    await this.payrollNotifyAfterApproval(leave);
+    // Update status to APPROVED if it was PENDING
+    if (!isFinalizingApproved) {
+      leave.status = LeaveStatus.APPROVED;
+    }
+
+    // Update employee records and sync with payroll/time management
+    await this.finalizeApprovedLeave(leave, hrId, isPaidLeave);
+    
     await leave.save();
 
+    // Send notifications
     try {
       const leaveTypeForNotify = await this.leaveTypeModel.findById(leave.leaveTypeId);
-      await this.sharedLeavesService.sendLeaveRequestApprovedNotification(
-        leave.employeeId.toString(),
-        leaveTypeForNotify?.name || 'Leave',
-        leave.dates.from,
-        leave.dates.to
-      );
+      const managerId = await this.sharedLeavesService.getEmployeeManager(leave.employeeId.toString());
+      
+      if (isFinalizingApproved) {
+        // Finalization notification (REQ-030)
+        await this.sharedLeavesService.sendLeaveRequestFinalizedNotification(
+          leave.employeeId.toString(),
+          managerId || '',
+          leaveTypeForNotify?.name || 'Leave',
+          leave.dates.from,
+          leave.dates.to,
+          'approved'
+        );
+      } else {
+        // Initial approval notification
+        await this.sharedLeavesService.sendLeaveRequestApprovedNotification(
+          leave.employeeId.toString(),
+          leaveTypeForNotify?.name || 'Leave',
+          leave.dates.from,
+          leave.dates.to
+        );
+      }
 
+      // Sync with Time Management
       await this.sharedLeavesService.syncLeaveWithTimeManagement(
         leave.employeeId.toString(),
         leave.dates.from,
@@ -1001,10 +1146,46 @@ export class UnifiedLeaveService {
         'approved'
       );
     } catch (notifError) {
-      this.logger.warn('Failed to send approval notification or sync:', notifError);
+      this.logger.warn('Failed to send notification or sync:', notifError);
     }
 
     return leave;
+  }
+
+  /**
+   * Finalizes an approved leave request by updating employee records and adjusting payroll
+   * This is called when HR finalizes an already-approved request (REQ-025)
+   */
+  private async finalizeApprovedLeave(
+    leave: LeaveRequestDocument,
+    hrId: string,
+    isPaidLeave: boolean,
+  ): Promise<void> {
+    try {
+      // 1. Update employee status if currently on leave
+      const now = new Date();
+      const leaveStart = new Date(leave.dates.from);
+      const leaveEnd = new Date(leave.dates.to);
+      
+      if (now >= leaveStart && now <= leaveEnd) {
+        await this.sharedLeavesService.updateEmployeeStatusToOnLeave(leave.employeeId.toString());
+      }
+
+      // 2. Sync with Payroll for unpaid leaves
+      if (!isPaidLeave) {
+        await this.payrollNotifyAfterApproval(leave);
+      }
+
+      // 3. Log finalization for audit trail
+      this.logger.log(
+        `[FINALIZE] Leave request ${leave._id} finalized by HR ${hrId}. ` +
+        `Employee: ${leave.employeeId}, Days: ${leave.durationDays}, ` +
+        `Paid: ${isPaidLeave}, Period: ${leaveStart.toISOString().slice(0, 10)} to ${leaveEnd.toISOString().slice(0, 10)}`
+      );
+    } catch (error) {
+      this.logger.error(`Failed to finalize leave ${leave._id}:`, error);
+      throw new BadRequestException(`Failed to finalize leave request: ${error.message}`);
+    }
   }
 
   private async payrollNotifyAfterApproval(leave: LeaveRequestDocument) {
@@ -2102,14 +2283,83 @@ export class UnifiedLeaveService {
     return this.attachmentModel.create(dto);
   }
 
-  async validateMedicalAttachment(id: string) {
-    const attachment = await this.attachmentModel.findById(id);
-    if (!attachment) throw new NotFoundException('Attachment not found');
-    const type = (attachment.fileType || '').toLowerCase();
-    if (!type.includes('pdf') && !type.includes('image')) {
-      throw new BadRequestException('Invalid medical document');
+  async validateMedicalAttachment(id: string, verifiedBy?: string) {
+    try {
+      // Validate attachment ID format
+      if (!id || !Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid attachment ID format');
+      }
+
+      const attachmentId = new Types.ObjectId(id);
+      const attachment = await this.attachmentModel.findById(attachmentId);
+      if (!attachment) {
+        throw new NotFoundException(`Attachment with ID ${id} not found`);
+      }
+      
+      const type = (attachment.fileType || '').toLowerCase();
+      const validTypes = ['pdf', 'image', 'jpeg', 'jpg', 'png', 'gif', 'bmp'];
+      const isValidType = validTypes.some(validType => type.includes(validType));
+      
+      if (!isValidType) {
+        throw new BadRequestException(`Invalid medical document format: ${attachment.fileType}. Only PDF and image files (JPEG, JPG, PNG, GIF, BMP) are accepted.`);
+      }
+
+      // Find leave request that uses this specific attachment (attachmentId is stored as ObjectId in schema)
+      // Use findOne to ensure we only get ONE specific leave request for this attachment
+      const attachmentIdObj = new Types.ObjectId(id);
+      const leaveRequest = await this.leaveRequestModel.findOne({ attachmentId: attachmentIdObj });
+    
+      if (!leaveRequest) {
+        this.logger.warn(`No leave request found for attachment ${id}`);
+        // Still return success for attachment validation, but no leave request to update
+      } else if (verifiedBy) {
+        // Track verification in approval flow for audit trail (REQ-028)
+        // Only update THIS specific leave request - ensure we're working with the correct one
+        if (!leaveRequest.approvalFlow || !Array.isArray(leaveRequest.approvalFlow)) {
+          leaveRequest.approvalFlow = [] as any;
+        }
+        
+        // Check if verification already exists for THIS specific attachment in THIS specific request
+        const attachmentIdStr = id.toString();
+        const existingVerification = leaveRequest.approvalFlow.find(
+          (f: any) => 
+            f.action === 'medical_document_verified' && 
+            (f.attachmentId === attachmentIdStr || f.attachmentId === id)
+        );
+        
+        if (!existingVerification) {
+          // Add verification entry to approval flow for THIS specific request only
+          const verificationEntry = {
+            role: 'hr',
+            status: 'verified',
+            action: 'medical_document_verified',
+            decidedBy: new Types.ObjectId(verifiedBy),
+            decidedAt: new Date(),
+            attachmentId: attachmentIdStr, // Always store attachment ID for exact matching
+          };
+          
+          leaveRequest.approvalFlow.push(verificationEntry as any);
+          await leaveRequest.save();
+          this.logger.log(`Medical document ${id} verified by HR ${verifiedBy} for leave request ${leaveRequest._id} (attachmentId: ${attachmentIdStr})`);
+        } else {
+          this.logger.log(`Medical document ${id} already verified for leave request ${leaveRequest._id}`);
+        }
+      }
+
+      return {
+        ...attachment.toObject(),
+        verified: true,
+        verifiedAt: new Date(),
+        verifiedBy: verifiedBy || null,
+        leaveRequestId: leaveRequest?._id?.toString() || null,
+      };
+    } catch (error) {
+      this.logger.error(`Error validating medical attachment ${id}: ${error.message}`, error.stack);
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to verify medical document: ${error.message}`);
     }
-    return attachment;
   }
 
   // --------------------------------------------------------------------------------
@@ -2122,38 +2372,44 @@ export class UnifiedLeaveService {
     actorId: string,
   ) {
     const results: string[] = [];
+    const errors: string[] = [];
 
+    // Process each request using hrFinalize to ensure proper finalization
     for (const id of requestIds) {
-      const reqDoc = await this.leaveRequestModel.findById(id);
-      if (!reqDoc) continue;
+      try {
+        // Validate request exists and is in a processable state
+        const reqDoc = await this.leaveRequestModel.findById(id);
+        if (!reqDoc) {
+          errors.push(`${id}: Request not found`);
+          continue;
+        }
 
-      if (!reqDoc.approvalFlow || !Array.isArray(reqDoc.approvalFlow)) {
-        reqDoc.approvalFlow = [] as any;
+        // Check if already finalized (skip if already finalized and approving)
+        const hrApproval = reqDoc.approvalFlow?.find((f) => f.role === 'hr');
+        const isAlreadyFinalized = hrApproval?.status === 'approved' && reqDoc.status === LeaveStatus.APPROVED;
+        
+        if (isAlreadyFinalized && action === 'approve') {
+          errors.push(`${id}: Already finalized`);
+          continue;
+        }
+
+        // Use hrFinalize to properly finalize each request (updates balances, sends notifications, etc.)
+        await this.hrFinalize(id, actorId, action, true, `Bulk ${action} by HR`, false);
+        results.push(id);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Failed to process request ${id} in bulk: ${errorMessage}`);
+        errors.push(`${id}: ${errorMessage}`);
       }
-
-      if (action === 'approve') {
-        reqDoc.approvalFlow[0] = {
-          role: 'manager',
-          status: 'approved',
-          decidedBy: new Types.ObjectId(actorId),
-          decidedAt: new Date(),
-        } as any;
-        reqDoc.status = LeaveStatus.PENDING;
-      } else {
-        reqDoc.approvalFlow[0] = {
-          role: 'manager',
-          status: 'rejected',
-          decidedBy: new Types.ObjectId(actorId),
-          decidedAt: new Date(),
-        } as any;
-        reqDoc.status = LeaveStatus.REJECTED;
-      }
-
-      await reqDoc.save();
-      results.push(reqDoc._id.toString());
     }
 
-    return { ok: true, processed: results.length, ids: results };
+    return { 
+      ok: true, 
+      processed: results.length, 
+      total: requestIds.length,
+      ids: results,
+      errors: errors.length > 0 ? errors : undefined
+    };
   }
 
   async flagIrregular(requestId: string, flag: boolean, reason?: string) {

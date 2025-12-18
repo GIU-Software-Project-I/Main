@@ -26,6 +26,7 @@ interface LeaveRequest {
   employeeName?: string;
   leaveTypeName?: string;
   createdAt?: string;
+  attachmentId?: string;
 }
 
 interface LeaveType {
@@ -58,6 +59,26 @@ export default function HRManagerLeavesPage() {
   const [filterStatus, setFilterStatus] = useState<string>('PENDING');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [selectedRequests, setSelectedRequests] = useState<Set<string>>(new Set());
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  
+  // Medical document verification modal state
+  const [showMedicalVerificationModal, setShowMedicalVerificationModal] = useState(false);
+  const [medicalModalMode, setMedicalModalMode] = useState<'view' | 'verify'>('view'); // 'view' or 'verify'
+  const [selectedMedicalAttachment, setSelectedMedicalAttachment] = useState<{
+    attachmentId: string;
+    requestId: string;
+    employeeName?: string;
+    leaveTypeName?: string;
+    dates?: { from: string; to: string };
+  } | null>(null);
+  const [medicalAttachmentData, setMedicalAttachmentData] = useState<{
+    originalName?: string;
+    filePath?: string;
+    fileType?: string;
+    size?: number;
+  } | null>(null);
+  const [verifyingMedical, setVerifyingMedical] = useState(false);
   
   // Entitlements state
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
@@ -96,8 +117,22 @@ export default function HRManagerLeavesPage() {
   });
   const [accrualRunning, setAccrualRunning] = useState(false);
   const [lastAccrualResult, setLastAccrualResult] = useState<AccrualResult | null>(null);
-  const [carryForwardPreview, setCarryForwardPreview] = useState<any>(null);
-  const [carryForwardReport, setCarryForwardReport] = useState<any>(null);
+  const [carryForwardPreview, setCarryForwardPreview] = useState<{
+    summary?: {
+      byLeaveType?: Array<{ leaveTypeId: string; leaveTypeName: string; totalCarried: number; totalExpired: number; employeesAffected: number }>;
+      employeesProcessed?: number;
+      totalCarriedForward?: number;
+      totalExpired?: number;
+    };
+    details: Array<{ employeeId: string; leaveTypeName: string; previousRemaining: number; cappedAmount: number; carriedForward: number; expired: number; expiryDate?: string }>;
+    employeesProcessed?: number;
+    totalCarriedForward?: number;
+    totalExpired?: number;
+  } | null>(null);
+  const [carryForwardReport, setCarryForwardReport] = useState<{
+    summary?: { totalEmployees?: number; totalCarryForward?: number; byLeaveType?: Array<{ leaveTypeId: string; leaveTypeName: string; totalCarryForward: number; employeesWithCarryForward: number }> };
+    report: Array<{ employeeId: string; leaveTypeName: string; yearlyEntitlement: number; carryForward: number; taken: number; remaining: number; carryForwardExpiry?: string }>;
+  } | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [recalcEmployeeId, setRecalcEmployeeId] = useState('');
@@ -192,6 +227,8 @@ export default function HRManagerLeavesPage() {
     baseSalary: 5000,
     workDaysInMonth: 22,
     rejectReason: '',
+    isOverride: false,
+    overrideReason: '',
   });
   const [finalizeResult, setFinalizeResult] = useState<{
     ok: boolean;
@@ -249,6 +286,33 @@ export default function HRManagerLeavesPage() {
     }
   }, [currentPage, filterStatus]);
 
+  // Enrich requests with leave type names when leaveTypes are loaded
+  useEffect(() => {
+    if (requests.length > 0 && leaveTypes.length > 0) {
+      // Check if any request needs enrichment
+      const needsEnrichment = requests.some((req) => 
+        !req.leaveTypeName && req.leaveTypeId
+      );
+      
+      if (needsEnrichment) {
+        const enrichedRequests = requests.map((req) => {
+          if (!req.leaveTypeName && req.leaveTypeId) {
+            const leaveType = leaveTypes.find((lt) => 
+              (lt._id && lt._id === req.leaveTypeId) || (lt.id && lt.id === req.leaveTypeId)
+            );
+            if (leaveType) {
+              return { ...req, leaveTypeName: leaveType.name };
+            }
+          }
+          return req;
+        });
+        
+        setRequests(enrichedRequests);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaveTypes]); // Only depend on leaveTypes, not requests
+
   useEffect(() => {
     if (!user) return;
     fetchLeaveTypes();
@@ -285,36 +349,24 @@ export default function HRManagerLeavesPage() {
     }
   };
 
-  const handleManagerApprove = async (id: string) => {
-    if (!user) return;
-    if (!confirm('Approve this leave request?')) return;
-
-    try {
-      await leavesService.managerApprove(id, user.id);
-      await fetchRequests();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to approve request';
-      setError(message);
-    }
-  };
-
-  const handleManagerReject = async (id: string) => {
-    if (!user) return;
-    const reason = prompt('Please provide a reason for rejection:');
-    if (!reason) return;
-
-    try {
-      await leavesService.managerReject(id, user.id, reason);
-      await fetchRequests();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to reject request';
-      setError(message);
-    }
-  };
 
   // Open finalization modal
   const openFinalizeModal = (request: LeaveRequest, decision: 'approve' | 'reject') => {
-    setFinalizeRequest(request);
+    // Enrich request with leave type name if missing
+    const enrichedRequest = { ...request };
+
+    if (!enrichedRequest.leaveTypeName && enrichedRequest.leaveTypeId) {
+      // Find in cached leave types
+      const leaveType = leaveTypes.find((lt) => 
+        (lt._id && lt._id === enrichedRequest.leaveTypeId) || (lt.id && lt.id === enrichedRequest.leaveTypeId)
+      );
+      
+      if (leaveType) {
+        enrichedRequest.leaveTypeName = leaveType.name;
+      }
+    }
+    
+    setFinalizeRequest(enrichedRequest);
     setFinalizeDecision(decision);
     setFinalizeResult(null);
     setFinalizeOptions({
@@ -322,6 +374,8 @@ export default function HRManagerLeavesPage() {
       baseSalary: 5000,
       workDaysInMonth: 22,
       rejectReason: '',
+      isOverride: false,
+      overrideReason: '',
     });
     setShowFinalizeModal(true);
   };
@@ -350,12 +404,17 @@ export default function HRManagerLeavesPage() {
       console.log('[HR Finalize] Request ID:', requestId, 'User ID:', user.id, 'Decision:', finalizeDecision);
 
       // Use the simple hrFinalize API with allowNegative=true to bypass balance checks
+      const overrideReason = finalizeOptions.isOverride ? finalizeOptions.overrideReason : undefined;
+      const rejectReason = finalizeDecision === 'reject' ? finalizeOptions.rejectReason : undefined;
+      const reason = overrideReason || rejectReason;
+      
       const response = await leavesService.hrFinalize(
         requestId,
         user.id,
         finalizeDecision,
         true, // allowNegative
-        finalizeDecision === 'reject' ? finalizeOptions.rejectReason : undefined
+        reason,
+        finalizeOptions.isOverride // isOverride flag
       );
 
       console.log('[HR Finalize] Response:', response);
@@ -381,6 +440,9 @@ export default function HRManagerLeavesPage() {
       const durationDays = finalizeRequest.durationDays || 0;
       const leaveTypeName = finalizeRequest.leaveTypeName || 'Leave';
       const isUnpaidLeave = leaveTypeName.toLowerCase().includes('unpaid');
+      
+      // Check if this was a finalization of an already-approved request
+      const wasAlreadyApproved = finalizeRequest.status === 'APPROVED' || finalizeRequest.status === 'approved';
 
       let payrollImpact = null;
       if (finalizeDecision === 'approve' && isUnpaidLeave && finalizeOptions.syncPayroll && durationDays > 0) {
@@ -393,11 +455,17 @@ export default function HRManagerLeavesPage() {
         };
       }
 
+      const actionMessage = wasAlreadyApproved 
+        ? (finalizeDecision === 'approve' 
+            ? `Leave request finalized successfully! Employee records updated and payroll adjusted. ${durationDays} day(s) of ${leaveTypeName} processed.`
+            : 'Leave request rejected and entitlement reversed.')
+        : (finalizeDecision === 'approve'
+            ? `Leave request approved successfully! ${durationDays} day(s) of ${leaveTypeName} deducted from balance.`
+            : 'Leave request rejected.');
+
       setFinalizeResult({
         ok: true,
-        message: finalizeDecision === 'approve'
-          ? `Leave request approved successfully! ${durationDays} day(s) of ${leaveTypeName} deducted from balance.`
-          : 'Leave request rejected.',
+        message: actionMessage,
         payrollImpact: payrollImpact ? {
           isUnpaidLeave: true,
           ...payrollImpact,
@@ -411,9 +479,13 @@ export default function HRManagerLeavesPage() {
         } : undefined,
       });
 
-      setSuccessMessage(finalizeDecision === 'approve'
-        ? 'Leave request approved successfully!'
-        : 'Leave request rejected.');
+      setSuccessMessage(
+        wasAlreadyApproved && finalizeDecision === 'approve'
+          ? 'Leave request finalized successfully! Employee records and payroll have been updated.'
+          : finalizeDecision === 'approve'
+          ? 'Leave request approved successfully!'
+          : 'Leave request rejected.'
+      );
       setTimeout(() => setSuccessMessage(null), 5000);
 
       // Close modal after success
@@ -434,7 +506,7 @@ export default function HRManagerLeavesPage() {
     }
   };
 
-  const handleHRFinalize = async (id: string, decision: 'approve' | 'reject') => {
+  const handleHRFinalize = (id: string, decision: 'approve' | 'reject') => {
     if (!user) return;
 
     // Find the request and open modal - check both _id and id
@@ -446,6 +518,134 @@ export default function HRManagerLeavesPage() {
     } else {
       console.error('Request not found for id:', id);
       setError('Request not found');
+    }
+  };
+
+  // Bulk processing handler (REQ-027)
+  const handleBulkAction = async (action: 'approve' | 'reject') => {
+    if (!user || selectedRequests.size === 0) return;
+
+    if (!confirm(`Are you sure you want to ${action} ${selectedRequests.size} leave request(s)?`)) {
+      return;
+    }
+
+    try {
+      setBulkProcessing(true);
+      setError(null);
+      
+      const requestIds = Array.from(selectedRequests);
+      const response = await leavesService.bulkProcessRequests(requestIds, action, user.id);
+
+      if (response.error) {
+        setError(response.error.message || `Failed to ${action} requests`);
+      } else {
+        setSuccessMessage(`Successfully ${action}d ${response.data?.processed || requestIds.length} request(s)`);
+        setTimeout(() => setSuccessMessage(null), 5000);
+        setSelectedRequests(new Set());
+        await fetchRequests();
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : `Failed to ${action} requests`;
+      setError(message);
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  // Open medical document view/verification modal (REQ-028)
+  const handleOpenMedicalViewModal = async (request: LeaveRequest, mode: 'view' | 'verify' = 'view') => {
+    if (!request.attachmentId) {
+      setError('No attachment found for this request');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch attachment details
+      const attachmentResponse = await leavesService.getAttachment(request.attachmentId);
+      
+      if (attachmentResponse.error) {
+        setError(attachmentResponse.error || 'Failed to load attachment');
+        return;
+      }
+
+      const attachmentData = attachmentResponse.data || null;
+      
+      // If backend returned file info with staticUrl, use it
+      if (attachmentData && typeof attachmentData === 'object' && 'staticUrl' in attachmentData) {
+        // Backend provided a static URL - merge it into attachment data
+        const staticUrl = (attachmentData as Record<string, unknown>).staticUrl as string | undefined;
+        if (staticUrl && attachmentData) {
+          attachmentData.filePath = staticUrl.replace('http://localhost:9000', '');
+        }
+      }
+      
+      setMedicalAttachmentData(attachmentData);
+      setSelectedMedicalAttachment({
+        attachmentId: request.attachmentId,
+        requestId: request._id || '',
+        employeeName: request.employeeName,
+        leaveTypeName: request.leaveTypeName,
+        dates: {
+          from: typeof request.dates?.from === 'string' ? request.dates.from : (request.dates?.from instanceof Date ? request.dates.from.toISOString() : ''),
+          to: typeof request.dates?.to === 'string' ? request.dates.to : (request.dates?.to instanceof Date ? request.dates.to.toISOString() : ''),
+        },
+      });
+      setMedicalModalMode(mode);
+      setShowMedicalVerificationModal(true);
+      
+      // Log for debugging
+      if (attachmentData?.filePath) {
+        console.log('[Medical Document] File path:', attachmentData.filePath);
+        if (typeof attachmentData === 'object' && 'staticUrl' in attachmentData) {
+          console.log('[Medical Document] Static URL:', (attachmentData as Record<string, unknown>).staticUrl);
+        }
+      }
+    } catch (err) {
+      console.error('[Medical Document] Error loading attachment:', err);
+      const message = err instanceof Error ? err.message : 'Failed to load attachment';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Medical document verification handler (REQ-028)
+  const handleVerifyMedicalDocument = async () => {
+    if (!selectedMedicalAttachment?.attachmentId || !user) {
+      setError('No attachment ID or user provided');
+      return;
+    }
+
+    try {
+      setVerifyingMedical(true);
+      setError(null);
+      console.log('[Verify Medical] Verifying attachment:', selectedMedicalAttachment.attachmentId, 'for request:', selectedMedicalAttachment.requestId);
+      
+      const response = await leavesService.validateMedicalAttachment(selectedMedicalAttachment.attachmentId, user.id);
+
+      if (response.error) {
+        console.error('[Verify Medical] Error response:', response.error);
+        setError(response.error || 'Failed to verify medical document');
+      } else {
+        console.log('[Verify Medical] Success:', response.data);
+        setSuccessMessage('Medical document verified successfully and recorded in audit trail');
+        setTimeout(() => setSuccessMessage(null), 5000);
+        
+        // Close modal and refresh requests
+        setShowMedicalVerificationModal(false);
+        setSelectedMedicalAttachment(null);
+        setMedicalAttachmentData(null);
+        await fetchRequests();
+      }
+    } catch (err) {
+      console.error('[Verify Medical] Exception:', err);
+      const message = err instanceof Error ? err.message : 'Failed to verify medical document';
+      setError(message);
+    } finally {
+      setVerifyingMedical(false);
     }
   };
 
@@ -622,7 +822,14 @@ export default function HRManagerLeavesPage() {
         return;
       }
 
-      const result = response.data as any;
+      interface CarryForwardResult {
+        ok?: boolean;
+        processed?: number;
+        totalCarriedForward?: number;
+        totalExpired?: number;
+      }
+
+      const result = response.data as CarryForwardResult;
       if (result.ok) {
         setSuccessMessage(
           `Year-end carry-forward completed! ${result.processed} entitlements processed. ` +
@@ -697,8 +904,15 @@ export default function HRManagerLeavesPage() {
         return;
       }
 
-      if (response.data && (response.data as any).ok) {
-        const result = response.data as any;
+      interface OverrideResult {
+        ok?: boolean;
+        previousCarryForward?: number;
+        newCarryForward?: number;
+        newRemaining?: number;
+      }
+
+      if (response.data && (response.data as unknown as OverrideResult).ok) {
+        const result = response.data as unknown as OverrideResult;
         setSuccessMessage(
           `Carry-forward override applied! Changed from ${result.previousCarryForward} to ${result.newCarryForward} days. ` +
           `New remaining balance: ${result.newRemaining} days.`
@@ -942,7 +1156,13 @@ export default function HRManagerLeavesPage() {
       }
 
       // Filter for unpaid leaves and long absences (> 30 days)
-      const absences = (response.data as any[]).filter((leave: any) => {
+      interface AbsenceRecord {
+        leaveTypeName?: string;
+        durationDays?: number;
+        dates?: { from?: string | Date; to?: string | Date };
+      }
+
+      const absences = (response.data as AbsenceRecord[]).filter((leave: AbsenceRecord) => {
         const leaveTypeName = (leave.leaveTypeName || '').toLowerCase();
         const isUnpaid = leaveTypeName.includes('unpaid');
         const totalDays = leave.durationDays || 0;
@@ -1160,6 +1380,37 @@ export default function HRManagerLeavesPage() {
               </div>
             </div>
 
+            {/* Bulk Actions Bar */}
+            {selectedRequests.size > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
+                <span className="text-sm font-medium text-blue-900">
+                  {selectedRequests.size} request{selectedRequests.size !== 1 ? 's' : ''} selected
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleBulkAction('approve')}
+                    disabled={bulkProcessing}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-50"
+                  >
+                    {bulkProcessing ? 'Processing...' : `Approve ${selectedRequests.size}`}
+                  </button>
+                  <button
+                    onClick={() => handleBulkAction('reject')}
+                    disabled={bulkProcessing}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50"
+                  >
+                    {bulkProcessing ? 'Processing...' : `Reject ${selectedRequests.size}`}
+                  </button>
+                  <button
+                    onClick={() => setSelectedRequests(new Set())}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Clear Selection
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Requests List */}
             {loading ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
@@ -1175,12 +1426,28 @@ export default function HRManagerLeavesPage() {
                 <div className="divide-y divide-gray-100">
                   {requests.map((request) => {
                     const statusConfig = getStatusConfig(request.status);
-                    const managerApproved = request.approvalFlow?.find((f) => f.role === 'manager')?.status === 'approved';
-                    const hrApproved = request.approvalFlow?.find((f) => f.role === 'hr')?.status === 'approved';
-                    
+
                     return (
                       <div key={request._id} className="p-4 sm:p-5 hover:bg-gray-50 transition-colors">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                          {/* Bulk Selection Checkbox */}
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedRequests.has(request._id || request.id || '')}
+                              onChange={(e) => {
+                                const newSelected = new Set(selectedRequests);
+                                const requestId = request._id || request.id || '';
+                                if (e.target.checked) {
+                                  newSelected.add(requestId);
+                                } else {
+                                  newSelected.delete(requestId);
+                                }
+                                setSelectedRequests(newSelected);
+                              }}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                          </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-2">
                               <h3 className="font-medium text-gray-900">
@@ -1204,6 +1471,64 @@ export default function HRManagerLeavesPage() {
                                 </span>
                               ))}
                             </div>
+                            {/* Medical Document Verification (REQ-028) */}
+                            {/* Show button for any leave request with an attachment - not just "sick" leave */}
+                            {request.attachmentId && (() => {
+                              // Check if THIS specific request's attachment has been verified
+                              // Each request has its own approvalFlow array, so we check only THIS request's flow
+                              const currentAttachmentId = request.attachmentId.toString();
+                              
+                              // Find verification entries in THIS request's approvalFlow
+                              const verificationEntries = (request.approvalFlow || []).filter(
+                                (flow): flow is typeof flow & { action: string } => 'action' in flow && flow.action === 'medical_document_verified'
+                              );
+
+                              // Check if any verification matches THIS attachmentId
+                              const isVerified = verificationEntries.some((flow) => {
+                                // If attachmentId is stored in the verification, it must match exactly
+                                const attachmentId = (flow as Record<string, unknown>).attachmentId;
+                                if (attachmentId) {
+                                  const flowAttachmentId = attachmentId.toString();
+                                  return flowAttachmentId === currentAttachmentId ||
+                                         flowAttachmentId === request.attachmentId?.toString();
+                                }
+                                
+                                // If no attachmentId stored (legacy data), we can't be sure it's for THIS attachment
+                                // So we return false to be safe - user will need to re-verify
+                                return false;
+                              });
+                              
+                              return (
+                                <div className="mt-2 flex gap-2 flex-wrap">
+                                  {/* View Document Button - Always available */}
+                                  <button
+                                    onClick={() => handleOpenMedicalViewModal(request, 'view')}
+                                    disabled={loading}
+                                    className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    title="View medical document"
+                                  >
+                                    👁️ View Document
+                                  </button>
+                                  
+                                  {/* Verify Button - Only show if not verified */}
+                                  {isVerified ? (
+                                    <div className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 rounded-lg border border-green-200 inline-flex items-center gap-1">
+                                      <span>✓</span>
+                                      <span>Verified</span>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleOpenMedicalViewModal(request, 'verify')}
+                                      disabled={loading}
+                                      className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg border border-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                      title="Verify medical document"
+                                    >
+                                      ✓ Verify Document
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                           <div className="flex items-center gap-2 sm:ml-auto">
                             {(request.status === 'PENDING' || request.status === 'pending') && (
@@ -1223,16 +1548,45 @@ export default function HRManagerLeavesPage() {
                                 </button>
                               </>
                             )}
-                            {(request.status === 'APPROVED' || request.status === 'approved') && (
-                              <span className="px-3 py-1.5 text-sm font-medium text-green-600">
-                                ✓ Approved
-                              </span>
-                            )}
-                            {(request.status === 'REJECTED' || request.status === 'rejected') && (
-                              <span className="px-3 py-1.5 text-sm font-medium text-red-600">
-                                ✗ Rejected
-                              </span>
-                            )}
+                            {(request.status === 'APPROVED' || request.status === 'approved') && (() => {
+                              // Check if HR has already finalized this request
+                              const hrApproval = request.approvalFlow?.find((f) => f.role === 'hr');
+                              const isFinalized = hrApproval?.status === 'approved';
+                              
+                              return isFinalized ? (
+                                <span className="px-3 py-1.5 text-sm font-medium text-green-600">
+                                  ✓ Finalized
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleHRFinalize(request._id || request.id || '', 'approve')}
+                                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                                  title="Finalize this approved request to update employee records and adjust payroll"
+                                >
+                                  ✓ Finalize
+                                </button>
+                              );
+                            })()}
+                            {(request.status === 'REJECTED' || request.status === 'rejected') && (() => {
+                              // Check if HR has already finalized this rejection
+                              const hrApproval = request.approvalFlow?.find((f) => f.role === 'hr');
+                              const isFinalized = hrApproval?.status === 'rejected';
+                              
+                              return isFinalized ? (
+                                <span className="px-3 py-1.5 text-sm font-medium text-red-600">
+                                  ✗ Rejected
+                                </span>
+                              ) : (
+                                // Allow HR to override rejection by approving
+                                <button
+                                  onClick={() => handleHRFinalize(request._id || request.id || '', 'approve')}
+                                  className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                                  title="Override manager's rejection and approve this request"
+                                >
+                                  ✓ Override & Approve
+                                </button>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -2094,7 +2448,7 @@ export default function HRManagerLeavesPage() {
                 <div className="mb-6">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">By Leave Type:</h4>
                   <div className="space-y-2">
-                    {carryForwardPreview.summary?.byLeaveType?.map((lt: any) => (
+                    {carryForwardPreview.summary?.byLeaveType?.map((lt: { leaveTypeId: string; leaveTypeName: string; totalCarried: number; totalExpired: number; employeesAffected: number }) => (
                       <div key={lt.leaveTypeId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <span className="font-medium">{lt.leaveTypeName}</span>
                         <div className="flex gap-4 text-sm">
@@ -2125,7 +2479,7 @@ export default function HRManagerLeavesPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                          {carryForwardPreview.details.slice(0, 50).map((d: any, idx: number) => (
+                          {carryForwardPreview.details.slice(0, 50).map((d: { employeeId: string; leaveTypeName: string; previousRemaining: number; cappedAmount: number; carriedForward: number; expired: number; expiryDate?: string }, idx: number) => (
                             <tr key={idx} className="hover:bg-gray-50">
                               <td className="px-3 py-2 font-mono text-xs">{d.employeeId.slice(-8)}</td>
                               <td className="px-3 py-2">{d.leaveTypeName}</td>
@@ -2157,7 +2511,7 @@ export default function HRManagerLeavesPage() {
                 <button
                   onClick={(e) => {
                     setShowPreviewModal(false);
-                    handleCarryForward(e as any);
+                    handleCarryForward(e as unknown as React.FormEvent);
                   }}
                   className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700"
                 >
@@ -2201,7 +2555,7 @@ export default function HRManagerLeavesPage() {
                 <div className="mb-6">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Summary by Leave Type:</h4>
                   <div className="space-y-2">
-                    {carryForwardReport.summary?.byLeaveType?.map((lt: any) => (
+                    {carryForwardReport.summary?.byLeaveType?.map((lt: { leaveTypeId: string; leaveTypeName: string; totalCarryForward: number; employeesWithCarryForward: number }) => (
                       <div key={lt.leaveTypeId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <span className="font-medium">{lt.leaveTypeName}</span>
                         <div className="flex gap-4 text-sm">
@@ -2231,7 +2585,7 @@ export default function HRManagerLeavesPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                          {carryForwardReport.report.slice(0, 50).map((r: any, idx: number) => (
+                          {carryForwardReport.report.slice(0, 50).map((r: { employeeId?: string; leaveTypeName: string; yearlyEntitlement: number; carryForward: number; taken: number; remaining: number; carryForwardExpiry?: string }, idx: number) => (
                             <tr key={idx} className="hover:bg-gray-50">
                               <td className="px-3 py-2 font-mono text-xs">{r.employeeId?.slice(-8)}</td>
                               <td className="px-3 py-2">{r.leaveTypeName}</td>
@@ -2801,12 +3155,24 @@ export default function HRManagerLeavesPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {finalizeDecision === 'approve' ? 'Approve Leave Request' : 'Reject Leave Request'}
+                      {(() => {
+                        const wasAlreadyApproved = finalizeRequest.status === 'APPROVED' || finalizeRequest.status === 'approved';
+                        if (finalizeDecision === 'approve') {
+                          return wasAlreadyApproved ? 'Finalize Approved Leave Request' : 'Approve Leave Request';
+                        }
+                        return 'Reject Leave Request';
+                      })()}
                     </h3>
                     <p className="text-sm text-gray-500">
-                      {finalizeDecision === 'approve'
-                        ? 'Finalize approval and update employee records'
-                        : 'Reject this leave request'}
+                      {(() => {
+                        const wasAlreadyApproved = finalizeRequest.status === 'APPROVED' || finalizeRequest.status === 'approved';
+                        if (finalizeDecision === 'approve') {
+                          return wasAlreadyApproved 
+                            ? 'Finalize this approved request to update employee records and adjust payroll accordingly'
+                            : 'Approve this leave request and update employee records';
+                        }
+                        return 'Reject this leave request';
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -2853,6 +3219,70 @@ export default function HRManagerLeavesPage() {
                 {/* Approval Options */}
                 {finalizeDecision === 'approve' && (
                   <div className="space-y-4">
+                    {/* Override Manager Decision (REQ-026) */}
+                    {(() => {
+                      const managerRejected = finalizeRequest.approvalFlow?.find((f) => f.role === 'manager')?.status === 'rejected';
+                      const managerApproved = finalizeRequest.approvalFlow?.find((f) => f.role === 'manager')?.status === 'approved';
+                      const isRejectedStatus = finalizeRequest.status === 'REJECTED' || finalizeRequest.status === 'rejected';
+                      const isApprovedStatus = finalizeRequest.status === 'APPROVED' || finalizeRequest.status === 'approved';
+                      
+                      // Show override option if:
+                      // 1. Manager rejected and HR wants to approve (override rejection)
+                      // 2. Manager approved and HR wants to reject (override approval)
+                      // 3. Request is in rejected status and HR wants to approve
+                      // Determine override scenarios
+                      let isOverridingRejection = false;
+                      let isOverridingApproval = false;
+                      
+                      if (finalizeDecision === 'approve') {
+                        isOverridingRejection = managerRejected || isRejectedStatus;
+                      } else if (finalizeDecision === 'reject') {
+                        isOverridingApproval = managerApproved && isApprovedStatus;
+                      }
+                      
+                      const shouldShowOverride = isOverridingRejection || isOverridingApproval;
+                      
+                      if (shouldShowOverride) {
+                        return (
+                          <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <p className="text-sm font-medium text-orange-900">Override Manager Decision</p>
+                                <p className="text-xs text-orange-700">
+                                  {isOverridingRejection 
+                                    ? 'This request was rejected by the manager. You are overriding to approve.'
+                                    : 'This request was approved by the manager. You are overriding to reject.'}
+                                </p>
+                              </div>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={finalizeOptions.isOverride}
+                                  onChange={(e) => setFinalizeOptions({ ...finalizeOptions, isOverride: e.target.checked, overrideReason: e.target.checked ? finalizeOptions.overrideReason : '' })}
+                                  className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                              </label>
+                            </div>
+                            {finalizeOptions.isOverride && (
+                              <div className="mt-2">
+                                <label className="block text-sm font-medium text-orange-900 mb-1">Override Reason *</label>
+                                <textarea
+                                  value={finalizeOptions.overrideReason}
+                                  onChange={(e) => setFinalizeOptions({ ...finalizeOptions, overrideReason: e.target.value })}
+                                  className="w-full px-3 py-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm resize-none"
+                                  rows={3}
+                                  placeholder="Please provide a reason for overriding the manager's decision..."
+                                  required
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
                     {/* Payroll Sync Option */}
                     <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                       <div>
@@ -2898,11 +3328,25 @@ export default function HRManagerLeavesPage() {
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                       <p className="text-sm font-medium text-amber-800 mb-1">Impact Preview</p>
                       <ul className="text-xs text-amber-700 space-y-1">
-                        <li>• Employee balance will be reduced by {finalizeRequest.durationDays || 0} day(s)</li>
-                        {finalizeOptions.syncPayroll && (finalizeRequest.leaveTypeName || '').toLowerCase().includes('unpaid') && finalizeRequest.durationDays > 0 && (
-                          <li>• Payroll deduction: ${((finalizeOptions.baseSalary / finalizeOptions.workDaysInMonth) * (finalizeRequest.durationDays || 0)).toFixed(2)}</li>
-                        )}
-                        <li>• Employee will be notified of approval</li>
+                        {(() => {
+                          const wasAlreadyApproved = finalizeRequest.status === 'APPROVED' || finalizeRequest.status === 'approved';
+                          const items = [];
+                          
+                          if (!wasAlreadyApproved) {
+                            items.push(<li key="balance">• Employee balance will be reduced by {finalizeRequest.durationDays || 0} day(s)</li>);
+                          } else {
+                            items.push(<li key="finalize">• Employee records will be updated (attendance, leave history)</li>);
+                            items.push(<li key="payroll">• Payroll will be adjusted for unpaid leave days</li>);
+                          }
+                          
+                          if (finalizeOptions.syncPayroll && (finalizeRequest.leaveTypeName || '').toLowerCase().includes('unpaid') && finalizeRequest.durationDays > 0) {
+                            items.push(<li key="deduction">• Payroll deduction: ${((finalizeOptions.baseSalary / finalizeOptions.workDaysInMonth) * (finalizeRequest.durationDays || 0)).toFixed(2)}</li>);
+                          }
+                          
+                          items.push(<li key="notify">• Employee, manager, and attendance coordinator will be notified</li>);
+                          
+                          return items;
+                        })()}
                       </ul>
                     </div>
                   </div>
@@ -2961,7 +3405,11 @@ export default function HRManagerLeavesPage() {
                 {!finalizeResult && (
                   <button
                     onClick={handleHRFinalizeWithSync}
-                    disabled={finalizeLoading || (finalizeDecision === 'reject' && !finalizeOptions.rejectReason.trim())}
+                    disabled={
+                      finalizeLoading || 
+                      (finalizeDecision === 'reject' && !finalizeOptions.rejectReason.trim()) ||
+                      (finalizeDecision === 'approve' && finalizeOptions.isOverride && !finalizeOptions.overrideReason.trim())
+                    }
                     className={`px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 ${
                       finalizeDecision === 'approve'
                         ? 'bg-green-600 hover:bg-green-700'
@@ -2970,12 +3418,322 @@ export default function HRManagerLeavesPage() {
                   >
                     {finalizeLoading
                       ? 'Processing...'
-                      : finalizeDecision === 'approve'
-                        ? 'Approve & Update Records'
-                        : 'Reject Request'}
+                      : (() => {
+                          const wasAlreadyApproved = finalizeRequest.status === 'APPROVED' || finalizeRequest.status === 'approved';
+                          if (finalizeDecision === 'approve') {
+                            return wasAlreadyApproved ? 'Finalize & Update Records' : 'Approve & Update Records';
+                          }
+                          return 'Reject Request';
+                        })()}
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Medical Document Verification Modal (REQ-028) */}
+      {showMedicalVerificationModal && selectedMedicalAttachment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {medicalModalMode === 'verify' ? 'Verify Medical Document' : 'View Medical Document'}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {selectedMedicalAttachment.employeeName} - {selectedMedicalAttachment.leaveTypeName}
+                </p>
+                {selectedMedicalAttachment.dates && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Leave Period: {new Date(selectedMedicalAttachment.dates.from).toLocaleDateString()} to {new Date(selectedMedicalAttachment.dates.to).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  setShowMedicalVerificationModal(false);
+                  setSelectedMedicalAttachment(null);
+                  setMedicalAttachmentData(null);
+                  setError(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                disabled={verifyingMedical}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {medicalAttachmentData ? (
+                <div className="space-y-4">
+                  {/* Document Info */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                      <div>
+                        <span className="font-medium text-gray-700">File Name:</span>
+                        <p className="text-gray-900 mt-1">{medicalAttachmentData.originalName || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">File Type:</span>
+                        <p className="text-gray-900 mt-1">{medicalAttachmentData.fileType || 'N/A'}</p>
+                      </div>
+                      {medicalAttachmentData.size && (
+                        <div>
+                          <span className="font-medium text-gray-700">File Size:</span>
+                          <p className="text-gray-900 mt-1">{(medicalAttachmentData.size / 1024).toFixed(2)} KB</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Download and Open Buttons */}
+                    {selectedMedicalAttachment?.attachmentId && medicalAttachmentData && (() => {
+                      // Determine file URL - could be external URL, data URL, static file path, or server endpoint
+                      const filePath = medicalAttachmentData.filePath || '';
+                      const staticUrl = typeof medicalAttachmentData === 'object' && 'staticUrl' in medicalAttachmentData
+                        ? (medicalAttachmentData as Record<string, unknown>).staticUrl as string | undefined
+                        : undefined; // From backend response
+                      const isExternalUrl = filePath.startsWith('http://') || filePath.startsWith('https://');
+                      const isDataUrl = filePath.startsWith('data:');
+                      const isStaticPath = filePath.startsWith('/uploads/') || filePath.startsWith('uploads/');
+                      
+                      // Construct download URL
+                      let downloadUrl: string;
+                      let showWarning = false;
+                      
+                      if (staticUrl) {
+                        // Backend provided a static URL - use it
+                        downloadUrl = staticUrl;
+                        showWarning = true;
+                      } else if (isExternalUrl || isDataUrl) {
+                        // External URL or data URL - use directly
+                        downloadUrl = filePath;
+                      } else if (isStaticPath) {
+                        // Static file path - construct static file URL
+                        const staticPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
+                        downloadUrl = `http://localhost:9000${staticPath}`;
+                        showWarning = true; // Show warning that file might not be available
+                      } else {
+                        // Use download endpoint - it will handle the file appropriately
+                        downloadUrl = `http://localhost:9000/leaves/attachments/${selectedMedicalAttachment.attachmentId}/download`;
+                      }
+                      
+                      return (
+                        <div className="space-y-2">
+                          <div className="flex gap-2 pt-3 border-t border-gray-200">
+                            <a
+                              href={downloadUrl}
+                              download={isExternalUrl || isDataUrl ? undefined : (medicalAttachmentData.originalName || 'document')}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
+                              onClick={() => {
+                                // If it's a static path that might not exist, show a message
+                                if (showWarning && !isExternalUrl && !isDataUrl) {
+                                  console.log('[Download] Attempting to download from:', downloadUrl);
+                                  console.log('[Download] File path reference:', filePath);
+                                  // Let the browser handle it - if 404, user will see the error
+                                }
+                              }}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                              Download Document
+                            </a>
+                            <a
+                              href={downloadUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                              Open in New Tab
+                            </a>
+                            {isExternalUrl && (
+                              <span className="px-2 py-1 text-xs text-gray-500 bg-gray-100 rounded">
+                                External Link
+                              </span>
+                            )}
+                          </div>
+                          {showWarning && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                              <p className="font-medium mb-1">⚠️ File Reference</p>
+                              <p className="text-xs">File path: <code className="bg-yellow-100 px-1 rounded">{filePath}</code></p>
+                              <p className="text-xs mt-1">If the file doesn&apos;t open, it may be stored externally or the file path is a reference. Contact the employee or check the original source.</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Document Preview */}
+                  {medicalAttachmentData.filePath && (() => {
+                    const filePath = medicalAttachmentData.filePath;
+                    const isExternalUrl = filePath.startsWith('http://') || filePath.startsWith('https://');
+                    const isDataUrl = filePath.startsWith('data:');
+                    const isStaticPath = filePath.startsWith('/uploads/') || filePath.startsWith('uploads/');
+                    
+                    // Construct preview URL
+                    let previewUrl: string;
+                    if (isExternalUrl || isDataUrl) {
+                      previewUrl = filePath;
+                    } else if (isStaticPath) {
+                      const staticPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
+                      previewUrl = `http://localhost:9000${staticPath}`;
+                    } else {
+                      previewUrl = `http://localhost:9000/leaves/attachments/${selectedMedicalAttachment?.attachmentId}/download`;
+                    }
+                    
+                    return (
+                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                        <div className="p-4 bg-white">
+                          {isDataUrl ? (
+                            // Data URL - display directly
+                            medicalAttachmentData.fileType?.toLowerCase().includes('image') ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={filePath}
+                                alt="Medical Document"
+                                className="max-w-full h-auto mx-auto"
+                                style={{ maxHeight: '500px' }}
+                              />
+                            ) : medicalAttachmentData.fileType?.toLowerCase().includes('pdf') ? (
+                              <iframe
+                                src={filePath}
+                                className="w-full h-96 border-0"
+                                title="Medical Document"
+                              />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                                <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <p className="text-sm">Document loaded</p>
+                                <a
+                                  href={previewUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-2 text-blue-600 hover:text-blue-800 text-sm underline"
+                                >
+                                  Open in browser →
+                                </a>
+                              </div>
+                            )
+                          ) : isExternalUrl ? (
+                            // External URL - show link
+                            <div className="flex flex-col items-center justify-center h-64 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                              <svg className="w-16 h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                              </svg>
+                              <p className="text-sm font-medium mb-2">External Document Link</p>
+                              <p className="text-xs text-gray-400 mb-4 text-center px-4 break-all">{filePath}</p>
+                              <a
+                                href={filePath}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                              >
+                                Open External Link
+                              </a>
+                            </div>
+                          ) : (
+                            // Server file - show preview placeholder
+                            <div className="flex flex-col items-center justify-center h-64 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                              <svg className="w-16 h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <p className="text-sm font-medium mb-2">Document Preview</p>
+                              <p className="text-xs text-gray-400 mb-4">Click the buttons above to download or open the document</p>
+                              <a
+                                href={previewUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:text-blue-800 underline"
+                              >
+                                View in browser →
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Verification Notice */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      <div className="text-sm text-blue-800">
+                        <p className="font-medium mb-1">Verification Guidelines</p>
+                        <ul className="list-disc list-inside space-y-1 text-blue-700">
+                          <li>Review the medical document carefully</li>
+                          <li>Ensure it is a legitimate medical certificate</li>
+                          <li>Verify dates match the leave request period</li>
+                          <li>Check that the document is from a valid medical provider</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading document...</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMedicalVerificationModal(false);
+                  setSelectedMedicalAttachment(null);
+                  setMedicalAttachmentData(null);
+                  setError(null);
+                }}
+                disabled={verifyingMedical}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              >
+                Close
+              </button>
+              {/* Only show Verify button if in verify mode */}
+              {medicalModalMode === 'verify' && (
+                <button
+                  type="button"
+                  onClick={handleVerifyMedicalDocument}
+                  disabled={verifyingMedical || !medicalAttachmentData}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {verifyingMedical ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Verifying...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>Verify Document</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
