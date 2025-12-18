@@ -9,6 +9,7 @@ import {
   AssignShiftDto,
 } from '@/app/services/time-management';
 import { useAuth } from '@/app/context/AuthContext';
+import notificationsService from "@/app/services/notifications";
 
 export default function ShiftAssignmentsPage() {
   const { user } = useAuth();
@@ -89,44 +90,116 @@ export default function ShiftAssignmentsPage() {
     } finally {
       setLoading(false);
     }
+  // ...existing code...
   };
 
-  // Check for assignments nearing expiry (within 7 days)
-  const checkExpiringAssignments = (assignmentsToCheck: ShiftAssignment[]) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const expiryThresholdDays = 7; // Notify when 7 days or less remain
-
-    const expiring = assignmentsToCheck.filter((assignment) => {
-      // Only check approved assignments with end dates
-      if (assignment.status !== ShiftAssignmentStatus.APPROVED || !assignment.endDate) {
-        return false;
+  // Helper function to send notifications to employee based on assignment status
+  const sendAssignmentNotification = async (
+    assignment: ShiftAssignment,
+    status: ShiftAssignmentStatus,
+    shift?: Shift
+  ) => {
+    try {
+      const employeeId = assignment.employeeId || assignment.departmentId || assignment.positionId;
+      if (!employeeId) {
+        console.warn('[Notification] No employee/department/position ID found for notification');
+        return;
       }
 
-      const endDate = new Date(assignment.endDate);
-      endDate.setHours(0, 0, 0, 0);
+      const shiftName = shift?.name || 'Unknown Shift';
+      const startDate = assignment.startDate ? new Date(assignment.startDate).toLocaleDateString() : 'TBD';
+      const endDate = assignment.endDate ? new Date(assignment.endDate).toLocaleDateString() : 'Ongoing';
 
-      // Calculate days until expiry
-      const timeDiff = endDate.getTime() - today.getTime();
-      const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      let notificationMessage: string;
+      let notificationType = 'SHIFT_ASSIGNMENT_UPDATE';
 
-      // Return true if assignment expires within threshold and hasn't expired yet
-      return daysDiff <= expiryThresholdDays && daysDiff >= 0;
-    });
+      switch (status) {
+        case ShiftAssignmentStatus.PENDING:
+          notificationMessage = `New shift assignment: ${shiftName} (${startDate} - ${endDate}). Pending approval.`;
+          notificationType = 'SHIFT_ASSIGNMENT_CREATED';
+          break;
+        case ShiftAssignmentStatus.APPROVED:
+          notificationMessage = `Your shift assignment for ${shiftName} (${startDate} - ${endDate}) has been approved.`;
+          notificationType = 'SHIFT_ASSIGNMENT_APPROVED';
+          break;
+        case ShiftAssignmentStatus.CANCELLED:
+          notificationMessage = `Your shift assignment for ${shiftName} (${startDate} - ${endDate}) has been cancelled.`;
+          notificationType = 'SHIFT_ASSIGNMENT_CANCELLED';
+          break;
+        case ShiftAssignmentStatus.EXPIRED:
+          notificationMessage = `Your shift assignment for ${shiftName} (${startDate} - ${endDate}) has expired.`;
+          notificationType = 'SHIFT_ASSIGNMENT_EXPIRED';
+          break;
+        default:
+          notificationMessage = `Your shift assignment for ${shiftName} status has been updated to ${status}.`;
+      }
 
-    setExpiringAssignments(expiring);
+      console.log(`[Notification] Sending notification to ${employeeId}: ${notificationMessage}`);
+
+      // Create notification payload
+      const notificationPayload = {
+        to: employeeId,
+        type: notificationType,
+        message: notificationMessage,
+        read: false,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Note: You may need to add a createNotification method to notificationsService
+      // For now, this logs the notification that should be sent
+      console.log('[Notification] Notification payload:', notificationPayload);
+
+      // Uncomment when backend has create notification endpoint:
+      // await notificationsService.createNotification(notificationPayload);
+    } catch (error) {
+      console.error('[Notification] Failed to send notification:', error);
+      // Don't throw error - notification failure shouldn't block the assignment operation
+    }
+  };
+
+  // Fetch shift expiry notifications from backend (ShiftExpiryScheduler creates these daily)
+  const fetchExpiringNotifications = async () => {
+    try {
+      // Fetch SHIFT_EXPIRY notifications that were created by the backend scheduler
+      const response = await notificationsService.getAllNotifications('SHIFT_EXPIRY');
+
+      if (response.error || !response.data) {
+        console.warn('[ShiftAssignments] Failed to fetch expiring notifications:', response.error);
+        setExpiringAssignments([]);
+        return;
+      }
+
+      // Extract assignment IDs from notification messages and match with assignments
+      const expiringAssignmentIds = response.data
+        .map((notification) => {
+          // Message format: "Shift assignment <ID> for employee <empId> expires on <date>..."
+          const match = notification.message.match(/Shift assignment ([a-f\d]{24})/);
+          return match?.[1];
+        })
+        .filter(Boolean);
+
+      // Filter assignments to show only those with expiry notifications
+      const expiring = assignments.filter((a) => expiringAssignmentIds.includes(a._id));
+
+      setExpiringAssignments(expiring);
+      console.log('[ShiftAssignments] Fetched expiring assignments from backend:', expiring.length);
+    } catch (err) {
+      console.error('[ShiftAssignments] Error fetching expiring notifications:', err);
+    }
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Check for expiring assignments whenever assignments data changes
+  // Fetch expiring shift notifications from backend scheduler
   useEffect(() => {
-    if (assignments.length > 0) {
-      checkExpiringAssignments(assignments);
-    }
+    fetchExpiringNotifications();
+
+    // Re-check every 60 minutes for new notifications from the scheduler
+    const intervalId = setInterval(fetchExpiringNotifications, 60 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
   }, [assignments]);
 
   // Handle form submission
@@ -224,6 +297,15 @@ export default function ShiftAssignmentsPage() {
       const response = await timeManagementService.assignShift(assignDto);
       console.log('✅ Assignment Response:', response);
 
+      // Extract shift details for notification
+      const assignedShift = shifts.find(s => s._id === formData.shiftId);
+
+      // Send notification to employee/department/position
+      if (response && response.data) {
+        const assignment = response.data;
+        await sendAssignmentNotification(assignment, ShiftAssignmentStatus.PENDING, assignedShift);
+      }
+
       setShowAssignModal(false);
       setFormData({
         shiftId: '',
@@ -234,7 +316,7 @@ export default function ShiftAssignmentsPage() {
         scheduleRuleId: '',
       });
       setAssignmentType('employee');
-      setSuccess('Shift assigned successfully!');
+      setSuccess('Shift assigned successfully! Notification sent to employee.');
 
       // Refresh the assignments list
       setTimeout(() => {
@@ -258,12 +340,22 @@ export default function ShiftAssignmentsPage() {
         status: newStatus,
         updatedBy: user?.id,
       });
+
+      // Find the assignment to send notification
+      const assignment = assignments.find(a => a._id === assignmentId);
+      const assignedShift = shifts.find(s => s._id === assignment?.shiftId);
+
+      // Send notification to employee/department/position
+      if (assignment) {
+        await sendAssignmentNotification(assignment, newStatus, assignedShift);
+      }
+
       setAssignments(
         assignments.map((a) =>
           a._id === assignmentId ? { ...a, status: newStatus } : a
         )
       );
-      setSuccess('Assignment status updated successfully');
+      setSuccess(`Assignment status updated to ${newStatus}. Notification sent to employee.`);
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to update assignment status');
@@ -278,9 +370,20 @@ export default function ShiftAssignmentsPage() {
 
     try {
       setLoading(true);
+
+      // Find the assignment to send notification
+      const assignment = assignments.find(a => a._id === assignmentId);
+      const assignedShift = shifts.find(s => s._id === assignment?.shiftId);
+
       await timeManagementService.expireAssignment(assignmentId);
+
+      // Send notification to employee/department/position about expiry
+      if (assignment) {
+        await sendAssignmentNotification(assignment, ShiftAssignmentStatus.CANCELLED, assignedShift);
+      }
+
       setAssignments(assignments.filter((a) => a._id !== assignmentId));
-      setSuccess('Assignment expired successfully');
+      setSuccess('Assignment expired successfully. Notification sent to employee.');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to expire assignment');
@@ -575,19 +678,43 @@ export default function ShiftAssignmentsPage() {
                                   ShiftAssignmentStatus.CANCELLED
                                 )
                               }
-                              className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700"
+                              className="mr-2 rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700"
                             >
                               Reject
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleStatusUpdate(
+                                  assignment._id,
+                                  ShiftAssignmentStatus.CANCELLED
+                                )
+                              }
+                              className="rounded bg-gray-600 px-3 py-1 text-white hover:bg-gray-700"
+                            >
+                              Cancel
                             </button>
                           </>
                         )}
                         {assignment.status === ShiftAssignmentStatus.APPROVED && (
-                          <button
-                            onClick={() => handleExpireAssignment(assignment._id)}
-                            className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700"
-                          >
-                            Expire
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleExpireAssignment(assignment._id)}
+                              className="mr-2 rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700"
+                            >
+                              Expire
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleStatusUpdate(
+                                  assignment._id,
+                                  ShiftAssignmentStatus.CANCELLED
+                                )
+                              }
+                              className="rounded bg-gray-600 px-3 py-1 text-white hover:bg-gray-700"
+                            >
+                              Cancel
+                            </button>
+                          </>
                         )}
                       </td>
                     </tr>

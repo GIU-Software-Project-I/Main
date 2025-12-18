@@ -67,25 +67,35 @@ export default function ChangeRequestsPage() {
     };
 
     // Handlers
-    const handleApprove = async (requestId: string) => {
+    const handleApprove = async (requestId: string, proposedChanges?: Record<string, any>) => {
         try {
             setProcessing(requestId);
             setError(null);
 
             const response = await employeeProfileService.processChangeRequest(requestId, {
                 status: 'APPROVED',
+                proposedChanges,
             });
 
             if (response.error) {
                 throw new Error(response.error);
             }
 
-            setSuccess('Change request approved successfully');
+            setSuccess('Change request approved ' + (proposedChanges ? 'and changes applied ' : '') + 'successfully');
             setTimeout(() => setSuccess(null), 3000);
 
             // Update local state by requestId
             setRequests((prev) =>
-                prev.map((r) => (r.requestId === requestId ? { ...r, status: 'APPROVED' as const, processedAt: new Date().toISOString() } : r))
+                prev.map((r) => (
+                    r.requestId === requestId
+                        ? {
+                            ...r,
+                            status: 'APPROVED' as const,
+                            processedAt: new Date().toISOString(),
+                            proposedChanges: proposedChanges || r.proposedChanges
+                        }
+                        : r
+                ))
             );
         } catch (err: any) {
             setError(err.message || 'Failed to approve request');
@@ -284,12 +294,12 @@ export default function ChangeRequestsPage() {
                             </svg>
                         </div>
                         <h3 className="text-lg font-semibold text-foreground mb-2">
-                            {statusFilter === 'PENDING' ? 'No Pending Requests' : 'No Change Requests'}
+                            {statusFilter === 'PENDING' ? 'No Pending Requests' : 'No Change Requests Found'}
                         </h3>
                         <p className="text-muted-foreground max-w-md mx-auto">
                             {statusFilter === 'PENDING'
-                                ? "Great job! All employee change requests have been processed."
-                                : "No change requests match your current filter."}
+                                ? "All employee profile revision requests have been successfully processed."
+                                : "There are currently no records that match the selected filter criteria."}
                         </p>
                     </div>
                 ) : (

@@ -288,6 +288,25 @@ export class PerformanceController {
         return this.performanceService.markRecordViewed(id);
     }
 
+    // ==================== EMPLOYEE SELF-SERVICE (me routes) ====================
+    // These routes use JWT token to get the employee ID
+
+    @Get('employee/me/history')
+    async getMyAppraisalHistory(@CurrentUser() user: JwtPayload) {
+        return this.performanceService.getEmployeeAppraisalHistory(user.sub);
+    }
+
+    @Get('employee/me/current')
+    async getMyCurrentAppraisal(@CurrentUser() user: JwtPayload) {
+        return this.performanceService.getEmployeeCurrentAppraisal(user.sub);
+    }
+
+    @Get('employee/me/goals')
+    async getMyGoals(@CurrentUser() user: JwtPayload) {
+        return this.performanceService.getEmployeeGoals(user.sub);
+    }
+
+    // Admin route - must come AFTER /me routes
     @Get('employee/:employeeProfileId/history')
     async getEmployeeAppraisalHistory(@Param('employeeProfileId') employeeProfileId: string) {
         return this.performanceService.getEmployeeAppraisalHistory(employeeProfileId);

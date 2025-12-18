@@ -32,6 +32,11 @@ export const notificationsService = {
     return apiService.get<Notification[]>(`/notifications/user/${userId}`);
   },
 
+  // Get shift expiry notifications (for HR admin dashboard)
+  getShiftExpiryNotifications: async () => {
+    return apiService.get<Notification[]>(`/notifications?type=SHIFT_EXPIRY`);
+  },
+
   // Get leave-related notifications for a user
   getLeaveNotifications: async (userId: string) => {
     const response = await apiService.get<Notification[]>(`/notifications/user/${userId}`);

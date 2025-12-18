@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
-import {ProfileChangeStatus} from "../../enums/employee-profile.enums";
+import { HydratedDocument, Types, Schema as MongooseSchema } from 'mongoose';
+import { ProfileChangeStatus } from "../../enums/employee-profile.enums";
 
 export type EmployeeProfileChangeRequestDocument = HydratedDocument<EmployeeProfileChangeRequest>;
 
@@ -30,6 +30,19 @@ export class EmployeeProfileChangeRequest {
 
     @Prop({ type: Date })
     processedAt?: Date;
+
+    @Prop({ type: Types.ObjectId, ref: 'EmployeeProfile' })
+    processedBy?: Types.ObjectId;
+
+    @Prop({ type: String })
+    rejectionReason?: string;
+
+    // Proposed changes that HR will apply (structured data)
+    @Prop({
+        type: MongooseSchema.Types.Mixed,
+        default: {}
+    })
+    proposedChanges?: Record<string, any>;
 }
 
 export const EmployeeProfileChangeRequestSchema = SchemaFactory.createForClass(

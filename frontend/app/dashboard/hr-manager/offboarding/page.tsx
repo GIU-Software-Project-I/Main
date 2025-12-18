@@ -8,6 +8,23 @@ import {
   TerminationStatus,
   TerminationInitiation,
 } from '@/app/services/offboarding';
+import { StatusBadge } from '@/app/components/ui/status-badge';
+import { GlassCard } from '@/app/components/ui/glass-card';
+import { Button } from '@/app/components/ui/button';
+import { Badge } from '@/app/components/ui/badge';
+import {
+  FileX,
+  AlertTriangle,
+  LogOut,
+  UserMinus,
+  ClipboardCheck,
+  DollarSign,
+  Search,
+  Filter,
+  ArrowRight,
+  MoreHorizontal,
+  Calendar
+} from 'lucide-react';
 
 export default function OffboardingDashboard() {
   const [loading, setLoading] = useState(true);
@@ -38,35 +55,26 @@ export default function OffboardingDashboard() {
     }
   };
 
+  // Helper to normalize status/initiator for case-insensitive comparison
+  const normalizeValue = (val: string) => val?.toLowerCase?.() || val;
+
   const filteredRequests = requests.filter((request) => {
-    if (filterStatus !== 'all' && request.status !== filterStatus) return false;
-    if (filterType === 'resignations' && request.initiator !== TerminationInitiation.EMPLOYEE) return false;
-    if (filterType === 'terminations' && request.initiator === TerminationInitiation.EMPLOYEE) return false;
+    const requestStatus = normalizeValue(request.status);
+    const requestInitiator = normalizeValue(request.initiator);
+
+    if (filterStatus !== 'all' && requestStatus !== normalizeValue(filterStatus)) return false;
+    if (filterType === 'resignations' && requestInitiator !== normalizeValue(TerminationInitiation.EMPLOYEE)) return false;
+    if (filterType === 'terminations' && requestInitiator === normalizeValue(TerminationInitiation.EMPLOYEE)) return false;
     return true;
   });
 
   const stats = {
     total: requests.length,
-    pending: requests.filter((r) => r.status === TerminationStatus.PENDING).length,
-    underReview: requests.filter((r) => r.status === TerminationStatus.UNDER_REVIEW).length,
-    approved: requests.filter((r) => r.status === TerminationStatus.APPROVED).length,
-    resignations: requests.filter((r) => r.initiator === TerminationInitiation.EMPLOYEE).length,
-    terminations: requests.filter((r) => r.initiator !== TerminationInitiation.EMPLOYEE).length,
-  };
-
-  const getStatusBadge = (status: TerminationStatus) => {
-    switch (status) {
-      case TerminationStatus.PENDING:
-        return 'bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800';
-      case TerminationStatus.UNDER_REVIEW:
-        return 'bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800';
-      case TerminationStatus.APPROVED:
-        return 'bg-green-100 text-green-800 border border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800';
-      case TerminationStatus.REJECTED:
-        return 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800';
-      default:
-        return 'bg-muted text-muted-foreground border border-border';
-    }
+    pending: requests.filter((r) => normalizeValue(r.status) === normalizeValue(TerminationStatus.PENDING)).length,
+    underReview: requests.filter((r) => normalizeValue(r.status) === normalizeValue(TerminationStatus.UNDER_REVIEW)).length,
+    approved: requests.filter((r) => normalizeValue(r.status) === normalizeValue(TerminationStatus.APPROVED)).length,
+    resignations: requests.filter((r) => normalizeValue(r.initiator) === normalizeValue(TerminationInitiation.EMPLOYEE)).length,
+    terminations: requests.filter((r) => normalizeValue(r.initiator) !== normalizeValue(TerminationInitiation.EMPLOYEE)).length,
   };
 
   const getInitiatorLabel = (initiator: TerminationInitiation) => {
@@ -84,282 +92,232 @@ export default function OffboardingDashboard() {
 
   if (loading) {
     return (
-      <div className="p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-muted rounded w-1/4"></div>
-            <div className="grid grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-28 bg-card rounded-xl shadow-sm"></div>
-              ))}
-            </div>
-            <div className="h-96 bg-card rounded-xl shadow-sm"></div>
-          </div>
+      <div className="p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
+        <div className="flex justify-between items-center">
+          <div className="h-10 bg-muted/50 rounded-lg w-1/3 animate-pulse"></div>
+          <div className="h-10 bg-muted/50 rounded-lg w-1/4 animate-pulse"></div>
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 bg-muted/30 rounded-xl animate-pulse"></div>
+          ))}
+        </div>
+        <div className="h-96 bg-muted/20 rounded-xl animate-pulse"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 lg:p-8 bg-background min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background/50 relative">
+      <div className="absolute top-0 right-0 w-full h-96 bg-gradient-to-b from-orange-500/5 to-transparent -z-10 pointer-events-none"></div>
+
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-semibold text-foreground">Offboarding Management</h1>
-            <p className="text-muted-foreground mt-1">Manage employee separations, resignations, and exit processes</p>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+              Offboarding Management
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Manage separations, resignations and exit processes efficiently.
+            </p>
           </div>
-          <Link
-            href="/dashboard/hr-manager/offboarding/termination-reviews"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Initiate Termination
-          </Link>
+          <Button size="lg" className="shadow-lg shadow-orange-500/20 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 transition-all hover:scale-105" asChild>
+            <Link href="/dashboard/hr-manager/offboarding/termination-reviews">
+              <UserMinus className="w-5 h-5 mr-2" />
+              Initiate Termination
+            </Link>
+          </Button>
         </div>
 
         {error && (
-          <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg flex items-center justify-between">
+          <GlassCard className=" border-destructive/20 bg-destructive/5 text-destructive p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {error}
+              <AlertTriangle className="w-5 h-5" />
+              <span>{error}</span>
             </div>
-            <button onClick={fetchData} className="text-destructive hover:text-destructive/80 font-medium">
-              Retry
-            </button>
-          </div>
+            <Button variant="ghost" size="sm" onClick={fetchData} className="hover:bg-destructive/10">Retry</Button>
+          </GlassCard>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Requests</p>
-                <p className="text-3xl font-bold text-foreground mt-1">{stats.total}</p>
-              </div>
-              <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <GlassCard variant="hover" className="p-6 relative overflow-hidden group border-l-4 border-l-muted">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <FileX className="w-16 h-16 text-foreground" />
+            </div>
+            <div className="space-y-2 relative z-10">
+              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Requests</p>
+              <p className="text-4xl font-bold text-foreground">{stats.total}</p>
+            </div>
+          </GlassCard>
+
+          <GlassCard variant="hover" className="p-6 relative overflow-hidden group border-l-4 border-l-amber-500">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <AlertTriangle className="w-16 h-16 text-amber-500" />
+            </div>
+            <div className="space-y-2 relative z-10">
+              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Pending Review</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-4xl font-bold text-amber-600 dark:text-amber-400">{stats.pending + stats.underReview}</p>
+                <span className="text-xs text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Needing Attention</span>
               </div>
             </div>
-          </div>
-          <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending Review</p>
-                <p className="text-3xl font-bold text-amber-600 mt-1">{stats.pending + stats.underReview}</p>
-              </div>
-              <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+          </GlassCard>
+
+          <GlassCard variant="hover" className="p-6 relative overflow-hidden group border-l-4 border-l-blue-500">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <LogOut className="w-16 h-16 text-blue-500" />
+            </div>
+            <div className="space-y-2 relative z-10">
+              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Resignations</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">{stats.resignations}</p>
+                <span className="text-xs text-muted-foreground">Voluntary</span>
               </div>
             </div>
-          </div>
-          <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Resignations</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">{stats.resignations}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
+          </GlassCard>
+
+          <GlassCard variant="hover" className="p-6 relative overflow-hidden group border-l-4 border-l-orange-500">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <UserMinus className="w-16 h-16 text-orange-500" />
+            </div>
+            <div className="space-y-2 relative z-10">
+              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Terminations</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-4xl font-bold text-orange-600 dark:text-orange-400">{stats.terminations}</p>
+                <span className="text-xs text-orange-600 bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 rounded-full">Involuntary</span>
               </div>
             </div>
-          </div>
-          <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Terminations</p>
-                <p className="text-3xl font-bold text-orange-600 mt-1">{stats.terminations}</p>
-              </div>
-              <div className="w-12 h-12 bg-orange-50 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
-              </div>
-            </div>
-          </div>
+          </GlassCard>
         </div>
 
-        {/* Requests Table */}
-        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-          <div className="px-6 py-4 border-b border-border">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h2 className="text-lg font-semibold text-foreground">Termination & Resignation Requests</h2>
-              <div className="flex gap-3">
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value as any)}
-                  className="px-4 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
-                >
-                  <option value="all">All Types</option>
-                  <option value="resignations">Resignations</option>
-                  <option value="terminations">Terminations</option>
-                </select>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as any)}
-                  className="px-4 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
-                >
-                  <option value="all">All Status</option>
-                  <option value={TerminationStatus.PENDING}>Pending</option>
-                  <option value={TerminationStatus.UNDER_REVIEW}>Under Review</option>
-                  <option value={TerminationStatus.APPROVED}>Approved</option>
-                  <option value={TerminationStatus.REJECTED}>Rejected</option>
-                </select>
-              </div>
-            </div>
-          </div>
+        {/* Quick Actions Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { href: '/dashboard/hr-manager/offboarding/resignations', icon: LogOut, bg: 'bg-blue-50 dark:bg-blue-900/20', color: 'text-blue-600', title: 'Resignations', desc: 'Review employee resignations' },
+            { href: '/dashboard/hr-manager/offboarding/termination-reviews', icon: AlertTriangle, bg: 'bg-orange-50 dark:bg-orange-900/20', color: 'text-orange-600', title: 'Terminations', desc: 'Initiate termination reviews' },
+            { href: '/dashboard/hr-manager/offboarding/checklist', icon: ClipboardCheck, bg: 'bg-green-50 dark:bg-green-900/20', color: 'text-green-600', title: 'Exit Clearance', desc: 'Department sign-offs' },
+            { href: '/dashboard/hr-manager/offboarding/final-settlement', icon: DollarSign, bg: 'bg-purple-50 dark:bg-purple-900/20', color: 'text-purple-600', title: 'Final Settlement', desc: 'Process final payments' }
+          ].map((item, i) => (
+            <Link key={i} href={item.href}>
+              <GlassCard className="p-5 flex items-start gap-4 hover:bg-accent/50 transition-colors h-full group hover:border-primary/30">
+                <div className={`p-3 rounded-xl ${item.bg} group-hover:scale-110 transition-transform`}>
+                  <item.icon className={`w-5 h-5 ${item.color}`} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">{item.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+                </div>
+              </GlassCard>
+            </Link>
+          ))}
+        </div>
 
-          <div className="divide-y divide-border">
-            {filteredRequests.length === 0 ? (
-              <div className="p-12 text-center">
-                <svg className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p className="text-muted-foreground font-medium">No requests found</p>
-                <p className="text-muted-foreground/80 text-sm mt-1">Termination and resignation requests will appear here</p>
-              </div>
-            ) : (
-              filteredRequests.map((request) => {
-                const employee = typeof request.employeeId === 'object' ? request.employeeId as any : null;
-                const employeeName = employee
-                  ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Employee'
-                  : 'Employee';
-                const isResignation = request.initiator === TerminationInitiation.EMPLOYEE;
-                return (
-                  <Link
-                    key={request._id}
-                    href={`/dashboard/hr-manager/offboarding/resignations/${request._id}`}
-                    className="block px-6 py-4 hover:bg-accent transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          isResignation ? 'bg-blue-100 dark:bg-blue-900/20' : 'bg-orange-100 dark:bg-orange-900/20'
-                        }`}>
-                          {isResignation ? (
-                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                            </svg>
+        {/* Filters & List */}
+        <div className="space-y-6">
+          <GlassCard className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value as any)}
+                className="bg-transparent border border-border rounded-md text-sm px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20 w-full md:w-auto"
+              >
+                <option value="all">All Types</option>
+                <option value="resignations">Resignations</option>
+                <option value="terminations">Terminations</option>
+              </select>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as any)}
+                className="bg-transparent border border-border rounded-md text-sm px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20 w-full md:w-auto"
+              >
+                <option value="all">All Status</option>
+                <option value={TerminationStatus.PENDING}>Pending</option>
+                <option value={TerminationStatus.UNDER_REVIEW}>Under Review</option>
+                <option value={TerminationStatus.APPROVED}>Approved</option>
+                <option value={TerminationStatus.REJECTED}>Rejected</option>
+              </select>
+            </div>
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search requests..."
+                className="w-full pl-9 pr-4 py-1.5 bg-muted/50 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          </GlassCard>
+
+          <GlassCard className="overflow-hidden">
+            <div className="px-6 py-4 border-b border-border/50 bg-muted/20">
+              <h2 className="font-semibold text-foreground">Detailed Requests</h2>
+            </div>
+
+            <div className="divide-y divide-border/50">
+              {filteredRequests.length === 0 ? (
+                <div className="p-16 text-center flex flex-col items-center">
+                  <div className="w-20 h-20 bg-muted/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                    <FileX className="w-10 h-10 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-xl font-medium text-foreground">No requests found</p>
+                  <p className="text-muted-foreground mt-2 max-w-sm">No termination or resignation requests match your current filters.</p>
+                  <Button variant="ghost" className="mt-6" onClick={() => { setFilterType('all'); setFilterStatus('all'); }}>Reset Filters</Button>
+                </div>
+              ) : (
+                filteredRequests.map((request) => {
+                  const employee = typeof request.employeeId === 'object' ? request.employeeId as any : null;
+                  const employeeName = employee
+                    ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Employee'
+                    : 'Employee';
+                  const isResignation = request.initiator === TerminationInitiation.EMPLOYEE;
+                  return (
+                    <Link
+                      key={request._id}
+                      href={`/dashboard/hr-manager/offboarding/resignations/${request._id}`}
+                      className="block hover:bg-accent/40 transition-all duration-200 group"
+                    >
+                      <div className="px-6 py-5 flex items-center justify-between">
+                        <div className="flex items-center gap-5">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm ${isResignation ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600' : 'bg-orange-100 dark:bg-orange-900/20 text-orange-600'}`}>
+                            {isResignation ? <LogOut className="w-5 h-5" /> : <UserMinus className="w-5 h-5" />}
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-3">
+                              <h3 className="font-semibold text-foreground text-lg group-hover:text-primary transition-colors">{employeeName}</h3>
+                              <StatusBadge status={request.status} />
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1.5 font-medium">
+                                {isResignation ? <LogOut className="w-3.5 h-3.5" /> : <UserMinus className="w-3.5 h-3.5" />}
+                                {getInitiatorLabel(request.initiator)}
+                              </span>
+                              <span className="w-1 h-1 bg-muted-foreground/30 rounded-full"></span>
+                              <span className="italic max-w-md truncate">"{request.reason}"</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-right space-y-1">
+                          <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {new Date(request.createdAt).toLocaleDateString()}
+                          </div>
+                          {request.terminationDate && (
+                            <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                              Effective: {new Date(request.terminationDate).toLocaleDateString()}
+                            </p>
                           )}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <h3 className="font-medium text-foreground">
-                              {employeeName}
-                            </h3>
-                            <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full ${getStatusBadge(request.status)}`}>
-                              {request.status.replace('_', ' ')}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-4 mt-1">
-                            <span className="text-sm text-muted-foreground">
-                              {getInitiatorLabel(request.initiator)}
-                            </span>
-                            <span className="text-sm text-muted-foreground/80">
-                              {request.reason.length > 50 ? `${request.reason.slice(0, 50)}...` : request.reason}
-                            </span>
-                          </div>
-                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(request.createdAt).toLocaleDateString()}
-                        </p>
-                        {request.terminationDate && (
-                          <p className="text-xs text-muted-foreground/70 mt-1">
-                            Effective: {new Date(request.terminationDate).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link
-            href="/dashboard/hr-manager/offboarding/resignations"
-            className="group bg-card p-5 rounded-xl shadow-sm border border-border hover:border-primary/50 hover:shadow-md transition-all"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors flex-shrink-0">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">Resignations</h3>
-                <p className="text-xs text-muted-foreground mt-1">Review employee resignations</p>
-              </div>
+                    </Link>
+                  );
+                })
+              )}
             </div>
-          </Link>
-          <Link
-            href="/dashboard/hr-manager/offboarding/termination-reviews"
-            className="group bg-card p-5 rounded-xl shadow-sm border border-border hover:border-orange-200 hover:shadow-md transition-all"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-orange-50 dark:bg-orange-900/20 rounded-lg flex items-center justify-center group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30 transition-colors flex-shrink-0">
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground text-sm group-hover:text-orange-600 transition-colors">Terminations</h3>
-                <p className="text-xs text-muted-foreground mt-1">Initiate termination reviews</p>
-              </div>
-            </div>
-          </Link>
-          <Link
-            href="/dashboard/hr-manager/offboarding/checklist"
-            className="group bg-card p-5 rounded-xl shadow-sm border border-border hover:border-green-200 hover:shadow-md transition-all"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center group-hover:bg-green-100 dark:group-hover:bg-green-900/30 transition-colors flex-shrink-0">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground text-sm group-hover:text-green-600 transition-colors">Exit Clearance</h3>
-                <p className="text-xs text-muted-foreground mt-1">Department sign-offs</p>
-              </div>
-            </div>
-          </Link>
-          <Link
-            href="/dashboard/hr-manager/offboarding/final-settlement"
-            className="group bg-card p-5 rounded-xl shadow-sm border border-border hover:border-purple-200 hover:shadow-md transition-all"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-center group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30 transition-colors flex-shrink-0">
-                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground text-sm group-hover:text-purple-600 transition-colors">Final Settlement</h3>
-                <p className="text-xs text-muted-foreground mt-1">Process final pay</p>
-              </div>
-            </div>
-          </Link>
+          </GlassCard>
         </div>
       </div>
     </div>

@@ -330,7 +330,7 @@ export default function ClaimsDisputesPage() {
             <h2 className="text-xl font-bold">Request Tracking</h2>
             <p className="text-orange-100 mt-1">Manage your payroll-related requests</p>
           </div>
-          <div className="text-6xl">⚠️</div>
+          <div className="text-6xl"></div>
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
@@ -357,15 +357,15 @@ export default function ClaimsDisputesPage() {
       <div className="flex gap-4 flex-wrap">
         <button
           onClick={() => setShowDisputeForm(true)}
-          className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium flex items-center gap-2"
+          className="px-6 py-3 bg-white border border-slate-200 rounded-lg shadow-sm font-medium flex items-center gap-2 text-slate-900 hover:shadow-md"
         >
-          ⚠️ File a Dispute
+          File a Dispute
         </button>
         <button
           onClick={() => setShowClaimForm(true)}
-          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2"
+          className="px-6 py-3 bg-white border border-slate-200 rounded-lg shadow-sm font-medium flex items-center gap-2 text-slate-900 hover:shadow-md"
         >
-          💰 Submit a Claim
+          Submit a Claim
         </button>
       </div>
 
@@ -379,7 +379,7 @@ export default function ClaimsDisputesPage() {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          📊 Overview
+          Overview
         </button>
         <button
           onClick={() => setActiveTab('disputes')}
@@ -389,7 +389,7 @@ export default function ClaimsDisputesPage() {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          ⚠️ My Disputes
+          My Disputes
           {disputes.length > 0 && (
             <span className={`px-2 py-0.5 rounded-full text-xs ${
               activeTab === 'disputes' ? 'bg-orange-200' : 'bg-slate-200'
@@ -406,7 +406,7 @@ export default function ClaimsDisputesPage() {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          💰 My Claims
+          My Claims
           {claims.length > 0 && (
             <span className={`px-2 py-0.5 rounded-full text-xs ${
               activeTab === 'claims' ? 'bg-orange-200' : 'bg-slate-200'
@@ -434,7 +434,7 @@ export default function ClaimsDisputesPage() {
             
             {disputes.length === 0 ? (
               <div className="text-center py-6 text-slate-500">
-                <div className="text-3xl mb-2">✅</div>
+                <div className="text-3xl mb-2"></div>
                 <p>No disputes filed</p>
               </div>
             ) : (
@@ -468,7 +468,7 @@ export default function ClaimsDisputesPage() {
             
             {claims.length === 0 ? (
               <div className="text-center py-6 text-slate-500">
-                <div className="text-3xl mb-2">📋</div>
+                <div className="text-3xl mb-2"></div>
                 <p>No claims submitted</p>
               </div>
             ) : (
@@ -497,7 +497,7 @@ export default function ClaimsDisputesPage() {
             <h3 className="text-lg font-bold text-slate-900">My Disputes</h3>
             <button
               onClick={() => setShowDisputeForm(true)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
+              className="px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-sm font-medium text-slate-900 hover:shadow-md"
             >
               + File New Dispute
             </button>
@@ -505,7 +505,7 @@ export default function ClaimsDisputesPage() {
           
           {disputes.length === 0 ? (
             <div className="p-8 text-center">
-              <div className="text-6xl mb-4">✅</div>
+              <div className="text-6xl mb-4"></div>
               <h3 className="text-xl font-semibold text-slate-900 mb-2">No Disputes</h3>
               <p className="text-slate-600">You haven&apos;t filed any payroll disputes.</p>
             </div>
@@ -558,7 +558,7 @@ export default function ClaimsDisputesPage() {
             <h3 className="text-lg font-bold text-slate-900">My Claims</h3>
             <button
               onClick={() => setShowClaimForm(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+              className="px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-sm font-medium text-slate-900 hover:shadow-md"
             >
               + Submit New Claim
             </button>
@@ -566,7 +566,7 @@ export default function ClaimsDisputesPage() {
           
           {claims.length === 0 ? (
             <div className="p-8 text-center">
-              <div className="text-6xl mb-4">📋</div>
+              <div className="text-6xl mb-4"></div>
               <h3 className="text-xl font-semibold text-slate-900 mb-2">No Claims</h3>
               <p className="text-slate-600">You haven&apos;t submitted any expense claims.</p>
             </div>
@@ -772,7 +772,7 @@ export default function ClaimsDisputesPage() {
               </div>
 
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
-                💡 Please attach receipts or supporting documents when prompted after submission.
+                Please attach receipts or supporting documents when prompted after submission.
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -800,7 +800,7 @@ export default function ClaimsDisputesPage() {
       {/* Help Section */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">💡</span>
+          <span className="text-2xl"></span>
           <div>
             <h4 className="font-semibold text-blue-900">Need Help?</h4>
             <p className="text-sm text-blue-700 mt-1">

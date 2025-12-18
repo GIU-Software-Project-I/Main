@@ -56,16 +56,16 @@ export default function PayrollSpecialistPage() {
 
       const runsData = (runsRes?.data || runsRes) as any;
       const runs = Array.isArray(runsData?.data) ? runsData.data : Array.isArray(runsData) ? runsData : [];
-      
+
       const signingData = (signingRes?.data || signingRes) as any;
       const signingBonuses = Array.isArray(signingData) ? signingData : [];
-      
+
       const terminationData = (terminationRes?.data || terminationRes) as any;
       const terminationBenefits = Array.isArray(terminationData) ? terminationData : [];
 
       // Normalize status for comparison (handle spaces/underscores)
       const normalizeStatus = (s: string) => (s || '').toLowerCase().replace(/\s+/g, '_');
-      
+
       const draftRuns = runs.filter((r: any) => normalizeStatus(r.status) === 'draft').length;
       // Pending runs: draft or unlocked (needing specialist attention)
       const pendingRuns = runs.filter((r: any) => {
@@ -93,16 +93,16 @@ export default function PayrollSpecialistPage() {
   };
 
   const formatCurrency = (amount: number) => `EGP ${amount.toLocaleString()}`;
-  
+
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', { 
-      month: 'short', day: 'numeric', year: 'numeric' 
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric'
     });
   };
 
   const formatPeriod = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', { 
-      month: 'long', year: 'numeric' 
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'long', year: 'numeric'
     });
   };
 
@@ -241,7 +241,7 @@ export default function PayrollSpecialistPage() {
             View all →
           </Link>
         </div>
-        
+
         {loading ? (
           <div className="text-center py-8 text-muted-foreground">Loading...</div>
         ) : recentRuns.length === 0 ? (

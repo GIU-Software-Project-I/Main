@@ -34,7 +34,7 @@ export default function ClaimsPage() {
     setError(null);
     try {
       const response = await claimsService.getAllClaims(filters);
-      
+
       if (response.data) setClaims(response.data);
     } catch (error) {
       console.error('Failed to load claims:', error);
@@ -46,10 +46,10 @@ export default function ClaimsPage() {
 
   const handleReviewClaim = async () => {
     if (!selectedClaim) return;
-    
+
     console.log('Selected claim status:', selectedClaim.status);
     console.log('Expected status:', ClaimStatus.UNDER_REVIEW);
-    
+
     if (selectedClaim.status !== ClaimStatus.UNDER_REVIEW) {
       setError(`Only claims with "Under Review" status can be acted upon. Current status: ${selectedClaim.status}`);
       return;
@@ -62,7 +62,7 @@ export default function ClaimsPage() {
     try {
       console.log('Reviewing claim:', selectedClaim._id, 'Action:', reviewAction);
       let response;
-      
+
       if (reviewAction === 'approve') {
         response = await claimsService.approveClaim(
           selectedClaim._id,
@@ -80,19 +80,19 @@ export default function ClaimsPage() {
 
       // Handle the response which comes wrapped
       const updatedClaim = response.data || response;
-      
+
       if (updatedClaim) {
         // Update the claim in the list with real-time status update
-        setClaims(prev => prev.map(c => 
+        setClaims(prev => prev.map(c =>
           c._id === selectedClaim._id ? updatedClaim : c
         ));
-        
+
         setSuccessMessage(`Claim ${reviewAction === 'approve' ? 'approved and escalated to payroll manager' : 'rejected'} successfully`);
         setShowReviewModal(false);
         setSelectedClaim(null);
         setReviewNotes('');
         setRejectionRemarks('');
-        
+
         // Reload claims to get fresh data
         await loadClaims();
       }
@@ -145,8 +145,8 @@ export default function ClaimsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Claims Review and Approval</h1>
-          <p className="text-slate-600 mt-1">Review and approve/reject employee claims</p>
+          <h1 className="text-2xl font-bold text-white">Claims Review and Approval</h1>
+          <p className="text-white mt-1">Review and approve/reject employee claims</p>
         </div>
       </div>
 
@@ -156,7 +156,7 @@ export default function ClaimsPage() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
             <select
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               value={filters.status || 'all'}
               onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value as any }))}
             >
@@ -169,7 +169,7 @@ export default function ClaimsPage() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Claim Type</label>
             <select
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               value={filters.claimType || 'all'}
               onChange={(e) => setFilters(prev => ({ ...prev, claimType: e.target.value as any }))}
             >
@@ -185,7 +185,7 @@ export default function ClaimsPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Date Range</label>
             <input
               type="date"
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               value={filters.startDate || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
             />
@@ -194,7 +194,7 @@ export default function ClaimsPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
             <input
               type="date"
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               value={filters.endDate || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
             />
@@ -254,7 +254,7 @@ export default function ClaimsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-slate-900">
-                        {typeof claim.employeeId === 'object' && claim.employeeId 
+                        {typeof claim.employeeId === 'object' && claim.employeeId
                           ? `${(claim.employeeId as any).firstName || ''} ${(claim.employeeId as any).lastName || ''}`.trim() || (claim.employeeId as any).employeeId || 'N/A'
                           : claim.employeeId || 'N/A'}
                       </div>
@@ -332,7 +332,7 @@ export default function ClaimsPage() {
                 <div>
                   <label className="text-sm font-medium text-slate-500">Employee ID</label>
                   <p className="text-slate-900">
-                    {typeof selectedClaim.employeeId === 'object' && selectedClaim.employeeId 
+                    {typeof selectedClaim.employeeId === 'object' && selectedClaim.employeeId
                       ? `${(selectedClaim.employeeId as any).firstName || ''} ${(selectedClaim.employeeId as any).lastName || ''}`.trim() || (selectedClaim.employeeId as any).employeeId || 'N/A'
                       : selectedClaim.employeeId || 'N/A'}
                   </p>
@@ -413,7 +413,7 @@ export default function ClaimsPage() {
                   {reviewAction === 'approve' ? 'Review Notes' : 'Rejection Remarks'}
                 </label>
                 <textarea
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                   rows={3}
                   placeholder={reviewAction === 'approve' ? "Add your review notes..." : "Provide rejection remarks..."}
                   value={reviewAction === 'approve' ? reviewNotes : rejectionRemarks}
@@ -430,9 +430,8 @@ export default function ClaimsPage() {
               </button>
               <button
                 onClick={handleReviewClaim}
-                className={`px-4 py-2 text-white rounded-lg hover:opacity-90 ${
-                  reviewAction === 'approve' ? 'bg-green-600' : 'bg-red-600'
-                }`}
+                className={`px-4 py-2 text-white rounded-lg hover:opacity-90 ${reviewAction === 'approve' ? 'bg-green-600' : 'bg-red-600'
+                  }`}
               >
                 {reviewAction === 'approve' ? 'Approve' : 'Reject'}
               </button>

@@ -8,6 +8,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 
 
+
 async function bootstrap() {
 
     const app = await NestFactory.create(AppModule);
@@ -21,9 +22,52 @@ async function bootstrap() {
     app.use(cookieParser());
 
     app.use(express.json({ limit: '50mb' }));
+
     app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+    // Serve static files from uploads directory using NestJS method
+    const uploadsPath = join(process.cwd(), 'uploads');
+    console.log('Static files serving from:', uploadsPath);
+    
+    // Check if uploads directory exists, if not, create it
+    const fs = require('fs');
+    if (!fs.existsSync(uploadsPath)) {
+      console.warn('Uploads directory does not exist. Creating it...');
+      fs.mkdirSync(uploadsPath, { recursive: true });
+      fs.mkdirSync(join(uploadsPath, 'leaves'), { recursive: true });
+    }
+    
+    // Use Express static middleware - register it early to handle /uploads/* requests
+    // This must be before NestJS routes to work properly
+    const expressApp = app.getHttpAdapter().getInstance();
+    expressApp.use('/uploads', express.static(uploadsPath, {
+      setHeaders: (res, path) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+      },
+      // If file doesn't exist, return 404 (don't fall through to NestJS)
+      fallthrough: false
+    }));
+
     app.useGlobalPipes(new ValidationPipe({ whitelist: false, transform: true }));
+
+    //
+    // app.enableCors({
+    //     // Explicitly allow common dev origins
+    //     origin: [
+    //         'http://localhost:3000',
+    //         'http://127.0.0.1:3000',
+    //         'http://localhost:4000',
+    //         'http://127.0.0.1:4000',
+    //         'http://192.168.1.20:4000',
+    //         'http://localhost:500',
+    //         'http://localhost:8000',
+    //         'http://192.168.21.1:8000',
+    //         'http://192.168.100.20:8000',
+    //     ],
+    //     credentials: true,
+    //     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    //     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'], });
 
     // app.enableCors({
     //     origin: (origin, callback) => {
@@ -60,7 +104,6 @@ async function bootstrap() {
         allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
         exposedHeaders: ['Set-Cookie'],
     });
-
     const config = new DocumentBuilder()
         .setTitle('HR System API')
         .setDescription('API documentation — limited to safe public models (no secrets).')

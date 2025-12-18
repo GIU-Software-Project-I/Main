@@ -18,18 +18,49 @@ import {
 import { Address } from './employee';
 
 // =====================================================
+// Hiring Stage (for pipeline tracking)
+// @deprecated - Backend uses fixed ApplicationStage enum, not dynamic stages
+// The actual hiring stages are: SCREENING -> DEPARTMENT_INTERVIEW -> HR_INTERVIEW -> OFFER
+// See: src/modules/recruitment/enums/application-stage.enum.ts
+// =====================================================
+
+export interface HiringStage {
+  id: string;
+  name: string;
+  order: number;
+  description?: string;
+  percentage?: number;
+}
+
+// =====================================================
+// Process Template (for hiring process workflows)
+// @deprecated - Backend does NOT have process templates API
+// The hiring workflow is fixed and defined in ApplicationStage enum
+// This interface is kept for backwards compatibility only
+// =====================================================
+
+export interface ProcessTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  stages: HiringStage[];
+  isDefault?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// =====================================================
 // Job Template (matches backend job-template.schema.ts)
 // =====================================================
 
 export interface JobTemplate {
   id: string;
+  _id?: string; // MongoDB ID
   title: string;
+  department: string;
   description?: string;
-  requirements?: string[];
-  qualifications?: string[];
-  responsibilities?: string[];
-  departmentId?: string;
-  positionId?: string;
+  qualifications: string[];
+  skills: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -40,14 +71,29 @@ export interface JobTemplate {
 
 export interface JobRequisition {
   id: string;
+  _id?: string; // MongoDB ID
   requisitionId: string;
   templateId?: string;
   openings: number;
+  numberOfOpenings?: number; // Alias for openings
   location?: string;
   hiringManagerId: string;
   publishStatus: 'draft' | 'published' | 'closed';
   postingDate?: string;
   expiryDate?: string;
+
+  // Template data (populated from templateId)
+  title?: string;
+  department?: string;
+  description?: string;
+  qualifications?: string[];
+  skills?: string[];
+  employmentType?: string;
+  salaryRange?: {
+    min: number;
+    max: number;
+    currency: string;
+  };
 
   // Denormalized
   templateTitle?: string;
@@ -72,6 +118,7 @@ export interface CreateJobRequisitionRequest {
 
 export interface Candidate {
   id: string;
+  _id?: string; // MongoDB ID
   firstName: string;
   middleName?: string;
   lastName: string;
@@ -98,6 +145,7 @@ export interface Candidate {
 
 export interface Application {
   id: string;
+  _id?: string; // MongoDB ID
   candidateId: string;
   requisitionId: string;
   assignedHr?: string;
@@ -193,12 +241,31 @@ export interface SubmitAssessmentRequest {
   comments?: string;
 }
 
+// REC-011: Simple feedback submission (matches backend SubmitFeedbackDto)
+export interface SubmitFeedbackRequest {
+  interviewId: string;
+  interviewerId: string;
+  score: number;
+  comments?: string;
+}
+
+// Feedback result returned from backend
+export interface FeedbackResult {
+  id: string;
+  interviewId: string;
+  interviewerId: string;
+  score: number;
+  comments?: string;
+  createdAt: string;
+}
+
 // =====================================================
 // Job Offer (matches backend offer.schema.ts)
 // =====================================================
 
 export interface JobOffer {
   id: string;
+  _id?: string; // MongoDB ID fallback
   applicationId: string;
   candidateId: string;
   hrEmployeeId?: string;
@@ -242,16 +309,24 @@ export interface OfferApprover {
   comment?: string;
 }
 
+export interface CreateJobOfferApprover {
+  employeeId: string;
+  role: string;
+}
+
 export interface CreateJobOfferRequest {
   applicationId: string;
+  candidateId: string;
+  hrEmployeeId?: string;
+  role: string;
   grossSalary: number;
   signingBonus?: number;
   benefits?: string[];
-  conditions?: string;
   insurances?: string;
+  conditions?: string;
   content?: string;
-  role?: string;
-  deadline?: string;
+  deadline: string;
+  approvers: CreateJobOfferApprover[];
 }
 
 export interface RespondToOfferRequest {
@@ -287,6 +362,8 @@ export interface RecruitmentDocument {
   ownerType: 'candidate' | 'employee';
   documentType: DocumentType;
   fileUrl: string;
+  filePath?: string; // File storage path
+  url?: string; // URL to access document
   fileName: string;
   uploadedAt: string;
   verifiedAt?: string;
@@ -359,5 +436,138 @@ export interface RecruitmentPipeline {
     name: string;
     appliedAt: string;
     jobTitle: string;
+  }[];
+}
+
+// =====================================================
+// Notification Types (BR-11, BR-36)
+// =====================================================
+
+export type RecruitmentNotificationType =
+  | 'application_stage_change'
+  | 'interview_scheduled'
+  | 'interview_reminder'
+  | 'offer_sent'
+  | 'offer_approved'
+  | 'offer_rejected'
+  | 'offer_accepted'
+  | 'offer_declined'
+  | 'rejection_sent'
+  | 'application_received'
+  | 'feedback_submitted';
+
+export interface RecruitmentNotification {
+  id: string;
+  type: RecruitmentNotificationType;
+  title: string;
+  message: string;
+  entityId?: string; // applicationId, offerId, interviewId, etc.
+  entityType?: 'application' | 'interview' | 'offer' | 'job';
+  actorId?: string;
+  actorName?: string;
+  actorRole?: string;
+  recipientId: string;
+  recipientRole: string;
+  read: boolean;
+  readAt?: string;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+// =====================================================
+// Audit Log Types (BR-37, BR-26)
+// =====================================================
+
+export type AuditEventType =
+  | 'status_change'
+  | 'stage_change'
+  | 'offer_created'
+  | 'offer_approved'
+  | 'offer_rejected'
+  | 'offer_sent'
+  | 'offer_signed'
+  | 'interview_scheduled'
+  | 'interview_completed'
+  | 'feedback_submitted'
+  | 'email_sent'
+  | 'document_uploaded'
+  | 'application_created'
+  | 'rejection_sent'
+  | 'consent_given';
+
+export type AuditActorType = 'hr_employee' | 'hr_manager' | 'recruiter' | 'candidate' | 'system';
+
+export interface AuditLog {
+  id: string;
+  entityId: string;
+  entityType: 'application' | 'interview' | 'offer' | 'job' | 'candidate';
+  eventType: AuditEventType;
+  title: string;
+  description: string;
+  actorId?: string;
+  actorName?: string;
+  actorType: AuditActorType;
+  previousValue?: string;
+  newValue?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+// =====================================================
+// Pipeline Event Types (Analytics)
+// =====================================================
+
+export interface PipelineEvent {
+  id: string;
+  applicationId: string;
+  candidateName: string;
+  jobTitle: string;
+  fromStage?: ApplicationStage | 'new';
+  toStage: ApplicationStage | 'hired' | 'rejected';
+  performedBy: string;
+  performedAt: string;
+  duration?: number; // days in previous stage
+}
+
+// =====================================================
+// Analytics Summary Types (BR-33)
+// =====================================================
+
+export interface AnalyticsSummary {
+  overview: {
+    totalOpenPositions: number;
+    totalApplications: number;
+    pendingInterviews: number;
+    offersExtended: number;
+    hiredThisMonth: number;
+    rejectedThisMonth: number;
+  };
+  timeToHire: {
+    average: number; // days
+    byDepartment: {
+      departmentId: string;
+      departmentName: string;
+      averageDays: number;
+    }[];
+    trend: {
+      month: string;
+      averageDays: number;
+    }[];
+  };
+  pipeline: {
+    stage: string;
+    count: number;
+    percentage: number;
+  }[];
+  sourceEffectiveness: {
+    source: string;
+    applications: number;
+    hires: number;
+    conversionRate: number;
+  }[];
+  conversionRates: {
+    fromStage: string;
+    toStage: string;
+    rate: number;
   }[];
 }

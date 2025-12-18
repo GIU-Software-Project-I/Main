@@ -475,14 +475,28 @@ async getLeaveCompensation(employeeId: string) {
         0;
 
       const taxDetails = taxes.map((tax: any) => {
-        const amount = tax.amount ?? 0;
-        const configuredRatePct = tax.rate ?? null;
+        // In this codebase, payslip.deductionsDetails.taxes stores embedded Tax Rule config
+        // (no calculated amount field). Compute amount from taxable base and configured rate.
+        const configuredRatePct: number | null =
+          typeof tax?.rate === 'number'
+            ? tax.rate
+            : (typeof (tax as any)?.configuredRatePct === 'number' ? (tax as any).configuredRatePct : null);
+
+        const computedAmount =
+          taxableBase > 0 && configuredRatePct != null
+            ? (taxableBase * configuredRatePct) / 100
+            : 0;
+
+        const amount =
+          typeof tax?.amount === 'number'
+            ? tax.amount
+            : Math.round(computedAmount * 100) / 100;
         const effectiveRatePct =
           taxableBase > 0 ? (amount / taxableBase) * 100 : null;
 
         // Find matching tax rule for law reference and bracket info
-        const matchingRule = activeTaxRules.find((rule: any) => 
-          rule.name === tax.name || rule._id.toString() === tax._id?.toString()
+        const matchingRule = activeTaxRules.find((rule: any) =>
+          rule.name === tax.name || rule._id?.toString?.() === tax._id?.toString?.()
         );
 
         // Determine tax bracket based on taxable base (BR 5)
@@ -512,7 +526,7 @@ async getLeaveCompensation(employeeId: string) {
           configuredRatePct,
           calculatedAmount: amount,
           taxableBase,
-          effectiveRatePct,
+          effectiveRatePct: taxableBase > 0 ? (amount / taxableBase) * 100 : null,
           // BR 5: Tax bracket identification
           taxBracket,
           // Law reference (from tax rule name/description)
@@ -555,13 +569,45 @@ async getLeaveCompensation(employeeId: string) {
     const payslips = await this.payslipModel.find(query)
       .sort({ createdAt: -1 })
       .exec();
-    
-    return payslips.map(payslip => ({
-      payslipId: payslip._id,
-      insuranceDeductions: payslip.deductionsDetails?.insurances || [],
-      totalInsurance: payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + ((i as any).amount || 0), 0) || 0,
-      // Additional insurance details
-    }));
+
+    // Base salary is needed to compute bracket-based contributions because the embedded schema
+    // (`insuranceBrackets`) does not store computed amounts at execution time.
+    const employeeBase = await this.getBaseSalary(employeeId).catch(() => null);
+    const baseSalary = (employeeBase as any)?.baseSalary || 0;
+
+    return payslips.map(payslip => {
+      const ins = (payslip.deductionsDetails?.insurances || []) as any[];
+      const mapped = ins.map((bracket: any) => {
+        const employeeRate = typeof bracket?.employeeRate === 'number' ? bracket.employeeRate : (typeof bracket?.rate === 'number' ? bracket.rate : 0);
+        const employerRate = typeof bracket?.employerRate === 'number' ? bracket.employerRate : 0;
+        const employeeContribution = baseSalary > 0 ? Math.round(((baseSalary * employeeRate) / 100) * 100) / 100 : 0;
+        const employerContribution = baseSalary > 0 ? Math.round(((baseSalary * employerRate) / 100) * 100) / 100 : 0;
+
+        return {
+          _id: bracket?._id,
+          name: bracket?.name || 'Insurance',
+          type: bracket?.type || bracket?.name || 'Insurance',
+          // what employee sees deducted from salary
+          amount: employeeContribution,
+          rate: employeeRate,
+          minSalary: bracket?.minSalary,
+          maxSalary: bracket?.maxSalary,
+          employeeContribution,
+          employerContribution,
+          approvedAt: bracket?.approvedAt,
+          status: bracket?.status,
+        };
+      });
+
+      const totalInsurance = mapped.reduce((sum: number, i: any) => sum + (i.amount || 0), 0);
+
+      return {
+        payslipId: payslip._id,
+        payslipPeriod: (payslip as any).payrollPeriod || null,
+        insuranceDeductions: mapped,
+        totalInsurance,
+      };
+    });
   }
 
   // REQ-PY-10: View misconduct/absenteeism deductions
@@ -576,12 +622,25 @@ async getLeaveCompensation(employeeId: string) {
       .sort({ createdAt: -1 })
       .exec();
     
-    return payslips.map(payslip => ({
-      payslipId: payslip._id,
-      misconductDeductions: (payslip.deductionsDetails?.penalties as any)?.amount || 0,
-      totalPenalties: (payslip.deductionsDetails?.penalties as any)?.amount || 0,
-      // These would integrate with Time Management module
-    }));
+    return payslips.map(payslip => {
+      const penaltiesObj = payslip.deductionsDetails?.penalties as any;
+      const penaltiesArr = Array.isArray(penaltiesObj?.penalties) ? penaltiesObj.penalties : [];
+      const totalPenalties = penaltiesArr.reduce((sum: number, p: any) => sum + (p?.amount || 0), 0);
+
+      return {
+        payslipId: payslip._id,
+        payslipPeriod: (payslip as any).payrollPeriod || null,
+        misconductDeductions: totalPenalties,
+        totalPenalties,
+        details: penaltiesArr.map((p: any) => ({
+          type: 'Penalty',
+          description: p?.reason || 'Penalty',
+          amount: p?.amount || 0,
+          date: (payslip as any)?.createdAt || new Date().toISOString(),
+          reason: p?.reason,
+        })),
+      };
+    });
   }
 
   // View salary deductions due to misconduct or unapproved absenteeism (missing days)
@@ -745,9 +804,21 @@ async getLeaveCompensation(employeeId: string) {
       ex => ex.status !== TimeExceptionStatus.RESOLVED && ex.status !== TimeExceptionStatus.APPROVED
     ).length;
 
+    // Build a flat list of deductions for UI consumption
+    const deductions = [
+      ...missingDays.map((m) => ({
+        date: m.date,
+        type: 'Absenteeism',
+        description: m.reason,
+        daysDeducted: 1,
+        amount: dailyRate,
+        reason: m.reason,
+      })),
+    ];
+
     return {
       employeeId: employee._id,
-      employeeName: `${employee.firstName} ${employee.lastName}`,
+      fullName: `${employee.firstName} ${employee.lastName}`,
       dateRange: {
         from: fromDate.toISOString().split('T')[0],
         to: toDate.toISOString().split('T')[0],
@@ -794,6 +865,10 @@ async getLeaveCompensation(employeeId: string) {
         estimatedTotalDeduction: missingDaysDeduction,
         unresolvedIssuesCount: unresolvedMisconductCount + unresolvedMissedPunchCount,
       },
+
+      // Flat deductions list (used by frontend payroll tracking pages)
+      deductions,
+      totalDeduction: missingDaysDeduction,
 
       // Payslip deductions (if payslipId provided)
       payslipDeductions,
@@ -911,14 +986,26 @@ async getLeaveCompensation(employeeId: string) {
         const leaveType = unpaidLeaveTypes.find(
           (lt: any) => lt._id.toString() === req.leaveTypeId?.toString()
         );
+
+        // Provide frontend-friendly keys (it expects startDate/endDate/days)
+        const from = req?.dates?.from ? new Date(req.dates.from) : null;
+        const to = req?.dates?.to ? new Date(req.dates.to) : null;
+
         return {
           leaveRequestId: req._id,
           leaveTypeId: req.leaveTypeId,
           leaveTypeName: leaveType?.name || 'Unknown',
           leaveTypeCode: leaveType?.code || 'UNKNOWN',
+          startDate: from ? from.toISOString() : null,
+          endDate: to ? to.toISOString() : null,
+          days: req.durationDays || 0,
+          hours: null,
+          status: req.status,
+          approvedBy: null,
+          approvedAt: null,
+          // Keep original fields too (non-breaking for any other consumers)
           durationDays: req.durationDays || 0,
           dates: req.dates,
-          status: req.status,
           justification: req.justification || null,
         };
       })
@@ -937,50 +1024,40 @@ async getLeaveCompensation(employeeId: string) {
 
     // Extract unpaid leave deductions from payslips
     const payslipDeductions = payslips.map((payslip) => {
-      // Check penalties for unpaid leave deductions
-      const penalties = payslip.deductionsDetails?.penalties as any;
-      let unpaidLeaveDeductionAmount = 0;
-      let unpaidLeaveDeductionDetails: any = null;
+      // In this codebase, payslip.deductionsDetails.penalties is `employeePenalties`:
+      // { employeeId, penalties: [{reason, amount}] }
+      const penaltiesObj = payslip.deductionsDetails?.penalties as any;
+      const penaltiesArr = Array.isArray(penaltiesObj?.penalties) ? penaltiesObj.penalties : [];
 
-      if (penalties) {
-        // If penalties is an object with amount
-        if (typeof penalties.amount === 'number') {
-          unpaidLeaveDeductionAmount = penalties.amount;
-          unpaidLeaveDeductionDetails = {
-            reason: penalties.reason || 'Unpaid leave deduction',
-            description: penalties.description || null,
-          };
-        }
-        // If penalties is an array, filter for unpaid leave related penalties
-        if (Array.isArray(penalties)) {
-          const unpaidPenalties = penalties.filter(
-            (p: any) =>
-              p.type === 'unpaid_leave' ||
-              p.reason?.toLowerCase().includes('unpaid') ||
-              p.reason?.toLowerCase().includes('leave')
-          );
-          unpaidLeaveDeductionAmount = unpaidPenalties.reduce(
-            (sum: number, p: any) => sum + (p.amount || 0),
-            0
-          );
-          unpaidLeaveDeductionDetails = unpaidPenalties.length > 0 ? unpaidPenalties : null;
-        }
-      }
+      const unpaidPenalties = penaltiesArr.filter((p: any) => {
+        const reason = String(p?.reason || '').toLowerCase();
+        return reason.includes('unpaid') || reason.includes('leave');
+      });
+
+      const unpaidLeaveDeductionAmount = unpaidPenalties.reduce(
+        (sum: number, p: any) => sum + (p?.amount || 0),
+        0,
+      );
 
       return {
         payslipId: payslip._id,
-        payrollRunId: payslip.payrollRunId,
-        paymentStatus: payslip.paymentStatus,
-        unpaidLeaveDeduction: unpaidLeaveDeductionAmount,
-        deductionDetails: unpaidLeaveDeductionDetails,
-        createdAt: (payslip as any)?.createdAt,
+        payslipPeriod: (payslip as any).payrollPeriod || null,
+        leaveTypeName: 'Unpaid Leave',
+        daysDeducted: dailyRate > 0 ? Math.round((unpaidLeaveDeductionAmount / dailyRate) * 100) / 100 : 0,
+        dailyRate,
+        deductionAmount: unpaidLeaveDeductionAmount,
+        period: {
+          from: (payslip as any)?.createdAt ? new Date((payslip as any).createdAt).toISOString().split('T')[0] : '',
+          to: (payslip as any)?.createdAt ? new Date((payslip as any).createdAt).toISOString().split('T')[0] : '',
+        },
+        deductionDetails: unpaidPenalties.length ? unpaidPenalties : null,
       };
     });
 
     // Filter out payslips with no unpaid leave deductions if specific payslipId not requested
     const relevantPayslipDeductions = payslipId
       ? payslipDeductions
-      : payslipDeductions.filter((p) => p.unpaidLeaveDeduction > 0);
+      : payslipDeductions.filter((p) => (p as any).deductionAmount > 0);
 
     return {
       employeeId: employee._id,
@@ -997,11 +1074,13 @@ async getLeaveCompensation(employeeId: string) {
       totalUnpaidLeaveDays,
       // Calculated deduction amount
       calculatedDeduction: Math.round(dailyRate * totalUnpaidLeaveDays * 100) / 100,
-      // Historical payslip deductions
+      // Compatibility field used by some frontend pages
+      totalDeductionAmount: Math.round(dailyRate * totalUnpaidLeaveDays * 100) / 100,
+      // Historical payslip deductions (shape matches frontend)
       payslipDeductions: relevantPayslipDeductions,
       totalDeductedFromPayslips: payslipDeductions.reduce(
-        (sum, p) => sum + p.unpaidLeaveDeduction,
-        0
+        (sum: number, p: any) => sum + (p.deductionAmount || 0),
+        0,
       ),
       lastUpdated: new Date().toISOString(),
       note: totalUnpaidLeaveDays === 0 
@@ -1370,7 +1449,13 @@ async getLeaveCompensation(employeeId: string) {
     
     if (action === 'confirm') {
       dispute.status = DisputeStatus.APPROVED;
-      dispute.resolutionComment = reason || `Confirmed by Payroll Manager ${managerId}`;
+      // Preserve original specialist comment - store it before overwriting
+      const originalSpecialistComment = dispute.resolutionComment || '';
+      // Append manager confirmation, preserving original comment
+      const managerNote = reason || `Confirmed by Payroll Manager ${managerId}`;
+      dispute.resolutionComment = originalSpecialistComment ? 
+        `${originalSpecialistComment} | Manager: ${managerNote}` : 
+        managerNote;
       await dispute.save();
       
       // Find finance users to notify (REQ-PY-41)
@@ -1411,6 +1496,11 @@ async getLeaveCompensation(employeeId: string) {
 
     console.log(`[getApprovedDisputes] Found ${disputes.length} disputes with APPROVED status`);
 
+    // Fetch any refunds related to these disputes so we can compute refund status without modifying the dispute schema
+    const disputeIds = disputes.map(d => d._id).filter(Boolean);
+    const relatedRefunds = disputeIds.length ? await this.refundsModel.find({ disputeId: { $in: disputeIds } }).lean().exec() : [];
+    const refundByDisputeId = new Map<string, any>(relatedRefunds.map((r: any) => [String(r.disputeId), r]));
+
     // Transform to expected format - NO POPULATION, return pure strings only
     const result = disputes.map((dispute: any) => {
       // Helper to safely convert to string - NEVER returns objects
@@ -1422,6 +1512,7 @@ async getLeaveCompensation(employeeId: string) {
         }
         return String(val);
       };
+      const refund = refundByDisputeId.get(String(dispute._id));
       
       return {
         id: toStr(dispute._id),
@@ -1436,8 +1527,8 @@ async getLeaveCompensation(employeeId: string) {
         approvedAt: dispute.updatedAt || dispute.createdAt,
         approvedBy: toStr(dispute.approvedBy || 'System'),
         priority: toStr(dispute.priority || 'medium'),
-        refundStatus: toStr(dispute.refundStatus || 'pending'),
-        refundId: dispute.refundId,
+        refundStatus: toStr(refund ? refund.status : 'pending'),
+        refundId: refund ? refund._id : null,
         needsRefund: Boolean(dispute.needsRefund)
       };
     });
@@ -1484,7 +1575,13 @@ async getLeaveCompensation(employeeId: string) {
     
     if (action === 'confirm') {
       claim.status = ClaimStatus.APPROVED;
-      claim.resolutionComment = reason || `Confirmed by Payroll Manager ${managerId}`;
+      // Preserve original specialist comment - store it before overwriting
+      const originalSpecialistComment = claim.resolutionComment || '';
+      // Append manager confirmation, preserving original comment
+      const managerNote = reason || `Confirmed by Payroll Manager ${managerId}`;
+      claim.resolutionComment = originalSpecialistComment ? 
+        `${originalSpecialistComment} | Manager: ${managerNote}` : 
+        managerNote;
       await claim.save();
       
       // Find finance users to notify (REQ-PY-44)
@@ -1536,6 +1633,11 @@ async getLeaveCompensation(employeeId: string) {
       ).exec();
     }
     
+    // Fetch any refunds related to these claims so we can compute refund status without modifying the claim schema
+    const claimIds = claims.map(c => c._id).filter(Boolean);
+    const relatedClaimRefunds = claimIds.length ? await this.refundsModel.find({ claimId: { $in: claimIds } }).lean().exec() : [];
+    const refundByClaimId = new Map<string, any>(relatedClaimRefunds.map((r: any) => [String(r.claimId), r]));
+
     // Transform to expected format - NO POPULATION, return pure strings only
     const result = claims.map((claim: any) => {
       // Helper to safely convert to string - NEVER returns objects
@@ -1547,6 +1649,7 @@ async getLeaveCompensation(employeeId: string) {
         }
         return String(val);
       };
+      const refund = refundByClaimId.get(String(claim._id));
       
       return {
         id: toStr(claim._id),
@@ -1562,8 +1665,8 @@ async getLeaveCompensation(employeeId: string) {
         approvedAt: claim.updatedAt || claim.createdAt,
         approvedBy: toStr(claim.approvedBy || 'System'),
         priority: toStr(claim.priority || 'medium'),
-        refundStatus: toStr(claim.refundStatus || 'pending'),
-        refundId: claim.refundId,
+        refundStatus: toStr(refund ? refund.status : 'pending'),
+        refundId: refund ? refund._id : null,
         needsRefund: Boolean(claim.needsRefund)
       };
     });
@@ -1610,11 +1713,8 @@ async getLeaveCompensation(employeeId: string) {
       status: RefundStatus.PENDING
     });
     
-    // Update dispute refund status
-    dispute.refundStatus = 'processed';
-    dispute.refundId = refund._id;
-    await dispute.save();
-    
+    // No direct modifications to dispute schema — refunds are tracked in the `refunds` collection.
+    // The refund document already captures the association (disputeId), so we just save the refund.
     return refund.save();
   }
 
@@ -1654,11 +1754,8 @@ async getLeaveCompensation(employeeId: string) {
       status: RefundStatus.PENDING
     });
     
-    // Update claim refund status
-    claim.refundStatus = 'processed';
-    claim.refundId = refund._id;
-    await claim.save();
-    
+    // No direct modifications to claim schema — refunds are tracked in the `refunds` collection.
+    // The refund document already captures the association (claimId), so we just save the refund.
     return refund.save();
   }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import {
   timeManagementService,
   AttendanceRecord,
@@ -11,6 +11,9 @@ import {
 } from '@/app/services/time-management';
 import { useAuth } from '@/app/context/AuthContext';
 
+// Dynamically import the Lateness page component for the repeated lateness tab
+const RepeatedLatenessPage = lazy(() => import('../../../hr-manager/time-management/Lateness/page').then(mod => ({ default: mod.default })));
+
 // Issue interface for review results
 interface AttendanceIssue {
   type: 'MISSING_PUNCH' | 'INVALID_SEQUENCE' | 'SHORT_TIME' | 'NO_PUNCH_OUT' | 'NO_PUNCH_IN' | 'HOLIDAY_PUNCH';
@@ -18,6 +21,7 @@ interface AttendanceIssue {
   description: string;
   suggestion: string;
 }
+
 
 interface ReviewResult {
   record: AttendanceRecord;
@@ -73,7 +77,52 @@ export default function AttendanceRecordsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   // Active tab
-  const [activeTab, setActiveTab] = useState<'records' | 'corrections' | 'history'>('records');
+  const [activeTab, setActiveTab] = useState<'records' | 'corrections' | 'history' | 'repeated-lateness'>('records');
+
+
+  // Handle starting review (mark as IN_REVIEW)
+  const handleStartReview = async (correction: AttendanceCorrectionRequest) => {
+    console.log('[handleStartReview] Starting review for correction:', correction._id, 'Status:', correction.status);
+    try {
+      setError(null);
+      setSubmitting(true);
+      console.log('[handleStartReview] submitting state set to true');
+
+      // Only call startReview if status is SUBMITTED
+      if (correction.status === CorrectionRequestStatus.SUBMITTED) {
+        console.log('[handleStartReview] Calling startReview API...');
+        const response = await timeManagementService.startReview(correction._id);
+        console.log('[handleStartReview] API Response:', response);
+
+        if (response?.error) {
+          throw new Error(response.error);
+        }
+
+        // Refresh corrections to show updated status
+        console.log('[handleStartReview] Refreshing corrections...');
+        await fetchCorrections();
+        console.log('[handleStartReview] Corrections refreshed');
+
+        setSuccess('Correction marked as under review');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        console.log('[handleStartReview] Correction already in review, skipping startReview call');
+      }
+
+      // Set selected correction and show modal
+      setSelectedCorrection(correction);
+      setShowReviewModal(true);
+
+      console.log('[handleStartReview] Review modal opened');
+    } catch (err: any) {
+      console.error('[handleStartReview] Error:', err);
+      const errMsg = err?.message || 'Failed to start review';
+      setError(`Failed to start review: ${errMsg}`);
+    } finally {
+      setSubmitting(false);
+      console.log('[handleStartReview] submitting state set to false');
+    }
+  };
 
   // Fetch attendance records with review
   const fetchAttendanceRecords = useCallback(async () => {
@@ -411,6 +460,16 @@ export default function AttendanceRecordsPage() {
           >
             Correction History
           </button>
+          <button
+            onClick={() => setActiveTab('repeated-lateness')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'repeated-lateness'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Repeated Lateness
+          </button>
         </div>
 
         {/* ATTENDANCE RECORDS TAB */}
@@ -654,13 +713,11 @@ export default function AttendanceRecordsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => {
-                            setSelectedCorrection(correction);
-                            setShowReviewModal(true);
-                          }}
-                          className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                          onClick={() => handleStartReview(correction)}
+                          disabled={submitting}
+                          className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          Review
+                          {submitting ? 'Starting Review...' : 'Review'}
                         </button>
                       </div>
                     </div>
@@ -722,6 +779,20 @@ export default function AttendanceRecordsPage() {
               </div>
             )}
           </div>
+        )}
+
+        {/* REPEATED LATENESS TAB */}
+        {activeTab === 'repeated-lateness' && (
+          <Suspense fallback={
+            <div className="bg-card rounded-xl border border-border p-6">
+              <div className="animate-pulse space-y-4">
+                <div className="h-8 bg-muted rounded w-1/3"></div>
+                <div className="h-64 bg-muted rounded"></div>
+              </div>
+            </div>
+          }>
+            <RepeatedLatenessPage />
+          </Suspense>
         )}
 
         {/* CORRECTION MODAL */}
@@ -908,6 +979,7 @@ export default function AttendanceRecordsPage() {
                     setShowReviewModal(false);
                     setSelectedCorrection(null);
                     setReviewNote('');
+                    setSubmitting(false);
                   }}
                   className="text-muted-foreground hover:text-foreground"
                 >
@@ -970,6 +1042,7 @@ export default function AttendanceRecordsPage() {
                       setShowReviewModal(false);
                       setSelectedCorrection(null);
                       setReviewNote('');
+                      setSubmitting(false);
                     }}
                     className="px-4 py-2 border border-input text-foreground font-medium rounded-lg hover:bg-accent transition-colors"
                   >

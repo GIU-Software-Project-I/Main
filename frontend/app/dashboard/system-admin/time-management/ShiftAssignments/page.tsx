@@ -9,6 +9,7 @@ import {
   AssignShiftDto,
 } from '@/app/services/time-management';
 import { useAuth } from '@/app/context/AuthContext';
+import { notificationsService } from '@/app/services/notifications';
 
 export default function ShiftAssignmentsPage() {
   const { user } = useAuth();
@@ -91,42 +92,49 @@ export default function ShiftAssignmentsPage() {
     }
   };
 
-  // Check for assignments nearing expiry (within 7 days)
-  const checkExpiringAssignments = (assignmentsToCheck: ShiftAssignment[]) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  // Fetch shift expiry notifications from backend (ShiftExpiryScheduler creates these daily)
+  const fetchExpiringNotifications = async () => {
+    try {
+      // Fetch SHIFT_EXPIRY notifications that were created by the backend scheduler
+      const response = await notificationsService.getAllNotifications('SHIFT_EXPIRY');
 
-    const expiryThresholdDays = 7; // Notify when 7 days or less remain
-
-    const expiring = assignmentsToCheck.filter((assignment) => {
-      // Only check approved assignments with end dates
-      if (assignment.status !== ShiftAssignmentStatus.APPROVED || !assignment.endDate) {
-        return false;
+      if (response.error || !response.data) {
+        console.warn('[ShiftAssignments] Failed to fetch expiring notifications:', response.error);
+        setExpiringAssignments([]);
+        return;
       }
 
-      const endDate = new Date(assignment.endDate);
-      endDate.setHours(0, 0, 0, 0);
+      // Extract assignment IDs from notification messages and match with assignments
+      const expiringAssignmentIds = response.data
+        .map((notification) => {
+          // Message format: "Shift assignment <ID> for employee <empId> expires on <date>..."
+          const match = notification.message.match(/Shift assignment ([a-f\d]{24})/);
+          return match?.[1];
+        })
+        .filter(Boolean);
 
-      // Calculate days until expiry
-      const timeDiff = endDate.getTime() - today.getTime();
-      const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      // Filter assignments to show only those with expiry notifications
+      const expiring = assignments.filter((a) => expiringAssignmentIds.includes(a._id));
 
-      // Return true if assignment expires within threshold and hasn't expired yet
-      return daysDiff <= expiryThresholdDays && daysDiff >= 0;
-    });
-
-    setExpiringAssignments(expiring);
+      setExpiringAssignments(expiring);
+      console.log('[ShiftAssignments] Fetched expiring assignments from backend:', expiring.length);
+    } catch (err) {
+      console.error('[ShiftAssignments] Error fetching expiring notifications:', err);
+    }
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Check for expiring assignments whenever assignments data changes
+  // Fetch expiring shift notifications from backend scheduler
   useEffect(() => {
-    if (assignments.length > 0) {
-      checkExpiringAssignments(assignments);
-    }
+    fetchExpiringNotifications();
+
+    // Re-check every 60 minutes for new notifications from the scheduler
+    const intervalId = setInterval(fetchExpiringNotifications, 60 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
   }, [assignments]);
 
   // Handle form submission

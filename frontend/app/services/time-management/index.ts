@@ -152,6 +152,32 @@ export interface UpdateShortTimeRuleDto {
     approved?: boolean;
 }
 
+// Lateness Rule interfaces
+export interface LatenessRule {
+    _id: string;
+    name: string;
+    description?: string;
+    gracePeriodMinutes: number;
+    deductionForEachMinute: number;
+    active: boolean;
+}
+
+export interface CreateLatenessRuleDto {
+    name: string;
+    description?: string;
+    gracePeriodMinutes?: number;
+    deductionForEachMinute?: number;
+    active?: boolean;
+}
+
+export interface UpdateLatenessRuleDto {
+    name?: string;
+    description?: string;
+    gracePeriodMinutes?: number;
+    deductionForEachMinute?: number;
+    active?: boolean;
+}
+
 // Attendance Record interfaces
 export enum PunchType {
     IN = 'IN',
@@ -357,26 +383,6 @@ export interface BreakPermission {
     updatedAt?: string;
 }
 
-export interface BreakPermissionDto {
-    employeeId: string;
-    attendanceRecordId: string;
-    startTime: Date | string;
-    endTime: Date | string;
-    reason: string;
-}
-
-export interface ApproveBreakPermissionDto {
-    approvedBy: string;
-}
-
-export interface RejectBreakPermissionDto {
-    rejectionReason: string;
-}
-
-export interface PermissionLimitDto {
-    maxMinutes: number;
-    setBy?: string;
-}
 
 export const timeManagementService = {
     // ============================================================
@@ -416,6 +422,11 @@ export const timeManagementService = {
     // Get pending corrections (manager) - GET /attendance-correction/pending
     getPendingCorrections: async () => {
         return apiService.get('/attendance-correction/pending');
+    },
+
+    // Start reviewing correction (mark as IN_REVIEW) - POST /attendance-correction/start-review
+    startReview: async (correctionRequestId: string) => {
+        return apiService.post('/attendance-correction/start-review', { correctionRequestId });
     },
 
     // Review correction (approve/reject) - PUT /attendance-correction/review
@@ -545,6 +556,30 @@ export const timeManagementService = {
     },
 
     // ============================================================
+    // LATENESS RULE OPERATIONS
+    // ============================================================
+
+    // Create lateness rule - POST /time-management/lateness-rules
+    createLatenessRule: async (data: CreateLatenessRuleDto) => {
+        return apiService.post<LatenessRule>('/time-management/lateness-rules', data);
+    },
+
+    // Get all lateness rules - GET /time-management/lateness-rules
+    getLatenessRules: async () => {
+        return apiService.get<LatenessRule[]>('/time-management/lateness-rules');
+    },
+
+    // Update lateness rule - PATCH /time-management/lateness-rules/:id
+    updateLatenessRule: async (id: string, data: UpdateLatenessRuleDto) => {
+        return apiService.patch<LatenessRule>(`/time-management/lateness-rules/${id}`, data);
+    },
+
+    // Delete lateness rule - DELETE /time-management/lateness-rules/:id
+    deleteLatenessRule: async (id: string) => {
+        return apiService.delete<LatenessRule>(`/time-management/lateness-rules/${id}`);
+    },
+
+    // ============================================================
     // ATTENDANCE RECORD OPERATIONS
     // ============================================================
 
@@ -625,6 +660,49 @@ export const timeManagementService = {
     // Update assignment status - PATCH /time-management/assignments/:id/status
     updateAssignmentStatus: async (id: string, data: UpdateShiftAssignmentStatusDto) => {
         return apiService.patch<ShiftAssignment>(`/time-management/assignments/${id}/status`, data);
+    },
+
+    // Get shift expiry notifications - GET /notifications/user/:userId (for shift assignments)
+    getShiftExpiryNotifications: async (userId: string) => {
+        return apiService.get<any[]>(`/notifications/user/${userId}`);
+    },
+
+    // Get expiring assignments for employee (utility function - calculates locally)
+    getExpiringAssignmentsForEmployee: async (employeeId: string, thresholdDays: number = 7) => {
+        try {
+            const assignments = await timeManagementService.getAssignmentsForEmployee(employeeId);
+            const assignmentList = Array.isArray(assignments.data) ? assignments.data : [];
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const expiring = assignmentList.filter((assignment: ShiftAssignment) => {
+                // Only check approved assignments with end dates
+                if (assignment.status !== ShiftAssignmentStatus.APPROVED || !assignment.endDate) {
+                    return false;
+                }
+
+                const endDate = new Date(assignment.endDate);
+                endDate.setHours(0, 0, 0, 0);
+
+                // Calculate days until expiry
+                const timeDiff = endDate.getTime() - today.getTime();
+                const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+                // Return true if assignment expires within threshold and hasn't expired yet
+                return daysDiff <= thresholdDays && daysDiff >= 0;
+            });
+
+            return {
+                data: expiring,
+                error: null,
+            };
+        } catch (err) {
+            return {
+                data: [],
+                error: err instanceof Error ? err.message : 'Failed to fetch expiring assignments',
+            };
+        }
     },
 
     // ============================================================
@@ -720,7 +798,105 @@ export const timeManagementService = {
     deleteHoliday: async (id: string) => {
         return apiService.delete<{ ok: boolean }>(`/holidays/${id}`);
     },
+
+
+
+    // Get break permission max limit - GET /break-permissions/limit
+    getBreakPermissionLimit: async () => {
+        return apiService.get('/break-permissions/limit');
+    },
+
+    // ============================================================
+    // TIME EXCEPTION OPERATIONS
+    // ============================================================
+
+    // Create time exception - POST /time-exceptions
+    createTimeException: async (data: {
+        employeeId: string;
+        attendanceRecordId: string;
+        type: string; // MISSED_PUNCH, LATE, EARLY_LEAVE, SHORT_TIME, OVERTIME_REQUEST, MANUAL_ADJUSTMENT
+        reason: string;
+        assignedTo?: string;
+    }) => {
+        return apiService.post('/time-exceptions', data);
+    },
+
+    // Get all time exceptions - GET /time-exceptions
+    getAllTimeExceptions: async () => {
+        return apiService.get('/time-exceptions');
+    },
+
+    // Get single time exception - GET /time-exceptions/:id
+    getTimeException: async (id: string) => {
+        return apiService.get(`/time-exceptions/${id}`);
+    },
+
+    // Update time exception status - PUT /time-exceptions/status
+    updateTimeExceptionStatus: async (data: {
+        exceptionId: string;
+        status: string; // OPEN, PENDING, APPROVED, REJECTED, ESCALATED, RESOLVED
+        comment?: string;
+    }) => {
+        return apiService.put('/time-exceptions/status', data);
+    },
+
+    // Assign time exception - PUT /time-exceptions/assign
+    assignTimeException: async (data: {
+        exceptionId: string;
+        assigneeId: string;
+    }) => {
+        return apiService.put('/time-exceptions/assign', data);
+    },
+
+    // List time exceptions with filters - GET /time-exceptions?status=X&type=Y
+    listTimeExceptions: async (filters?: {
+        status?: string;
+        type?: string;
+        employeeId?: string;
+        assignedTo?: string;
+    }) => {
+        let query = '';
+        if (filters) {
+            const params = new URLSearchParams();
+            if (filters.status) params.set('status', filters.status);
+            if (filters.type) params.set('type', filters.type);
+            if (filters.employeeId) params.set('employeeId', filters.employeeId);
+            if (filters.assignedTo) params.set('assignedTo', filters.assignedTo);
+            query = `?${params.toString()}`;
+        }
+        return apiService.get(`/time-exceptions${query}`);
+    },
+
+    // Export time exceptions to CSV - GET /time-exceptions/export/csv
+    exportTimeExceptionsCSV: async () => {
+        return apiService.get('/time-exceptions/export/csv');
+    },
+
+    // Export time exceptions to JSON - GET /time-exceptions/export/json
+    exportTimeExceptionsJSON: async () => {
+        return apiService.get('/time-exceptions/export/json');
+    },
+
+    // ============================================================
+    // REPEATED LATENESS TRACKING (Disciplinary)
+    // ============================================================
+
+    // Get repeated lateness count for an employee - GET /time-management/repeated-lateness/:employeeId/count
+    getRepeatedLatenessCount: async (employeeId: string) => {
+        return apiService.get(`/time-management/repeated-lateness/${employeeId}/count`);
+    },
+
+    // Evaluate and escalate repeated lateness - POST /time-management/repeated-lateness/:employeeId/evaluate
+    evaluateRepeatedLateness: async (
+        employeeId: string,
+        options?: {
+            windowDays?: number;
+            threshold?: number;
+            notifyHrId?: string;
+        }
+    ) => {
+        return apiService.post(`/time-management/repeated-lateness/${employeeId}/evaluate`, options || {});
+    },
 };
 
 export default timeManagementService;
-

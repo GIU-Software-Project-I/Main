@@ -253,7 +253,7 @@ export class OrganizationStructureController {
     @Post('change-requests/:id/approvals')
     @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
     submitApprovalDecision(@Param('id') id: string, @Body() dto: SubmitApprovalDecisionDto, @CurrentUser() user: JwtPayload) {
-        return this.orgService.submitApprovalDecision(id, { ...dto, approverEmployeeId: user.sub });
+        return this.orgService.submitApprovalDecision(id, { ...dto, approverEmployeeId: user.sub }, user.sub);
     }
 
     @Get('org-chart')

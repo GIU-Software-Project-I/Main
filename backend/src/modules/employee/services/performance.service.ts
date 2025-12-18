@@ -1045,6 +1045,59 @@ export class PerformanceService {
             .exec();
     }
 
+    async getEmployeeCurrentAppraisal(employeeProfileId: string): Promise<AppraisalRecord | null> {
+        this.validateObjectId(employeeProfileId, 'employeeProfileId');
+
+        // Find the most recent in-progress or draft appraisal
+        return this.recordModel.findOne({
+            employeeProfileId: new Types.ObjectId(employeeProfileId),
+            status: { $in: [AppraisalRecordStatus.DRAFT, AppraisalRecordStatus.MANAGER_SUBMITTED] },
+        })
+            .populate('cycleId', 'name cycleType startDate endDate')
+            .populate('templateId', 'name templateType')
+            .populate('managerProfileId', 'firstName lastName fullName')
+            .populate('assignmentId')
+            .sort({ createdAt: -1 })
+            .lean()
+            .exec();
+    }
+
+    async getEmployeeGoals(employeeProfileId: string): Promise<any[]> {
+        this.validateObjectId(employeeProfileId, 'employeeProfileId');
+
+        // Get goals from current active appraisal assignments
+        const assignments = await this.assignmentModel.find({
+            employeeProfileId: new Types.ObjectId(employeeProfileId),
+            status: { $in: [AppraisalAssignmentStatus.IN_PROGRESS, AppraisalAssignmentStatus.NOT_STARTED] },
+        })
+            .populate('cycleId', 'name cycleType startDate endDate')
+            .populate('templateId', 'name sections')
+            .lean()
+            .exec();
+
+        // Extract goals from templates if they have goal sections
+        const goals: any[] = [];
+        for (const assignment of assignments) {
+            const template = assignment.templateId as any;
+            if (template?.sections) {
+                for (const section of template.sections) {
+                    if (section.name?.toLowerCase().includes('goal') ||
+                        section.name?.toLowerCase().includes('objective')) {
+                        goals.push({
+                            cycleId: assignment.cycleId,
+                            assignmentId: assignment._id,
+                            sectionName: section.name,
+                            criteria: section.criteria || [],
+                            dueDate: assignment.dueDate,
+                        });
+                    }
+                }
+            }
+        }
+
+        return goals;
+    }
+
     async fileDispute(dto: FileAppraisalDisputeDto): Promise<AppraisalDispute> {
         this.validateObjectId(dto.appraisalId, 'appraisalId');
         this.validateObjectId(dto.assignmentId, 'assignmentId');

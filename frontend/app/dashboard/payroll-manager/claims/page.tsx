@@ -9,7 +9,7 @@ export default function PayrollManagerClaimsPage() {
   const { user } = useAuth();
   const allowedRoles = [SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN];
   const hasAccess = !!user && allowedRoles.includes(user.role);
-  const [claims, setClaims] = useState<ClaimConfirmation[]>([]);
+  const [allClaims, setAllClaims] = useState<ClaimConfirmation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedClaim, setSelectedClaim] = useState<ClaimConfirmation | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -17,6 +17,7 @@ export default function PayrollManagerClaimsPage() {
   const [confirmationNotes, setConfirmationNotes] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'rejected'>('all');
 
   useEffect(() => {
     if (!hasAccess) return;
@@ -27,23 +28,20 @@ export default function PayrollManagerClaimsPage() {
     setLoading(true);
     setError(null);
     try {
-      // Only fetch claims with 'pending payroll Manager approval' status
-      const response = await payrollManagerService.getPendingClaimConfirmations();
+      // Fetch all claims: pending, approved, and rejected
+      const response = await payrollManagerService.getAllClaims().catch(() => ({ data: [], error: null }));
+      
+      const allClaimsData = (response.data && Array.isArray(response.data)) ? response.data : [];
+      
+      setAllClaims(allClaimsData);
       
       if (response.error) {
-        console.error('Error fetching pending claims:', response.error);
-        setError('Failed to load claims');
-      }
-      
-      if (response.data && Array.isArray(response.data)) {
-        setClaims(response.data);
-      } else {
-        setClaims([]);
+        console.error('Error fetching claims:', response.error);
       }
     } catch (error) {
       console.error('Failed to load claim confirmations:', error);
       setError('Failed to load claims');
-      setClaims([]);
+      setAllClaims([]);
     } finally {
       setLoading(false);
     }
@@ -101,6 +99,24 @@ export default function PayrollManagerClaimsPage() {
     }
   };
 
+  const filterClaims = () => {
+    if (statusFilter === 'all') {
+      return allClaims.filter(c => c.status?.toLowerCase().includes('pending'));
+    }
+    if (statusFilter === 'approved') {
+      return allClaims.filter(c => {
+        const status = c.status?.toLowerCase() || '';
+        return status === 'approved' || status === 'confirmed';
+      });
+    }
+    if (statusFilter === 'rejected') {
+      return allClaims.filter(c => c.status?.toLowerCase() === 'rejected');
+    }
+    return [];
+  };
+
+  const claims = filterClaims();
+
   if (!hasAccess) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -130,11 +146,57 @@ export default function PayrollManagerClaimsPage() {
         </div>
       )}
 
+      {/* Filter Buttons */}
+      <div className="flex gap-3 mb-4">
+        <button
+          onClick={() => setStatusFilter('all')}
+          className={`px-6 py-3 rounded-lg font-semibold text-sm transition-colors shadow-sm ${
+            statusFilter === 'all'
+              ? 'bg-orange-600 text-white hover:bg-orange-700'
+              : 'bg-white border-2 border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-orange-400'
+          }`}
+        >
+          All Claims/Disputes
+        </button>
+        <button
+          onClick={() => setStatusFilter('approved')}
+          className={`px-6 py-3 rounded-lg font-semibold text-sm transition-colors shadow-sm ${
+            statusFilter === 'approved'
+              ? 'bg-green-600 text-white hover:bg-green-700'
+              : 'bg-white border-2 border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-green-400'
+          }`}
+        >
+          Approved
+        </button>
+        <button
+          onClick={() => setStatusFilter('rejected')}
+          className={`px-6 py-3 rounded-lg font-semibold text-sm transition-colors shadow-sm ${
+            statusFilter === 'rejected'
+              ? 'bg-red-600 text-white hover:bg-red-700'
+              : 'bg-white border-2 border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-red-400'
+          }`}
+        >
+          Rejected
+        </button>
+      </div>
+
       {/* Claims List */}
       <div className="bg-white rounded-lg border border-slate-200">
         <div className="p-6 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900">Pending Claims Approval ({claims.length})</h2>
-          <p className="text-sm text-slate-600 mt-1">Claims approved by specialists awaiting your confirmation</p>
+          <h2 className="text-lg font-semibold text-slate-900">
+            {statusFilter === 'all' 
+              ? `Pending Claims Approval (${claims.length})`
+              : statusFilter === 'approved'
+              ? `Approved Claims (${claims.length})`
+              : `Rejected Claims (${claims.length})`}
+          </h2>
+          <p className="text-sm text-slate-600 mt-1">
+            {statusFilter === 'all' 
+              ? 'Claims approved by specialists awaiting your confirmation'
+              : statusFilter === 'approved'
+              ? 'Claims that have been approved'
+              : 'Claims that have been rejected'}
+          </p>
         </div>
         {loading ? (
           <div className="p-6 text-center">
@@ -150,6 +212,8 @@ export default function PayrollManagerClaimsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Claim Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Approved Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Specialist Comment</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Manager Comments</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -172,26 +236,48 @@ export default function PayrollManagerClaimsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                       ${claim.approvedAmount ? claim.approvedAmount.toLocaleString() : claim.amount.toLocaleString()}
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-slate-600 max-w-xs">
+                        {claim.specialistNotes ? (
+                          <span className="text-slate-700">{claim.specialistNotes}</span>
+                        ) : (
+                          <span className="text-slate-400 italic">No comment</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-slate-600 max-w-xs">
+                        {claim.managerNotes ? (
+                          <span className="text-slate-700">{claim.managerNotes}</span>
+                        ) : (
+                          <span className="text-slate-400 italic">No comment</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(claim.status)}`}>
                         {claim.status.replace(/_/g, ' ')}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => openConfirmModal(claim, 'approve')}
-                          className="text-green-600 hover:text-green-800"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => openConfirmModal(claim, 'reject')}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          Reject
-                        </button>
-                      </div>
+                      {claim.status?.toLowerCase().includes('pending') ? (
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => openConfirmModal(claim, 'approve')}
+                            className="text-green-600 hover:text-green-800"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => openConfirmModal(claim, 'reject')}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 text-xs">No actions available</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -199,7 +285,11 @@ export default function PayrollManagerClaimsPage() {
             </table>
             {claims.length === 0 && (
               <div className="p-6 text-center text-slate-500">
-                No claims pending confirmation
+                {statusFilter === 'all' 
+                  ? 'No claims pending confirmation'
+                  : statusFilter === 'approved'
+                  ? 'No approved claims found'
+                  : 'No rejected claims found'}
               </div>
             )}
           </div>
@@ -221,8 +311,16 @@ export default function PayrollManagerClaimsPage() {
                 <p className="text-sm text-slate-600">Amount: ${selectedClaim.amount.toLocaleString()}</p>
                 <p className="text-sm text-slate-600">Approved Amount: ${selectedClaim.approvedAmount?.toLocaleString() || 'N/A'}</p>
               </div>
+              {selectedClaim.specialistNotes && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Specialist Comment</label>
+                  <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700">
+                    {selectedClaim.specialistNotes}
+                  </div>
+                </div>
+              )}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Your Notes</label>
                 <textarea
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={3}

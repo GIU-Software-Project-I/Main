@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { StatusBadge } from '@/app/components/ui/status-badge';
 
 export interface Employee {
   _id: string;
@@ -34,14 +35,15 @@ interface EmployeeTableRowProps {
   onViewHistory: (employee: Employee) => void;
 }
 
-const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string }> = {
-  ACTIVE: { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-700 dark:text-green-400', dot: 'bg-green-500' },
-  INACTIVE: { bg: 'bg-gray-50 dark:bg-gray-900/20', text: 'text-gray-700 dark:text-gray-400', dot: 'bg-gray-500' },
-  ON_LEAVE: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' },
-  SUSPENDED: { bg: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-700 dark:text-red-400', dot: 'bg-red-500' },
-  RETIRED: { bg: 'bg-purple-50 dark:bg-purple-900/20', text: 'text-purple-700 dark:text-purple-400', dot: 'bg-purple-500' },
-  PROBATION: { bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-400', dot: 'bg-blue-500' },
-  TERMINATED: { bg: 'bg-slate-50 dark:bg-slate-900/20', text: 'text-slate-700 dark:text-slate-400', dot: 'bg-slate-500' },
+// Status dot colors that match the StatusBadge semantic colors
+const STATUS_DOT_COLORS: Record<string, string> = {
+  ACTIVE: 'bg-green-500',
+  INACTIVE: 'bg-gray-500',
+  ON_LEAVE: 'bg-amber-500',
+  SUSPENDED: 'bg-red-500',
+  RETIRED: 'bg-purple-500',
+  PROBATION: 'bg-blue-500',
+  TERMINATED: 'bg-slate-500',
 };
 
 export default function EmployeeTableRow({ employee, onEdit, onDeactivate, onAssignRole, onViewHistory }: EmployeeTableRowProps) {
@@ -50,7 +52,7 @@ export default function EmployeeTableRow({ employee, onEdit, onDeactivate, onAss
 
   const displayName = employee.fullName || `${employee.firstName} ${employee.lastName}`;
   const initials = `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase();
-  const statusConfig = STATUS_CONFIG[employee.status] || STATUS_CONFIG.ACTIVE;
+  const statusDotColor = STATUS_DOT_COLORS[employee.status] || STATUS_DOT_COLORS.ACTIVE;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString(undefined, {
@@ -84,7 +86,7 @@ export default function EmployeeTableRow({ employee, onEdit, onDeactivate, onAss
                 <span className="text-xs font-semibold text-primary-foreground">{initials}</span>
               </div>
             )}
-            <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${statusConfig.dot}`} />
+            <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${statusDotColor}`} />
           </div>
           <div className="min-w-0">
             <p className="font-medium text-foreground truncate">{displayName}</p>
@@ -112,10 +114,11 @@ export default function EmployeeTableRow({ employee, onEdit, onDeactivate, onAss
 
       {/* Status */}
       <td className="px-4 py-3">
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`} />
-          {formatStatus(employee.status)}
-        </span>
+        <StatusBadge
+          status={employee.status}
+          label={formatStatus(employee.status)}
+          showDot
+        />
       </td>
 
       {/* Date of Hire */}
@@ -196,11 +199,10 @@ export default function EmployeeTableRow({ employee, onEdit, onDeactivate, onAss
                 <button
                   onClick={() => { onDeactivate(employee); setShowActions(false); }}
                   disabled={!isDeactivatable}
-                  className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors ${
-                    isDeactivatable
+                  className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors ${isDeactivatable
                       ? 'text-destructive hover:bg-destructive/10'
                       : 'text-muted-foreground cursor-not-allowed'
-                  }`}
+                    }`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -215,4 +217,3 @@ export default function EmployeeTableRow({ employee, onEdit, onDeactivate, onAss
     </tr>
   );
 }
-

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { financeStaffService, RefundGeneration, PayrollCycle, RefundRequest } from '@/app/services/finance-staff';
+import { financeStaffService, RefundGeneration, PayrollCycle, RefundRequest, ApprovedDispute, ApprovedClaim } from '@/app/services/finance-staff';
 import { useAuth } from '@/app/context/AuthContext';
 import { SystemRole } from '@/app/types';
 
@@ -10,6 +10,18 @@ export default function RefundsPage() {
   const [refunds, setRefunds] = useState<RefundGeneration[]>([]);
   const [payrollCycles, setPayrollCycles] = useState<PayrollCycle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [approvedDisputes, setApprovedDisputes] = useState<ApprovedDispute[]>([]);
+  const [approvedClaims, setApprovedClaims] = useState<ApprovedClaim[]>([]);
+
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [selectedRefund, setSelectedRefund] = useState<RefundGeneration | null>(null);
+  const [refundType, setRefundType] = useState<'dispute' | 'claim'>('dispute');
+  const [selectedSourceId, setSelectedSourceId] = useState('');
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundDescription, setRefundDescription] = useState('');
+  const [refundEmployeeId, setRefundEmployeeId] = useState('');
+  const [targetPayrollCycle, setTargetPayrollCycle] = useState('');
+  const [refundNotes, setRefundNotes] = useState('');
 
   // Helper to safely convert any value to string (NEVER returns objects)
   const safeString = (value: any, defaultValue: string = 'N/A'): string => {
@@ -21,15 +33,6 @@ export default function RefundsPage() {
     }
     return String(value);
   };
-  const [showGenerateModal, setShowGenerateModal] = useState(false);
-  const [selectedRefund, setSelectedRefund] = useState<RefundGeneration | null>(null);
-  const [refundType, setRefundType] = useState<'dispute' | 'claim'>('dispute');
-  const [selectedSourceId, setSelectedSourceId] = useState('');
-  const [refundAmount, setRefundAmount] = useState('');
-  const [refundDescription, setRefundDescription] = useState('');
-  const [refundEmployeeId, setRefundEmployeeId] = useState('');
-  const [targetPayrollCycle, setTargetPayrollCycle] = useState('');
-  const [refundNotes, setRefundNotes] = useState('');
 
   useEffect(() => {
     if (!user?.role || ![SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN].includes(user.role as SystemRole)) return;
@@ -39,17 +42,56 @@ export default function RefundsPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [refundsResponse, cyclesResponse] = await Promise.all([
+      const [refundsResponse, cyclesResponse, disputesRes, claimsRes] = await Promise.all([
         financeStaffService.getRefunds(),
         financeStaffService.getPayrollCycles(),
+        financeStaffService.getApprovedDisputes(),
+        financeStaffService.getApprovedClaims(),
       ]);
-      
+
       if (refundsResponse.data) setRefunds(refundsResponse.data);
       if (cyclesResponse.data) setPayrollCycles(cyclesResponse.data);
+      if (disputesRes.data) setApprovedDisputes(disputesRes.data);
+      if (claimsRes.data) setApprovedClaims(claimsRes.data);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setSelectedSourceId('');
+    setRefundAmount('');
+    setRefundDescription('');
+    setRefundEmployeeId('');
+    setRefundNotes('');
+    setRefundType('dispute');
+  };
+
+  const handleSourceChange = (id: string) => {
+    setSelectedSourceId(id);
+    if (!id) {
+      setRefundEmployeeId('');
+      setRefundDescription('');
+      setRefundAmount('');
+      return;
+    }
+
+    if (refundType === 'dispute') {
+      const dispute = approvedDisputes.find(d => d.id === id);
+      if (dispute) {
+        setRefundEmployeeId(dispute.employeeId);
+        setRefundDescription(dispute.description);
+        setRefundAmount(dispute.amount.toString());
+      }
+    } else {
+      const claim = approvedClaims.find(c => c.id === id);
+      if (claim) {
+        setRefundEmployeeId(claim.employeeId);
+        setRefundDescription(claim.description);
+        setRefundAmount(claim.amount.toString());
+      }
     }
   };
 
@@ -100,15 +142,6 @@ export default function RefundsPage() {
     }
   };
 
-  const resetForm = () => {
-    setSelectedSourceId('');
-    setRefundAmount('');
-    setRefundDescription('');
-    setRefundEmployeeId('');
-    setRefundNotes('');
-    setRefundType('dispute');
-  };
-
   if (!user?.role || ![SystemRole.FINANCE_STAFF, SystemRole.PAYROLL_MANAGER, SystemRole.HR_ADMIN].includes(user.role as SystemRole)) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -134,8 +167,8 @@ export default function RefundsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Refund Generation</h1>
-          <p className="text-slate-600 mt-1">Generate and manage refunds for approved disputes and claims</p>
+          <h1 className="text-2xl font-bold text-white">Refund Generation</h1>
+          <p className="text-white mt-1">Generate and manage refunds for approved disputes and claims</p>
         </div>
         <button
           onClick={() => setShowGenerateModal(true)}
@@ -249,18 +282,10 @@ export default function RefundsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
                         onClick={() => setSelectedRefund(refund)}
-                        className="text-blue-600 hover:text-blue-800 mr-3"
+                        className="text-blue-600 hover:text-blue-800"
                       >
                         View
                       </button>
-                      {refund.status === 'pending' && (
-                        <button
-                          onClick={() => handleProcessRefund(refund._id)}
-                          className="text-green-600 hover:text-green-800"
-                        >
-                          Process
-                        </button>
-                      )}
                     </td>
                   </tr>
                 ))}
@@ -284,9 +309,12 @@ export default function RefundsPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Refund Type</label>
                 <select
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                   value={refundType}
-                  onChange={(e) => setRefundType(e.target.value as any)}
+                  onChange={(e) => {
+                    setRefundType(e.target.value as any);
+                    handleSourceChange(''); // Reset on type change
+                  }}
                 >
                   <option value="dispute">Dispute Refund</option>
                   <option value="claim">Expense Claim Refund</option>
@@ -294,49 +322,53 @@ export default function RefundsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  {refundType === 'dispute' ? 'Dispute ID' : 'Claim ID'}
+                  {refundType === 'dispute' ? 'Approved Dispute' : 'Approved Expense Claim'}
                 </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <select
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                   value={selectedSourceId}
-                  onChange={(e) => setSelectedSourceId(e.target.value)}
-                  placeholder={`Enter ${refundType === 'dispute' ? 'dispute' : 'claim'} ID`}
-                />
+                  onChange={(e) => handleSourceChange(e.target.value)}
+                  required
+                >
+                  <option value="">Select a {refundType}</option>
+                  {refundType === 'dispute'
+                    ? approvedDisputes.map(d => (
+                      <option key={d.id} value={d.id}>{d.id} - {d.employeeName} (${d.amount})</option>
+                    ))
+                    : approvedClaims.map(c => (
+                      <option key={c.id} value={c.id}>{c.id} - {c.employeeName} (${c.amount})</option>
+                    ))
+                  }
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Employee ID</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg outline-none cursor-not-allowed text-slate-900"
                   value={refundEmployeeId}
-                  onChange={(e) => setRefundEmployeeId(e.target.value)}
-                  placeholder="Enter employee ID"
-                  required
+                  readOnly
+                  placeholder="Fetched automatically"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                 <textarea
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg outline-none cursor-not-allowed text-slate-900"
                   value={refundDescription}
-                  onChange={(e) => setRefundDescription(e.target.value)}
+                  readOnly
                   rows={3}
-                  placeholder="Enter refund description"
-                  required
+                  placeholder="Fetched from source"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Amount</label>
                 <input
-                  type="number"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={refundAmount}
-                  onChange={(e) => setRefundAmount(e.target.value)}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                  required
+                  type="text"
+                  className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg outline-none cursor-not-allowed text-slate-900"
+                  value={refundAmount ? `$${parseFloat(refundAmount).toLocaleString()}` : ''}
+                  readOnly
+                  placeholder="$0.00"
                 />
               </div>
             </div>
@@ -422,12 +454,6 @@ export default function RefundsPage() {
               )}
               {selectedRefund.status === 'pending' && (
                 <div className="flex space-x-3">
-                  <button
-                    onClick={() => handleUpdateRefundStatus(selectedRefund._id, 'processed')}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    Mark as Processed
-                  </button>
                   <button
                     onClick={() => setSelectedRefund(null)}
                     className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200"
