@@ -276,14 +276,14 @@ export default function PayslipsPage() {
             <h2 className="text-xl font-bold">Payslip Overview</h2>
             <p className="text-blue-100 mt-1">{payslips.length} payslips available</p>
           </div>
-          <div className="text-5xl">📄</div>
+          <div className="text-5xl"></div>
         </div>
       </div>
 
       {/* Payslips List */}
       {payslips.length === 0 ? (
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
-          <div className="text-6xl mb-4">📭</div>
+          <div className="text-6xl mb-4"></div>
           <h3 className="text-xl font-semibold text-slate-900 mb-2">No Payslips Available</h3>
           <p className="text-slate-600">Your payslips will appear here once they are generated.</p>
         </div>
@@ -341,7 +341,7 @@ export default function PayslipsPage() {
                           disabled={downloading === payslip.id}
                           className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                         >
-                          {downloading === payslip.id ? '...' : '⬇️ PDF'}
+                          {downloading === payslip.id ? '...' : 'PDF'}
                         </button>
                       </div>
                     </td>
@@ -475,11 +475,11 @@ export default function PayslipsPage() {
                     disabled={downloading === selectedPayslip.id}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {downloading === selectedPayslip.id ? 'Downloading...' : '⬇️ Download PDF'}
+                    {downloading === selectedPayslip.id ? 'Downloading...' : 'Download PDF'}
                   </button>
                   <Link href="/dashboard/department-employee/payroll-tracking/claims-disputes">
                     <button className="px-4 py-2 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50">
-                      ⚠️ Dispute
+                      Dispute
                     </button>
                   </Link>
                 </div>

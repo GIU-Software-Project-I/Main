@@ -264,7 +264,7 @@ export default function PayslipsPage() {
         </div>
         <Link href="/dashboard/department-employee/payroll-tracking">
           <button className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50">
-            ← Back to Payroll Tracking
+            Back to Payroll Tracking
           </button>
         </Link>
       </div>
@@ -341,7 +341,7 @@ export default function PayslipsPage() {
                           disabled={downloading === payslip.id}
                           className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                         >
-                          {downloading === payslip.id ? '...' : '⬇️ PDF'}
+                          {downloading === payslip.id ? '...' : 'PDF'}
                         </button>
                       </div>
                     </td>
@@ -475,11 +475,11 @@ export default function PayslipsPage() {
                     disabled={downloading === selectedPayslip.id}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {downloading === selectedPayslip.id ? 'Downloading...' : '⬇️ Download PDF'}
+                    {downloading === selectedPayslip.id ? 'Downloading...' : 'Download PDF'}
                   </button>
                   <Link href="/dashboard/department-employee/payroll-tracking/claims-disputes">
                     <button className="px-4 py-2 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50">
-                      ⚠️ Dispute
+                      Dispute
                     </button>
                   </Link>
                 </div>

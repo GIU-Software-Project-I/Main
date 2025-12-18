@@ -175,7 +175,7 @@ export default function UnpaidLeaveDeductionsPage() {
   if (!leaveData) {
     return (
       <div className="bg-slate-50 rounded-lg border border-slate-200 shadow-sm p-12 text-center">
-        <div className="text-6xl mb-4">📅</div>
+        <div className="text-6xl mb-4"></div>
         <p className="text-slate-700 font-medium text-lg">No unpaid leave data available</p>
         <p className="text-slate-500 text-sm mt-2">
           {leaveData?.message || 'No unpaid leave deductions found'}
@@ -218,7 +218,7 @@ export default function UnpaidLeaveDeductionsPage() {
               {leaveData.totalUnpaidLeaveDays || 0} unpaid leave day{leaveData.totalUnpaidLeaveDays !== 1 ? 's' : ''}
             </p>
           </div>
-          <div className="text-6xl">📅</div>
+          <div className="text-6xl"></div>
         </div>
       </div>
 
@@ -310,7 +310,7 @@ export default function UnpaidLeaveDeductionsPage() {
               {/* Unpaid Leave Requests */}
               {!leaveData.unpaidLeaveRequests || leaveData.unpaidLeaveRequests.length === 0 ? (
                 <div className="bg-slate-50 rounded-lg border border-slate-200 shadow-sm p-12 text-center">
-                  <div className="text-6xl mb-4">✅</div>
+                  <div className="text-6xl mb-4"></div>
                   <p className="text-slate-700 font-medium text-lg">No unpaid leave requests</p>
                   <p className="text-slate-500 text-sm mt-2">
                     You have no approved unpaid leave requests
@@ -325,7 +325,7 @@ export default function UnpaidLeaveDeductionsPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="text-2xl">📅</span>
+                              <span className="text-2xl"></span>
                               <div>
                                 <h4 className="font-semibold text-slate-900">{request.leaveTypeName}</h4>
                                 <span className="text-xs text-slate-500">Code: {request.leaveTypeCode}</span>
@@ -378,7 +378,7 @@ export default function UnpaidLeaveDeductionsPage() {
               {/* Payslip Deductions */}
               {!leaveData.payslipDeductions || leaveData.payslipDeductions.length === 0 ? (
                 <div className="bg-slate-50 rounded-lg border border-slate-200 shadow-sm p-12 text-center">
-                  <div className="text-6xl mb-4">📋</div>
+                  <div className="text-6xl mb-4"></div>
                   <p className="text-slate-700 font-medium text-lg">No payslip deductions</p>
                   <p className="text-slate-500 text-sm mt-2">
                     Unpaid leave deductions will appear here once they are applied to payslips
@@ -391,7 +391,7 @@ export default function UnpaidLeaveDeductionsPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="text-2xl">💰</span>
+                            <span className="text-2xl"></span>
                             <div>
                               <h4 className="font-semibold text-slate-900">
                                 {deduction.payslipPeriod || `Payslip ${deduction.payslipId.slice(-8)}`}

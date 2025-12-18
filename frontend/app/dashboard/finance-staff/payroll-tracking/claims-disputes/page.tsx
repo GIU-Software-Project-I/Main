@@ -357,13 +357,13 @@ export default function ClaimsDisputesPage() {
       <div className="flex gap-4 flex-wrap">
         <button
           onClick={() => setShowDisputeForm(true)}
-          className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium flex items-center gap-2"
+          className="px-6 py-3 bg-white border border-slate-200 rounded-lg shadow-sm font-medium flex items-center gap-2 text-slate-900 hover:shadow-md"
         >
           File a Dispute
         </button>
         <button
           onClick={() => setShowClaimForm(true)}
-          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2"
+          className="px-6 py-3 bg-white border border-slate-200 rounded-lg shadow-sm font-medium flex items-center gap-2 text-slate-900 hover:shadow-md"
         >
           Submit a Claim
         </button>
@@ -497,7 +497,7 @@ export default function ClaimsDisputesPage() {
             <h3 className="text-lg font-bold text-slate-900">My Disputes</h3>
             <button
               onClick={() => setShowDisputeForm(true)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
+              className="px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-sm font-medium text-slate-900 hover:shadow-md"
             >
               + File New Dispute
             </button>
@@ -558,7 +558,7 @@ export default function ClaimsDisputesPage() {
             <h3 className="text-lg font-bold text-slate-900">My Claims</h3>
             <button
               onClick={() => setShowClaimForm(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+              className="px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-sm font-medium text-slate-900 hover:shadow-md"
             >
               + Submit New Claim
             </button>

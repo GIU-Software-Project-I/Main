@@ -169,7 +169,7 @@ export default function TaxDeductionsPage() {
               Across {taxData.length} payslip{taxData.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <div className="text-6xl">🏛️</div>
+          <div className="text-6xl"></div>
         </div>
       </div>
 

@@ -320,8 +320,8 @@ export default function TaxDocumentsPage() {
       {/* Information Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">ℹ️</span>
+            <div className="flex items-start gap-3">
+            <span className="text-2xl"></span>
             <div>
               <h4 className="font-semibold text-blue-900">About Tax Statements</h4>
               <p className="text-sm text-blue-700 mt-1">

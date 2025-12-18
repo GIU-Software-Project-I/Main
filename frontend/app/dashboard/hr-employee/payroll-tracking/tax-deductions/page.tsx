@@ -169,7 +169,7 @@ export default function TaxDeductionsPage() {
               Across {taxData.length} payslip{taxData.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <div className="text-6xl">🏛️</div>
+          <div className="text-6xl"></div>
         </div>
       </div>
 
@@ -197,7 +197,7 @@ export default function TaxDeductionsPage() {
       {/* Tax Deductions List */}
       {filteredData.length === 0 ? (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-12 text-center">
-          <div className="text-6xl mb-4">📋</div>
+          <div className="text-6xl mb-4"></div>
           <p className="text-slate-700 font-medium text-lg">No tax deductions found</p>
           <p className="text-slate-500 text-sm mt-2">
             Tax deductions will appear here once payroll has been processed
@@ -249,9 +249,8 @@ export default function TaxDeductionsPage() {
                           <p className="text-sm text-slate-600 mb-2">{tax.description}</p>
                         )}
                         {tax.lawReference && (
-                          <p className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                            <span>📜</span>
-                            <span>Law Reference: {tax.lawReference}</span>
+                          <p className="text-xs text-amber-600 font-medium">
+                            Law Reference: {tax.lawReference}
                           </p>
                         )}
                         {tax.approvedAt && (
@@ -324,7 +323,7 @@ export default function TaxDeductionsPage() {
       {/* Information Panel */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">💡</span>
+          <span className="text-2xl"></span>
           <div>
             <h4 className="font-semibold text-blue-900 mb-2">Understanding Your Tax Deductions</h4>
             <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
