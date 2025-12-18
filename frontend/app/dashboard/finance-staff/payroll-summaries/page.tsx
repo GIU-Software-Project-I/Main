@@ -357,7 +357,7 @@ export default function PayrollSummariesPage() {
           <div className="w-full md:w-48">
             <label className="block text-sm font-medium text-slate-700 mb-1">Period</label>
             <select
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900"
               value={periodType}
               onChange={(e) => setPeriodType(e.target.value as any)}
             >
@@ -373,7 +373,7 @@ export default function PayrollSummariesPage() {
             {periodType === 'monthly' ? (
               <input
                 type="month"
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
               />
@@ -382,7 +382,7 @@ export default function PayrollSummariesPage() {
                 type="number"
                 min="2020"
                 max="2030"
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(parseInt(e.target.value))}
               />
@@ -414,7 +414,7 @@ export default function PayrollSummariesPage() {
 
       {/* Generated Reports - Card Grid */}
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">Generated Reports</h2>
+        <h2 className="text-lg font-semibold text-white mb-4">Generated Reports</h2>
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -502,7 +502,7 @@ export default function PayrollSummariesPage() {
                         {currentSlide === 0 ? (
                           <div className="space-y-3">
                             <div className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">
-                              📊 Payslip Data
+                              Payslip Data
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm text-slate-500">Gross Pay:</span>
@@ -524,7 +524,7 @@ export default function PayrollSummariesPage() {
                         ) : (
                           <div className="space-y-3">
                             <div className="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-2">
-                              💰 Tax Data
+                              Tax Data
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm text-slate-500">Total Tax:</span>
@@ -663,8 +663,7 @@ export default function PayrollSummariesPage() {
                 <div className="space-y-8">
                   {/* Tax Breakdown */}
                   <div>
-                    <h4 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                      <span className="p-1 bg-purple-100 text-purple-600 rounded">💰</span>
+                    <h4 className="text-lg font-semibold text-slate-900 mb-4">
                       Tax Compliance Summary
                     </h4>
                     <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
@@ -696,8 +695,7 @@ export default function PayrollSummariesPage() {
                   {/* Department Breakdown */}
                   {selectedReport.summaryData.byDepartment && Object.keys(selectedReport.summaryData.byDepartment).length > 0 && (
                     <div>
-                      <h4 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                        <span className="p-1 bg-blue-100 text-blue-600 rounded">🏢</span>
+                      <h4 className="text-lg font-semibold text-slate-900 mb-4">
                         Departmental Breakdown
                       </h4>
                       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">

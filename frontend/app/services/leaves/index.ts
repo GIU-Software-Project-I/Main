@@ -1322,6 +1322,14 @@ export const leavesService: Record<string, any> = {
       };
     }
   },
+
+  // Fix unpaid leave balances (add days and reset taken)
+  fixUnpaidLeaveBalances: async (employeeId?: string, addDays: number = 0) => {
+    const query = new URLSearchParams();
+    if (employeeId) query.set('employeeId', employeeId);
+    if (addDays > 0) query.set('addDays', addDays.toString());
+    return apiService.post(`/leaves/fix-unpaid-balances?${query.toString()}`);
+  },
 };
 
 

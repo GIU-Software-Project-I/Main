@@ -36,7 +36,7 @@ export default function DisputesPage() {
     try {
       const response = await payrollSpecialistService.getAllDisputes(filters);
       console.log('Disputes response:', response);
-      
+
       // Map backend data to frontend format
       if (response.data) {
         const mappedDisputes: PayrollDispute[] = response.data.map((dispute: any) => {
@@ -44,7 +44,7 @@ export default function DisputesPage() {
           return {
             id: dispute._id,
             employeeId: dispute.employeeId?._id || dispute.employeeId,
-            employeeName: dispute.employeeId?.firstName && dispute.employeeId?.lastName 
+            employeeName: dispute.employeeId?.firstName && dispute.employeeId?.lastName
               ? `${dispute.employeeId.firstName} ${dispute.employeeId.lastName}`
               : 'Unknown',
             employeeNumber: dispute.employeeId?.employeeId || 'N/A',
@@ -87,7 +87,7 @@ export default function DisputesPage() {
     try {
       console.log('Reviewing dispute:', selectedDispute.id, 'Action:', reviewAction);
       let response;
-      
+
       if (reviewAction === 'approve') {
         response = await payrollSpecialistService.approveDispute(
           selectedDispute.id,
@@ -104,14 +104,14 @@ export default function DisputesPage() {
       console.log('Review response:', response);
       const updatedDispute = response.data || response;
       console.log('Updated dispute status:', updatedDispute?.status);
-      
+
       if (updatedDispute) {
         setSuccessMessage(`Dispute ${reviewAction === 'approve' ? 'approved and escalated to payroll manager' : 'rejected'} successfully`);
         setShowReviewModal(false);
         setSelectedDispute(null);
         setReviewNotes('');
         setRejectionRemarks('');
-        
+
         // Reload disputes to get fresh data
         await loadDisputes();
       }
@@ -168,8 +168,8 @@ export default function DisputesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dispute Review and Approval</h1>
-          <p className="text-slate-600 mt-1">Review and approve/reject payroll disputes</p>
+          <h1 className="text-2xl font-bold text-white">Dispute Review and Approval</h1>
+          <p className="text-white mt-1">Review and approve/reject payroll disputes</p>
         </div>
       </div>
 
@@ -179,7 +179,7 @@ export default function DisputesPage() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
             <select
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               value={filters.status || 'all'}
               onChange={(e) => setFilters((prev: DisputeFilters) => ({ ...prev, status: e.target.value as DisputeFilters['status'] }))}
             >
@@ -193,7 +193,7 @@ export default function DisputesPage() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
             <select
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               value={filters.type || 'all'}
               onChange={(e) => setFilters((prev: DisputeFilters) => ({ ...prev, type: e.target.value as DisputeFilters['type'] }))}
             >
@@ -207,7 +207,7 @@ export default function DisputesPage() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
             <select
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               value={filters.priority || 'all'}
               onChange={(e) => setFilters((prev: DisputeFilters) => ({ ...prev, priority: e.target.value as DisputeFilters['priority'] }))}
             >
@@ -222,7 +222,7 @@ export default function DisputesPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Payroll Period</label>
             <input
               type="month"
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               value={filters.period || ''}
               onChange={(e) => setFilters((prev: DisputeFilters) => ({ ...prev, period: e.target.value }))}
             />
@@ -475,9 +475,8 @@ export default function DisputesPage() {
               </button>
               <button
                 onClick={handleReviewDispute}
-                className={`px-4 py-2 text-white rounded-lg hover:opacity-90 ${
-                  reviewAction === 'approve' ? 'bg-green-600' : 'bg-red-600'
-                }`}
+                className={`px-4 py-2 text-white rounded-lg hover:opacity-90 ${reviewAction === 'approve' ? 'bg-green-600' : 'bg-red-600'
+                  }`}
               >
                 {reviewAction === 'approve' ? 'Approve' : 'Reject'}
               </button>
