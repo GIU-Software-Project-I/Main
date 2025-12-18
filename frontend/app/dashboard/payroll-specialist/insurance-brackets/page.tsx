@@ -79,6 +79,15 @@ export default function InsuranceBracketsPage() {
     salary: '',
   });
 
+  // Search and filter state
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+    insuranceType: '',
+    minSalaryRange: '',
+    maxSalaryRange: '',
+  });
+
   // Fetch insurance brackets on component mount
   useEffect(() => {
     fetchInsuranceBrackets();
@@ -410,6 +419,16 @@ export default function InsuranceBracketsPage() {
     setError(null);
   };
 
+  const resetFilters = () => {
+    setFilters({
+      search: '',
+      status: '',
+      insuranceType: '',
+      minSalaryRange: '',
+      maxSalaryRange: '',
+    });
+  };
+
   const handleCreateClick = () => {
     resetForm();
     setShowModal(true);
@@ -430,6 +449,14 @@ export default function InsuranceBracketsPage() {
   const handleCalculationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCalculationData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
       ...prev,
       [name]: value
     }));
@@ -475,6 +502,27 @@ export default function InsuranceBracketsPage() {
     
     return isDuplicate ? `Insurance name "${finalName}" already exists. Please use a different name.` : null;
   };
+
+  // Filter insurance brackets based on search and filters
+  const filteredBrackets = brackets.filter(bracket => {
+    // Search filter
+    const matchesSearch = !filters.search || 
+      bracket.name.toLowerCase().includes(filters.search.toLowerCase());
+    
+    // Status filter
+    const matchesStatus = !filters.status || bracket.status === filters.status;
+    
+    // Insurance type filter
+    const matchesInsuranceType = !filters.insuranceType || 
+      bracket.name.toLowerCase().includes(filters.insuranceType.toLowerCase());
+    
+    // Salary range filter
+    const minSalaryFilter = parseFloat(filters.minSalaryRange) || 0;
+    const maxSalaryFilter = parseFloat(filters.maxSalaryRange) || Number.MAX_SAFE_INTEGER;
+    const matchesSalaryRange = bracket.minSalary >= minSalaryFilter && bracket.maxSalary <= maxSalaryFilter;
+    
+    return matchesSearch && matchesStatus && matchesInsuranceType && matchesSalaryRange;
+  });
 
   if (loading) {
     return (
@@ -549,23 +597,139 @@ export default function InsuranceBracketsPage() {
         </div>
       )}
 
+      {/* Filters Section */}
+      <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Search
+            </label>
+            <input
+              type="text"
+              name="search"
+              value={filters.search}
+              onChange={handleFilterChange}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              placeholder="Search by name..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Insurance Type
+            </label>
+            <select
+              name="insuranceType"
+              value={filters.insuranceType}
+              onChange={handleFilterChange}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="">All Types</option>
+              {insuranceTypeOptions
+                .filter(opt => opt.value !== 'custom')
+                .map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Status
+            </label>
+            <select
+              name="status"
+              value={filters.status}
+              onChange={handleFilterChange}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Min Salary
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                <span className="text-slate-500 text-sm">$</span>
+              </div>
+              <input
+                type="number"
+                name="minSalaryRange"
+                value={filters.minSalaryRange}
+                onChange={handleFilterChange}
+                className="w-full pl-7 pr-2 py-2 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                placeholder="Min"
+                min="0"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Max Salary
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                <span className="text-slate-500 text-sm">$</span>
+              </div>
+              <input
+                type="number"
+                name="maxSalaryRange"
+                value={filters.maxSalaryRange}
+                onChange={handleFilterChange}
+                className="w-full pl-7 pr-2 py-2 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                placeholder="Max"
+                min="0"
+              />
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end mt-4">
+          <button
+            onClick={resetFilters}
+            className="px-3 py-1.5 text-sm border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
       {/* Insurance Brackets Table */}
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
         <div className="p-6 border-b border-slate-200">
-          <h2 className="text-xl font-bold text-slate-900">Insurance Brackets ({brackets.length})</h2>
+          <h2 className="text-xl font-bold text-slate-900">
+            Insurance Brackets ({filteredBrackets.length})
+            {(filters.search || filters.status || filters.insuranceType || filters.minSalaryRange || filters.maxSalaryRange) && (
+              <span className="text-slate-500 text-sm ml-2">of {brackets.length} total</span>
+            )}
+          </h2>
         </div>
         
-        {brackets.length === 0 ? (
+        {filteredBrackets.length === 0 ? (
           <div className="p-12 text-center">
             <div className="text-slate-400 mb-4">🛡️</div>
-            <p className="text-slate-600 font-medium">No insurance brackets found</p>
-            <p className="text-slate-500 text-sm mt-1">Create your first insurance bracket to get started</p>
-            <button
-              onClick={handleCreateClick}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Create Insurance Bracket
-            </button>
+            <p className="text-slate-600 font-medium">
+              {(filters.search || filters.status || filters.insuranceType || filters.minSalaryRange || filters.maxSalaryRange) 
+                ? 'No insurance brackets match your filters' 
+                : 'No insurance brackets found'}
+            </p>
+            <p className="text-slate-500 text-sm mt-1">
+              {(filters.search || filters.status || filters.insuranceType || filters.minSalaryRange || filters.maxSalaryRange) 
+                ? 'Try adjusting your search criteria' 
+                : 'Create your first insurance bracket to get started'}
+            </p>
+            {!(filters.search || filters.status || filters.insuranceType || filters.minSalaryRange || filters.maxSalaryRange) && (
+              <button
+                onClick={handleCreateClick}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Create Insurance Bracket
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -581,7 +745,7 @@ export default function InsuranceBracketsPage() {
                 </tr>
               </thead>
               <tbody>
-                {brackets.map((bracket) => (
+                {filteredBrackets.map((bracket) => (
                   <tr key={bracket._id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="py-4 px-6">
                       <div>
@@ -636,15 +800,13 @@ export default function InsuranceBracketsPage() {
                         
                         {/* Edit button - Only show for DRAFT brackets */}
                         {bracket.status === 'draft' && (
-                          <>
-                            <button
-                              onClick={() => handleEditClick(bracket)}
-                              className="px-3 py-1 text-sm border border-green-600 text-green-600 rounded hover:bg-green-600 hover:text-white transition-colors"
-                              title="Edit"
-                            >
-                              Edit
-                            </button>
-                          </>
+                          <button
+                            onClick={() => handleEditClick(bracket)}
+                            className="px-3 py-1 text-sm border border-green-600 text-green-600 rounded hover:bg-green-600 hover:text-white transition-colors"
+                            title="Edit"
+                          >
+                            Edit
+                          </button>
                         )}
                       </div>
                     </td>
@@ -673,7 +835,7 @@ export default function InsuranceBracketsPage() {
         </ul>
       </div>
 
-      {/* Create/Edit Modal */}
+      {/* Create/Edit Modal - This remains the same as before */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -898,7 +1060,7 @@ export default function InsuranceBracketsPage() {
         </div>
       )}
 
-      {/* View Modal */}
+      {/* View Modal - This remains the same as before */}
       {showViewModal && selectedBracket && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -1021,7 +1183,7 @@ export default function InsuranceBracketsPage() {
         </div>
       )}
 
-      {/* Calculate Contributions Modal */}
+      {/* Calculate Contributions Modal - This remains the same as before */}
       {showCalculateModal && selectedBracket && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">

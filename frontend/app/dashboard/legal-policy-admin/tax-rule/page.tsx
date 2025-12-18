@@ -864,28 +864,6 @@ export default function TaxRulesPage() {
         </div>
       )}
 
-      {/* Schema Limitations Notice */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
-        <h3 className="font-semibold text-amber-900 mb-2">⚠️ Schema Limitations & Workarounds</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm font-medium text-amber-800 mb-2">Progressive Tax Brackets (BR5)</p>
-            <ul className="text-xs text-amber-700 space-y-1">
-              <li>• <span className="font-semibold">Workaround:</span> Create multiple related bracket rules</li>
-              <li>• <span className="font-semibold">Format:</span> "Tax Rule Name - Bracket X (Range)"</li>
-              <li>• Use "Add Bracket" button to create progressive rates</li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-amber-800 mb-2">Multiple Tax Components (BR6)</p>
-            <ul className="text-xs text-amber-700 space-y-1">
-              <li>• <span className="font-semibold">Workaround:</span> Create multiple related component rules</li>
-              <li>• <span className="font-semibold">Format:</span> "Tax Rule Name - Component Name"</li>
-              <li>• Use "Add Component" button to add multiple tax types</li>
-            </ul>
-          </div>
-        </div>
-      </div>
 
       {/* Tax Rules Groups */}
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
