@@ -152,7 +152,7 @@ export default function ClaimsPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
             <select
@@ -188,15 +188,6 @@ export default function ClaimsPage() {
               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               value={filters.startDate || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
-            <input
-              type="date"
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
-              value={filters.endDate || ''}
-              onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
             />
           </div>
         </div>
