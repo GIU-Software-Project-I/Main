@@ -122,7 +122,7 @@ export default function DeductionsPage() {
         // Process tax deductions - response is array of payslip tax data
         const taxData = taxRes?.data || [];
         const taxList: TaxDeduction[] = [];
-        if (Array.isArray(taxData)) {
+          if ((taxData as any) && Array.isArray(taxData)) {
           taxData.forEach((payslipTax: any) => {
             if (payslipTax.taxDetails && Array.isArray(payslipTax.taxDetails)) {
               payslipTax.taxDetails.forEach((tax: any, idx: number) => {
@@ -225,19 +225,17 @@ export default function DeductionsPage() {
         // Process attendance-based deductions - response is an object with deductions array
         const attendanceData = attendanceRes?.data as AttendanceResponse | null;
         const attendanceList: AttendanceDeduction[] = [];
-        if (attendanceData && typeof attendanceData === 'object') {
-          if (attendanceData.deductions && Array.isArray(attendanceData.deductions)) {
-            attendanceData.deductions.forEach((deduction: any, idx: number) => {
-              attendanceList.push({
-                id: `attendance-${idx}`,
-                type: deduction.type || 'Attendance Deduction',
-                date: deduction.date,
-                amount: deduction.amount || 0,
-                hours: deduction.hoursDeducted,
-                reason: deduction.reason || deduction.description,
-              });
+        if (attendanceData && typeof attendanceData === 'object' && attendanceData.deductions && Array.isArray(attendanceData.deductions)) {
+          attendanceData.deductions.forEach((deduction: any, idx: number) => {
+            attendanceList.push({
+              id: `attendance-${idx}`,
+              type: deduction.type || 'Attendance Deduction',
+              date: deduction.date,
+              amount: deduction.amount || 0,
+              hours: deduction.hoursDeducted,
+              reason: deduction.reason || deduction.description,
             });
-          }
+          });
         }
         setAttendanceDeductions(attendanceList);
       } catch (err: any) {
