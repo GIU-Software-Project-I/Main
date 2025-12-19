@@ -1437,7 +1437,11 @@ export class PayrollTrackingService {
 
   // REQ-PY-40: Payroll Manager confirm dispute approval (multi-step)
   async confirmDisputeApproval(disputeId: string, managerId: string, action: 'confirm' | 'reject', reason?: string) {
-    const dispute = await this.disputesModel.findById(disputeId);
+    // Try finding by MongoDB _id first, then by custom disputeId
+    let dispute = await this.disputesModel.findById(disputeId);
+    if (!dispute) {
+      dispute = await this.disputesModel.findOne({ disputeId: disputeId });
+    }
     if (!dispute) {
       throw new NotFoundException('Dispute not found');
     }
@@ -1579,7 +1583,11 @@ export class PayrollTrackingService {
 
   // REQ-PY-43: Payroll Manager confirm claim approval
   async confirmClaimApproval(claimId: string, managerId: string, action: 'confirm' | 'reject', reason?: string) {
-    const claim = await this.claimsModel.findById(claimId);
+    // Try finding by MongoDB _id first, then by custom claimId
+    let claim = await this.claimsModel.findById(claimId);
+    if (!claim) {
+      claim = await this.claimsModel.findOne({ claimId: claimId });
+    }
     if (!claim) {
       throw new NotFoundException('Claim not found');
     }
@@ -2024,6 +2032,7 @@ export class PayrollTrackingService {
     return this.claimsModel.find(query)
       .populate('employeeId', 'firstName lastName employeeId')
       .populate('financeStaffId', 'firstName lastName employeeId')
+      .populate('payrollSpecialistId', 'firstName lastName employeeId')
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -2081,6 +2090,7 @@ export class PayrollTrackingService {
         }
       })
       .populate('financeStaffId', 'firstName lastName employeeId')
+      .populate('payrollSpecialistId', 'firstName lastName employeeId')
       .sort({ createdAt: -1 })
       .exec();
 

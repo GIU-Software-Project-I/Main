@@ -56,18 +56,33 @@ export default function PayrollManagerDisputesPage() {
   };
 
   const handleConfirmation = async () => {
-    if (!selectedDispute) return;
+    if (!selectedDispute || !user?.id) {
+      setError('Missing dispute or user information');
+      return;
+    }
+
+    if (!selectedDispute.id) {
+      setError('Dispute ID is missing. Please refresh the page and try again.');
+      console.error('Selected dispute:', selectedDispute);
+      return;
+    }
 
     setLoading(true);
     setError(null);
     setSuccessMessage(null);
 
     try {
+      console.log('[DisputesPage] Confirming dispute:', { 
+        disputeId: selectedDispute.id, 
+        managerId: user.id, 
+        action: confirmationAction 
+      });
+      
       const response = await payrollManagerService.confirmDispute({
         disputeId: selectedDispute.id,
         confirmed: confirmationAction === 'approve',
         notes: confirmationNotes,
-      });
+      }, user.id);
 
       if (response.error) {
         setError(`Failed to ${confirmationAction} dispute: ${response.error}`);

@@ -55,18 +55,33 @@ export default function PayrollManagerClaimsPage() {
   };
 
   const handleConfirmation = async () => {
-    if (!selectedClaim) return;
+    if (!selectedClaim || !user?.id) {
+      setError('Missing claim or user information');
+      return;
+    }
+
+    if (!selectedClaim.id) {
+      setError('Claim ID is missing. Please refresh the page and try again.');
+      console.error('Selected claim:', selectedClaim);
+      return;
+    }
 
     setLoading(true);
     setError(null);
     setSuccessMessage(null);
 
     try {
+      console.log('[ClaimsPage] Confirming claim:', { 
+        claimId: selectedClaim.id, 
+        managerId: user.id, 
+        action: confirmationAction 
+      });
+      
       const response = await payrollManagerService.confirmClaim({
         claimId: selectedClaim.id,
         confirmed: confirmationAction === 'approve',
         notes: confirmationNotes,
-      });
+      }, user.id);
 
       if (response.error) {
         setError(`Failed to ${confirmationAction} claim: ${response.error}`);
