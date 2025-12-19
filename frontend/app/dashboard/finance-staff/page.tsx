@@ -81,6 +81,30 @@ export default function FinanceStaffPage() {
   const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
 
   useEffect(() => {
+    // Load cached data first
+    const cachedStats = localStorage.getItem('finance_staff_stats');
+    const cachedRuns = localStorage.getItem('finance_staff_recent_runs');
+
+    if (cachedStats) {
+      try {
+        setStats(JSON.parse(cachedStats));
+      } catch (e) {
+        console.error('Failed to parse cached stats', e);
+      }
+    }
+
+    if (cachedRuns) {
+      try {
+        setRecentRuns(JSON.parse(cachedRuns));
+      } catch (e) {
+        console.error('Failed to parse cached runs', e);
+      }
+    }
+
+    if (cachedStats || cachedRuns) {
+      setLoading(false);
+    }
+
     fetchStats();
   }, []);
 
@@ -114,23 +138,33 @@ export default function FinanceStaffPage() {
 
       const withPayslips = lockedRuns.length;
 
-      setStats({
+      const newStats = {
         pendingApprovals: pending,
         totalPayroll: totalPay,
         payslipsReady: withPayslips,
         fullyApproved: fullyApprovedCount,
         totalRuns: items.length,
-      });
+      };
+
+      setStats(newStats);
+      localStorage.setItem('finance_staff_stats', JSON.stringify(newStats));
 
       const sorted = [...items].sort((a: any, b: any) => {
         const dateA = new Date(a.createdAt || 0).getTime();
         const dateB = new Date(b.createdAt || 0).getTime();
         return dateB - dateA;
       });
-      setRecentRuns(sorted.slice(0, 5));
+      const newRecentRuns = sorted.slice(0, 5);
+      setRecentRuns(newRecentRuns);
+      localStorage.setItem('finance_staff_recent_runs', JSON.stringify(newRecentRuns));
+
     } catch (e: any) {
       console.error('Failed to fetch stats:', e);
-      setError(e?.message || 'Failed to load dashboard data');
+      // Only show error if we don't have cached data, or maybe show ephemeral?
+      // For now, setting error is fine, UI handles it.
+      if (!stats.totalRuns) {
+        setError(e?.message || 'Failed to load dashboard data');
+      }
     } finally {
       setLoading(false);
     }

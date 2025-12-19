@@ -101,7 +101,11 @@ export class UnifiedLeaveController {
     @Param('id') id: string,
     @Body() body: any,
   ) {
-    return this.service.updateLeaveType(id, { eligibility: body });
+   // return this.service.updateLeaveType(id, { eligibility: body });
+    return this.service.updateLeaveType(id, {
+    eligibility: body,
+    minTenureMonths: body?.minTenureMonths ?? null, // <<< يخزنها في field الموجود بالـ schema
+  });
   }
 
   // -------------------------
@@ -498,20 +502,32 @@ export class UnifiedLeaveController {
     return this.service.recalcEmployee(id);
   }
 
+  // @Post('accruals/reset-year')
+  // @Roles(SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  // async resetLeaveYear(
+  //   @Body()
+  //   body: {
+  //     strategy: 'hireDate' | 'calendarYear' | 'custom';
+  //     referenceDate?: string;
+  //   },
+  // ) {
+  //   const referenceDate = body.referenceDate
+  //     ? new Date(body.referenceDate)
+  //     : undefined;
+  //   return this.service.resetLeaveYear(body.strategy, referenceDate);
+  // }
+
   @Post('accruals/reset-year')
-  @Roles(SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
-  async resetLeaveYear(
-    @Body()
-    body: {
-      strategy: 'hireDate' | 'calendarYear' | 'custom';
-      referenceDate?: string;
-    },
-  ) {
-    const referenceDate = body.referenceDate
-      ? new Date(body.referenceDate)
-      : undefined;
-    return this.service.resetLeaveYear(body.strategy, referenceDate);
-  }
+@Roles(SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+async resetLeaveYear(@Body() body: {
+  strategy: 'hireDate' | 'calendarYear' | 'custom';
+  referenceDate?: string;
+  employeeId?: string;   // ✅ new (optional)
+  dryRun?: boolean;      // ✅ new (optional)
+}) {
+  const referenceDate = body.referenceDate ? new Date(body.referenceDate) : undefined;
+  return this.service.resetLeaveYear(body.strategy, referenceDate, body.employeeId, body.dryRun);
+}
 
   @Post('accruals/adjust-suspension')
   @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)

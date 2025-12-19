@@ -15,9 +15,7 @@ export default function DisputesPage() {
   const [reviewNotes, setReviewNotes] = useState('');
   const [rejectionRemarks, setRejectionRemarks] = useState('');
   const [filters, setFilters] = useState<DisputeFilters>({
-    status: 'all',
-    type: 'all',
-    priority: 'all'
+    status: 'all'
   });
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,25 +38,53 @@ export default function DisputesPage() {
       // Map backend data to frontend format
       if (response.data) {
         const mappedDisputes: PayrollDispute[] = response.data.map((dispute: any) => {
-          console.log('Mapping dispute:', dispute.disputeId, 'Status:', dispute.status);
+          console.log('Mapping dispute:', dispute.disputeId, 'Status:', dispute.status, 'PayslipId:', dispute.payslipId);
+
+          // Extract payslipId - could be:
+          // 1. A populated object with _id and payrollRunId
+          // 2. A raw ObjectId string
+          // 3. An ObjectId object with toString()
+          const payslipData = dispute.payslipId;
+          let payslipId = 'N/A';
+          let payPeriod = 'N/A';
+
+          if (payslipData) {
+            if (typeof payslipData === 'object' && payslipData !== null) {
+              // Populated object or ObjectId object
+              payslipId = payslipData._id?.toString?.() || payslipData._id || payslipData.toString?.() || String(payslipData);
+
+              // Try to get payrollRunId if populated
+              if (payslipData.payrollRunId) {
+                const payrollRun = payslipData.payrollRunId;
+                if (typeof payrollRun === 'object' && payrollRun !== null && payrollRun.payrollPeriod) {
+                  const periodDate = new Date(payrollRun.payrollPeriod);
+                  payPeriod = periodDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                }
+              }
+            } else if (typeof payslipData === 'string') {
+              // Raw ObjectId string
+              payslipId = payslipData;
+            }
+          }
+
           return {
             id: dispute._id,
+            disputeId: dispute.disputeId,
             employeeId: dispute.employeeId?._id || dispute.employeeId,
             employeeName: dispute.employeeId?.firstName && dispute.employeeId?.lastName
               ? `${dispute.employeeId.firstName} ${dispute.employeeId.lastName}`
               : 'Unknown',
             employeeNumber: dispute.employeeId?.employeeId || 'N/A',
-            department: dispute.department || 'N/A',
-            type: dispute.type || 'other',
             description: dispute.description,
-            amount: dispute.amount,
-            period: dispute.payslipId?.payPeriod || 'N/A',
+            payslipId: payslipId,
+            payPeriod: payPeriod,
             status: dispute.status,
             submittedAt: dispute.createdAt,
             reviewedAt: dispute.updatedAt,
             notes: dispute.resolutionComment,
             rejectionRemarks: dispute.rejectionReason,
-            priority: dispute.priority || 'medium'
+            refundId: dispute.refundId?.toString() || dispute.refundId || 'N/A',
+            refundStatus: dispute.refundStatus || 'N/A',
           } as PayrollDispute;
         });
         console.log('Mapped disputes:', mappedDisputes);
@@ -130,19 +156,9 @@ export default function DisputesPage() {
     setShowReviewModal(true);
   };
 
-  const getPriorityColor = (priority: PayrollDispute['priority']) => {
-    switch (priority) {
-      case 'critical': return 'bg-red-100 text-red-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const getStatusColor = (status: PayrollDispute['status']) => {
     switch (status) {
-      case 'under_review': return 'bg-blue-100 text-blue-800';
+      case 'under review': return 'bg-blue-100 text-blue-800';
       case 'pending payroll Manager approval': return 'bg-orange-100 text-orange-800';
       case 'approved': return 'bg-green-100 text-green-800';
       case 'rejected': return 'bg-red-100 text-red-800';
@@ -188,34 +204,6 @@ export default function DisputesPage() {
               <option value="pending payroll Manager approval">Pending Manager Approval</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
-            <select
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
-              value={filters.type || 'all'}
-              onChange={(e) => setFilters((prev: DisputeFilters) => ({ ...prev, type: e.target.value as DisputeFilters['type'] }))}
-            >
-              <option value="all">All Types</option>
-              <option value="salary">Salary</option>
-              <option value="deduction">Deduction</option>
-              <option value="hours">Hours</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
-            <select
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
-              value={filters.priority || 'all'}
-              onChange={(e) => setFilters((prev: DisputeFilters) => ({ ...prev, priority: e.target.value as DisputeFilters['priority'] }))}
-            >
-              <option value="all">All Priorities</option>
-              <option value="critical">Critical</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
             </select>
           </div>
           <div>
@@ -265,10 +253,10 @@ export default function DisputesPage() {
             <table className="w-full">
               <thead className="bg-slate-50">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Dispute ID</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Employee</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Priority</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Description</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Pay Period</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Submitted</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
@@ -278,26 +266,23 @@ export default function DisputesPage() {
                 {disputes.map((dispute) => (
                   <tr key={dispute.id} className="hover:bg-slate-50">
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-medium text-slate-900">{dispute.disputeId}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-slate-900">{dispute.employeeName}</div>
                         <div className="text-xs text-slate-500">{dispute.employeeNumber}</div>
-                        <div className="text-xs text-slate-500">{dispute.department}</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-slate-600 capitalize">{dispute.type}</span>
+                    <td className="px-6 py-4 min-w-[300px]">
+                      <span className="text-sm text-slate-600">{dispute.description}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                      {dispute.amount ? `$${dispute.amount.toLocaleString()}` : 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(dispute.priority)}`}>
-                        {dispute.priority}
-                      </span>
+                      {dispute.payPeriod || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(dispute.status)}`}>
-                        {dispute.status.replace('_', ' ')}
+                        {dispute.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
@@ -358,44 +343,55 @@ export default function DisputesPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <label className="text-sm font-medium text-slate-500">Dispute ID</label>
+                  <p className="text-slate-900 font-medium">{selectedDispute.disputeId}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-500">Status</label>
+                  <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedDispute.status)}`}>
+                    {selectedDispute.status}
+                  </span>
+                </div>
+                <div>
                   <label className="text-sm font-medium text-slate-500">Employee</label>
                   <p className="text-slate-900">{selectedDispute.employeeName}</p>
                   <p className="text-sm text-slate-600">{selectedDispute.employeeNumber}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-slate-500">Department</label>
-                  <p className="text-slate-900">{selectedDispute.department}</p>
+                  <label className="text-sm font-medium text-slate-500">Employee ID</label>
+                  <p className="text-slate-900 text-sm font-mono">{selectedDispute.employeeId}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-slate-500">Type</label>
-                  <p className="capitalize text-slate-900">{selectedDispute.type}</p>
+                  <label className="text-sm font-medium text-slate-500">Pay Period</label>
+                  <p className="text-slate-900">{selectedDispute.payPeriod || 'N/A'}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-slate-500">Amount</label>
-                  <p className="text-slate-900">
-                    {selectedDispute.amount ? `$${selectedDispute.amount.toLocaleString()}` : 'N/A'}
-                  </p>
+                  <label className="text-sm font-medium text-slate-500">Payslip ID</label>
+                  <p className="text-slate-900 text-sm font-mono bg-slate-50 px-2 py-1 rounded inline-block mt-1">{selectedDispute.payslipId || 'N/A'}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-500">Priority</label>
-                  <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(selectedDispute.priority)}`}>
-                    {selectedDispute.priority}
-                  </span>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-500">Status</label>
-                  <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedDispute.status)}`}>
-                    {selectedDispute.status.replace('_', ' ')}
-                  </span>
-                </div>
+                {(selectedDispute.refundId || selectedDispute.refundStatus) && selectedDispute.refundId !== 'N/A' && (
+                  <>
+                    <div className="col-span-2 mt-2 pt-2 border-t">
+                      <h4 className="font-semibold text-slate-900">Refund Information</h4>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-500">Refund ID</label>
+                      <p className="text-slate-900 text-sm font-mono bg-slate-50 px-2 py-1 rounded inline-block mt-1">{selectedDispute.refundId}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-500">Refund Status</label>
+                      <div className="mt-1">
+                        <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                          {selectedDispute.refundStatus}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-500">Description</label>
                 <p className="text-slate-900 mt-1">{selectedDispute.description}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-500">Period</label>
-                <p className="text-slate-900">{selectedDispute.period}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-500">Submitted</label>
@@ -403,20 +399,14 @@ export default function DisputesPage() {
               </div>
               {selectedDispute.notes && (
                 <div>
-                  <label className="text-sm font-medium text-slate-500">Notes</label>
+                  <label className="text-sm font-medium text-slate-500">Resolution Comment</label>
                   <p className="text-slate-900 mt-1">{selectedDispute.notes}</p>
                 </div>
               )}
-              {selectedDispute.attachments && selectedDispute.attachments.length > 0 && (
+              {selectedDispute.status === 'rejected' && selectedDispute.rejectionRemarks && (
                 <div>
-                  <label className="text-sm font-medium text-slate-500">Attachments</label>
-                  <div className="mt-1 space-y-1">
-                    {selectedDispute.attachments.map((attachment, index) => (
-                      <div key={index} className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
-                        {attachment}
-                      </div>
-                    ))}
-                  </div>
+                  <label className="text-sm font-medium text-slate-500">Rejection Reason</label>
+                  <p className="text-red-600 mt-1">{selectedDispute.rejectionRemarks}</p>
                 </div>
               )}
             </div>
@@ -458,7 +448,7 @@ export default function DisputesPage() {
                   {reviewAction === 'approve' ? 'Review Notes' : 'Rejection Remarks'}
                 </label>
                 <textarea
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                   rows={3}
                   placeholder={reviewAction === 'approve' ? "Add your review notes..." : "Provide rejection remarks..."}
                   value={reviewAction === 'approve' ? reviewNotes : rejectionRemarks}

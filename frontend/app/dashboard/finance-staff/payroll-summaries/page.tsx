@@ -36,6 +36,7 @@ export default function PayrollSummariesPage() {
   const [loading, setLoading] = useState(false);
   /* Removed unused showGenerateModal state */
   const [selectedReport, setSelectedReport] = useState<GeneratedReport | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Form state
   const [reportType, setReportType] = useState<'standard-summary' | 'tax-report' | 'payslip-history'>('standard-summary');
@@ -62,14 +63,22 @@ export default function PayrollSummariesPage() {
         console.error('Failed to load saved reports:', error);
       }
     }
+    setIsLoaded(true);
   }, []);
 
-  // Save reports to localStorage when they change
+  // Save reports to localStorage when they change, ONLY after initial load
   useEffect(() => {
+    if (!isLoaded) return;
+
+    // Check if we effectively deleted everything or have valid reports
     const deletedReports = JSON.parse(localStorage.getItem('deletedFinanceStaffReports') || '[]') as string[];
-    const reportsToSave = reports.filter(r => !deletedReports.includes(r.id));
-    localStorage.setItem('financeStaffReports', JSON.stringify(reportsToSave));
-  }, [reports]);
+
+    // We should save the current state.
+    // NOTE: This assumes 'reports' state is the source of truth for the list.
+    // If reports were filtered on load, saving them back is fine.
+
+    localStorage.setItem('financeStaffReports', JSON.stringify(reports));
+  }, [reports, isLoaded]);
 
   const handleGenerateReport = async () => {
     setLoading(true);

@@ -20,14 +20,16 @@ export class NotificationService {
      */
     async getNotificationsByUser(userId: string) {
         try {
+            this.logger.log(`Fetching notifications for user: ${userId}`);
             const notifications = await this.notificationModel
                 .find({ to: new Types.ObjectId(userId) })
                 .sort({ createdAt: -1 })
                 .lean();
 
+            this.logger.log(`Found ${notifications.length} notifications for user: ${userId}`);
             return notifications;
         } catch (error) {
-            this.logger.error('Failed to fetch notifications', error);
+            this.logger.error(`Failed to fetch notifications for user: ${userId}`, error);
             throw error;
         }
     }
