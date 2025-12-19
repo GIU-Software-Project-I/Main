@@ -18,6 +18,8 @@ import {
 } from '@/app/services/recruitment';
 import { useAuth } from '@/app/context/AuthContext';
 import { JobOffer, Candidate, Application, JobRequisition } from '@/app/types/recruitment';
+import { OfferResponseStatus } from '@/app/types/enums';
+import { getOfferResponseStatusConfig } from '@/app/utils/recruitment-theme';
 
 // ==================== INTERFACES ====================
 // Local display interface that combines offer + denormalized data
@@ -374,14 +376,15 @@ export default function OffersPage() {
 
   // ==================== STATUS HELPERS ====================
   const getStatusBadge = (status: OfferDisplay['status']) => {
+    // Black/White theme styles
     const styles: Record<OfferDisplay['status'], string> = {
-      pending_approval: 'bg-amber-100 text-amber-700',
-      approved: 'bg-blue-100 text-blue-700',
-      rejected: 'bg-red-100 text-red-700',
-      sent: 'bg-purple-100 text-purple-700',
-      signed: 'bg-emerald-100 text-emerald-700 font-bold',
-      accepted: 'bg-emerald-600 text-white',
-      declined: 'bg-slate-100 text-slate-700',
+      pending_approval: 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700',
+      approved: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-400 dark:border-slate-600',
+      rejected: 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-400 dark:border-slate-600',
+      sent: 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700',
+      signed: 'bg-slate-700 dark:bg-slate-300 text-white dark:text-black border border-slate-800 dark:border-slate-400 font-semibold',
+      accepted: 'bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-bold',
+      declined: 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-400 dark:border-slate-600',
     };
     const labels: Record<OfferDisplay['status'], string> = {
       pending_approval: 'Pending Approval',
@@ -420,7 +423,7 @@ export default function OffersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black dark:border-white"></div>
       </div>
     );
   }
@@ -453,12 +456,13 @@ export default function OffersPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: 'Pending', count: offers.filter((o) => o.status === 'pending_approval').length, color: 'bg-amber-500' },
-          { label: 'Approved', count: offers.filter((o) => o.status === 'approved').length, color: 'bg-blue-500' },
-          { label: 'Sent', count: offers.filter((o) => o.status === 'sent').length, color: 'bg-purple-500' },
-          { label: 'Signed', count: offers.filter((o) => o.status === 'signed').length, color: 'bg-emerald-500' },
-          { label: 'Accepted', count: offers.filter((o) => o.status === 'accepted').length, color: 'bg-emerald-600' },
-          { label: 'Rejected', count: offers.filter((o) => o.status === 'rejected' || o.status === 'declined').length, color: 'bg-red-500' },
+          // Black/White theme - using opacity and borders for distinction
+          { label: 'Pending', count: offers.filter((o) => o.status === 'pending_approval').length, color: 'bg-slate-200 dark:bg-slate-700' },
+          { label: 'Approved', count: offers.filter((o) => o.status === 'approved').length, color: 'bg-slate-400 dark:bg-slate-600' },
+          { label: 'Sent', count: offers.filter((o) => o.status === 'sent').length, color: 'bg-slate-500 dark:bg-slate-500' },
+          { label: 'Signed', count: offers.filter((o) => o.status === 'signed').length, color: 'bg-slate-700 dark:bg-slate-300' },
+          { label: 'Accepted', count: offers.filter((o) => o.status === 'accepted').length, color: 'bg-black dark:bg-white' },
+          { label: 'Rejected', count: offers.filter((o) => o.status === 'rejected' || o.status === 'declined').length, color: 'bg-slate-300 dark:bg-slate-600' },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -481,14 +485,14 @@ export default function OffersPage() {
           <button
             key={tab}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${filter === tab
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+              ? 'border-black dark:border-white text-black dark:text-white'
+              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             onClick={() => setFilter(tab)}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
             {tab === 'pending' && pendingCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded-full">
+              <span className="ml-1 px-1.5 py-0.5 text-xs bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full border border-slate-300 dark:border-slate-600">
                 {pendingCount}
               </span>
             )}
@@ -595,7 +599,7 @@ export default function OffersPage() {
                           size="sm"
                           onClick={() => handleTriggerPreboarding(offer)}
                           disabled={triggeringPreboarding === offer.id}
-                          className="bg-indigo-600 hover:bg-indigo-700"
+                          className="bg-black dark:bg-white text-white dark:text-black hover:bg-slate-800 dark:hover:bg-slate-100 border border-black dark:border-white"
                         >
                           {triggeringPreboarding === offer.id ? (
                             <>
@@ -659,10 +663,10 @@ export default function OffersPage() {
                 ) : (
                   logs.map((log) => (
                     <div key={log.id} className="flex gap-3 p-3 bg-slate-50 rounded-lg">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${log.type === 'email' ? 'bg-blue-100 text-blue-600' :
-                        log.type === 'system' ? 'bg-emerald-100 text-emerald-600' :
-                          'bg-slate-100 text-slate-600'
-                        }`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border ${log.type === 'email' ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700' :
+                        log.type === 'system' ? 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border-slate-400 dark:border-slate-600' :
+                        'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+                      }`}>
                         {log.type === 'email' ? (
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -701,8 +705,8 @@ export default function OffersPage() {
             <div className="fixed inset-0 bg-black/50" onClick={() => setShowApprovalModal(false)} />
             <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
               <div className="text-center">
-                <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-slate-400 dark:border-slate-600">
+                  <svg className="w-6 h-6 text-slate-800 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
@@ -719,7 +723,7 @@ export default function OffersPage() {
                   {selectedOffer.signingBonus && selectedOffer.signingBonus > 0 && (
                     <div className="flex justify-between mb-1">
                       <span className="text-slate-500">Signing Bonus</span>
-                      <span className="font-medium text-emerald-600">{formatCurrency(selectedOffer.signingBonus)}</span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200">{formatCurrency(selectedOffer.signingBonus)}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
@@ -748,8 +752,8 @@ export default function OffersPage() {
             <div className="fixed inset-0 bg-black/50" onClick={() => setShowRejectModal(false)} />
             <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
               <div className="text-center">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-slate-400 dark:border-slate-600">
+                  <svg className="w-6 h-6 text-slate-800 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </div>
@@ -785,8 +789,8 @@ export default function OffersPage() {
             <div className="fixed inset-0 bg-black/50" onClick={() => setShowPreboardingModal(false)} />
             <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
               <div className="text-center">
-                <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-slate-400 dark:border-slate-600">
+                  <svg className="w-6 h-6 text-slate-800 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
                 </div>
@@ -794,29 +798,29 @@ export default function OffersPage() {
                 <p className="text-sm text-slate-600 mb-4">
                   Start the onboarding process for <strong>{preboardingOffer.candidateName}</strong>?
                 </p>
-                <div className="bg-indigo-50 rounded-lg p-4 mb-6 text-left">
-                  <h4 className="font-medium text-indigo-900 mb-2">This will initiate:</h4>
-                  <ul className="text-sm text-indigo-800 space-y-1">
+                <div className="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-4 mb-6 text-left">
+                  <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2">This will initiate:</h4>
+                  <ul className="text-sm text-slate-700 dark:text-slate-300 space-y-1">
                     <li className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-slate-700 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       Employment contract preparation
                     </li>
                     <li className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-slate-700 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       Document collection requests
                     </li>
                     <li className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-slate-700 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       IT equipment setup tasks
                     </li>
                     <li className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-slate-700 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       Welcome email to candidate
