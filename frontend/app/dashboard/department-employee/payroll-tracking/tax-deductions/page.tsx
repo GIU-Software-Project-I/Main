@@ -169,7 +169,7 @@ export default function TaxDeductionsPage() {
               Across {taxData.length} payslip{taxData.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <div className="text-6xl"></div>
+          <div className="text-6xl">🏛️</div>
         </div>
       </div>
 
@@ -250,7 +250,7 @@ export default function TaxDeductionsPage() {
                         )}
                         {tax.lawReference && (
                           <p className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                            <span></span>
+                            <span>📜</span>
                             <span>Law Reference: {tax.lawReference}</span>
                           </p>
                         )}
@@ -339,4 +339,3 @@ export default function TaxDeductionsPage() {
     </div>
   );
 }
-
