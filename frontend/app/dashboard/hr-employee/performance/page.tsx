@@ -89,6 +89,8 @@ export default function HREmployeePerformancePage() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [selectedCycle, setSelectedCycle] = useState<Cycle | null>(null);
 
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -469,7 +471,10 @@ export default function HREmployeePerformancePage() {
                           : '-'}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button className="text-sm text-primary hover:text-primary/80 font-medium">
+                        <button
+                          onClick={() => setSelectedAssignment(assignment)}
+                          className="text-sm text-primary hover:text-primary/80 font-medium"
+                        >
                           View Details
                         </button>
                       </td>
@@ -648,8 +653,81 @@ export default function HREmployeePerformancePage() {
             </div>
           </div>
         )}
+
+        {/* View Details Modal */}
+        {selectedAssignment && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-card rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-foreground">Assignment Details</h3>
+                <button
+                  onClick={() => setSelectedAssignment(null)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Cycle</p>
+                    <p className="font-medium text-foreground">{selectedAssignment.cycleId.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <p className="font-medium text-foreground">
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${getStatusColor(selectedAssignment.status)}`}>
+                        {selectedAssignment.status.replace('_', ' ')}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Employee</p>
+                    <p className="font-medium text-foreground">
+                      {selectedAssignment.employeeProfileId.firstName} {selectedAssignment.employeeProfileId.lastName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{selectedAssignment.employeeProfileId.employeeNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Department</p>
+                    <p className="font-medium text-foreground">{selectedAssignment.employeeProfileId.primaryDepartmentId?.name || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Manager</p>
+                    <p className="font-medium text-foreground">
+                      {selectedAssignment.managerProfileId ? `${selectedAssignment.managerProfileId.firstName} ${selectedAssignment.managerProfileId.lastName}` : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Due Date</p>
+                    <p className="font-medium text-foreground">
+                      {selectedAssignment.dueDate ? new Date(selectedAssignment.dueDate).toLocaleDateString() : '-'}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground">Created At</p>
+                    <p className="font-medium text-foreground">
+                      {new Date(selectedAssignment.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-6 py-4 border-t border-border flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setSelectedAssignment(null)}
+                  className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-
