@@ -783,7 +783,7 @@ const handleCreatePayType = async () => {
                   <div className="flex flex-col gap-1">
                     <span className="text-sm text-primary">Status</span>
 <span className={`
-  inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-1
+  inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-medium mt-1 w-fit
   ${selectedPayType.status === 'approved' 
     ? 'bg-green-100 text-green-800' 
     : selectedPayType.status === 'draft' 

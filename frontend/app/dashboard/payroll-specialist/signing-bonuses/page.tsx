@@ -976,27 +976,29 @@ export default function SigningBonusesPage() {
                   <h4 className="text-lg font-bold text-foreground mb-2">{selectedSigningBonus.positionName}</h4>
                   <div className="flex flex-col gap-1">
                     <span className="text-sm text-primary">Status</span>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-1
-                      ${selectedSigningBonus.status === 'approved'
-                        ? 'bg-green-100 text-green-800'
-                        : selectedSigningBonus.status === 'draft'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : selectedSigningBonus.status === 'rejected'
-                        ? 'bg-red-100 text-red-800'
-                        : selectedSigningBonus.status === 'pending_approval'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-muted/20 text-foreground'}
-                    `}>
-                      {selectedSigningBonus.status === 'approved'
-                        ? 'Approved'
-                        : selectedSigningBonus.status === 'draft'
-                        ? 'Draft'
-                        : selectedSigningBonus.status === 'rejected'
-                        ? 'Rejected'
-                        : selectedSigningBonus.status === 'pending_approval'
-                        ? 'Pending Approval'
-                        : selectedSigningBonus.status}
-                    </span>
+                   <span className={`
+  inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-medium mt-1 w-fit
+  ${selectedSigningBonus.status === 'approved' 
+    ? 'bg-green-100 text-green-800' 
+    : selectedSigningBonus.status === 'draft' 
+    ? 'bg-yellow-100 text-yellow-800'
+    : selectedSigningBonus.status === 'rejected' 
+    ? 'bg-red-100 text-red-800'
+    : selectedSigningBonus.status === 'pending_approval'
+    ? 'bg-yellow-100 text-yellow-800'
+    : 'bg-muted/20 text-foreground'
+  }
+`}>
+  {selectedSigningBonus.status === 'approved' 
+    ? 'Approved' 
+    : selectedSigningBonus.status === 'draft' 
+    ? 'Draft'
+    : selectedSigningBonus.status === 'rejected' 
+    ? 'Rejected'
+    : selectedSigningBonus.status === 'pending_approval'
+    ? 'Pending Approval'
+    : selectedSigningBonus.status}
+</span>
                   </div>
                 </div>
               </div>
