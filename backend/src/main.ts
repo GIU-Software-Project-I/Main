@@ -85,28 +85,25 @@ async function bootstrap() {
     // });
 
     app.enableCors({
-        origin: (origin, callback) => {
-            // Allow requests with no origin (like mobile apps, curl, Postman)
-            if (!origin) return callback(null, true);
-            // Allow any localhost/127.0.0.1 origin during development
-            if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-                return callback(null, true);
-            }
-            // Allow Vercel frontend domain
-            if (origin === 'https://main-nine-rose-81.vercel.app') {
-                return callback(null, true);
-            }
-            // Allow any origin in development
-            if (process.env.NODE_ENV !== 'production') {
-                return callback(null, true);
-            }
-            // Otherwise, block
-            return callback(new Error('Not allowed by CORS'), false);
-        },
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-        exposedHeaders: ['Set-Cookie'],
+      origin: (origin, callback) => {
+        const allowedOrigins = [
+          'https://main-nine-rose-81.vercel.app',
+          'https://main-2xxjt6stv-osamaloays-projects.vercel.app',
+          'https://main-git-main-osamaloays-projects.vercel.app',
+        ];
+        // Allow localhost for development
+        if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+          return callback(null, true);
+        }
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'), false);
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+      exposedHeaders: ['Set-Cookie'],
     });
     const config = new DocumentBuilder()
         .setTitle('HR System API')
