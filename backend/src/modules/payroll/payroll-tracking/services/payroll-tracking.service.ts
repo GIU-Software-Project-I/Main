@@ -70,8 +70,8 @@ export class PayrollTrackingService {
       payrollRunId: payslip.payrollRunId,
       earningsDetails: payslip.earningsDetails,
       deductionsDetails: payslip.deductionsDetails,
-      totalGrossSalary: payslip.totalGrossSalary,
-      totalDeductions: payslip.totaDeductions,
+      totalGrossSalary: this.resolveTotalGrossSalary(payslip),
+      totalDeductions: this.resolveTotalDeductions(payslip),
       netPay: payslip.netPay,
       paymentStatus: payslip.paymentStatus,
       createdAt: (payslip as any)?.createdAt,
@@ -106,13 +106,13 @@ export class PayrollTrackingService {
         bonuses: payslip.earningsDetails?.bonuses || [],
         benefits: payslip.earningsDetails?.benefits || [],
         refunds: payslip.earningsDetails?.refunds || [],
-        totalEarnings: payslip.totalGrossSalary || 0,
+        totalEarnings: this.resolveTotalGrossSalary(payslip) || 0,
       },
       deductions: {
         taxes: payslip.deductionsDetails?.taxes || [],
         insurances: payslip.deductionsDetails?.insurances || [],
         penalties: payslip.deductionsDetails?.penalties || null,
-        totalDeductions: payslip.totaDeductions || 0,
+        totalDeductions: this.resolveTotalDeductions(payslip) || 0,
       },
       netPay: payslip.netPay || 0,
       createdAt: (payslip as any)?.createdAt,
@@ -469,10 +469,7 @@ async getLeaveCompensation(employeeId: string) {
     return payslips.map(payslip => {
       const taxes = (payslip.deductionsDetails?.taxes || []) as any[];
 
-      const taxableBase =
-        payslip.totalGrossSalary ||
-        (payslip.earningsDetails as any)?.baseSalary ||
-        0;
+      const taxableBase = this.resolveTotalGrossSalary(payslip) || (payslip.earningsDetails as any)?.baseSalary || 0;
 
       const taxDetails = taxes.map((tax: any) => {
         // In this codebase, payslip.deductionsDetails.taxes stores embedded Tax Rule config
@@ -1099,10 +1096,12 @@ async getLeaveCompensation(employeeId: string) {
     
     return payslips.map(payslip => ({
       payslipId: payslip._id,
-      grossSalary: payslip.totalGrossSalary || 0,
+      grossSalary: this.resolveTotalGrossSalary(payslip) || 0,
       netSalary: payslip.netPay || 0,
       status: payslip.paymentStatus,
-      totalDeductions: payslip.totaDeductions || 0,
+      totalDeductions: this.resolveTotalDeductions(payslip) || 0,
+      earningsDetails: payslip.earningsDetails || {},
+      deductionsDetails: payslip.deductionsDetails || {},
       createdAt: (payslip as any)?.createdAt || new Date(),
     }));
   }
@@ -1166,7 +1165,7 @@ async getLeaveCompensation(employeeId: string) {
     const summary = payslips.reduce(
       (acc, payslip: any) => {
         const taxableBase =
-          payslip.totalGrossSalary || payslip.earningsDetails?.baseSalary || 0;
+          this.resolveTotalGrossSalary(payslip) || payslip.earningsDetails?.baseSalary || 0;
         const totalTaxForSlip = (payslip.deductionsDetails?.taxes || []).reduce(
           (sum: number, tax: any) => sum + (tax.amount || 0),
           0,
@@ -1275,11 +1274,11 @@ async getLeaveCompensation(employeeId: string) {
         };
       }
       
-      acc[deptId].totalGross += payslip.totalGrossSalary || 0;
+      acc[deptId].totalGross += this.resolveTotalGrossSalary(payslip) || 0;
       acc[deptId].totalNet += payslip.netPay || 0;
       acc[deptId].totalTax += payslip.deductionsDetails?.taxes?.reduce((sum, t) => sum + ((t as any)?.amount || 0), 0) || 0;
       acc[deptId].totalInsurance += payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + ((i as any)?.amount || 0), 0) || 0;
-      acc[deptId].totalDeductions += payslip.totaDeductions || 0;
+      acc[deptId].totalDeductions += this.resolveTotalDeductions(payslip) || 0;
       acc[deptId].employees.add(empIdStr);
       
       return acc;
@@ -1338,7 +1337,7 @@ async getLeaveCompensation(employeeId: string) {
     }).exec();
     
     const summary = {
-      totalGross: payslips.reduce((sum, p) => sum + (p.totalGrossSalary || 0), 0),
+      totalGross: payslips.reduce((sum, p) => sum + (this.resolveTotalGrossSalary(p) || 0), 0),
       totalNet: payslips.reduce((sum, p) => sum + (p.netPay || 0), 0),
       totalTax: payslips.reduce((sum, p) => sum + (p.deductionsDetails?.taxes?.reduce((s, t) => s + ((t as any)?.amount || 0), 0) || 0), 0),
       totalInsurance: payslips.reduce((sum, p) => sum + (p.deductionsDetails?.insurances?.reduce((s, i) => s + ((i as any)?.amount || 0), 0) || 0), 0),
@@ -1794,12 +1793,57 @@ async getLeaveCompensation(employeeId: string) {
         };
       }
       
-      acc[dept].totalGross += payslip.totalGrossSalary || 0;
+      acc[dept].totalGross += this.resolveTotalGrossSalary(payslip) || 0;
       acc[dept].totalNet += payslip.netPay || 0;
       acc[dept].employeeCount.add(payslip.employeeId.toString());
       
       return acc;
     }, {});
+  }
+
+  // Helper: resolve total deductions from payslip robustly (handles legacy typo and computes if missing)
+  private resolveTotalDeductions(payslip: any): number {
+    if (!payslip) return 0;
+
+    // Prefer existing numeric fields (handle legacy typo 'totaDeductions')
+    const asAny: any = payslip as any;
+    if (typeof asAny.totaDeductions === 'number') return asAny.totaDeductions;
+    if (typeof asAny.totalDeductions === 'number') return asAny.totalDeductions;
+    if (typeof asAny.totals?.totalDeductions === 'number') return asAny.totals.totalDeductions;
+
+    // Otherwise compute from deductionsDetails
+    const dd = payslip.deductionsDetails || {};
+    const taxes = Array.isArray(dd.taxes) ? dd.taxes : [];
+    const insurances = Array.isArray(dd.insurances) ? dd.insurances : [];
+
+    let penaltiesArr: any[] = [];
+    if (Array.isArray(dd.penalties)) penaltiesArr = dd.penalties;
+    else if (Array.isArray(dd.penalties?.penalties)) penaltiesArr = dd.penalties.penalties;
+
+    const sumFrom = (arr: any[]) => arr.reduce((s: number, it: any) => s + (typeof it?.amount === 'number' ? it.amount : (typeof it === 'number' ? it : 0)), 0);
+
+    const total = sumFrom(taxes) + sumFrom(insurances) + sumFrom(penaltiesArr);
+    return Math.round((total || 0) * 100) / 100;
+  }
+
+  // Helper: resolve total gross salary from payslip (prefer stored total, else sum earnings details)
+  private resolveTotalGrossSalary(payslip: any): number {
+    if (!payslip) return 0;
+    const asAny: any = payslip as any;
+    if (typeof asAny.totalGrossSalary === 'number') return asAny.totalGrossSalary;
+    if (typeof asAny.totals?.totalGrossSalary === 'number') return asAny.totals.totalGrossSalary;
+
+    const ed = payslip.earningsDetails || {};
+    const base = typeof ed.baseSalary === 'number' ? ed.baseSalary : (typeof payslip.baseSalary === 'number' ? payslip.baseSalary : 0);
+    const sumArr = (arr: any[]) => Array.isArray(arr) ? arr.reduce((s: number, it: any) => s + (typeof it?.amount === 'number' ? it.amount : (typeof it === 'number' ? it : 0)), 0) : 0;
+
+    const allowances = sumArr(ed.allowances);
+    const bonuses = sumArr(ed.bonuses);
+    const benefits = sumArr(ed.benefits);
+    const refunds = sumArr(ed.refunds);
+
+    const total = base + allowances + bonuses + benefits + refunds;
+    return Math.round((total || 0) * 100) / 100;
   }
 
   private generateTaxReport(payslips: any[], year: number) {

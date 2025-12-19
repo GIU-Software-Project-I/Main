@@ -19,6 +19,8 @@ interface BackendSalaryRecord {
   netSalary: number;
   status: string;
   totalDeductions: number;
+  earningsDetails?: any;
+  deductionsDetails?: any;
   createdAt: string;
 }
 
@@ -30,8 +32,11 @@ interface SalaryRecord {
   grossSalary: number;
   netSalary: number;
   totalDeductions: number;
+  taxesTotal?: number;
+  insurancesTotal?: number;
+  penaltiesTotal?: number;
   currency: string;
-  contractType: string;
+  contractType?: string;
   payGrade?: string;
   reason?: string;
   status: string;
@@ -55,16 +60,30 @@ function safeNumber(value: unknown): number {
 }
 
 // Map backend salary record to frontend format
-function mapSalaryRecord(record: BackendSalaryRecord): SalaryRecord {
+function mapSalaryRecord(record: BackendSalaryRecord, currency: string = 'EGP'): SalaryRecord {
+  const taxes = Array.isArray(record.deductionsDetails?.taxes) ? record.deductionsDetails.taxes : [];
+  const insurances = Array.isArray(record.deductionsDetails?.insurances) ? record.deductionsDetails.insurances : [];
+  const penaltiesArr = Array.isArray(record.deductionsDetails?.penalties) ? record.deductionsDetails.penalties : (Array.isArray(record.deductionsDetails?.penalties?.penalties) ? record.deductionsDetails.penalties.penalties : []);
+
+  const sum = (arr: any[]) => arr.reduce((s: number, it: any) => s + (typeof it?.amount === 'number' ? it.amount : 0), 0);
+
+  const taxesTotal = sum(taxes);
+  const insurancesTotal = sum(insurances);
+  const penaltiesTotal = sum(penaltiesArr);
+
+  const baseSalary = safeNumber(record.earningsDetails?.baseSalary) || safeNumber(record.grossSalary);
+
   return {
     id: record.payslipId,
     effectiveDate: record.createdAt,
-    baseSalary: safeNumber(record.grossSalary),
+    baseSalary,
     grossSalary: safeNumber(record.grossSalary),
     netSalary: safeNumber(record.netSalary),
     totalDeductions: safeNumber(record.totalDeductions),
-    currency: 'USD',
-    contractType: 'Full-Time',
+    taxesTotal: Math.round(taxesTotal * 100) / 100,
+    insurancesTotal: Math.round(insurancesTotal * 100) / 100,
+    penaltiesTotal: Math.round(penaltiesTotal * 100) / 100,
+    currency,
     status: record.status || 'N/A',
   };
 }
@@ -89,8 +108,11 @@ export default function SalaryHistoryPage() {
         
         // Fetch current base salary
         const baseSalaryResponse = await payrollTrackingService.getBaseSalary(user.id);
+        let derivedCurrency = 'EGP';
         if (baseSalaryResponse?.data) {
           const data = baseSalaryResponse.data as BaseSalaryInfo;
+          // Derive currency immediately from API response (don't rely on state update timing)
+          derivedCurrency = data.currency || 'EGP';
           // Ensure numeric fields are safe
           setBaseSalaryInfo({
             ...data,
@@ -100,11 +122,12 @@ export default function SalaryHistoryPage() {
         } else {
           setBaseSalaryInfo(null);
         }
-        
+
         // Fetch salary history
         const historyResponse = await payrollTrackingService.getSalaryHistory(user.id);
         const historyData = (historyResponse?.data || []) as BackendSalaryRecord[];
-        setSalaryHistory(historyData.map(mapSalaryRecord));
+        // Use the derived currency from the base salary response instead of stale state
+        setSalaryHistory(historyData.map(r => mapSalaryRecord(r, derivedCurrency)));
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load salary information';
         setError(errorMessage);
@@ -367,9 +390,10 @@ export default function SalaryHistoryPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="font-medium text-red-600">
-                            -{formatCurrency(record.totalDeductions, record.currency)}
-                          </span>
+                          <div className="font-medium text-red-600">-{formatCurrency(record.totalDeductions, record.currency)}</div>
+                          <div className="text-xs text-slate-500 mt-1">
+                            Taxes: {formatCurrency(record.taxesTotal || 0, record.currency)} • Ins: {formatCurrency(record.insurancesTotal || 0, record.currency)} • Pen: {formatCurrency(record.penaltiesTotal || 0, record.currency)}
+                          </div>
                         </td>
                         <td className="px-6 py-4">
                           <span className="font-bold text-blue-600">

@@ -35,6 +35,78 @@ export interface UpdateRefundDto {
   status?: string;
 }
 
+// Helper function to build query strings
+const buildQueryString = (params: Record<string, any>): string => {
+  if (!params || Object.keys(params).length === 0) {
+    return '';
+  }
+
+  const searchParams = new URLSearchParams();
+  
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      if (Array.isArray(value)) {
+        // Handle arrays: convert to comma-separated string or multiple params
+        value.forEach(item => {
+          searchParams.append(key, String(item));
+        });
+      } else {
+        searchParams.append(key, String(value));
+      }
+    }
+  });
+  
+  const queryString = searchParams.toString();
+  return queryString ? `?${queryString}` : '';
+};
+
+// Helpers for resolving totals (moved out to avoid referencing the service during initialization)
+const resolveTotalDeductions = (backendPayslip: any) => {
+  if (!backendPayslip) return 0;
+  if (typeof backendPayslip.totalDeductions === 'number') return backendPayslip.totalDeductions;
+  if (typeof backendPayslip.totaDeductions === 'number') return backendPayslip.totaDeductions;
+
+  const taxes = Array.isArray(backendPayslip.deductionsDetails?.taxes)
+    ? backendPayslip.deductionsDetails.taxes.reduce((s: number, t: any) => s + (t.amount || 0), 0)
+    : (backendPayslip.deductionsDetails?.taxAmount || 0);
+
+  const insurances = Array.isArray(backendPayslip.deductionsDetails?.insurances)
+    ? backendPayslip.deductionsDetails.insurances.reduce((s: number, i: any) => s + (i.amount || 0), 0)
+    : (backendPayslip.deductionsDetails?.insuranceAmount || 0);
+
+  let penalties = 0;
+  if (Array.isArray(backendPayslip.deductionsDetails?.penalties)) {
+    penalties = backendPayslip.deductionsDetails.penalties.reduce((s: number, p: any) => s + (p.amount || 0), 0);
+  } else if (typeof backendPayslip.deductionsDetails?.penalties?.totalAmount === 'number') {
+    penalties = backendPayslip.deductionsDetails.penalties.totalAmount;
+  } else {
+    penalties = backendPayslip.deductionsDetails?.penaltiesAmount || 0;
+  }
+
+  return Number((taxes || 0) + (insurances || 0) + (penalties || 0));
+};
+
+const resolveTotalGrossSalary = (backendPayslip: any) => {
+  if (!backendPayslip) return 0;
+  if (typeof backendPayslip.totalGrossSalary === 'number') return backendPayslip.totalGrossSalary;
+  if (typeof backendPayslip.totals?.totalGrossSalary === 'number') return backendPayslip.totals.totalGrossSalary;
+
+  const base = backendPayslip.earningsDetails?.baseSalary || 0;
+  const allowances = Array.isArray(backendPayslip.earningsDetails?.allowances)
+    ? backendPayslip.earningsDetails.allowances.reduce((s: number, a: any) => s + (a.amount || 0), 0)
+    : 0;
+  const bonuses = Array.isArray(backendPayslip.earningsDetails?.bonuses)
+    ? backendPayslip.earningsDetails.bonuses.reduce((s: number, b: any) => s + (b.amount || 0), 0)
+    : 0;
+  const benefits = Array.isArray(backendPayslip.earningsDetails?.benefits)
+    ? backendPayslip.earningsDetails.benefits.reduce((s: number, b: any) => s + (b.amount || 0), 0)
+    : 0;
+  const refunds = Array.isArray(backendPayslip.earningsDetails?.refunds)
+    ? backendPayslip.earningsDetails.refunds.reduce((s: number, r: any) => s + (r.amount || 0), 0)
+    : 0;
+  return Number(base + allowances + bonuses + benefits + refunds);
+};
+
 export const payrollTrackingService = {
   // ========== Employee Self-Service Endpoints ==========
 
@@ -71,20 +143,22 @@ export const payrollTrackingService = {
 
   // GET /payroll/tracking/employee/:employeeId/tax-deductions
   getTaxDeductions: async (employeeId: string, payslipId?: string) => {
-    const query = payslipId ? `?payslipId=${payslipId}` : '';
-    return apiService.get(`/payroll/tracking/employee/${employeeId}/tax-deductions${query}`);
+    const qs = buildQueryString({ payslipId });
+    const res = await apiService.get(`/payroll/tracking/employee/${employeeId}/tax-deductions${qs}`);
+    if (!res?.data || (Array.isArray(res.data) && res.data.length === 0)) console.debug('[payroll] getTaxDeductions empty response', { employeeId, payslipId, res });
+    return res;
   },
 
   // GET /payroll/tracking/employee/:employeeId/insurance-deductions
   getInsuranceDeductions: async (employeeId: string, payslipId?: string) => {
-    const query = payslipId ? `?payslipId=${payslipId}` : '';
-    return apiService.get(`/payroll/tracking/employee/${employeeId}/insurance-deductions${query}`);
+    const qs = buildQueryString({ payslipId });
+    return apiService.get(`/payroll/tracking/employee/${employeeId}/insurance-deductions${qs}`);
   },
 
   // GET /payroll/tracking/employee/:employeeId/misconduct-deductions
   getMisconductDeductions: async (employeeId: string, payslipId?: string) => {
-    const query = payslipId ? `?payslipId=${payslipId}` : '';
-    return apiService.get(`/payroll/tracking/employee/${employeeId}/misconduct-deductions${query}`);
+    const qs = buildQueryString({ payslipId });
+    return apiService.get(`/payroll/tracking/employee/${employeeId}/misconduct-deductions${qs}`);
   },
 
   // GET /payroll/tracking/employee/:employeeId/attendance-based-deductions
@@ -92,12 +166,8 @@ export const payrollTrackingService = {
     employeeId: string,
     options?: { payslipId?: string; from?: string; to?: string }
   ) => {
-    const params = new URLSearchParams();
-    if (options?.payslipId) params.append('payslipId', options.payslipId);
-    if (options?.from) params.append('from', options.from);
-    if (options?.to) params.append('to', options.to);
-    const query = params.toString() ? `?${params.toString()}` : '';
-    return apiService.get(`/payroll/tracking/employee/${employeeId}/attendance-based-deductions${query}`);
+    const qs = buildQueryString(options || {});
+    return apiService.get(`/payroll/tracking/employee/${employeeId}/attendance-based-deductions${qs}`);
   },
 
   // GET /payroll/tracking/employee/:employeeId/unpaid-leave-deductions
@@ -105,29 +175,31 @@ export const payrollTrackingService = {
     employeeId: string,
     options?: { payslipId?: string; from?: string; to?: string }
   ) => {
-    const params = new URLSearchParams();
-    if (options?.payslipId) params.append('payslipId', options.payslipId);
-    if (options?.from) params.append('from', options.from);
-    if (options?.to) params.append('to', options.to);
-    const query = params.toString() ? `?${params.toString()}` : '';
-    return apiService.get(`/payroll/tracking/employee/${employeeId}/unpaid-leave-deductions${query}`);
+    const qs = buildQueryString(options || {});
+    const res = await apiService.get(`/payroll/tracking/employee/${employeeId}/unpaid-leave-deductions${qs}`);
+    if (!res?.data) console.debug('[payroll] getUnpaidLeaveDeductions empty response', { employeeId, options, res });
+    return res;
   },
 
   // GET /payroll/tracking/employee/:employeeId/salary-history
   getSalaryHistory: async (employeeId: string) => {
-    return apiService.get(`/payroll/tracking/employee/${employeeId}/salary-history`);
+    const res = await apiService.get(`/payroll/tracking/employee/${employeeId}/salary-history`);
+    if (!res?.data || (Array.isArray(res.data) && res.data.length === 0)) console.debug('[payroll] getSalaryHistory empty response', { employeeId, res });
+    return res;
   },
 
   // GET /payroll/tracking/employee/:employeeId/employer-contributions
   getEmployerContributions: async (employeeId: string, payslipId?: string) => {
-    const query = payslipId ? `?payslipId=${payslipId}` : '';
-    return apiService.get(`/payroll/tracking/employee/${employeeId}/employer-contributions${query}`);
+    const qs = buildQueryString({ payslipId });
+    return apiService.get(`/payroll/tracking/employee/${employeeId}/employer-contributions${qs}`);
   },
 
   // GET /payroll/tracking/employee/:employeeId/tax-documents
   getTaxDocuments: async (employeeId: string, year?: number) => {
-    const query = year ? `?year=${year}` : '';
-    return apiService.get(`/payroll/tracking/employee/${employeeId}/tax-documents${query}`);
+    const qs = buildQueryString({ year });
+    const res = await apiService.get(`/payroll/tracking/employee/${employeeId}/tax-documents${qs}`);
+    if (!res?.data) console.debug('[payroll] getTaxDocuments empty response', { employeeId, year, res });
+    return res;
   },
 
   // GET /payroll/tracking/employee/:employeeId/tax-documents/:year/download
@@ -158,28 +230,20 @@ export const payrollTrackingService = {
     startDate?: string;
     endDate?: string;
   }) => {
-    const params = new URLSearchParams();
-    if (options?.departmentId) params.append('departmentId', options.departmentId);
-    if (options?.startDate) params.append('startDate', options.startDate);
-    if (options?.endDate) params.append('endDate', options.endDate);
-    const query = params.toString() ? `?${params.toString()}` : '';
-    return apiService.get(`/payroll/tracking/reports/department-payroll${query}`);
+    const qs = buildQueryString(options || {});
+    return apiService.get(`/payroll/tracking/reports/department-payroll${qs}`);
   },
 
   // GET /payroll/tracking/reports/payroll-summary
   generatePayrollSummary: async (type: 'monthly' | 'yearly', period?: string) => {
-    const params = new URLSearchParams();
-    params.append('type', type);
-    if (period) params.append('period', period);
-    return apiService.get(`/payroll/tracking/reports/payroll-summary?${params.toString()}`);
+    const qs = buildQueryString({ type, period });
+    return apiService.get(`/payroll/tracking/reports/payroll-summary${qs}`);
   },
 
   // GET /payroll/tracking/reports/compliance
   generateComplianceReport: async (type: string, year?: number) => {
-    const params = new URLSearchParams();
-    params.append('type', type);
-    if (year) params.append('year', year.toString());
-    return apiService.get(`/payroll/tracking/reports/compliance?${params.toString()}`);
+    const qs = buildQueryString({ type, year });
+    return apiService.get(`/payroll/tracking/reports/compliance${qs}`);
   },
 
   // ========== Disputes and Claims Approval Endpoints ==========
@@ -212,8 +276,8 @@ export const payrollTrackingService = {
 
   // GET /payroll/tracking/disputes/approved
   getApprovedDisputes: async (financeStaffId?: string) => {
-    const query = financeStaffId ? `?financeStaffId=${financeStaffId}` : '';
-    return apiService.get(`/payroll/tracking/disputes/approved${query}`);
+    const qs = buildQueryString({ financeStaffId });
+    return apiService.get(`/payroll/tracking/disputes/approved${qs}`);
   },
 
   // PUT /payroll/tracking/claims/:claimId/review
@@ -245,8 +309,8 @@ export const payrollTrackingService = {
 
   // GET /payroll/tracking/claims/approved
   getApprovedClaims: async (financeStaffId?: string) => {
-    const query = financeStaffId ? `?financeStaffId=${financeStaffId}` : '';
-    return apiService.get(`/payroll/tracking/claims/approved${query}`);
+    const qs = buildQueryString({ financeStaffId });
+    return apiService.get(`/payroll/tracking/claims/approved${qs}`);
   },
 
   // ========== Refund Process Endpoints ==========
@@ -289,11 +353,8 @@ export const payrollTrackingService = {
 
   // GET /payroll/tracking/claims
   getAllClaims: async (status?: string, employeeId?: string) => {
-    const params = new URLSearchParams();
-    if (status) params.append('status', status);
-    if (employeeId) params.append('employeeId', employeeId);
-    const query = params.toString() ? `?${params.toString()}` : '';
-    return apiService.get(`/payroll/tracking/claims${query}`);
+    const qs = buildQueryString({ status, employeeId });
+    return apiService.get(`/payroll/tracking/claims${qs}`);
   },
 
   // GET /payroll/tracking/claims/:id
@@ -315,11 +376,8 @@ export const payrollTrackingService = {
 
   // GET /payroll/tracking/disputes
   getAllDisputes: async (status?: string, employeeId?: string) => {
-    const params = new URLSearchParams();
-    if (status) params.append('status', status);
-    if (employeeId) params.append('employeeId', employeeId);
-    const query = params.toString() ? `?${params.toString()}` : '';
-    return apiService.get(`/payroll/tracking/disputes${query}`);
+    const qs = buildQueryString({ status, employeeId });
+    return apiService.get(`/payroll/tracking/disputes${qs}`);
   },
 
   // GET /payroll/tracking/disputes/:id
@@ -341,11 +399,8 @@ export const payrollTrackingService = {
 
   // GET /payroll/tracking/refunds
   getAllRefunds: async (status?: string, employeeId?: string) => {
-    const params = new URLSearchParams();
-    if (status) params.append('status', status);
-    if (employeeId) params.append('employeeId', employeeId);
-    const query = params.toString() ? `?${params.toString()}` : '';
-    return apiService.get(`/payroll/tracking/refunds${query}`);
+    const qs = buildQueryString({ status, employeeId });
+    return apiService.get(`/payroll/tracking/refunds${qs}`);
   },
 
   // GET /payroll/tracking/refunds/:id
@@ -361,5 +416,77 @@ export const payrollTrackingService = {
   // DELETE /payroll/tracking/refunds/:id
   deleteRefund: async (id: string) => {
     return apiService.delete(`/payroll/tracking/refunds/${id}`);
+  },
+
+  // ========== Mapped helpers (canonical shapes returned to pages) ==========
+  getEmployeePayslipsMapped: async (employeeId: string) => {
+    const res = await apiService.get(`/payroll/tracking/employee/${employeeId}/payslips`);
+    const resData = res?.data as any;
+    const items: any[] = Array.isArray(resData) ? (resData as any[]) : (resData || []);
+    const mapped = (items || []).map((p: any) => {
+      const gross = resolveTotalGrossSalary(p);
+      const deductions = resolveTotalDeductions(p);
+      const net = typeof p.netPay === 'number' ? p.netPay : Number((gross || 0) - (deductions || 0));
+      return {
+        id: p._id || p.payslipId || p.id,
+        payslipId: p._id || p.payslipId || p.id,
+        employeeId: p.employeeId,
+        payrollRunId: p.payrollRunId,
+        periodStart: p.periodStart || p.periodDate || (p as any)?.createdAt || null,
+        payDate: p.payDate || p.periodDate || (p as any)?.createdAt || null,
+        status: p.paymentStatus || p.status || 'unknown',
+        baseSalary: p.earningsDetails?.baseSalary || p.baseSalary || 0,
+        grossPay: gross,
+        totalDeductions: deductions,
+        netPay: net,
+        currency: p.currency || 'EGP',
+        earnings: [
+          ...(p.earningsDetails?.allowances || []),
+          ...(p.earningsDetails?.bonuses || []),
+          ...(p.earningsDetails?.benefits || []),
+          ...(p.earningsDetails?.refunds || []),
+        ].map((e: any) => ({ type: e.type || e.name || 'earning', amount: e.amount || 0, description: e.description || e.note })),
+        deductions: [
+          ...(p.deductionsDetails?.taxes || []),
+          ...(p.deductionsDetails?.insurances || []),
+          ...(Array.isArray(p.deductionsDetails?.penalties)
+            ? p.deductionsDetails.penalties
+            : (p.deductionsDetails?.penalties ? [p.deductionsDetails.penalties] : [])),
+        ].map((d: any) => ({ type: d.type || 'deduction', amount: d.amount || d.totalAmount || 0, description: d.description })),
+      };
+    });
+    return { ...res, data: mapped };
+  },
+
+  getPayslipDetailsMapped: async (payslipId: string, employeeId: string) => {
+    const res = await apiService.get(`/payroll/tracking/payslip/${payslipId}/employee/${employeeId}`);
+    // Backend may return { payslip, disputes } or raw payslip; normalize both
+    const resData = res?.data as any;
+    const rawPayslip = resData?.payslip ?? resData ?? null;
+    const disputes = resData?.disputes ?? (Array.isArray(resData) ? [] : ((res as any)?.disputes ?? []));
+    if (!rawPayslip) return { ...res, data: { payslip: null, disputes } };
+
+    const gross = resolveTotalGrossSalary(rawPayslip);
+    const deductions = resolveTotalDeductions(rawPayslip);
+    const net = typeof rawPayslip.netPay === 'number' ? rawPayslip.netPay : Number((gross || 0) - (deductions || 0));
+
+    const mappedPayslip = {
+      id: rawPayslip._id || rawPayslip.payslipId || rawPayslip.id,
+      payslipId: rawPayslip._id || rawPayslip.payslipId || rawPayslip.id,
+      employeeId: rawPayslip.employeeId,
+      payrollRunId: rawPayslip.payrollRunId,
+      periodStart: rawPayslip.periodStart || rawPayslip.periodDate || (rawPayslip as any)?.createdAt || null,
+      payDate: rawPayslip.payDate || rawPayslip.periodDate || (rawPayslip as any)?.createdAt || null,
+      status: rawPayslip.paymentStatus || rawPayslip.status || 'unknown',
+      baseSalary: rawPayslip.earningsDetails?.baseSalary || rawPayslip.baseSalary || 0,
+      grossPay: gross,
+      totalDeductions: deductions,
+      netPay: net,
+      currency: rawPayslip.currency || 'EGP',
+      earningsDetails: rawPayslip.earningsDetails || {},
+      deductionsDetails: rawPayslip.deductionsDetails || {},
+    };
+
+    return { ...res, data: { payslip: mappedPayslip, disputes } };
   },
 };
