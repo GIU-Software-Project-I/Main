@@ -237,4 +237,5 @@ export class ShiftExpiryScheduler implements OnModuleInit {
 
         return Array.from(allHRUsers.values());
     }
+    //
 }
