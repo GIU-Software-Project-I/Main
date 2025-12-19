@@ -1417,7 +1417,7 @@ export class RecruitmentService {
             candidateId: application.candidateId.toString(),
             applicationId: dto.applicationId,
             rejectionReason: dto.rejectionReason,
-            message: dto.message || dto.customMessage,
+            //message: dto.message || dto.customMessage,
         });
 
         return {
@@ -1464,4 +1464,3 @@ export class RecruitmentService {
         ];
     }
 }
-
