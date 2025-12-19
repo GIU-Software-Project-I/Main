@@ -65,11 +65,11 @@ const convertApiNotificationToUI = (apiNotif: any): Notification => {
         type = 'success';
         if (apiType === 'DISPUTE_APPROVED') {
             title = 'Dispute Approved by Manager';
-            actionUrl = '/dashboard/payroll-specialist/disputes';
+            actionUrl = '/dashboard/finance-staff/notifications';
             actionLabel = 'View Disputes';
         } else {
             title = 'Claim Approved by Manager';
-            actionUrl = '/dashboard/payroll-specialist/claims';
+            actionUrl = '/dashboard/finance-staff/notifications';
             actionLabel = 'View Claims';
         }
     } else if (apiType.includes('ATTENDANCE_')) {
