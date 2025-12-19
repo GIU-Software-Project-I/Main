@@ -58,7 +58,7 @@ export class AuthService {
         };
     }
 
-    private toSafeCandidate(doc: any): SafeCandidate {
+    private toSafeCandidate(doc: any): SafeCandidate & { roles: SystemRole[] } {
         const obj = typeof doc.toObject === 'function' ? doc.toObject() : doc;
         return {
             _id: String(obj._id),
@@ -66,6 +66,7 @@ export class AuthService {
             candidateNumber: obj.candidateNumber,
             firstName: obj.firstName,
             lastName: obj.lastName,
+            roles: [SystemRole.JOB_CANDIDATE],
         };
     }
 

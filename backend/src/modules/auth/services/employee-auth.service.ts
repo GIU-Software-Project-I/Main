@@ -7,8 +7,8 @@ import { EmployeeSystemRole, EmployeeSystemRoleDocument } from '../../employee/m
 import { Candidate, CandidateDocument } from '../../employee/models/employee/Candidate.Schema';
 
 import { SystemRole, EmployeeStatus } from '../../employee/enums/employee-profile.enums';
-import {RegisterEmployeeDto} from "../dto/register-employee-dto";
-import {RegisterCandidateDto} from "../dto/register-candidate-dto";
+import { RegisterEmployeeDto } from "../dto/register-employee-dto";
+import { RegisterCandidateDto } from "../dto/register-candidate-dto";
 
 @Injectable()
 export class EmployeeAuthService {
@@ -16,7 +16,7 @@ export class EmployeeAuthService {
     @InjectModel(EmployeeProfile.name) private readonly employeeModel: Model<EmployeeProfileDocument>,
     @InjectModel(EmployeeSystemRole.name) private readonly employeeSystemRoleModel: Model<EmployeeSystemRoleDocument>,
     @InjectModel(Candidate.name) private readonly candidateModel: Model<CandidateDocument>,
-  ) {}
+  ) { }
 
   async hashPassword(password: string): Promise<string> {
     const saltRounds = 10;

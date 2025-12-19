@@ -21,13 +21,13 @@ export default function JobCandidateLayout({
       router.push('/login');
       return;
     }
-    
+
     // If user is not a candidate, redirect them to their own dashboard
     if (user && user.role !== SystemRole.JOB_CANDIDATE) {
       router.replace(getDashboardRoute());
       return;
     }
-    
+
     if (!hasAccess) {
       router.replace('/login');
       return;

@@ -67,6 +67,30 @@ function extractIdValue(idValue: any): string {
   return String(idValue);
 }
 
+/**
+ * Transform application from backend to frontend format
+ */
+function transformApplication(app: any): Application {
+  const candidate = app.candidateId && typeof app.candidateId === 'object' ? app.candidateId : null;
+  const requisition = app.requisitionId && typeof app.requisitionId === 'object' ? app.requisitionId : null;
+
+  return {
+    ...app,
+    id: extractId(app),
+    candidateId: extractIdValue(app.candidateId),
+    requisitionId: extractIdValue(app.requisitionId),
+    candidate: candidate,
+    requisition: requisition,
+    // Add derived fields for easier use in lists
+    candidateName: candidate
+      ? `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || candidate.personalEmail
+      : app.candidateName,
+    candidateEmail: candidate?.personalEmail || app.candidateEmail,
+    jobTitle: requisition?.title || requisition?.templateTitle || app.jobTitle,
+    departmentName: requisition?.department || app.departmentName,
+  };
+}
+
 // =====================================================
 // Job Templates
 // =====================================================
@@ -364,11 +388,7 @@ export async function getApplicationById(id: string): Promise<Application> {
   if (response.error || !response.data) {
     throw new Error(response.error || 'Application not found');
   }
-  const app = response.data;
-  return {
-    ...app,
-    id: extractId(app)
-  };
+  return transformApplication(response.data);
 }
 
 /**
@@ -399,7 +419,7 @@ export async function applyToJob(applicationData: PublicApplicationRequest): Pro
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to submit application');
   }
-  return response.data;
+  return transformApplication(response.data);
 }
 
 /**
@@ -410,7 +430,7 @@ export async function createApplication(data: CreateApplicationRequest): Promise
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to create application');
   }
-  return response.data;
+  return transformApplication(response.data);
 }
 
 /**
@@ -484,11 +504,11 @@ export async function getApplicationHistory(id: string): Promise<unknown[]> {
  * Get applications by candidate
  */
 export async function getApplicationsByCandidate(candidateId: string): Promise<Application[]> {
-  const response = await api.get<Application[]>(`/recruitment/candidates/${candidateId}/applications`);
+  const response = await api.get<any[]>(`/recruitment/candidates/${candidateId}/applications`);
   if (response.error) {
     throw new Error(response.error);
   }
-  return response.data || [];
+  return (response.data || []).map(transformApplication);
 }
 
 /**
@@ -953,7 +973,7 @@ export async function updateCandidate(id: string, data: Partial<Candidate>): Pro
 
 // =====================================================
 // Documents
-// =====================================================
+// =====================================================================
 
 /**
  * Upload a document (CV, etc.)

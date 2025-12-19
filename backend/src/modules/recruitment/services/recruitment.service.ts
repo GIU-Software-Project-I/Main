@@ -302,7 +302,14 @@ export class RecruitmentService {
     async createApplication(dto: CreateApplicationDto): Promise<Application> {
         this.validateObjectId(dto.candidateId, 'candidateId');
 
-        const requisition = await this.jobRequisitionModel.findOne({ requisitionId: dto.requisitionId }).exec();
+        // Try to find requisition by requisitionId (string) or by _id (ObjectId)
+        let requisition = await this.jobRequisitionModel.findOne({ requisitionId: dto.requisitionId }).exec();
+
+        // If not found by requisitionId, try by _id (in case frontend sends MongoDB ID)
+        if (!requisition && Types.ObjectId.isValid(dto.requisitionId)) {
+            requisition = await this.jobRequisitionModel.findById(dto.requisitionId).exec();
+        }
+
         if (!requisition) {
             throw new NotFoundException(`Job requisition with ID ${dto.requisitionId} not found`);
         }
@@ -379,14 +386,32 @@ export class RecruitmentService {
     }
 
     async getApplicationById(id: string): Promise<Application> {
-        const application = await this.applicationModel
-            .findById(id)
-            .exec();
+        this.validateObjectId(id, 'id');
 
-        if (!application) {
-            throw new NotFoundException(`Application with ID ${id} not found`);
+        try {
+            const application = await this.applicationModel
+                .findById(id)
+                .populate('candidateId')
+                .populate({
+                    path: 'requisitionId',
+                    populate: {
+                        path: 'templateId',
+                    }
+                })
+                .populate('assignedHr', 'firstName lastName email')
+                .exec();
+
+            if (!application) {
+                throw new NotFoundException(`Application with ID ${id} not found`);
+            }
+            return application;
+        } catch (error) {
+            const application = await this.applicationModel.findById(id).exec();
+            if (!application) {
+                throw new NotFoundException(`Application with ID ${id} not found`);
+            }
+            return application;
         }
-        return application;
     }
 
     async getApplicationsByCandidate(candidateId: string): Promise<Application[]> {
@@ -1272,15 +1297,15 @@ export class RecruitmentService {
 
     async getAllOffers(filters?: { applicationId?: string; status?: OfferFinalStatus }): Promise<Offer[]> {
         const query: any = {};
-        
+
         if (filters?.applicationId) {
             query.applicationId = new Types.ObjectId(filters.applicationId);
         }
-        
+
         if (filters?.status) {
             query.finalStatus = filters.status;
         }
-        
+
         try {
             return await this.offerModel
                 .find(query)
@@ -1345,7 +1370,7 @@ export class RecruitmentService {
         return offer.save();
     }
 
-    
+
 
     async recordCandidateResponse(offerId: string, dto: CandidateOfferResponseDto): Promise<Offer> {
         this.validateObjectId(offerId, 'offerId');
@@ -1631,15 +1656,6 @@ export class RecruitmentService {
         };
     }
 
-    async getCandidateById(id: string): Promise<any> {
-        this.validateObjectId(id, 'id');
-        return this.sharedRecruitmentService.validateCandidateExists(id);
-    }
-
-    async getAllCandidates(): Promise<Candidate[]> {
-        return this.candidateModel.find().sort({ createdAt: -1 }).exec();
-    }
-
     async getEmailTemplates(): Promise<any[]> {
         // TODO: Implement email template management
         // This would return available email templates for different notification types
@@ -1667,5 +1683,78 @@ export class RecruitmentService {
                 body: 'We are delighted to offer you the position of {{position}}...',
             },
         ];
+    }
+
+    // ============================================================
+    // Candidate Profile Methods
+    // ============================================================
+
+    async createCandidateProfile(candidateData: any): Promise<Candidate> {
+        // Check if candidate with this email already exists
+        const email = candidateData.personalEmail || candidateData.email;
+        const phone = candidateData.mobilePhone || candidateData.phone;
+
+        const existingCandidate = await this.candidateModel.findOne({
+            personalEmail: email
+        }).exec();
+
+        if (existingCandidate) {
+            // Return existing candidate instead of creating duplicate
+            return existingCandidate;
+        }
+
+        // Create new candidate
+        const candidate = new this.candidateModel({
+            firstName: candidateData.firstName,
+            lastName: candidateData.lastName,
+            personalEmail: email,
+            mobilePhone: phone,
+            linkedInUrl: candidateData.linkedInUrl,
+            portfolioUrl: candidateData.portfolioUrl,
+            source: candidateData.source || 'career_site',
+        });
+
+        return candidate.save();
+    }
+
+    async getAllCandidates(): Promise<Candidate[]> {
+        return this.candidateModel.find().exec();
+    }
+
+    async getCandidateById(id: string): Promise<Candidate> {
+        this.validateObjectId(id, 'candidateId');
+
+        const candidate = await this.candidateModel.findById(id).exec();
+        if (!candidate) {
+            throw new NotFoundException(`Candidate with ID ${id} not found`);
+        }
+        return candidate;
+    }
+
+    async getCandidateApplications(candidateId: string): Promise<any[]> {
+        this.validateObjectId(candidateId, 'candidateId');
+
+        const applications = await this.applicationModel.find({ candidateId: new Types.ObjectId(candidateId) })
+            .populate({
+                path: 'requisitionId',
+                populate: {
+                    path: 'templateId'
+                }
+            })
+            .sort({ createdAt: -1 })
+            .exec();
+
+        return applications.map(app => {
+            const appObj = app.toObject();
+            const requisition = appObj.requisitionId as any;
+            const template = requisition?.templateId as any;
+
+            return {
+                ...appObj,
+                jobTitle: template?.title || requisition?.title || 'Unknown Position',
+                departmentName: template?.department || requisition?.department || '',
+                location: requisition?.location || '',
+            };
+        });
     }
 }
