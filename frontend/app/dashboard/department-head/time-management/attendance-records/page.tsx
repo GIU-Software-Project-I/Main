@@ -32,12 +32,16 @@ export default function AttendanceRecordsPage() {
   const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
   const [correctionForm, setCorrectionForm] = useState<{
     action: 'addPunchIn' | 'addPunchOut' | 'replacePunches';
+    punchInDate: string;
     punchInTime: string;
+    punchOutDate: string;
     punchOutTime: string;
     reason: string;
   }>({
     action: 'addPunchOut',
+    punchInDate: '',
     punchInTime: '',
+    punchOutDate: '',
     punchOutTime: '',
     reason: '',
   });
@@ -50,7 +54,22 @@ export default function AttendanceRecordsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   // Active tab
-  const [activeTab, setActiveTab] = useState<'records' | 'corrections' | 'history'>('records');
+  const [activeTab, setActiveTab] = useState<'records' | 'corrections' | 'history' | 'create'>('records');
+
+  // Create attendance record state
+  const [createForm, setCreateForm] = useState<{
+    employeeId: string;
+    punchInTime: string;
+    punchOutTime: string;
+    reason: string;
+  }>({
+    employeeId: '',
+    punchInTime: '',
+    punchOutTime: '',
+    reason: '',
+  });
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const fetchAttendanceRecords = useCallback(async () => {
     if (!employeeIdFilter) {
@@ -95,6 +114,34 @@ export default function AttendanceRecordsPage() {
     }
   }, []);
 
+  // Helper function to generate date options (last 30 days)
+  const getDateOptions = () => {
+    const options = [];
+    const today = new Date();
+    for (let i = 30; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      const dateStr = `${day}/${month}/${year}`;
+      options.push(dateStr);
+    }
+    return options;
+  };
+
+  // Helper function to generate time options (15-minute intervals)
+  const getTimeOptions = () => {
+    const options = [];
+    for (let hours = 0; hours < 24; hours++) {
+      for (let minutes = 0; minutes < 60; minutes += 15) {
+        const time = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        options.push(time);
+      }
+    }
+    return options;
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -126,17 +173,25 @@ export default function AttendanceRecordsPage() {
         correctedBy: user?.id,
       };
 
-      if (correctionForm.action === 'addPunchIn' && correctionForm.punchInTime) {
-        dto.addPunchIn = correctionForm.punchInTime;
-      } else if (correctionForm.action === 'addPunchOut' && correctionForm.punchOutTime) {
-        dto.addPunchOut = correctionForm.punchOutTime;
+      // Helper function to convert date and time to ISO string
+      const convertToISO = (dateStr: string, timeStr: string): string => {
+        const [day, month, year] = dateStr.split('/');
+        const [hours, minutes] = timeStr.split(':');
+        const dateTime = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes));
+        return dateTime.toISOString();
+      };
+
+      if (correctionForm.action === 'addPunchIn' && correctionForm.punchInDate && correctionForm.punchInTime) {
+        dto.addPunchIn = convertToISO(correctionForm.punchInDate, correctionForm.punchInTime);
+      } else if (correctionForm.action === 'addPunchOut' && correctionForm.punchOutDate && correctionForm.punchOutTime) {
+        dto.addPunchOut = convertToISO(correctionForm.punchOutDate, correctionForm.punchOutTime);
       } else if (correctionForm.action === 'replacePunches') {
         const punches: { type: PunchType; time: string }[] = [];
-        if (correctionForm.punchInTime) {
-          punches.push({ type: PunchType.IN, time: correctionForm.punchInTime });
+        if (correctionForm.punchInDate && correctionForm.punchInTime) {
+          punches.push({ type: PunchType.IN, time: convertToISO(correctionForm.punchInDate, correctionForm.punchInTime) });
         }
-        if (correctionForm.punchOutTime) {
-          punches.push({ type: PunchType.OUT, time: correctionForm.punchOutTime });
+        if (correctionForm.punchOutDate && correctionForm.punchOutTime) {
+          punches.push({ type: PunchType.OUT, time: convertToISO(correctionForm.punchOutDate, correctionForm.punchOutTime) });
         }
         if (punches.length > 0) {
           dto.correctedPunches = punches;
@@ -155,7 +210,9 @@ export default function AttendanceRecordsPage() {
       setSelectedRecord(null);
       setCorrectionForm({
         action: 'addPunchOut',
+        punchInDate: '',
         punchInTime: '',
+        punchOutDate: '',
         punchOutTime: '',
         reason: '',
       });
@@ -200,6 +257,60 @@ export default function AttendanceRecordsPage() {
     }
   };
 
+  const handleCreateAttendanceRecord = async () => {
+    if (!createForm.employeeId) {
+      setError('Employee ID is required');
+      return;
+    }
+
+    if (!createForm.punchInTime || !createForm.punchOutTime) {
+      setError('Both punch in and punch out times are required');
+      return;
+    }
+
+    if (!createForm.reason.trim()) {
+      setError('Reason is required');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError(null);
+
+      const dto = {
+        employeeId: createForm.employeeId,
+        punches: [
+          { type: PunchType.IN, time: createForm.punchInTime },
+          { type: PunchType.OUT, time: createForm.punchOutTime }
+        ],
+        createdBy: user?.id,
+        reason: createForm.reason,
+      };
+
+      const response = await timeManagementService.createAttendanceRecord(dto);
+
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      setSuccess('Attendance record created successfully');
+      setShowCreateModal(false);
+      setCreateForm({
+        employeeId: '',
+        punchInTime: '',
+        punchOutTime: '',
+        reason: '',
+      });
+      await fetchAttendanceRecords();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create attendance record');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const formatDateTime = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleString();
@@ -234,7 +345,20 @@ export default function AttendanceRecordsPage() {
     if (record.punches && record.punches.length > 0) {
       return formatDate(record.punches[0].time);
     }
+    // If no punches, try to use createdAt timestamp
+    if ((record as any).createdAt) {
+      return formatDate((record as any).createdAt);
+    }
     return 'N/A';
+  };
+
+  const formatWorkTime = (minutes: number | undefined): string => {
+    if (minutes === undefined || isNaN(minutes) || !Number.isFinite(minutes)) {
+      return '0h 0m';
+    }
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
   };
 
   if (loading) {
@@ -292,6 +416,16 @@ export default function AttendanceRecordsPage() {
             }`}
           >
             Attendance Records
+          </button>
+          <button
+            onClick={() => setActiveTab('create')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'create'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Create Record
           </button>
           <button
             onClick={() => setActiveTab('corrections')}
@@ -435,7 +569,7 @@ export default function AttendanceRecordsPage() {
                           </td>
                           <td className="py-3 px-4">
                             <span className="text-foreground">
-                              {Math.floor(record.totalWorkMinutes / 60)}h {record.totalWorkMinutes % 60}m
+                              {formatWorkTime(record.totalWorkMinutes)}
                             </span>
                           </td>
                           <td className="py-3 px-4">
@@ -473,6 +607,104 @@ export default function AttendanceRecordsPage() {
                   </table>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Correction Requests Tab */}
+        {activeTab === 'create' && (
+          <div className="bg-card rounded-xl border border-border p-6 max-w-2xl">
+            <h2 className="font-semibold text-foreground mb-6">Create New Attendance Record</h2>
+
+            <div className="space-y-4">
+              {/* Employee ID */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Employee ID *
+                </label>
+                <input
+                  type="text"
+                  value={createForm.employeeId}
+                  onChange={(e) => setCreateForm({ ...createForm, employeeId: e.target.value })}
+                  placeholder="Enter employee ID"
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              {/* Punch In Time */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Punch In Time (dd/mm/yyyy hh:mm) *
+                </label>
+                <input
+                  type="text"
+                  value={createForm.punchInTime}
+                  onChange={(e) => setCreateForm({ ...createForm, punchInTime: e.target.value })}
+                  placeholder="e.g., 16/12/2025 09:00"
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              {/* Punch Out Time */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Punch Out Time (dd/mm/yyyy hh:mm) *
+                </label>
+                <input
+                  type="text"
+                  value={createForm.punchOutTime}
+                  onChange={(e) => setCreateForm({ ...createForm, punchOutTime: e.target.value })}
+                  placeholder="e.g., 16/12/2025 17:00"
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              {/* Reason */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Reason for Creation *
+                </label>
+                <textarea
+                  value={createForm.reason}
+                  onChange={(e) => setCreateForm({ ...createForm, reason: e.target.value })}
+                  placeholder="Enter the reason for manually creating this attendance record"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={handleCreateAttendanceRecord}
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                >
+                  {submitting ? 'Creating...' : 'Create Attendance Record'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setCreateForm({
+                      employeeId: '',
+                      punchInTime: '',
+                      punchOutTime: '',
+                      reason: '',
+                    });
+                  }}
+                  className="px-4 py-2 border border-input text-foreground font-medium rounded-lg hover:bg-accent transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
+
+              {/* Info */}
+              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  <strong>Note:</strong> You can manually create attendance records for employees when system records are missing or incorrect.
+                  Make sure the punch times are in the correct format (dd/mm/yyyy hh:mm).
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -641,36 +873,84 @@ export default function AttendanceRecordsPage() {
                   </select>
                 </div>
 
-                {/* Punch In Time */}
+                {/* Punch In Time - Date and Time Dropdowns */}
                 {(correctionForm.action === 'addPunchIn' || correctionForm.action === 'replacePunches') && (
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">
-                      Punch In Time (dd/mm/yyyy hh:mm)
-                    </label>
-                    <input
-                      type="text"
-                      value={correctionForm.punchInTime}
-                      onChange={(e) => setCorrectionForm({ ...correctionForm, punchInTime: e.target.value })}
-                      placeholder="e.g., 16/12/2025 09:00"
-                      className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">
+                        Punch In Date
+                      </label>
+                      <select
+                        value={correctionForm.punchInDate}
+                        onChange={(e) => setCorrectionForm({ ...correctionForm, punchInDate: e.target.value })}
+                        className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="">Select date</option>
+                        {getDateOptions().map((date) => (
+                          <option key={date} value={date}>
+                            {date}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">
+                        Punch In Time
+                      </label>
+                      <select
+                        value={correctionForm.punchInTime}
+                        onChange={(e) => setCorrectionForm({ ...correctionForm, punchInTime: e.target.value })}
+                        className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="">Select time</option>
+                        {getTimeOptions().map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
                 )}
 
-                {/* Punch Out Time */}
+                {/* Punch Out Time - Date and Time Dropdowns */}
                 {(correctionForm.action === 'addPunchOut' || correctionForm.action === 'replacePunches') && (
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">
-                      Punch Out Time (dd/mm/yyyy hh:mm)
-                    </label>
-                    <input
-                      type="text"
-                      value={correctionForm.punchOutTime}
-                      onChange={(e) => setCorrectionForm({ ...correctionForm, punchOutTime: e.target.value })}
-                      placeholder="e.g., 16/12/2025 17:00"
-                      className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">
+                        Punch Out Date
+                      </label>
+                      <select
+                        value={correctionForm.punchOutDate}
+                        onChange={(e) => setCorrectionForm({ ...correctionForm, punchOutDate: e.target.value })}
+                        className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="">Select date</option>
+                        {getDateOptions().map((date) => (
+                          <option key={date} value={date}>
+                            {date}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">
+                        Punch Out Time
+                      </label>
+                      <select
+                        value={correctionForm.punchOutTime}
+                        onChange={(e) => setCorrectionForm({ ...correctionForm, punchOutTime: e.target.value })}
+                        className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="">Select time</option>
+                        {getTimeOptions().map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
                 )}
 
                 {/* Reason */}

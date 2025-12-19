@@ -180,3 +180,33 @@ export class BulkReviewAttendanceDto {
     filterByIssue?: string = 'ALL';
 }
 
+// DTO for creating attendance records manually by department heads
+export class CreateAttendanceRecordDto {
+    @ApiProperty({
+        description: 'Employee ID',
+        example: '692cdd8e67a40875239080d0'
+    })
+    employeeId: string;
+
+    @ApiProperty({
+        description: 'Array of punches to record (IN/OUT)',
+        type: [Object],
+        example: [
+            { type: 'IN', time: '16/12/2025 09:00' },
+            { type: 'OUT', time: '16/12/2025 17:00' }
+        ]
+    })
+    punches: Array<{ type: PunchType; time: string | Date }>;
+
+    @ApiPropertyOptional({
+        description: 'Created by (Department Head ID)',
+        example: '674c1a1b2c3d4e5f6a7b8c8a'
+    })
+    createdBy?: string;
+
+    @ApiPropertyOptional({
+        description: 'Reason for manual creation',
+        example: 'System malfunction - manual creation for missed records'
+    })
+    reason?: string;
+}
