@@ -1,18 +1,17 @@
 // Note: In a real application, you would implement proper guards
 // @UseGuards(JwtAuthGuard, RolesGuard)
 
-import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query, Res, UseGuards} from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
 import type { Response } from 'express';
 
-import {PayrollTrackingService} from "../services/payroll-tracking.service";
+import { PayrollTrackingService } from "../services/payroll-tracking.service";
 import {
-    CreateClaimDto,
-    CreateDisputeDto,
-    CreateRefundDto,
-    GenerateReportDto,
-    UpdateClaimDto,
-    UpdateDisputeDto,
-    UpdateRefundDto
+  CreateClaimDto,
+  CreateDisputeDto,
+  CreateRefundDto,
+  UpdateClaimDto,
+  UpdateDisputeDto,
+  UpdateRefundDto
 } from "../dtos";
 // Authentication commented out for testing
 // import { AuthenticationGuard } from '../../../auth/guards/authentication-guard';
@@ -23,7 +22,7 @@ import {
 @Controller('payroll/tracking')
 // @UseGuards(AuthenticationGuard, AuthorizationGuard)
 export class PayrollTrackingController {
-  constructor(private readonly payrollTrackingService: PayrollTrackingService) {}
+  constructor(private readonly payrollTrackingService: PayrollTrackingService) { }
 
   // ========== Employee Self-Service Endpoints ==========
 
@@ -288,19 +287,6 @@ export class PayrollTrackingController {
     return this.payrollTrackingService.generateDepartmentPayrollReport(departmentId, start, end);
   }
 
-  @Post('reports/departmental/generate')
-  @HttpCode(HttpStatus.CREATED)
-  // @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER, SystemRole.FINANCE_STAFF)
-  async generateDepartmentalReport(@Body() generateReportDto: GenerateReportDto) {
-    const start = generateReportDto.startDate ? new Date(generateReportDto.startDate) : undefined;
-    const end = generateReportDto.endDate ? new Date(generateReportDto.endDate) : undefined;
-    return this.payrollTrackingService.generateDepartmentPayrollReport(
-      generateReportDto.departmentId,
-      start,
-      end
-    );
-  }
-
   @Get('reports/payroll-summary')
   // @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER, SystemRole.FINANCE_STAFF)
   async generatePayrollSummary(
@@ -358,10 +344,10 @@ export class PayrollTrackingController {
     @Body() body: { approvedAmount?: number; reason?: string }
   ) {
     return this.payrollTrackingService.reviewClaim(
-      claimId, 
-      specialistId, 
-      action, 
-      body.approvedAmount, 
+      claimId,
+      specialistId,
+      action,
+      body.approvedAmount,
       body.reason
     );
   }
@@ -396,8 +382,8 @@ export class PayrollTrackingController {
     return this.payrollTrackingService.generateDisputeRefund(
       disputeId,
       financeStaffId,
-      createRefundDto.refundDetails.amount,
-      createRefundDto.refundDetails.description,
+      createRefundDto.refundDetails?.amount,
+      createRefundDto.refundDetails?.description,
       createRefundDto.employeeId
     );
   }
@@ -413,8 +399,8 @@ export class PayrollTrackingController {
     return this.payrollTrackingService.generateClaimRefund(
       claimId,
       financeStaffId,
-      createRefundDto.refundDetails.amount,
-      createRefundDto.refundDetails.description,
+      createRefundDto.refundDetails?.amount,
+      createRefundDto.refundDetails?.description,
       createRefundDto.employeeId
     );
   }
@@ -440,27 +426,22 @@ export class PayrollTrackingController {
   // @Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER)
   async getAllClaims(
     @Query('status') status?: string,
-    @Query('claimType') claimType?: string,
     @Query('employeeId') employeeId?: string,
+    @Query('claimType') claimType?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('minAmount') minAmount?: string,
-    @Query('maxAmount') maxAmount?: string
+    @Query('minAmount') minAmount?: number,
+    @Query('maxAmount') maxAmount?: number
   ) {
-    const claims = await this.payrollTrackingService.getAllClaims({
+    return this.payrollTrackingService.getAllClaims({
       status,
-      claimType,
       employeeId,
+      claimType,
       startDate,
       endDate,
-      minAmount: minAmount ? parseFloat(minAmount) : undefined,
-      maxAmount: maxAmount ? parseFloat(maxAmount) : undefined
+      minAmount,
+      maxAmount
     });
-    return {
-      success: true,
-      data: claims,
-      count: claims.length
-    };
   }
 
   @Get('claims/:id')
@@ -546,5 +527,5 @@ export class PayrollTrackingController {
   async deleteRefund(@Param('id') id: string) {
     await this.payrollTrackingService.deleteRefundById(id);
   }
-  
+
 }

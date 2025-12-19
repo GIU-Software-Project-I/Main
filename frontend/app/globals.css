@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Smooth scrolling for better navigation experience */
+html {
+  scroll-behavior: smooth;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================
@@ -10,6 +15,8 @@
 
 :root {
   --radius: 0.625rem;
+  --font-geist-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-geist-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -125,9 +132,16 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -148,10 +162,43 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    @apply bg-background text-foreground;
+  }
+
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Ensure all text elements inherit theme colors */
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-foreground;
+  }
+
+  p, span, div, a, li, td, th {
+    @apply text-foreground;
+  }
+
+  /* Links use primary color */
+  a:not([class*="text-"]) {
+    @apply text-primary hover:text-primary/80;
+  }
+
+  /* Placeholder text uses muted */
+  ::placeholder {
+    @apply text-muted-foreground;
+  }
+
+  /* Input text uses foreground */
+  input, textarea, select {
+    @apply text-foreground;
+  }
+
+  /* Labels use foreground */
+  label {
+    @apply text-foreground;
   }
 }
 
@@ -201,11 +248,11 @@
   }
 
   .btn-danger {
-    @apply px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
+    @apply px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
   }
 
   .btn-success {
-    @apply px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2;
+    @apply px-4 py-2 bg-success text-success-foreground rounded-lg hover:bg-success/90 font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
   }
 
   .btn-sm {
@@ -222,11 +269,11 @@
 
   /* Status Badges */
   .badge-approved {
-    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 text-xs font-medium;
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full bg-success/10 dark:bg-success/20 text-success border border-success/20 text-xs font-medium;
   }
 
   .badge-pending {
-    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-medium;
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full bg-warning/10 dark:bg-warning/20 text-warning border border-warning/20 text-xs font-medium;
   }
 
   .badge-rejected {
@@ -247,11 +294,11 @@
 
   /* Alert Messages */
   .alert-success {
-    @apply bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 px-4 py-3 rounded-lg;
+    @apply bg-success/10 dark:bg-success/20 border border-success/20 text-success px-4 py-3 rounded-lg;
   }
 
   .alert-warning {
-    @apply bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 px-4 py-3 rounded-lg;
+    @apply bg-warning/10 dark:bg-warning/20 border border-warning/20 text-warning px-4 py-3 rounded-lg;
   }
 
   .alert-error {
@@ -299,11 +346,11 @@
 
   /* Status Containers */
   .status-container-approved {
-    @apply bg-green-500/10 border border-green-500/20 rounded-lg p-4;
+    @apply bg-success/10 dark:bg-success/20 border border-success/20 rounded-lg p-4;
   }
 
   .status-container-pending {
-    @apply bg-amber-500/10 border border-amber-500/20 rounded-lg p-4;
+    @apply bg-warning/10 dark:bg-warning/20 border border-warning/20 rounded-lg p-4;
   }
 
   .status-container-rejected {
@@ -321,21 +368,22 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--muted);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--muted-foreground);
   border-radius: 4px;
+  opacity: 0.3;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  opacity: 0.5;
 }
 
-/* Focus ring styling */
+/* Focus ring styling - uses theme ring color */
 *:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
@@ -350,10 +398,17 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-/* Selection color */
+/* Selection color - uses primary theme color */
 ::selection {
-  background: #bfdbfe;
-  color: #1e40af;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  opacity: 0.3;
+}
+
+.dark ::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  opacity: 0.4;
 }
 
 /* Animation utilities */
@@ -420,18 +475,21 @@ body {
 
 @keyframes reveal {
   from {
-    clip-path: circle(0% at var(--x, 50%) var(--y, 50%));
+    /* Dynamic variables --x and --y are set via JavaScript during transitions */
+    clip-path: circle(0% at 50% 50%);
     opacity: 0.7;
   }
 
   to {
-    clip-path: circle(150% at var(--x, 50%) var(--y, 50%));
+    clip-path: circle(150% at 50% 50%);
     opacity: 1;
   }
 }
 
 ::view-transition-new(root) {
   animation: reveal 0.4s ease-in-out forwards;
+  --x: 50%;
+  --y: 50%;
 }
 
 @media (prefers-reduced-motion: reduce) {

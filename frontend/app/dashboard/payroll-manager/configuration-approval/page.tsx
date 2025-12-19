@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useMemo, useState } from "react";
 import { payrollConfigurationService } from "@/app/services/payroll-configuration";
@@ -73,15 +73,33 @@ import {
   Gift,
   DoorOpen,
   TrendingUp,
-  Package
+  Package,
+  Percent,
+  Scale,
+  Landmark,
+  Award
 } from "lucide-react";
 
 interface ConfigItem {
   id: string;
   name?: string;
   title?: string;
+  grade?: string;
+  type?: string;
+  policyName?: string;
+  description?: string;
   status: ConfigStatus;
   createdAt?: string;
+  baseSalary?: number;
+  grossSalary?: number;
+  amount?: number;
+  employeeRate?: number;
+  employerRate?: number;
+  minSalary?: number;
+  maxSalary?: number;
+  createdBy?: string;
+  approvedBy?: string;
+  approvedAt?: string;
   [key: string]: any;
 }
 
@@ -110,12 +128,13 @@ export default function PayrollSystemConfigurationApprovalPage() {
 
   const tabs = [
     { id: "payGrades", label: "Pay Grades", icon: CreditCard, color: "text-blue-600", bgColor: "bg-blue-100" },
-    { id: "payrollPolicies", label: "Payroll Policies", icon: FileText, color: "text-purple-600", bgColor: "bg-purple-100" },
+    { id: "payrollPolicies", label: "Payroll Policies", icon: Scale, color: "text-purple-600", bgColor: "bg-purple-100" },
     { id: "payTypes", label: "Pay Types", icon: Receipt, color: "text-green-600", bgColor: "bg-green-100" },
     { id: "allowances", label: "Allowances", icon: Package, color: "text-amber-600", bgColor: "bg-amber-100" },
     { id: "signingBonuses", label: "Signing Bonuses", icon: Gift, color: "text-pink-600", bgColor: "bg-pink-100" },
     { id: "terminationBenefits", label: "Termination Benefits", icon: DoorOpen, color: "text-red-600", bgColor: "bg-red-100" },
     { id: "taxRules", label: "Tax Rules", icon: TrendingUp, color: "text-indigo-600", bgColor: "bg-indigo-100" },
+    { id: "insuranceBrackets", label: "Insurance Brackets", icon: Shield, color: "text-cyan-600", bgColor: "bg-cyan-100" },
   ];
 
   const filtered = useMemo(() => {
@@ -134,6 +153,7 @@ export default function PayrollSystemConfigurationApprovalPage() {
           item.title,
           item.grade,
           item.type,
+          item.policyName,
           item.description,
           item.id
         ].filter(Boolean).join(" ").toLowerCase();
@@ -145,31 +165,63 @@ export default function PayrollSystemConfigurationApprovalPage() {
     return result;
   }, [items, filter, searchTerm]);
 
-  const normalize = (raw: any): ConfigItem => {
+  const normalize = (raw: any, tab: string): ConfigItem => {
     let displayName = "";
+    let normalizedItem: any = { ...raw };
     
-    if (activeTab === "payGrades") {
-      displayName = raw.grade || raw.name || "";
-    } else if (activeTab === "payTypes") {
-      displayName = raw.type || raw.name || "";
-    } else if (activeTab === "taxRules") {
-      displayName = raw.name || raw.ruleName || "";
-    } else if (activeTab === "allowances") {
-      displayName = raw.name || raw.allowanceName || "";
-    } else if (activeTab === "signingBonuses") {
-      displayName = raw.positionName || raw.name || raw.bonusName || "";
-    } else if (activeTab === "terminationBenefits") {
-      displayName = raw.name || raw.benefitName || "";
-    } else {
-      displayName = raw.name || raw.title || raw.policyName || raw.typeName || "";
+    switch (tab) {
+      case "payGrades":
+        displayName = raw.grade || raw.name || "";
+        normalizedItem.baseSalary = raw.baseSalary || raw.base_salary || 0;
+        normalizedItem.grossSalary = raw.grossSalary || raw.gross_salary || 0;
+        break;
+      case "payTypes":
+        displayName = raw.type || raw.name || "";
+        normalizedItem.amount = raw.amount || 0;
+        break;
+      case "payrollPolicies":
+        displayName = raw.policyName || raw.name || "";
+        break;
+      case "allowances":
+      case "signingBonuses":
+      case "terminationBenefits":
+        displayName = raw.name || "";
+        normalizedItem.amount = raw.amount || 0;
+        break;
+      case "taxRules":
+        displayName = raw.name || raw.ruleName || "";
+        break;
+      case "insuranceBrackets":
+        displayName = raw.name || "";
+        normalizedItem.minSalary = raw.minSalary || 0;
+        normalizedItem.maxSalary = raw.maxSalary || 0;
+        normalizedItem.employeeRate = raw.employeeRate || 0;
+        normalizedItem.employerRate = raw.employerRate || 0;
+        break;
+      default:
+        displayName = raw.name || raw.title || "";
     }
     
     return {
       id: raw._id || raw.id,
       name: displayName,
       title: displayName,
+      grade: raw.grade,
+      type: raw.type,
+      policyName: raw.policyName,
+      description: raw.description,
       status: raw.status || ConfigStatus.DRAFT,
-      createdAt: raw.createdAt,
+      createdAt: raw.createdAt || raw.created_at,
+      baseSalary: normalizedItem.baseSalary,
+      grossSalary: normalizedItem.grossSalary,
+      amount: normalizedItem.amount,
+      minSalary: normalizedItem.minSalary,
+      maxSalary: normalizedItem.maxSalary,
+      employeeRate: normalizedItem.employeeRate,
+      employerRate: normalizedItem.employerRate,
+      createdBy: raw.createdBy || raw.createdByEmployeeId,
+      approvedBy: raw.approvedBy,
+      approvedAt: raw.approvedAt || raw.approved_at,
       ...raw,
     };
   };
@@ -200,6 +252,9 @@ export default function PayrollSystemConfigurationApprovalPage() {
           break;
         case "taxRules":
           res = await payrollConfigurationService.getTaxRules();
+          break;
+        case "insuranceBrackets":
+          res = await payrollConfigurationService.getInsuranceBrackets();
           break;
         default:
           res = { data: [] };
@@ -232,10 +287,10 @@ export default function PayrollSystemConfigurationApprovalPage() {
         rawData = res;
       }
       
-      setItems(Array.isArray(rawData) ? rawData.map(normalize) : []);
+      setItems(Array.isArray(rawData) ? rawData.map(item => normalize(item, activeTab)) : []);
     } catch (e: any) {
       console.error(`Failed to load ${activeTab}:`, e);
-      setError(e?.message || `Failed to load ${activeTab}. Please check if the backend is running.`);
+      setError(e?.message || `Failed to load ${tabs.find(t => t.id === activeTab)?.label || activeTab}. Please check if the backend is running.`);
       setItems([]);
     } finally {
       setLoading(false);
@@ -257,27 +312,32 @@ export default function PayrollSystemConfigurationApprovalPage() {
 
     try {
       let res;
+      const payload = { approvedBy: user.id };
+      
       switch (activeTab) {
         case "payGrades":
-          res = await payrollConfigurationService.approvePayGrade(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.approvePayGrade(id, payload);
           break;
         case "payrollPolicies":
-          res = await payrollConfigurationService.approvePayrollPolicy(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.approvePayrollPolicy(id, payload);
           break;
         case "payTypes":
-          res = await payrollConfigurationService.approvePayType(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.approvePayType(id, payload);
           break;
         case "allowances":
-          res = await payrollConfigurationService.approveAllowance(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.approveAllowance(id, payload);
           break;
         case "signingBonuses":
-          res = await payrollConfigurationService.approveSigningBonus(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.approveSigningBonus(id, payload);
           break;
         case "terminationBenefits":
-          res = await payrollConfigurationService.approveTerminationBenefit(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.approveTerminationBenefit(id, payload);
           break;
         case "taxRules":
-          res = await payrollConfigurationService.approveTaxRule(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.approveTaxRule(id, payload);
+          break;
+        case "insuranceBrackets":
+          res = await payrollConfigurationService.approveInsuranceBracket(id, payload);
           break;
       }
       
@@ -303,27 +363,32 @@ export default function PayrollSystemConfigurationApprovalPage() {
 
     try {
       let res;
+      const payload = { approvedBy: user.id };
+      
       switch (activeTab) {
         case "payGrades":
-          res = await payrollConfigurationService.rejectPayGrade(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.rejectPayGrade(id, payload);
           break;
         case "payrollPolicies":
-          res = await payrollConfigurationService.rejectPayrollPolicy(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.rejectPayrollPolicy(id, payload);
           break;
         case "payTypes":
-          res = await payrollConfigurationService.rejectPayType(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.rejectPayType(id, payload);
           break;
         case "allowances":
-          res = await payrollConfigurationService.rejectAllowance(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.rejectAllowance(id, payload);
           break;
         case "signingBonuses":
-          res = await payrollConfigurationService.rejectSigningBonus(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.rejectSigningBonus(id, payload);
           break;
         case "terminationBenefits":
-          res = await payrollConfigurationService.rejectTerminationBenefit(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.rejectTerminationBenefit(id, payload);
           break;
         case "taxRules":
-          res = await payrollConfigurationService.rejectTaxRule(id, { approvedBy: user.id });
+          res = await payrollConfigurationService.rejectTaxRule(id, payload);
+          break;
+        case "insuranceBrackets":
+          res = await payrollConfigurationService.rejectInsuranceBracket(id, payload);
           break;
       }
       
@@ -370,6 +435,9 @@ export default function PayrollSystemConfigurationApprovalPage() {
         case "taxRules":
           res = await payrollConfigurationService.deleteTaxRule(id);
           break;
+        case "insuranceBrackets":
+          res = await payrollConfigurationService.deleteInsuranceBracket(id);
+          break;
       }
       
       if ((res as any)?.error) {
@@ -415,58 +483,67 @@ export default function PayrollSystemConfigurationApprovalPage() {
       let res;
       let payload: any = {};
 
-      if (activeTab === "payGrades") {
-        payload = {
-          grade: edit.grade,
-          baseSalary: Number(edit.baseSalary),
-          grossSalary: Number(edit.grossSalary),
-        };
-        res = await payrollConfigurationService.updatePayGrade(edit.id, payload);
-      } else if (activeTab === "payrollPolicies") {
-        payload = {
-          name: edit.name,
-          description: edit.description,
-        };
-        res = await payrollConfigurationService.updatePayrollPolicy(edit.id, payload);
-      } else if (activeTab === "payTypes") {
-        const amountNumber = Number(edit.amount);
-        if (!Number.isFinite(amountNumber)) {
-          throw new Error("Please enter a valid amount for the pay type");
-        }
+      switch (activeTab) {
+        case "payGrades":
+          payload = {
+            grade: edit.grade,
+            baseSalary: Number(edit.baseSalary),
+            grossSalary: Number(edit.grossSalary),
+          };
+          res = await payrollConfigurationService.updatePayGrade(edit.id, payload);
+          break;
+        case "payrollPolicies":
+          payload = {
+            policyName: edit.policyName || edit.name,
+            description: edit.description,
+            effectiveDate: edit.effectiveDate,
+            applicability: edit.applicability,
+          };
+          res = await payrollConfigurationService.updatePayrollPolicy(edit.id, payload);
+          break;
+        case "payTypes":
+          const amountNumber = Number(edit.amount);
+          if (!Number.isFinite(amountNumber)) {
+            throw new Error("Please enter a valid amount for the pay type");
+          }
 
-        payload = {
-          name: edit.name,
-          description: edit.description,
-          amount: amountNumber,
-        };
-        res = await payrollConfigurationService.updatePayType(edit.id, payload);
-      } else if (activeTab === "allowances") {
-        payload = {
-          name: edit.name,
-          description: edit.description,
-          amount: Number(edit.amount),
-        };
-        res = await payrollConfigurationService.updateAllowance(edit.id, payload);
-      } else if (activeTab === "signingBonuses") {
-        payload = {
-          name: edit.name,
-          description: edit.description,
-          amount: Number(edit.amount),
-        };
-        res = await payrollConfigurationService.updateSigningBonus(edit.id, payload);
-      } else if (activeTab === "terminationBenefits") {
-        payload = {
-          name: edit.name,
-          description: edit.description,
-          amount: Number(edit.amount),
-        };
-        res = await payrollConfigurationService.updateTerminationBenefit(edit.id, payload);
-      } else if (activeTab === "taxRules") {
-        payload = {
-          name: edit.name,
-          description: edit.description,
-        };
-        res = await payrollConfigurationService.updateTaxRule(edit.id, payload);
+          payload = {
+            type: edit.type || edit.name,
+            amount: amountNumber,
+          };
+          res = await payrollConfigurationService.updatePayType(edit.id, payload);
+          break;
+        case "allowances":
+        case "signingBonuses":
+        case "terminationBenefits":
+          payload = {
+            name: edit.name,
+            amount: Number(edit.amount),
+          };
+          if (activeTab === "allowances") {
+            res = await payrollConfigurationService.updateAllowance(edit.id, payload);
+          } else if (activeTab === "signingBonuses") {
+            res = await payrollConfigurationService.updateSigningBonus(edit.id, payload);
+          } else {
+            res = await payrollConfigurationService.updateTerminationBenefit(edit.id, payload);
+          }
+          break;
+        case "taxRules":
+          payload = {
+            name: edit.name,
+            description: edit.description,
+          };
+          res = await payrollConfigurationService.updateTaxRule(edit.id, payload);
+          break;
+        case "insuranceBrackets":
+          payload = {
+            minSalary: Number(edit.minSalary),
+            maxSalary: Number(edit.maxSalary),
+            employeeRate: Number(edit.employeeRate),
+            employerRate: Number(edit.employerRate),
+          };
+          res = await payrollConfigurationService.updateInsuranceBracket(edit.id, payload);
+          break;
       }
 
       if ((res as any)?.error) {
@@ -507,6 +584,28 @@ export default function PayrollSystemConfigurationApprovalPage() {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  const formatCurrency = (amount?: number) => {
+    if (!amount && amount !== 0) return "-";
+    return `$${amount.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    })}`;
+  };
+
+  const formatPercentage = (rate?: number) => {
+    if (!rate && rate !== 0) return "-";
+    return `${rate.toFixed(2)}%`;
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "-";
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   return (
@@ -565,317 +664,415 @@ export default function PayrollSystemConfigurationApprovalPage() {
           </div>
         )}
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Main Configuration Panel */}
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Configuration Management
-              </CardTitle>
-              <CardDescription>
-                Manage payroll configurations across all categories
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Tabs */}
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
-                  {tabs.map((tab) => {
-                    const Icon = tab.icon;
-                    return (
-                      <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
-                        <span className="hidden sm:inline">{tab.label}</span>
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
+        {/* Main Content - Full Width */}
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Configuration Management
+            </CardTitle>
+            <CardDescription>
+              Manage payroll configurations across all categories
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid grid-cols-4 gap-3 h-auto p-2">
+                {tabs.map((tab) => {
+                  return (
+                    <TabsTrigger key={tab.id} value={tab.id} className="py-3 px-4 text-sm font-medium">
+                      {tab.label}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
 
-                <TabsContent value={activeTab} className="space-y-6">
-                  {/* Edit Form */}
-                  {edit && (
-                    <Card className="border-primary/20 bg-primary/5">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Edit className="h-5 w-5" />
-                          Edit Configuration
-                        </CardTitle>
-                        <CardDescription>
-                          Update configuration details
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {/* Edit form fields based on activeTab */}
-                        {activeTab === "payGrades" && (
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                              <Label>Grade Name</Label>
-                              <Input
-                                value={edit.grade || ""}
-                                onChange={(e) => setEdit({ ...edit, grade: e.target.value })}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Base Salary (EGP)</Label>
+              <TabsContent value={activeTab} className="space-y-6">
+                {/* Edit Form */}
+                {edit && (
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Edit className="h-5 w-5" />
+                        Edit Configuration
+                      </CardTitle>
+                      <CardDescription>
+                        Update configuration details
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {activeTab === "payGrades" && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label>Grade Name</Label>
+                            <Input
+                              value={edit.grade || ""}
+                              onChange={(e) => setEdit({ ...edit, grade: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Base Salary</Label>
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                              </div>
                               <Input
                                 type="number"
                                 value={edit.baseSalary || ""}
                                 onChange={(e) => setEdit({ ...edit, baseSalary: e.target.value })}
+                                className="pl-8"
                               />
                             </div>
-                            <div className="space-y-2">
-                              <Label>Gross Salary (EGP)</Label>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Gross Salary</Label>
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                              </div>
                               <Input
                                 type="number"
                                 value={edit.grossSalary || ""}
                                 onChange={(e) => setEdit({ ...edit, grossSalary: e.target.value })}
+                                className="pl-8"
                               />
                             </div>
                           </div>
-                        )}
-
-                        {/* Add other edit forms for different configuration types */}
-                        
-                        <div className="flex justify-end gap-2 pt-4">
-                          <Button variant="outline" onClick={cancelEdit}>
-                            Cancel
-                          </Button>
-                          <Button onClick={saveEdit}>
-                            Save Changes
-                          </Button>
                         </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                      )}
 
-                  {/* Search and Filter */}
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="flex-1 relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search configurations..."
-                        className="pl-9"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Select value={filter} onValueChange={(value) => setFilter(value as any)}>
-                        <SelectTrigger className="w-[130px]">
-                          <Filter className="h-4 w-4 mr-2" />
-                          <SelectValue placeholder="Filter status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Status</SelectItem>
-                          <SelectItem value={ConfigStatus.DRAFT}>Draft</SelectItem>
-                          <SelectItem value={ConfigStatus.APPROVED}>Approved</SelectItem>
-                          <SelectItem value={ConfigStatus.REJECTED}>Rejected</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button variant="outline" size="icon" onClick={load}>
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Configurations Table */}
-                  {loading ? (
-                    <div className="space-y-3">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
-                      ))}
-                    </div>
-                  ) : filtered.length === 0 ? (
-                    <Card className="border-dashed">
-                      <CardContent className="pt-6">
-                        <div className="text-center py-8">
-                          <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
-                            <FileText className="h-6 w-6 text-muted-foreground" />
+                      {activeTab === "payTypes" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Pay Type</Label>
+                            <Input
+                              value={edit.type || edit.name || ""}
+                              onChange={(e) => setEdit({ ...edit, type: e.target.value, name: e.target.value })}
+                            />
                           </div>
-                          <h3 className="text-lg font-medium text-foreground mb-1">No configurations found</h3>
-                          <p className="text-muted-foreground">
-                            {searchTerm ? "Try a different search term" : "Create or import configurations to get started"}
-                          </p>
+                          <div className="space-y-2">
+                            <Label>Amount</Label>
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                              <Input
+                                type="number"
+                                value={edit.amount || ""}
+                                onChange={(e) => setEdit({ ...edit, amount: e.target.value })}
+                                className="pl-8"
+                              />
+                            </div>
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <Card>
-                      <CardContent className="p-0">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Name / Description</TableHead>
-                              {activeTab === "payGrades" && (
-                                <>
-                                  <TableHead className="text-right">Base Salary</TableHead>
-                                  <TableHead className="text-right">Gross Salary</TableHead>
-                                </>
-                              )}
-                              {activeTab === "payTypes" && (
-                                <TableHead className="text-right">Amount</TableHead>
-                              )}
-                              {(activeTab === "allowances" || activeTab === "signingBonuses" || activeTab === "terminationBenefits") && (
-                                <TableHead className="text-right">Amount</TableHead>
-                              )}
-                              <TableHead>Status</TableHead>
-                              <TableHead>Created</TableHead>
-                              <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filtered.map((item) => (
-                              <TableRow key={item.id}>
-                                <TableCell>
-                                  <div>
-                                    <div className="font-medium text-foreground">
-                                      {item.name || item.grade || item.title || "Unnamed"}
-                                    </div>
-                                    {item.description && (
-                                      <div className="text-sm text-muted-foreground line-clamp-1">
-                                        {item.description}
-                                      </div>
-                                    )}
+                      )}
+
+                      {["allowances", "signingBonuses", "terminationBenefits"].includes(activeTab) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>{activeTab === "allowances" ? "Allowance Name" : 
+                                   activeTab === "signingBonuses" ? "Bonus Name" : "Benefit Name"}</Label>
+                            <Input
+                              value={edit.name || ""}
+                              onChange={(e) => setEdit({ ...edit, name: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Amount</Label>
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                              <Input
+                                type="number"
+                                value={edit.amount || ""}
+                                onChange={(e) => setEdit({ ...edit, amount: e.target.value })}
+                                className="pl-8"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {activeTab === "insuranceBrackets" && (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Minimum Salary</Label>
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <Input
+                                  type="number"
+                                  value={edit.minSalary || ""}
+                                  onChange={(e) => setEdit({ ...edit, minSalary: e.target.value })}
+                                  className="pl-8"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Maximum Salary</Label>
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <Input
+                                  type="number"
+                                  value={edit.maxSalary || ""}
+                                  onChange={(e) => setEdit({ ...edit, maxSalary: e.target.value })}
+                                  className="pl-8"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Employee Rate (%)</Label>
+                              <div className="relative">
+                                <Input
+                                  type="number"
+                                  value={edit.employeeRate || ""}
+                                  onChange={(e) => setEdit({ ...edit, employeeRate: e.target.value })}
+                                />
+                                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                                  <Percent className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Employer Rate (%)</Label>
+                              <div className="relative">
+                                <Input
+                                  type="number"
+                                  value={edit.employerRate || ""}
+                                  onChange={(e) => setEdit({ ...edit, employerRate: e.target.value })}
+                                />
+                                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                                  <Percent className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-2 pt-4">
+                        <Button variant="outline" onClick={cancelEdit}>
+                          Cancel
+                        </Button>
+                        <Button onClick={saveEdit}>
+                          Save Changes
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Search and Filter */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder={`Search ${tabs.find(t => t.id === activeTab)?.label?.toLowerCase()}...`}
+                      className="pl-9"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Select value={filter} onValueChange={(value) => setFilter(value as any)}>
+                      <SelectTrigger className="w-[130px]">
+                        <Filter className="h-4 w-4 mr-2" />
+                        <SelectValue placeholder="Filter status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value={ConfigStatus.DRAFT}>Draft</SelectItem>
+                        <SelectItem value={ConfigStatus.APPROVED}>Approved</SelectItem>
+                        <SelectItem value={ConfigStatus.REJECTED}>Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button variant="outline" size="icon" onClick={load}>
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Configurations Table */}
+                {loading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
+                    ))}
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <Card className="border-dashed">
+                    <CardContent className="pt-6">
+                      <div className="text-center py-8">
+                        <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
+                          <FileText className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-medium text-foreground mb-1">
+                          No configurations found
+                        </h3>
+                        <p className="text-muted-foreground">
+                          {searchTerm || filter !== "all" ? "Try adjusting your search or filter" : "No configurations available"}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          {activeTab === "payGrades" && (
+                            <>
+                              <TableHead className="text-right">Base Salary</TableHead>
+                              <TableHead className="text-right">Gross Salary</TableHead>
+                            </>
+                          )}
+                          {(activeTab === "payTypes" || 
+                            activeTab === "allowances" || 
+                            activeTab === "signingBonuses" || 
+                            activeTab === "terminationBenefits") && (
+                            <TableHead className="text-right">Amount</TableHead>
+                          )}
+                          {activeTab === "insuranceBrackets" && (
+                            <>
+                              <TableHead className="text-right">Salary Range</TableHead>
+                              <TableHead className="text-right">Employee Rate</TableHead>
+                              <TableHead className="text-right">Employer Rate</TableHead>
+                            </>
+                          )}
+                          <TableHead>Status</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filtered.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium text-foreground">
+                                  {item.name || item.grade || item.policyName || item.type || "Unnamed"}
+                                </div>
+                                {item.description && (
+                                  <div className="text-sm text-muted-foreground line-clamp-1">
+                                    {item.description}
                                   </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            
+                            {/* Type-specific columns */}
+                            {activeTab === "payGrades" && (
+                              <>
+                                <TableCell className="text-right font-medium">
+                                  {formatCurrency(item.baseSalary)}
                                 </TableCell>
+                                <TableCell className="text-right font-medium">
+                                  {formatCurrency(item.grossSalary)}
+                                </TableCell>
+                              </>
+                            )}
+                            
+                            {(activeTab === "payTypes" || 
+                              activeTab === "allowances" || 
+                              activeTab === "signingBonuses" || 
+                              activeTab === "terminationBenefits") && (
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(item.amount)}
+                              </TableCell>
+                            )}
+                            
+                            {activeTab === "insuranceBrackets" && (
+                              <>
+                                <TableCell className="text-right font-medium">
+                                  {formatCurrency(item.minSalary)} - {formatCurrency(item.maxSalary)}
+                                </TableCell>
+                                <TableCell className="text-right font-medium">
+                                  {formatPercentage(item.employeeRate)}
+                                </TableCell>
+                                <TableCell className="text-right font-medium">
+                                  {formatPercentage(item.employerRate)}
+                                </TableCell>
+                              </>
+                            )}
+                            
+                            <TableCell>
+                              {getStatusBadge(item.status)}
+                            </TableCell>
+                            
+                            <TableCell className="text-sm text-muted-foreground">
+                              {formatDate(item.createdAt)}
+                            </TableCell>
+                            
+                            <TableCell>
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => viewItem(item)}
+                                  title="View details"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
                                 
-                                {/* Type-specific columns */}
-                                {activeTab === "payGrades" && (
+                                {item.status === ConfigStatus.DRAFT && (
                                   <>
-                                    <TableCell className="text-right font-medium">
-                                      {item.baseSalary ? `${Number(item.baseSalary).toLocaleString()} EGP` : "-"}
-                                    </TableCell>
-                                    <TableCell className="text-right font-medium">
-                                      {item.grossSalary ? `${Number(item.grossSalary).toLocaleString()} EGP` : "-"}
-                                    </TableCell>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => beginEdit(item)}
+                                      title="Edit"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => approve(item.id)}
+                                      title="Approve"
+                                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    >
+                                      <CheckCircle className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => reject(item.id)}
+                                      title="Reject"
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                      <XCircle className="h-4 w-4" />
+                                    </Button>
                                   </>
                                 )}
                                 
-                                {(activeTab === "payTypes" || activeTab === "allowances" || 
-                                  activeTab === "signingBonuses" || activeTab === "terminationBenefits") && (
-                                  <TableCell className="text-right font-medium">
-                                    {item.amount ? `${Number(item.amount).toLocaleString()} EGP` : "-"}
-                                  </TableCell>
-                                )}
-                                
-                                <TableCell>
-                                  {getStatusBadge(item.status)}
-                                </TableCell>
-                                
-                                <TableCell className="text-sm text-muted-foreground">
-                                  {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}
-                                </TableCell>
-                                
-                                <TableCell>
-                                  <div className="flex justify-end gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => viewItem(item)}
-                                      title="View details"
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                    
-                                    {item.status === ConfigStatus.DRAFT && (
-                                      <>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => beginEdit(item)}
-                                          title="Edit"
-                                        >
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => approve(item.id)}
-                                          title="Approve"
-                                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                        >
-                                          <CheckCircle className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => reject(item.id)}
-                                          title="Reject"
-                                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                          <XCircle className="h-4 w-4" />
-                                        </Button>
-                                      </>
-                                    )}
-                                    
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => deleteItem(item.id)}
-                                      title="Delete"
-                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </CardContent>
-                    </Card>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
-         
-        {/* Statistics Panel */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileSpreadsheet className="h-5 w-5" />
-              Configuration Statistics
-            </CardTitle>
-            <CardDescription>
-              Overview of all payroll configurations
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const tabItems = items.filter(item => 
-                  items.some(i => i.id) // Simplified filter
-                );
-                const draftCount = tabItems.filter(i => i.status === ConfigStatus.DRAFT).length;
-                
-                return (
-                  <Card key={tab.id} className="border-0 bg-gradient-to-br from-background to-muted/50">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className={`p-2 rounded-lg ${tab.bgColor}`}>
-                          <Icon className={`h-5 w-5 ${tab.color}`} />
-                        </div>
-                        {draftCount > 0 && (
-                          <Badge variant="destructive" className="animate-pulse">
-                            {draftCount} pending
-                          </Badge>
-                        )}
-                      </div>
-                      <h3 className="font-semibold text-foreground mt-3">{tab.label}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {tabItems.length} total configurations
-                      </p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => deleteItem(item.id)}
+                                  title="Delete"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
@@ -899,7 +1096,7 @@ export default function PayrollSystemConfigurationApprovalPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">
-                    {view.name || view.grade || view.title || 'Unnamed Configuration'}
+                    {view.name || view.grade || view.policyName || view.type || 'Unnamed Configuration'}
                   </h3>
                   <p className="text-sm text-muted-foreground">ID: {view.id}</p>
                 </div>
@@ -913,7 +1110,7 @@ export default function PayrollSystemConfigurationApprovalPage() {
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-foreground">
-                      {view.createdAt ? new Date(view.createdAt).toLocaleDateString() : 'Not available'}
+                      {formatDate(view.createdAt)}
                     </span>
                   </div>
                 </div>
@@ -928,39 +1125,108 @@ export default function PayrollSystemConfigurationApprovalPage() {
                   </div>
                 </div>
 
-                {/* Type-specific fields */}
-                {view.baseSalary && (
+                {view.baseSalary !== undefined && (
                   <div className="space-y-2">
                     <Label className="text-sm text-muted-foreground">Base Salary</Label>
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                       <span className="text-foreground font-medium">
-                        {Number(view.baseSalary).toLocaleString()} EGP
+                        {formatCurrency(view.baseSalary)}
                       </span>
                     </div>
                   </div>
                 )}
 
-                {view.grossSalary && (
+                {view.grossSalary !== undefined && (
                   <div className="space-y-2">
                     <Label className="text-sm text-muted-foreground">Gross Salary</Label>
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                       <span className="text-foreground font-medium">
-                        {Number(view.grossSalary).toLocaleString()} EGP
+                        {formatCurrency(view.grossSalary)}
                       </span>
                     </div>
                   </div>
                 )}
 
-                {view.amount && (
+                {view.amount !== undefined && (
                   <div className="space-y-2">
                     <Label className="text-sm text-muted-foreground">Amount</Label>
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                       <span className="text-foreground font-medium">
-                        {Number(view.amount).toLocaleString()} EGP
+                        {formatCurrency(view.amount)}
                       </span>
+                    </div>
+                  </div>
+                )}
+
+                {view.minSalary !== undefined && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Minimum Salary</Label>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-foreground font-medium">
+                        {formatCurrency(view.minSalary)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {view.maxSalary !== undefined && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Maximum Salary</Label>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-foreground font-medium">
+                        {formatCurrency(view.maxSalary)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {view.employeeRate !== undefined && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Employee Rate</Label>
+                    <div className="flex items-center gap-2">
+                      <Percent className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-foreground font-medium">
+                        {formatPercentage(view.employeeRate)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {view.employerRate !== undefined && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Employer Rate</Label>
+                    <div className="flex items-center gap-2">
+                      <Percent className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-foreground font-medium">
+                        {formatPercentage(view.employerRate)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {view.createdBy && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Created By</Label>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-foreground">{view.createdBy}</span>
+                    </div>
+                  </div>
+                )}
+
+                {view.approvedBy && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">
+                      {view.status === ConfigStatus.REJECTED ? 'Rejected By' : 'Approved By'}
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-foreground">{view.approvedBy}</span>
                     </div>
                   </div>
                 )}
@@ -996,7 +1262,5 @@ export default function PayrollSystemConfigurationApprovalPage() {
         </DialogContent>
       </Dialog>
     </div>
-    </div>
-  
   );
-} 
+}

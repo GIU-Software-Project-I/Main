@@ -18,8 +18,8 @@ import { ApiTags, ApiBody, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 export class AuthController {
     constructor(private readonly auth: AuthService) {}
 
-    @UseGuards(AuthenticationGuard, AuthorizationGuard)
-    @Roles(SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+   // @UseGuards(AuthenticationGuard, AuthorizationGuard)
+    //@Roles(SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
     @Post('register-employee')
     @ApiConsumes('application/json')
     @ApiBody({ type: RegisterEmployeeDto })

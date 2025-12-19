@@ -69,13 +69,28 @@ export class SharedEmployeeService {
     }
 
     async syncEmployeeStatusToPayroll(employeeId: string, status: string, employeeName: string): Promise<void> {
+        // Sync all status changes with payroll module
         if (status === EmployeeStatus.TERMINATED || status === EmployeeStatus.SUSPENDED) {
+            // Block payroll for terminated/suspended employees
             await this.notifyHRUsers('PAYROLL_BLOCK_REQUIRED', `Employee ${employeeName} status changed to ${status}. Payroll processing should be blocked.`);
+        } else if (status === EmployeeStatus.INACTIVE || status === EmployeeStatus.RETIRED || status === EmployeeStatus.ON_LEAVE) {
+            // Notify payroll for other non-active statuses that may affect payroll calculations
+            await this.notifyHRUsers('PAYROLL_STATUS_CHANGE', `Employee ${employeeName} status changed to ${status}. Payroll calculations may need adjustment.`);
+        } else if (status === EmployeeStatus.ACTIVE) {
+            // Unblock payroll when status returns to active
+            await this.notifyHRUsers('PAYROLL_UNBLOCK', `Employee ${employeeName} status changed to ACTIVE. Payroll processing can resume.`);
         }
     }
 
-    async syncPayGradeChange(employeeId: string, employeeName: string, newPayGrade: string): Promise<void> {
-        await this.notifyHRUsers('PAY_GRADE_CHANGED', `Employee ${employeeName} pay grade changed to ${newPayGrade}. Payroll configuration update may be required.`);
+    async syncPayGradeChange(employeeId: string, employeeName: string, newPayGradeId: string): Promise<void> {
+        // Notify payroll specialists about pay grade change
+        await this.notifyHRUsers('PAY_GRADE_CHANGED', `Employee ${employeeName} pay grade changed (ID: ${newPayGradeId}). Payroll configuration update may be required.`);
+        
+        // Also notify payroll-specific roles
+        const payrollUsers = await this.findUsersByRoles([SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER]);
+        for (const user of payrollUsers) {
+            await this.createNotification(user.employeeProfileId, 'PAY_GRADE_CHANGED', `Employee ${employeeName} pay grade changed (ID: ${newPayGradeId}). Please update payroll configuration.`);
+        }
     }
 }
 

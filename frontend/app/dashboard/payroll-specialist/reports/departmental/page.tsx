@@ -18,6 +18,7 @@ export default function DepartmentalReportsPage() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ReportFilters>({});
   const [departments, setDepartments] = useState<{ _id: string; name: string; code?: string }[]>([]);
+  const [allDepartments, setAllDepartments] = useState<{ _id: string; name: string; code?: string }[]>([]);
   const [selectedReport, setSelectedReport] = useState<DepartmentalReport | null>(null);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
 
@@ -98,13 +99,21 @@ export default function DepartmentalReportsPage() {
       const res = await payrollExecutionService.listDepartments();
       const data = res?.data || res;
       if (Array.isArray(data)) {
-        setDepartments(
-          data.map((d: any) => ({
-            _id: d._id?.toString?.() || d._id || '',
-            name: d.name || d.departmentName || d.code || 'Unknown',
-            code: d.code,
-          }))
-        );
+        setAllDepartments(data);
+        // Deduplicate departments based on name
+        const uniqueDepts = new Map();
+        data.forEach((d: any) => {
+          const name = d.name || d.departmentName || d.code || 'Unknown';
+          if (!uniqueDepts.has(name)) {
+            uniqueDepts.set(name, {
+              _id: d._id?.toString?.() || d._id || '',
+              name: name,
+              code: d.code,
+            });
+          }
+        });
+
+        setDepartments(Array.from(uniqueDepts.values()));
       }
     } catch (error) {
       console.error('Failed to load departments:', error);
@@ -167,7 +176,7 @@ export default function DepartmentalReportsPage() {
           throw new Error('Please select a department for departmental reports');
         }
 
-        const department = departments.find(d => d._id === departmentId || d._id?.toString() === departmentId);
+        const department = allDepartments.find(d => d._id === departmentId || d._id?.toString() === departmentId);
 
         const reportData: any = {
           reportType: reportType,
@@ -184,7 +193,7 @@ export default function DepartmentalReportsPage() {
             const processedReports = responseData.reports.map((r: any) => {
               r.reportType = 'departmental';
               if (r.departmentId) {
-                const dept = departments.find(d => d._id === r.departmentId || d._id?.toString() === r.departmentId?.toString());
+                const dept = allDepartments.find(d => d._id === r.departmentId || d._id?.toString() === r.departmentId?.toString());
                 if (dept) {
                   r.departmentName = dept.name;
                   r.costCenter = dept.code || '';
@@ -505,6 +514,31 @@ export default function DepartmentalReportsPage() {
     }
   };
 
+  const displayedReports = reports.filter(report => {
+    // Filter by Report Type
+    if (filters.reportType && report.reportType !== filters.reportType) {
+      return false;
+    }
+
+    // Filter by Period
+    if (filters.period && !report.period?.includes(filters.period)) {
+      return false;
+    }
+
+    // Filter by Department - only if in departmental mode
+    if (filters.reportType === 'departmental' && filters.departmentId) {
+      const selectedDept = departments.find(d => d._id === filters.departmentId);
+      // Match by name if possible (to catch duplicates), otherwise fallback to ID
+      if (selectedDept && report.departmentName) {
+        if (report.departmentName !== selectedDept.name) return false;
+      } else if (report.departmentId !== filters.departmentId) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
   if (!hasAccess) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -516,7 +550,7 @@ export default function DepartmentalReportsPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Departmental Payroll Reports</h1>
+        <h1 className="text-2xl font-bold text-white">Payroll Reports</h1>
         <button
           onClick={() => setShowGenerateModal(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
@@ -527,61 +561,45 @@ export default function DepartmentalReportsPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-lg border border-slate-200 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Report Type</label>
             <select
               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
-              value={filters.departmentId || ''}
-              onChange={(e) => setFilters(prev => ({ ...prev, departmentId: e.target.value }))}
+              value={filters.reportType || 'all'}
+              onChange={(e) => {
+                const val = e.target.value === 'all' ? undefined : e.target.value;
+                setFilters(prev => ({
+                  ...prev,
+                  reportType: val as ReportFilters['reportType'],
+                  departmentId: undefined // Clear department when changing report type
+                }));
+              }}
             >
-              <option value="">All Departments</option>
-              {departments.map((dept) => (
-                <option key={dept._id} value={dept._id}>
-                  {dept.name}
-                </option>
-              ))}
+              <option value="all">All Types</option>
+              <option value="departmental">Departmental</option>
+              <option value="tax">Tax</option>
+              <option value="payslip">Payslip</option>
+              <option value="summary">Summary</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Period</label>
-            <input
-              type="month"
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
-              value={filters.period || ''}
-              onChange={(e) => setFilters(prev => ({ ...prev, period: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-            <select
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
-              value={filters.status || ''}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value as any }))}
-            >
-              <option value="">All Status</option>
-              <option value="draft">Draft</option>
-              <option value="final">Final</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Cost Center</label>
-            <select
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
-              value={filters.costCenter || ''}
-              onChange={(e) => setFilters(prev => ({ ...prev, costCenter: e.target.value || undefined }))}
-            >
-              <option value="">All Cost Centers</option>
-              {departments
-                .filter((d) => d.code)
-                .map((dept) => (
-                  <option key={dept._id} value={dept.code}>
-                    {dept.code} — {dept.name}
+          {filters.reportType === 'departmental' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
+              <select
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
+                value={filters.departmentId || ''}
+                onChange={(e) => setFilters(prev => ({ ...prev, departmentId: e.target.value }))}
+              >
+                <option value="">All Departments</option>
+                {departments.map((dept) => (
+                  <option key={dept._id} value={dept._id}>
+                    {dept.name}
                   </option>
                 ))}
-            </select>
-          </div>
+              </select>
+            </div>
+          )}
           <div className="flex items-end">
             <button
               onClick={loadReports}
@@ -593,7 +611,7 @@ export default function DepartmentalReportsPage() {
         </div>
       </div>
 
-      {/* Departmental Reports - Card Grid Layout */}
+      {/* Generated Reports - Card Grid Layout */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-white mb-4">Generated Reports</h2>
         {loading ? (
@@ -601,7 +619,7 @@ export default function DepartmentalReportsPage() {
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <p className="text-slate-500 ml-3">Loading reports...</p>
           </div>
-        ) : reports.length === 0 ? (
+        ) : displayedReports.length === 0 ? (
           <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
             <svg className="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -617,7 +635,7 @@ export default function DepartmentalReportsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {reports.map((report) => {
+            {displayedReports.map((report, index: number) => {
               // Determine report type badge styling
               const getTypeBadge = () => {
                 const reportType = (report as any).reportType || 'departmental';
@@ -675,7 +693,7 @@ export default function DepartmentalReportsPage() {
 
               return (
                 <div
-                  key={report.id}
+                  key={report.id || index}
                   className={`bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-slate-300 transition-all duration-200 cursor-pointer relative ${isSummaryReport && summaryData ? 'min-h-[280px]' : ''}`}
                   onClick={() => {
                     setSelectedReport(report);

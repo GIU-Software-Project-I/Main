@@ -27,6 +27,11 @@ const SELF_SERVICE_SECTION: NavSection = {
   title: 'Self-Service',
   items: [
     {
+      label: 'Home',
+      href: '/',
+      icon: 'home',
+    },
+    {
       label: 'My Profile',
       href: '/portal/my-profile',
       icon: 'user',
@@ -216,24 +221,19 @@ const HR_MANAGER_SECTIONS: NavSection[] = [
         icon: 'home',
       },
       {
-        label: 'Organization',
-        href: '/dashboard/hr-manager/organization',
-        icon: 'building',
-      },
-      {
         label: 'Time Management',
         href: '/dashboard/hr-manager/time-management',
         icon: 'clock',
         children: [
           { label: 'Shift Types', href: '/dashboard/hr-manager/time-management/ShiftType', icon: 'clock' },
-            { label: 'Lateness', href: '/dashboard/hr-manager/time-management/Lateness', icon: 'clock' },
+          { label: 'Lateness', href: '/dashboard/hr-manager/time-management/Lateness', icon: 'clock' },
           { label: 'Schedule Rules', href: '/dashboard/hr-manager/time-management/schedule-rules', icon: 'calendar' },
           { label: 'Configure Rules', href: '/dashboard/hr-manager/time-management/ConfigureRules', icon: 'settings' },
         ],
       },
       {
         label: 'Recruitment',
-        href: '/dashboard/recruiter',
+        href: '/dashboard/hr-manager/recruitment',
         icon: 'user-plus',
       },
       {
@@ -285,6 +285,26 @@ const HR_MANAGER_SECTIONS: NavSection[] = [
           { label: 'Tax Documents', href: '/dashboard/hr-manager/payroll-tracking/tax-documents', icon: 'folder' },
           { label: 'Claims & Disputes', href: '/dashboard/hr-manager/payroll-tracking/claims-disputes', icon: 'alert-circle' },
         ],
+      },
+    ],
+  },
+  {
+    title: 'Team Management',
+    items: [
+      {
+        label: 'My Team',
+        href: '/dashboard/department-head/team-profiles',
+        icon: 'users',
+      },
+      {
+        label: 'Employee Management',
+        href: '/dashboard/hr-admin/employee-management',
+        icon: 'users',
+      },
+      {
+        label: 'Team Structure',
+        href: '/dashboard/department-head/team-structure',
+        icon: 'building',
       },
     ],
   },
@@ -360,18 +380,18 @@ const HR_ADMIN_SECTIONS: NavSection[] = [
         icon: 'edit',
         badge: 'New',
       },
-        {
-            label: 'Time Management',
-            href: '/dashboard/hr-manager/time-management',
-            icon: 'clock',
-            children: [
-                { label: 'Manage Attendance', href: '/dashboard/hr-admin/time-management/attendance-records', icon: 'clipboard-list' },
-                { label: 'TimeExceptions', href: '/dashboard/hr-admin/time-management/time-exceptions', icon: 'clipboard-list' },
-                { label: 'Holidays', href: '/dashboard/hr-admin/time-management/Holidays', icon: 'clipboard-list' },
-              { label: 'Shift Assignments', href: '/dashboard/hr-admin/time-management/ShiftAssignments', icon: 'clipboard-list' },
+      {
+        label: 'Time Management',
+        href: '/dashboard/hr-manager/time-management',
+        icon: 'clock',
+        children: [
+          { label: 'Manage Attendance', href: '/dashboard/hr-admin/time-management/attendance-records', icon: 'clipboard-list' },
+          { label: 'TimeExceptions', href: '/dashboard/hr-admin/time-management/time-exceptions', icon: 'clipboard-list' },
+          { label: 'Holidays', href: '/dashboard/hr-admin/time-management/Holidays', icon: 'clipboard-list' },
+          { label: 'Shift Assignments', href: '/dashboard/hr-admin/time-management/ShiftAssignments', icon: 'clipboard-list' },
 
-            ],
-        },
+        ],
+      },
       {
         label: 'Role Assignment',
         href: '/dashboard/hr-admin/role-assignment',
@@ -415,8 +435,8 @@ const HR_ADMIN_SECTIONS: NavSection[] = [
         href: '/dashboard/hr-admin/leaves-config',
         icon: 'calendar',
         children: [
-          {label: 'Policies', href: '/dashboard/hr-admin/leaves-config', icon: 'settings'},
-        //  {label: 'Leave Types', href: '/dashboard/hr-admin/leaves-config/leave-types', icon: 'list'},
+          { label: 'Policies', href: '/dashboard/hr-admin/leaves-config', icon: 'settings' },
+          //  {label: 'Leave Types', href: '/dashboard/hr-admin/leaves-config/leave-types', icon: 'list'},
           //{label: 'Manual Adjustments', href: '/dashboard/hr-admin/leaves-config/manual-adjustment', icon: 'edit'},
         ],
       },

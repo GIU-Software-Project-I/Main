@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { organizationStructureService } from '@/app/services/organization-structure';
+import RoleGuard from '@/app/components/RoleGuard';
+import { SystemRole } from '@/app/context/AuthContext';
 
 /**
  * Organization Structure Management - System Admin
@@ -137,25 +139,28 @@ export default function OrganizationStructurePage() {
 
   if (loading) {
     return (
-      <div className="p-6 lg:p-8 bg-background min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-muted rounded w-1/3"></div>
-            <div className="grid grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-24 bg-muted rounded-xl"></div>
-              ))}
+      <RoleGuard allowedRoles={[SystemRole.SYSTEM_ADMIN, SystemRole.HR_ADMIN, SystemRole.HR_MANAGER]}>
+        <div className="p-6 lg:p-8 bg-background min-h-screen">
+          <div className="max-w-7xl mx-auto">
+            <div className="animate-pulse space-y-6">
+              <div className="h-8 bg-muted rounded w-1/3"></div>
+              <div className="grid grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="h-24 bg-muted rounded-xl"></div>
+                ))}
+              </div>
+              <div className="h-96 bg-muted rounded-xl"></div>
             </div>
-            <div className="h-96 bg-muted rounded-xl"></div>
           </div>
         </div>
-      </div>
+      </RoleGuard>
     );
   }
 
   return (
-    <div className="p-6 lg:p-8 bg-background min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <RoleGuard allowedRoles={[SystemRole.SYSTEM_ADMIN, SystemRole.HR_ADMIN, SystemRole.HR_MANAGER]}>
+      <div className="p-6 lg:p-8 bg-background min-h-screen">
+        <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
@@ -430,6 +435,7 @@ export default function OrganizationStructurePage() {
         </div>
       </div>
     </div>
+    </RoleGuard>
   );
 }
 

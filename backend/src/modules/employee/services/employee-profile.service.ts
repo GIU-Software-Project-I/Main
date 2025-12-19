@@ -5,6 +5,7 @@ import { EmployeeProfile, EmployeeProfileDocument } from '../models/employee/emp
 import { EmployeeProfileChangeRequest, EmployeeProfileChangeRequestDocument } from '../models/employee/ep-change-request.schema';
 import { EmployeeQualification, EmployeeQualificationDocument } from '../models/employee/qualification.schema';
 import { EmployeeSystemRole, EmployeeSystemRoleDocument } from '../models/employee/employee-system-role.schema';
+import { EmployeeProfileAuditLog, EmployeeProfileAuditLogDocument, EmployeeProfileAuditAction } from '../models/audit/employee-profile-audit-log.schema';
 
 import { UpdateContactInfoDto } from '../dto/employee-profile/update-contact-info.dto';
 import { UpdateBioDto } from '../dto/employee-profile/update-bio.dto';
@@ -14,6 +15,7 @@ import { AdminAssignRoleDto } from '../dto/employee-profile/admin-assign-role.dt
 import { SearchEmployeesDto, PaginatedResult, PaginationQueryDto } from '../dto/employee-profile/search-employees.dto';
 import { EmployeeStatus, ProfileChangeStatus } from '../enums/employee-profile.enums';
 import { AddEmergencyContactDto, UpdateEmergencyContactDto } from '../dto/employee-profile/emergency-contact.dto';
+import { AddQualificationDto, UpdateQualificationDto } from '../dto/employee-profile/qualification.dto';
 import { SharedEmployeeService } from '../../shared/services/shared-employee.service';
 
 @Injectable()
@@ -27,6 +29,8 @@ export class EmployeeProfileService {
         private systemRoleModel: Model<EmployeeSystemRoleDocument>,
         @InjectModel(EmployeeQualification.name)
         private qualificationModel: Model<EmployeeQualificationDocument>,
+        @InjectModel(EmployeeProfileAuditLog.name)
+        private auditLogModel: Model<EmployeeProfileAuditLogDocument>,
         private readonly sharedEmployeeService: SharedEmployeeService,
     ) { }
 
@@ -71,6 +75,35 @@ export class EmployeeProfileService {
         return this.validStatusTransitions[currentStatus]?.includes(newStatus) ?? false;
     }
 
+    /**
+     * BR 22: Log all profile modifications with timestamp and Actor's ID
+     * Service-layer audit logging - does not modify schemas
+     */
+    private async logChange(params: {
+        action: EmployeeProfileAuditAction;
+        employeeProfileId: string;
+        performedByEmployeeId?: string;
+        summary?: string;
+        fieldChanged?: string;
+        before?: any;
+        after?: any;
+    }): Promise<void> {
+        try {
+            await this.auditLogModel.create({
+                action: params.action,
+                employeeProfileId: new Types.ObjectId(params.employeeProfileId),
+                performedByEmployeeId: params.performedByEmployeeId ? new Types.ObjectId(params.performedByEmployeeId) : undefined,
+                summary: params.summary,
+                fieldChanged: params.fieldChanged,
+                beforeSnapshot: params.before,
+                afterSnapshot: params.after,
+            });
+        } catch (error) {
+            // Log error but don't fail the operation
+            console.error('[AUDIT LOG ERROR] Failed to log change:', error);
+        }
+    }
+
     async getProfile(userId: string): Promise<any> {
         this.validateObjectId(userId, 'userId');
 
@@ -105,6 +138,14 @@ export class EmployeeProfileService {
             throw new BadRequestException('Cannot update contact info for terminated employee');
         }
 
+        // BR 22: Capture before snapshot for audit
+        const beforeSnapshot = {
+            mobilePhone: profile.mobilePhone,
+            homePhone: profile.homePhone,
+            personalEmail: profile.personalEmail,
+            address: profile.address ? { ...profile.address } : undefined,
+        };
+
         if (dto.mobilePhone !== undefined) profile.mobilePhone = dto.mobilePhone;
         if (dto.homePhone !== undefined) profile.homePhone = dto.homePhone;
         if (dto.personalEmail !== undefined) profile.personalEmail = dto.personalEmail;
@@ -113,6 +154,22 @@ export class EmployeeProfileService {
         }
 
         const savedProfile = await profile.save();
+
+        // BR 22: Log the change
+        await this.logChange({
+            action: EmployeeProfileAuditAction.CONTACT_INFO_UPDATED,
+            employeeProfileId: userId,
+            performedByEmployeeId: userId,
+            summary: 'Contact information updated',
+            before: beforeSnapshot,
+            after: {
+                mobilePhone: savedProfile.mobilePhone,
+                homePhone: savedProfile.homePhone,
+                personalEmail: savedProfile.personalEmail,
+                address: savedProfile.address,
+            },
+        });
+
         await this.sharedEmployeeService.sendProfileUpdatedNotification(userId, profile.fullName || 'Employee');
         return savedProfile;
     }
@@ -129,10 +186,30 @@ export class EmployeeProfileService {
             throw new BadRequestException('Cannot update bio for terminated employee');
         }
 
+        // BR 22: Capture before snapshot for audit
+        const beforeSnapshot = {
+            biography: profile.biography,
+            profilePictureUrl: profile.profilePictureUrl,
+        };
+
         if (dto.biography !== undefined) profile.biography = dto.biography;
         if (dto.profilePictureUrl !== undefined) profile.profilePictureUrl = dto.profilePictureUrl;
 
         const savedProfile = await profile.save();
+
+        // BR 22: Log the change
+        await this.logChange({
+            action: EmployeeProfileAuditAction.BIO_UPDATED,
+            employeeProfileId: userId,
+            performedByEmployeeId: userId,
+            summary: 'Biography or profile picture updated',
+            before: beforeSnapshot,
+            after: {
+                biography: savedProfile.biography,
+                profilePictureUrl: savedProfile.profilePictureUrl,
+            },
+        });
+
         await this.sharedEmployeeService.sendProfileUpdatedNotification(userId, profile.fullName || 'Employee');
         return savedProfile;
     }
@@ -170,6 +247,15 @@ export class EmployeeProfileService {
         });
 
         const savedRequest = await request.save();
+
+        // BR 22: Log the change request creation
+        await this.logChange({
+            action: EmployeeProfileAuditAction.CHANGE_REQUEST_CREATED,
+            employeeProfileId: userId,
+            performedByEmployeeId: userId,
+            summary: `Change request created: ${dto.requestDescription}`,
+        });
+
         await this.sharedEmployeeService.sendChangeRequestSubmittedNotification(userId, profile.fullName || 'Employee', savedRequest.requestId);
         return savedRequest;
     }
@@ -220,7 +306,17 @@ export class EmployeeProfileService {
         request.status = ProfileChangeStatus.CANCELED;
         request.processedAt = new Date();
 
-        return request.save();
+        const savedRequest = await request.save();
+
+        // BR 22: Log the cancellation
+        await this.logChange({
+            action: EmployeeProfileAuditAction.CHANGE_REQUEST_CANCELED,
+            employeeProfileId: userId,
+            performedByEmployeeId: userId,
+            summary: `Change request ${requestId} canceled by employee`,
+        });
+
+        return savedRequest;
     }
 
     async getTeamProfiles(managerId: string): Promise<EmployeeProfile[]> {
@@ -235,11 +331,12 @@ export class EmployeeProfileService {
             return [];
         }
 
+        // BR 18b: Privacy filter - exclude sensitive info (mobilePhone, personalEmail, address, nationalId, bankAccountNumber)
         return this.employeeProfileModel.find({
             supervisorPositionId: managerProfile.primaryPositionId,
             status: { $ne: EmployeeStatus.TERMINATED },
         })
-            .select('firstName lastName fullName employeeNumber primaryPositionId primaryDepartmentId workEmail mobilePhone status dateOfHire profilePictureUrl')
+            .select('firstName lastName fullName employeeNumber primaryPositionId primaryDepartmentId workEmail status dateOfHire profilePictureUrl')
             .populate('primaryPositionId', 'title')
             .populate('primaryDepartmentId', 'name');
     }
@@ -267,9 +364,10 @@ export class EmployeeProfileService {
             status: { $ne: EmployeeStatus.TERMINATED },
         };
 
+        // BR 18b: Privacy filter - exclude sensitive info (mobilePhone, personalEmail, address, nationalId, bankAccountNumber)
         const [data, total] = await Promise.all([
             this.employeeProfileModel.find(filter)
-                .select('firstName lastName fullName employeeNumber primaryPositionId primaryDepartmentId workEmail mobilePhone status dateOfHire profilePictureUrl')
+                .select('firstName lastName fullName employeeNumber primaryPositionId primaryDepartmentId workEmail status dateOfHire profilePictureUrl')
                 .populate('primaryPositionId', 'title')
                 .populate('primaryDepartmentId', 'name')
                 .skip(skip)
@@ -390,7 +488,10 @@ export class EmployeeProfileService {
             throw new NotFoundException('Employee profile not found');
         }
 
+        // BR 22: Capture before snapshot for audit
+        const beforeSnapshot = profile.toObject();
         const oldStatus = profile.status;
+        const oldPayGradeId = profile.payGradeId?.toString();
 
         if (dto.status && dto.status !== profile.status) {
             if (!this.isValidStatusTransition(profile.status, dto.status)) {
@@ -474,13 +575,53 @@ export class EmployeeProfileService {
         if (dto.bankName !== undefined) profile.bankName = dto.bankName;
         if (dto.bankAccountNumber !== undefined) profile.bankAccountNumber = dto.bankAccountNumber;
 
+        // Track pay grade change for payroll sync
+        if (dto.payGradeId !== undefined) {
+            this.validateObjectId(dto.payGradeId, 'payGradeId');
+            profile.payGradeId = new Types.ObjectId(dto.payGradeId);
+        }
+
         const savedProfile = await profile.save();
 
-        await this.sharedEmployeeService.sendProfileUpdatedNotification(id, profile.fullName || 'Employee');
+        // BR 22: Log the admin update
+        const changedFields: string[] = [];
+        if (dto.firstName !== undefined || dto.lastName !== undefined) changedFields.push('name');
+        if (dto.status !== undefined && dto.status !== oldStatus) changedFields.push('status');
+        if (dto.primaryPositionId !== undefined) changedFields.push('position');
+        if (dto.primaryDepartmentId !== undefined) changedFields.push('department');
+        if (dto.contractType !== undefined) changedFields.push('contractType');
+        if (dto.payGradeId !== undefined) changedFields.push('payGrade');
 
+        await this.logChange({
+            action: EmployeeProfileAuditAction.UPDATED,
+            employeeProfileId: id,
+            performedByEmployeeId: adminUserId,
+            summary: `Admin updated profile: ${changedFields.join(', ') || 'various fields'}`,
+            fieldChanged: changedFields.length === 1 ? changedFields[0] : undefined,
+            before: beforeSnapshot,
+            after: savedProfile.toObject(),
+        });
+
+        // Log status change separately if applicable and sync with payroll
         if (dto.status && dto.status !== oldStatus) {
+            await this.logChange({
+                action: EmployeeProfileAuditAction.STATUS_CHANGED,
+                employeeProfileId: id,
+                performedByEmployeeId: adminUserId,
+                summary: `Status changed from ${oldStatus} to ${dto.status}`,
+                fieldChanged: 'status',
+                before: { status: oldStatus },
+                after: { status: dto.status },
+            });
             await this.sharedEmployeeService.syncEmployeeStatusToPayroll(id, dto.status, profile.fullName || 'Employee');
         }
+
+        // Sync pay grade changes with payroll
+        if (dto.payGradeId !== undefined && dto.payGradeId !== oldPayGradeId) {
+            await this.sharedEmployeeService.syncPayGradeChange(id, profile.fullName || 'Employee', dto.payGradeId);
+        }
+
+        await this.sharedEmployeeService.sendProfileUpdatedNotification(id, profile.fullName || 'Employee');
 
         return savedProfile;
     }
@@ -510,10 +651,24 @@ export class EmployeeProfileService {
             }
         );
 
+        // BR 22: Capture before snapshot
+        const beforeStatus = profile.status;
+
         profile.status = EmployeeStatus.TERMINATED;
         profile.statusEffectiveFrom = new Date();
 
         const savedProfile = await profile.save();
+
+        // BR 22: Log the deactivation
+        await this.logChange({
+            action: EmployeeProfileAuditAction.DEACTIVATED,
+            employeeProfileId: id,
+            performedByEmployeeId: adminUserId,
+            summary: `Employee deactivated (status changed to TERMINATED)`,
+            fieldChanged: 'status',
+            before: { status: beforeStatus },
+            after: { status: EmployeeStatus.TERMINATED },
+        });
 
         await this.sharedEmployeeService.syncEmployeeStatusToPayroll(id, EmployeeStatus.TERMINATED, profile.fullName || 'Employee');
         await this.sharedEmployeeService.sendProfileUpdatedNotification(id, profile.fullName || 'Employee');
@@ -539,6 +694,10 @@ export class EmployeeProfileService {
 
         // If roles array is provided, create/update EmployeeSystemRole
         if (dto.roles && dto.roles.length > 0) {
+            // BR 22: Capture before snapshot
+            const beforeRoles = profile.accessProfileId ?
+                (await this.systemRoleModel.findById(profile.accessProfileId))?.roles || [] : [];
+
             // Find or create the EmployeeSystemRole document
             let systemRole = await this.systemRoleModel.findOne({
                 employeeProfileId: new Types.ObjectId(id)
@@ -561,7 +720,20 @@ export class EmployeeProfileService {
 
             // Update the employee profile with the accessProfileId
             profile.accessProfileId = systemRole._id as Types.ObjectId;
-            return profile.save();
+            const savedProfile = await profile.save();
+
+            // BR 22: Log the role assignment
+            await this.logChange({
+                action: EmployeeProfileAuditAction.ROLE_ASSIGNED,
+                employeeProfileId: id,
+                performedByEmployeeId: adminUserId,
+                summary: `Roles assigned: ${dto.roles.join(', ')}`,
+                fieldChanged: 'roles',
+                before: { roles: beforeRoles },
+                after: { roles: dto.roles },
+            });
+
+            return savedProfile;
         }
 
         // If accessProfileId is provided, use it directly
@@ -658,9 +830,20 @@ export class EmployeeProfileService {
 
             const savedRequest = await request.save();
 
-            // Notify user (fetch profile separately to avoid population issues)
+            // BR 22: Log the change request processing
             if (request.employeeProfileId) {
                 const profileId = request.employeeProfileId.toString();
+                const action = status === ProfileChangeStatus.APPROVED
+                    ? EmployeeProfileAuditAction.CHANGE_REQUEST_APPROVED
+                    : EmployeeProfileAuditAction.CHANGE_REQUEST_REJECTED;
+
+                await this.logChange({
+                    action,
+                    employeeProfileId: profileId,
+                    performedByEmployeeId: adminUserId,
+                    summary: `Change request ${requestId} ${status.toLowerCase()}${rejectionReason ? `: ${rejectionReason}` : ''}`,
+                });
+
                 await this.sharedEmployeeService.sendChangeRequestProcessedNotification(
                     profileId,
                     requestId,
@@ -892,5 +1075,59 @@ export class EmployeeProfileService {
         await profile.save();
 
         return profile.emergencyContacts;
+    }
+
+    // =============================================
+    // Qualification Management
+    // =============================================
+
+    async getQualifications(userId: string): Promise<any[]> {
+        this.validateObjectId(userId, 'userId');
+        return this.qualificationModel.find({ employeeProfileId: new Types.ObjectId(userId) }).lean();
+    }
+
+    async addQualification(userId: string, dto: AddQualificationDto): Promise<any> {
+        this.validateObjectId(userId, 'userId');
+
+        const qualification = new this.qualificationModel({
+            ...dto,
+            employeeProfileId: new Types.ObjectId(userId)
+        });
+
+        await qualification.save();
+        return this.getQualifications(userId);
+    }
+
+    async updateQualification(userId: string, qualificationId: string, dto: UpdateQualificationDto): Promise<any> {
+        this.validateObjectId(userId, 'userId');
+        this.validateObjectId(qualificationId, 'qualificationId');
+
+        const qualification = await this.qualificationModel.findOneAndUpdate(
+            { _id: new Types.ObjectId(qualificationId), employeeProfileId: new Types.ObjectId(userId) },
+            { $set: dto },
+            { new: true }
+        );
+
+        if (!qualification) {
+            throw new NotFoundException('Qualification not found');
+        }
+
+        return this.getQualifications(userId);
+    }
+
+    async deleteQualification(userId: string, qualificationId: string): Promise<any> {
+        this.validateObjectId(userId, 'userId');
+        this.validateObjectId(qualificationId, 'qualificationId');
+
+        const result = await this.qualificationModel.deleteOne({
+            _id: new Types.ObjectId(qualificationId),
+            employeeProfileId: new Types.ObjectId(userId)
+        });
+
+        if (result.deletedCount === 0) {
+            throw new NotFoundException('Qualification not found');
+        }
+
+        return this.getQualifications(userId);
     }
 }

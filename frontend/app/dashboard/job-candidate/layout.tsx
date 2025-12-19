@@ -10,7 +10,7 @@ export default function JobCandidateLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, getDashboardRoute } = useAuth();
   const router = useRouter();
 
   const allowedRoles = [SystemRole.JOB_CANDIDATE];
@@ -21,13 +21,20 @@ export default function JobCandidateLayout({
       router.push('/login');
       return;
     }
-    if (!hasAccess) {
-      router.push('/unauthorized');
+    
+    // If user is not a candidate, redirect them to their own dashboard
+    if (user && user.role !== SystemRole.JOB_CANDIDATE) {
+      router.replace(getDashboardRoute());
       return;
     }
-  }, [isAuthenticated, hasAccess, router]);
+    
+    if (!hasAccess) {
+      router.replace('/login');
+      return;
+    }
+  }, [isAuthenticated, hasAccess, user, router, getDashboardRoute]);
 
-  if (!isAuthenticated || !hasAccess) {
+  if (!isAuthenticated || !hasAccess || user?.role !== SystemRole.JOB_CANDIDATE) {
     return null;
   }
 

@@ -171,6 +171,38 @@ export const employeeProfileService = {
     return apiService.delete(getMePath(userId, `/emergency-contacts/${index}`));
   },
 
+  // =============================================
+  // Qualification (Education) Management
+  // =============================================
+
+  /**
+   * Get all qualifications
+   */
+  getQualifications: async (userId: string) => {
+    return apiService.get(getMePath(userId, '/qualifications'));
+  },
+
+  /**
+   * Add qualification
+   */
+  addQualification: async (userId: string, data: any) => {
+    return apiService.post(getMePath(userId, '/qualifications'), data);
+  },
+
+  /**
+   * Update qualification
+   */
+  updateQualification: async (userId: string, id: string, data: any) => {
+    return apiService.patch(getMePath(userId, `/qualifications/${id}`), data);
+  },
+
+  /**
+   * Delete qualification
+   */
+  deleteQualification: async (userId: string, id: string) => {
+    return apiService.delete(getMePath(userId, `/qualifications/${id}`));
+  },
+
 
   // =============================================
   // Manager Endpoints (Team View)

@@ -56,18 +56,33 @@ export default function PayrollManagerDisputesPage() {
   };
 
   const handleConfirmation = async () => {
-    if (!selectedDispute) return;
+    if (!selectedDispute || !user?.id) {
+      setError('Missing dispute or user information');
+      return;
+    }
+
+    if (!selectedDispute.id) {
+      setError('Dispute ID is missing. Please refresh the page and try again.');
+      console.error('Selected dispute:', selectedDispute);
+      return;
+    }
 
     setLoading(true);
     setError(null);
     setSuccessMessage(null);
 
     try {
+      console.log('[DisputesPage] Confirming dispute:', { 
+        disputeId: selectedDispute.id, 
+        managerId: user.id, 
+        action: confirmationAction 
+      });
+      
       const response = await payrollManagerService.confirmDispute({
         disputeId: selectedDispute.id,
         confirmed: confirmationAction === 'approve',
         notes: confirmationNotes,
-      });
+      }, user.id);
 
       if (response.error) {
         setError(`Failed to ${confirmationAction} dispute: ${response.error}`);
@@ -102,7 +117,11 @@ export default function PayrollManagerDisputesPage() {
 
   const filterDisputes = () => {
     if (statusFilter === 'all') {
-      return allDisputes.filter(d => d.status?.toLowerCase().includes('pending'));
+      // Show only disputes that are pending manager approval (accepted by specialist)
+      return allDisputes.filter(d => {
+        const s = (d.status || '').toLowerCase();
+        return s.includes('pending') && s.includes('manager') && s.includes('approval');
+      });
     }
     if (statusFilter === 'approved') {
       return allDisputes.filter(d => d.status?.toLowerCase() === 'approved' || d.status?.toLowerCase() === 'confirmed');
@@ -224,14 +243,14 @@ export default function PayrollManagerDisputesPage() {
         <div className="p-6 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">
             {statusFilter === 'all' 
-              ? `Pending Disputes Approval (${disputes.length})`
+              ? `Pending Disputes (${disputes.length})`
               : statusFilter === 'approved'
               ? `Approved Disputes (${disputes.length})`
               : `Rejected Disputes (${disputes.length})`}
           </h2>
           <p className="text-sm text-slate-600 mt-1">
             {statusFilter === 'all' 
-              ? 'Disputes approved by specialists awaiting your confirmation'
+              ? 'Disputes accepted by specialist, awaiting your approval'
               : statusFilter === 'approved'
               ? 'Disputes that have been approved'
               : 'Disputes that have been rejected'}
@@ -257,8 +276,8 @@ export default function PayrollManagerDisputesPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {disputes.map((dispute) => (
-                  <tr key={dispute.id} className="hover:bg-slate-50">
+                {disputes.map((dispute, index) => (
+                  <tr key={`dispute-${dispute.id || dispute.employeeNumber || index}-${index}`} className="hover:bg-slate-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-slate-900">{dispute.employeeName}</div>
@@ -323,7 +342,7 @@ export default function PayrollManagerDisputesPage() {
             {disputes.length === 0 && (
               <div className="p-6 text-center text-slate-500">
                 {statusFilter === 'all' 
-                  ? 'No disputes pending confirmation'
+                  ? 'No disputes pending your approval'
                   : statusFilter === 'approved'
                   ? 'No approved disputes found'
                   : 'No rejected disputes found'}

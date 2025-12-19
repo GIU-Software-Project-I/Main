@@ -20,6 +20,7 @@ import { RoundingRule } from '../enums/rounding-rule.enum';
 import { LeavePolicyDocument } from '../models/leave-policy.schema';
 import { SharedLeavesService } from '../../shared/services/shared-leaves.service';
 import { AdjustmentType } from '../enums/adjustment-type.enum';
+import { SystemRole } from '../../employee/enums/employee-profile.enums';
 
 @Injectable()
 export class UnifiedLeaveService {
@@ -3002,6 +3003,160 @@ async resetLeaveYear(
       this.logger.error('[BALANCE FIX] ❌ Failed to fix unpaid leave balances:', error);
       throw new BadRequestException(`Failed to fix unpaid leave balances: ${error.message}`);
     }
+  }
+
+  // --------------------------------------------------------------------------------
+  // User Role Management (REQ: HR Admin manages user roles and permissions)
+  // --------------------------------------------------------------------------------
+
+  /**
+   * Get user by ID or email for role management
+   * @param query - User ID (ObjectId) or email address
+   * @returns User profile with roles
+   */
+  async getUserByIdOrEmail(query: string): Promise<any> {
+    if (!query || !query.trim()) {
+      throw new BadRequestException('Query parameter is required');
+    }
+
+    const q = query.trim();
+    let employeeProfile: any = null;
+    let systemRole: any = null;
+
+    // Try to find by ObjectId first
+    if (Types.ObjectId.isValid(q)) {
+      employeeProfile = await this.sharedLeavesService['employeeProfileModel']
+        .findById(new Types.ObjectId(q))
+        .select('_id fullName employeeNumber workEmail status')
+        .lean()
+        .exec();
+
+      if (employeeProfile) {
+        systemRole = await this.sharedLeavesService['systemRoleModel']
+          .findOne({ employeeProfileId: new Types.ObjectId(q), isActive: true })
+          .select('roles permissions isActive')
+          .lean()
+          .exec();
+      }
+    }
+
+    // If not found by ID, try email or employeeNumber
+    if (!employeeProfile) {
+      employeeProfile = await this.sharedLeavesService['employeeProfileModel']
+        .findOne({ 
+          $or: [
+            { employeeNumber: q },
+            { workEmail: q },
+          ]
+        })
+        .select('_id fullName employeeNumber workEmail status')
+        .lean()
+        .exec();
+
+      if (employeeProfile) {
+        systemRole = await this.sharedLeavesService['systemRoleModel']
+          .findOne({ employeeProfileId: employeeProfile._id, isActive: true })
+          .select('roles permissions isActive')
+          .lean()
+          .exec();
+      }
+    }
+
+    if (!employeeProfile) {
+      throw new NotFoundException(`User not found with ID or email: ${q}`);
+    }
+
+    // Determine primary role (first role in array, or default)
+    const primaryRole = systemRole?.roles?.[0] || null;
+
+    return {
+      _id: employeeProfile._id,
+      id: employeeProfile._id,
+      fullName: employeeProfile.fullName || '',
+      email: (employeeProfile as any).workEmail || '',
+      employeeNumber: employeeProfile.employeeNumber || '',
+      status: employeeProfile.status || '',
+      role: primaryRole,
+      roles: systemRole?.roles || [],
+      permissions: systemRole?.permissions || [],
+      isActive: systemRole?.isActive ?? true,
+    };
+  }
+
+  /**
+   * Update user role for leave management
+   * @param userId - User ID (ObjectId)
+   * @param payload - Update payload with role and optional actorId
+   * @returns Updated user profile with roles
+   */
+  async updateUserRole(userId: string, payload: { role: string; actorId?: string }): Promise<any> {
+    this.validateObjectId(userId, 'userId');
+
+    const { role, actorId } = payload;
+
+    if (!role) {
+      throw new BadRequestException('Role is required');
+    }
+
+    // Validate role is a valid SystemRole
+    const validRoles = Object.values(SystemRole);
+    if (!validRoles.includes(role as SystemRole)) {
+      throw new BadRequestException(`Invalid role: ${role}. Valid roles: ${validRoles.join(', ')}`);
+    }
+
+    // Check if employee exists
+    const employeeProfile = await this.sharedLeavesService['employeeProfileModel']
+      .findById(new Types.ObjectId(userId))
+      .select('_id fullName employeeNumber workEmail status')
+      .lean()
+      .exec();
+
+    if (!employeeProfile) {
+      throw new NotFoundException(`Employee not found with ID: ${userId}`);
+    }
+
+    // Find or create system role document
+    let systemRole = await this.sharedLeavesService['systemRoleModel']
+      .findOne({ employeeProfileId: new Types.ObjectId(userId) })
+      .exec();
+
+    if (!systemRole) {
+      // Create new system role document
+      systemRole = new this.sharedLeavesService['systemRoleModel']({
+        employeeProfileId: new Types.ObjectId(userId),
+        roles: [role as SystemRole],
+        permissions: [],
+        isActive: true,
+      });
+    } else {
+      // Update existing role - replace all roles with the new one
+      // Or add if not present (depending on business logic)
+      if (!systemRole.roles.includes(role as SystemRole)) {
+        systemRole.roles = [role as SystemRole]; // Replace with single role
+      }
+      systemRole.isActive = true;
+    }
+
+    await systemRole.save();
+
+    // Log the change if actorId is provided
+    if (actorId) {
+      this.logger.log(`[ROLE UPDATE] User ${userId} role updated to ${role} by actor ${actorId}`);
+    }
+
+    // Return updated user info
+    return {
+      _id: employeeProfile._id,
+      id: employeeProfile._id,
+      fullName: employeeProfile.fullName || '',
+      email: (employeeProfile as any).workEmail || '',
+      employeeNumber: employeeProfile.employeeNumber || '',
+      status: employeeProfile.status || '',
+      role: role,
+      roles: systemRole.roles,
+      permissions: systemRole.permissions || [],
+      isActive: systemRole.isActive,
+    };
   }
 }
 

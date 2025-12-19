@@ -56,13 +56,14 @@ import {
 // Enums
 import { ApplicationStage } from '../enums/application-stage.enum';
 import { ApplicationStatus } from '../enums/application-status.enum';
+import { OfferFinalStatus } from '../enums/offer-final-status.enum';
 
 @ApiTags('Recruitment')
 @ApiBearerAuth('access-token')
 @Controller('recruitment')
 // @UseGuards(AuthenticationGuard, AuthorizationGuard) // COMMENTED FOR TESTING
 export class RecruitmentController {
-    constructor(private readonly recruitmentService: RecruitmentService) {}
+    constructor(private readonly recruitmentService: RecruitmentService) { }
 
     // ============================================================
     // REC-003: Job Template Endpoints
@@ -228,6 +229,14 @@ export class RecruitmentController {
         return this.recruitmentService.getApplicationHistory(id);
     }
 
+    @Get('candidates/:id')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER, SystemRole.JOB_CANDIDATE)
+    @ApiOperation({ summary: 'REC-017: Get candidate by ID' })
+    @ApiParam({ name: 'id', description: 'Candidate ID' })
+    @ApiResponse({ status: 200, description: 'Candidate details' })
+    async getCandidateById(@Param('id') id: string) {
+        return this.recruitmentService.getCandidateById(id);
+    }
+
     @Get('candidates/:candidateId/applications')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER, SystemRole.JOB_CANDIDATE)
     @ApiOperation({ summary: 'REC-017: Get all applications by candidate' })
     @ApiParam({ name: 'candidateId', description: 'Candidate ID' })
@@ -334,11 +343,17 @@ export class RecruitmentController {
     }
 
     @Get('interviews')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER, SystemRole.DEPARTMENT_HEAD)
-    @ApiOperation({ summary: 'REC-010: Get upcoming interviews' })
-    @ApiQuery({ name: 'days', required: false, description: 'Number of days ahead (default 7)' })
-    @ApiResponse({ status: 200, description: 'List of upcoming interviews' })
-    async getUpcomingInterviews(@Query('days') days?: number) {
-        return this.recruitmentService.getUpcomingInterviews(days);
+    @ApiOperation({ summary: 'REC-010: Get all interviews with filters' })
+    @ApiQuery({ name: 'applicationId', required: false, description: 'Filter by application ID' })
+    @ApiQuery({ name: 'interviewerId', required: false, description: 'Filter by interviewer/panelist ID' })
+    @ApiQuery({ name: 'days', required: false, description: 'Number of days ahead for upcoming interviews' })
+    @ApiResponse({ status: 200, description: 'List of interviews' })
+    async getInterviews(
+        @Query('applicationId') applicationId?: string,
+        @Query('interviewerId') interviewerId?: string,
+        @Query('days') days?: number,
+    ) {
+        return this.recruitmentService.getAllInterviews({ applicationId, interviewerId, days });
     }
 
     @Get('interviews/:id')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER, SystemRole.DEPARTMENT_HEAD)
@@ -406,7 +421,7 @@ export class RecruitmentController {
     @ApiParam({ name: 'interviewId', description: 'Interview ID' })
     @ApiResponse({ status: 200, description: 'Interview feedback list' })
     async getFeedbackByInterview(@Param('interviewId') interviewId: string) {
-        return this.recruitmentService.getFeedbackByInterview(interviewId);
+        return this.recruitmentService.getInterviewFeedback(interviewId);
     }
 
     @Get('feedback/application/:applicationId')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
@@ -440,10 +455,15 @@ export class RecruitmentController {
     }
 
     @Get('offers')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
-    @ApiOperation({ summary: 'REC-014: Get pending offers' })
-    @ApiResponse({ status: 200, description: 'List of pending offers' })
-    async getPendingOffers() {
-        return this.recruitmentService.getPendingOffers();
+    @ApiOperation({ summary: 'REC-014: Get all offers with filters' })
+    @ApiQuery({ name: 'applicationId', required: false, description: 'Filter by application ID' })
+    @ApiQuery({ name: 'status', required: false, enum: OfferFinalStatus, description: 'Filter by offer status' })
+    @ApiResponse({ status: 200, description: 'List of offers' })
+    async getOffers(
+        @Query('applicationId') applicationId?: string,
+        @Query('status') status?: OfferFinalStatus,
+    ) {
+        return this.recruitmentService.getAllOffers({ applicationId, status });
     }
 
     @Get('offers/:id')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)

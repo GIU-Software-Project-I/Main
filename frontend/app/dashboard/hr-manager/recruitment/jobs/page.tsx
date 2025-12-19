@@ -2,19 +2,39 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/app/components/ui/button';
-import { Card } from '@/app/components/ui/card';
+import { GlassCard } from '@/app/components/ui/glass-card';
 import { Input } from '@/app/components/ui/input';
 import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
 import { useAuth } from '@/app/context/AuthContext';
-import { 
-  getJobs, 
+import {
+  getJobs,
   getJobTemplates,
-  createJob, 
-  updateJob, 
-  publishJob, 
-  closeJob 
+  createJob,
+  updateJob,
+  publishJob,
+  closeJob
 } from '@/app/services/recruitment';
 import { JobRequisition, JobTemplate } from '@/app/types/recruitment';
+import {
+  Plus,
+  Search,
+  MapPin,
+  Users,
+  Calendar,
+  Briefcase,
+  Building2,
+  Eye,
+  Edit3,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Layout,
+  ChevronRight,
+  Sparkles,
+  Info,
+  AlertTriangle
+} from 'lucide-react';
+import { Badge } from '@/app/components/ui/badge';
 
 // =====================================================
 // Types
@@ -53,22 +73,22 @@ interface EmployerBranding {
 }
 
 const defaultEmployerBranding: EmployerBranding = {
-  companyName: 'Our Company',
+  companyName: 'German International University',
   logo: '/logo-placeholder.png',
-  tagline: 'Building the Future Together',
-  description: 'We are a leading technology company dedicated to creating innovative solutions.',
+  tagline: 'Empowering Future Leaders',
+  description: 'We are a premier educational institution committed to excellence in research and teaching.',
   benefits: [
-    'Competitive Salary & Bonuses',
-    'Health Insurance',
-    'Remote Work Options',
-    'Learning & Development Budget',
-    'Flexible Working Hours',
+    'Competitive Salary & Research Grants',
+    'Comprehensive Health Coverage',
+    'Expat Support & Housing Assistance',
+    'International Professional Development',
+    'State-of-the-art Campus Facilities',
   ],
   culture: [
-    'Innovation First',
-    'Collaborative Environment',
-    'Work-Life Balance',
-    'Diversity & Inclusion',
+    'Academic Excellence',
+    'Global Inclusivity',
+    'Research-Driven Innovation',
+    'Collaborative Faculty Community',
   ],
 };
 
@@ -78,21 +98,28 @@ const defaultEmployerBranding: EmployerBranding = {
 
 function StatusBadge({ status }: { status: 'draft' | 'published' | 'closed' }) {
   const statusStyles = {
-    draft: 'bg-slate-100 text-slate-700 border-slate-200',
-    published: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    closed: 'bg-red-50 text-red-700 border-red-200',
+    draft: 'bg-muted text-muted-foreground border-border',
+    published: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]',
+    closed: 'bg-destructive/10 text-destructive border-destructive/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]',
   };
 
   const statusLabels = {
-    draft: 'Draft',
-    published: 'Published',
+    draft: 'Draft Requisition',
+    published: 'Live Posting',
     closed: 'Closed',
   };
 
+  const icons = {
+    draft: <Clock className="w-3 h-3 mr-1.5" />,
+    published: <CheckCircle2 className="w-3 h-3 mr-1.5" />,
+    closed: <XCircle className="w-3 h-3 mr-1.5" />,
+  };
+
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusStyles[status]}`}>
+    <Badge variant="outline" className={`py-1 px-3 ${statusStyles[status]} font-bold tracking-tight uppercase text-[10px]`}>
+      {icons[status]}
       {statusLabels[status]}
-    </span>
+    </Badge>
   );
 }
 
@@ -154,80 +181,96 @@ function JobFormModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-lg w-full p-6">
-        <h2 className="text-xl font-bold text-slate-900 mb-4">
-          {isEditing ? 'Edit Job Requisition' : 'Create New Job Requisition'}
-        </h2>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Job Template *
+    <div className="fixed inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
+      <GlassCard className="max-w-xl w-full p-8 shadow-2xl border-primary/20 animate-in zoom-in-95 duration-300">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+            {isEditing ? <Edit3 className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+          </div>
+          <h2 className="text-2xl font-bold text-foreground">
+            {isEditing ? 'Pulse Edit: Requisition' : 'Compose: New Requisition'}
+          </h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+              <Layout className="w-3 h-3" /> Job Template
             </label>
             <select
               value={formData.templateId}
               onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full h-11 px-4 bg-muted/40 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 text-sm font-medium focus:outline-none appearance-none transition-all"
               required
               disabled={isEditing}
             >
-              <option value="">Select a template...</option>
+              <option value="">Select an approved template...</option>
               {templates.map((template) => (
                 <option key={template.id || template._id} value={template.id || template._id}>
-                  {template.title} - {template.department}
+                  {template.title} — {template.department}
                 </option>
               ))}
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Number of Openings *
-            </label>
-            <Input
-              type="number"
-              min="1"
-              value={formData.openings}
-              onChange={(e) => setFormData({ ...formData, openings: parseInt(e.target.value) || 1 })}
-              required
-            />
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                <Users className="w-3 h-3" /> Headcount
+              </label>
+              <Input
+                type="number"
+                min="1"
+                value={formData.openings}
+                onChange={(e) => setFormData({ ...formData, openings: parseInt(e.target.value) || 1 })}
+                className="h-11 rounded-xl bg-muted/40 border-border focus:ring-primary/20 font-bold"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                <MapPin className="w-3 h-3" /> Deployment City
+              </label>
+              <Input
+                type="text"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="e.g., Cairo, Egypt"
+                className="h-11 rounded-xl bg-muted/40 border-border focus:ring-primary/20"
+                required
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Location *
-            </label>
-            <Input
-              type="text"
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              placeholder="e.g., Cairo, Egypt"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Expiry Date
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+              <Calendar className="w-3 h-3" /> Auto-Archive Date
             </label>
             <Input
               type="date"
               value={formData.expiryDate}
               onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+              className="h-11 rounded-xl bg-muted/40 border-border focus:ring-primary/20"
             />
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
-              Cancel
+            <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading} className="h-11 font-bold">
+              Dismiss
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Saving...' : isEditing ? 'Update' : 'Create'}
+            <Button type="submit" disabled={isLoading} className="h-11 px-8 rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 font-bold">
+              {isLoading ? (
+                <span className="flex items-center gap-2 italic">Processing...</span>
+              ) : isEditing ? (
+                'Sync Changes'
+              ) : (
+                'Finalize Creation'
+              )}
             </Button>
           </div>
         </form>
-      </div>
+      </GlassCard>
     </div>
   );
 }
@@ -252,154 +295,159 @@ function JobPreviewModal({
   isPublishing: boolean;
 }) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in duration-500">
+      <GlassCard className="max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-border/50 animate-in slide-in-from-bottom-8 duration-500">
         {/* Header with Branding */}
-        <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 text-white p-6 rounded-t-xl">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-indigo-600 font-bold text-xl">TC</span>
+        <div className="bg-gradient-to-br from-primary via-primary/90 to-blue-600 text-primary-foreground p-10 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="flex items-center gap-6 mb-8 relative z-10">
+            <div className="w-20 h-20 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center shadow-inner">
+              <Building2 className="w-10 h-10" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">{branding.companyName}</h2>
-              <p className="text-indigo-200">{branding.tagline}</p>
+              <h2 className="text-2xl font-black tracking-tighter uppercase">{branding.companyName}</h2>
+              <p className="text-primary-foreground/70 font-medium italic">{branding.tagline}</p>
             </div>
           </div>
-          <h1 className="text-2xl font-bold">{job.title || job.templateTitle || 'Position'}</h1>
-          <div className="flex flex-wrap gap-4 mt-2 text-sm text-indigo-200">
-            {job.department && (
-              <span className="flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                {job.department}
+          <div className="space-y-2 relative z-10">
+            <h1 className="text-5xl font-extrabold tracking-tighter leading-none">{job.title || job.templateTitle || 'Untitled Position'}</h1>
+            <div className="flex flex-wrap gap-6 pt-4 text-sm font-bold opacity-80 uppercase tracking-widest">
+              {job.department && (
+                <span className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-lg">
+                  <Building2 className="w-4 h-4" />
+                  {job.department}
+                </span>
+              )}
+              {job.location && (
+                <span className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-lg">
+                  <MapPin className="w-4 h-4" />
+                  {job.location}
+                </span>
+              )}
+              <span className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-lg">
+                <Users className="w-4 h-4" />
+                {job.openings} Opening{job.openings > 1 ? 's' : ''}
               </span>
-            )}
-            {job.location && (
-              <span className="flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                </svg>
-                {job.location}
-              </span>
-            )}
-            <span className="flex items-center gap-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              {job.openings} Opening{job.openings > 1 ? 's' : ''}
-            </span>
+            </div>
           </div>
         </div>
 
         {/* Job Details */}
-        <div className="p-6 space-y-6">
-          {job.description && (
-            <section>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">About the Role</h3>
-              <p className="text-slate-600">{job.description}</p>
-            </section>
-          )}
+        <div className="p-10 space-y-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div className="lg:col-span-2 space-y-10">
+              {job.description && (
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs">
+                    <Info className="w-4 h-4" /> The Mission
+                  </div>
+                  <p className="text-muted-foreground leading-relaxed text-lg font-medium opacity-90">{job.description}</p>
+                </section>
+              )}
 
-          {job.responsibilities && job.responsibilities.length > 0 && (
-            <section>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Responsibilities</h3>
-              <ul className="list-disc list-inside space-y-1">
-                {job.responsibilities.map((item, idx) => (
-                  <li key={idx} className="text-slate-600">{item}</li>
-                ))}
-              </ul>
-            </section>
-          )}
+              <div className="grid md:grid-cols-2 gap-10">
+                {job.responsibilities && job.responsibilities.length > 0 && (
+                  <section className="space-y-4">
+                    <h3 className="text-sm font-black text-foreground uppercase tracking-widest flex items-center gap-2">
+                      Core Responsibilities
+                    </h3>
+                    <ul className="space-y-3">
+                      {job.responsibilities.map((item, idx) => (
+                        <li key={idx} className="flex gap-3 text-sm text-muted-foreground font-medium">
+                          <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
 
-          {job.requirements && job.requirements.length > 0 && (
-            <section>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Requirements</h3>
-              <ul className="list-disc list-inside space-y-1">
-                {job.requirements.map((item, idx) => (
-                  <li key={idx} className="text-slate-600">{item}</li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {job.qualifications && job.qualifications.length > 0 && (
-            <section>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Qualifications</h3>
-              <ul className="list-disc list-inside space-y-1">
-                {job.qualifications.map((item, idx) => (
-                  <li key={idx} className="text-slate-600">{item}</li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* Benefits & Culture */}
-          <section className="bg-slate-50 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-slate-900 mb-3">Why Join Us?</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-medium text-slate-800 mb-2">Benefits</h4>
-                <ul className="space-y-1">
-                  {branding.benefits.map((benefit, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-sm text-slate-600">
-                      <svg className="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      {benefit}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-medium text-slate-800 mb-2">Our Culture</h4>
-                <ul className="space-y-1">
-                  {branding.culture.map((item, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-sm text-slate-600">
-                      <svg className="w-4 h-4 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
+                {job.requirements && job.requirements.length > 0 && (
+                  <section className="space-y-4">
+                    <h3 className="text-sm font-black text-foreground uppercase tracking-widest flex items-center gap-2">
+                      Ideal Candidate Profile
+                    </h3>
+                    <ul className="space-y-3">
+                      {job.requirements.map((item, idx) => (
+                        <li key={idx} className="flex gap-3 text-sm text-muted-foreground font-medium">
+                          <Sparkles className="w-4 h-4 mt-0.5 text-amber-500 flex-shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
               </div>
             </div>
-          </section>
+
+            <aside className="space-y-8">
+              <div className="bg-muted/30 rounded-3xl p-6 border border-border/50 space-y-6">
+                <h3 className="text-sm font-black text-foreground tracking-widest uppercase">Perks & Culture</h3>
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-3">Benefits</h4>
+                    <ul className="space-y-3">
+                      {branding.benefits.map((benefit, idx) => (
+                        <li key={idx} className="flex items-center gap-3 text-xs font-bold text-foreground opacity-80">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                          {benefit}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="pt-4 border-t border-border/50">
+                    <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-3">Institutional Culture</h4>
+                    <ul className="space-y-2">
+                      {branding.culture.map((item, idx) => (
+                        <li key={idx} className="text-[11px] font-semibold text-muted-foreground italic leading-tight">
+                          "{item}"
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="border-t border-slate-200 p-4 flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-          {job.publishStatus === 'draft' && (
-            <Button
-              variant="default"
-              onClick={onPublish}
-              disabled={isPublishing}
-            >
-              {isPublishing ? 'Publishing...' : 'Publish Job'}
+        <div className="border-t border-border/50 p-6 flex justify-between items-center bg-muted/20">
+          <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Internal Preview Only
+          </Badge>
+          <div className="flex gap-3">
+            <Button variant="ghost" className="rounded-xl font-bold h-11" onClick={onClose}>
+              Dismiss
             </Button>
-          )}
-          {job.publishStatus === 'published' && (
-            <Button
-              variant="destructive"
-              onClick={onCloseJob}
-              disabled={isPublishing}
-            >
-              {isPublishing ? 'Closing...' : 'Close Job'}
-            </Button>
-          )}
+            {job.publishStatus === 'draft' && (
+              <Button
+                onClick={onPublish}
+                disabled={isPublishing}
+                className="rounded-xl h-11 px-8 bg-primary hover:bg-primary/90 font-bold shadow-lg shadow-primary/20"
+              >
+                {isPublishing ? 'Synchronizing...' : 'Go Live Now'}
+              </Button>
+            )}
+            {job.publishStatus === 'published' && (
+              <Button
+                variant="destructive"
+                onClick={onCloseJob}
+                disabled={isPublishing}
+                className="rounded-xl h-11 px-8 font-bold shadow-lg shadow-destructive/20"
+              >
+                {isPublishing ? 'Revoking...' : 'Revoke Posting'}
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      </GlassCard>
     </div>
   );
 }
 
 // =====================================================
 // Main Page Component - HR Manager Job Management
-// Permissions: Create, Update, Publish, Close, View
 // =====================================================
 
 export default function HRManagerJobsPage() {
@@ -413,7 +461,7 @@ export default function HRManagerJobsPage() {
   const [selectedJob, setSelectedJob] = useState<JobWithDetails | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
-  
+
   // Form modal state
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<JobWithDetails | null>(null);
@@ -423,24 +471,23 @@ export default function HRManagerJobsPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const [jobsData, templatesData] = await Promise.all([
         getJobs(),
         getJobTemplates(),
       ]);
 
-      // Transform jobs data
       const transformedJobs: JobWithDetails[] = (jobsData || []).map((job: JobRequisition & { _id?: string }) => {
-        const template = templatesData.find((t: JobTemplate & { _id?: string }) => 
+        const template = templatesData.find((t: JobTemplate & { _id?: string }) =>
           (t.id || t._id) === job.templateId
         );
-        
+
         return {
           id: job.id || job._id || '',
           requisitionId: job.requisitionId || `REQ-${Date.now()}`,
           templateId: job.templateId,
           openings: job.openings || 1,
-          location: job.location || 'Not specified',
+          location: job.location || 'Remote-Friendly',
           hiringManagerId: job.hiringManagerId || '',
           publishStatus: job.publishStatus || 'draft',
           postingDate: job.postingDate,
@@ -448,9 +495,11 @@ export default function HRManagerJobsPage() {
           createdAt: job.createdAt || new Date().toISOString(),
           updatedAt: job.updatedAt || new Date().toISOString(),
           templateTitle: template?.title,
-          title: template?.title || 'Untitled Position',
-          department: template?.department || 'General',
+          title: template?.title || 'Untitled High-Impact Role',
+          department: template?.department || 'Strategic Dept',
           description: template?.description,
+          responsibilities: (template as any)?.responsibilities || [],
+          requirements: (template as any)?.requirements || [],
           qualifications: template?.qualifications,
           applicationCount: 0,
         };
@@ -459,7 +508,7 @@ export default function HRManagerJobsPage() {
       setJobs(transformedJobs);
       setTemplates(templatesData || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load jobs');
+      setError(err instanceof Error ? err.message : 'Failed to synchronize acquisition data');
     } finally {
       setLoading(false);
     }
@@ -480,13 +529,13 @@ export default function HRManagerJobsPage() {
     return matchesSearch && matchesStatus;
   });
 
-  // Create Job
+  const handleEditJob = (job: JobWithDetails) => {
+    setEditingJob(job);
+    setIsFormOpen(true);
+  };
+
   const handleCreateJob = async (data: JobFormData) => {
-    if (!user?.id) {
-      setError('User not authenticated');
-      return;
-    }
-    
+    if (!user?.id) return;
     setIsSubmitting(true);
     try {
       await createJob({
@@ -496,22 +545,19 @@ export default function HRManagerJobsPage() {
         hiringManagerId: user.id,
         expiryDate: data.expiryDate || undefined,
       });
-      
       setIsFormOpen(false);
-      setPublishSuccess('Job requisition created successfully!');
+      setPublishSuccess('Aquisition protocol initiated successfully.');
       setTimeout(() => setPublishSuccess(null), 3000);
       await fetchData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create job');
+      setError(err instanceof Error ? err.message : 'Failed to launch requisition');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Update Job - uses requisitionId for API calls
   const handleUpdateJob = async (data: JobFormData) => {
     if (!editingJob?.requisitionId) return;
-    
     setIsSubmitting(true);
     try {
       await updateJob(editingJob.requisitionId, {
@@ -519,267 +565,248 @@ export default function HRManagerJobsPage() {
         location: data.location,
         expiryDate: data.expiryDate || undefined,
       });
-      
       setIsFormOpen(false);
       setEditingJob(null);
-      setPublishSuccess('Job requisition updated successfully!');
+      setPublishSuccess('Requisition details synchronized.');
       setTimeout(() => setPublishSuccess(null), 3000);
       await fetchData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update job');
+      setError(err instanceof Error ? err.message : 'Requisition sync failed');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Publish Job - uses requisitionId for API calls
   const handlePublishJob = async (requisitionId: string | undefined) => {
-    if (!requisitionId) {
-      setError('Cannot publish job: Requisition ID is missing');
-      return;
-    }
+    if (!requisitionId) return;
     setIsPublishing(true);
     try {
       await publishJob(requisitionId, true);
-      
-      setJobs((prev) =>
-        prev.map((job) =>
-          job.requisitionId === requisitionId
-            ? { ...job, publishStatus: 'published' as const, postingDate: new Date().toISOString().split('T')[0] }
-            : job
-        )
-      );
-      
-      setPublishSuccess('Job published successfully!');
+      setPublishSuccess('Position broadcasted to global talent pool.');
       setSelectedJob(null);
       setTimeout(() => setPublishSuccess(null), 3000);
+      await fetchData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to publish job');
+      setError(err instanceof Error ? err.message : 'Activation protocol failed');
     } finally {
       setIsPublishing(false);
     }
   };
 
-  // Close Job - uses requisitionId for API calls
   const handleCloseJob = async (requisitionId: string | undefined) => {
-    if (!requisitionId) {
-      setError('Cannot close job: Requisition ID is missing');
-      return;
-    }
+    if (!requisitionId) return;
     setIsPublishing(true);
     try {
       await closeJob(requisitionId);
-      
-      setJobs((prev) =>
-        prev.map((j) =>
-          j.requisitionId === requisitionId ? { ...j, publishStatus: 'closed' as const } : j
-        )
-      );
-      
-      setPublishSuccess('Job closed successfully!');
+      setPublishSuccess('Position closed for new application influx.');
       setSelectedJob(null);
       setTimeout(() => setPublishSuccess(null), 3000);
+      await fetchData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to close job');
+      setError(err instanceof Error ? err.message : 'Termination failed');
     } finally {
       setIsPublishing(false);
     }
-  };
-
-  // Open edit modal
-  const handleEditJob = (job: JobWithDetails) => {
-    setEditingJob(job);
-    setIsFormOpen(true);
-  };
-
-  // Stats
-  const stats = {
-    total: jobs.length,
-    draft: jobs.filter((j) => j.publishStatus === 'draft').length,
-    published: jobs.filter((j) => j.publishStatus === 'published').length,
-    closed: jobs.filter((j) => j.publishStatus === 'closed').length,
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <LoadingSpinner size="lg" />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <LoadingSpinner size="lg" className="text-primary" />
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">Synchronizing Acquisition Core</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-8 max-w-[1600px] mx-auto space-y-10 animate-in fade-in duration-500">
       {/* Page Header */}
-      <div className="mb-6 flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Job Requisitions</h1>
-          <p className="text-slate-600 mt-1">
-            Create, manage, and publish job postings
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b border-border/50 pb-8">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 text-primary font-black uppercase tracking-[0.2em] text-[10px] mb-1">
+            <div className="w-8 h-[1px] bg-primary/40" /> Position Management
+          </div>
+          <h1 className="text-4xl font-extrabold text-foreground tracking-tighter leading-none flex items-center gap-3">
+            Requisitions
+            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-xs py-1 uppercase font-black px-3 tracking-tighter">{jobs.length} Total</Badge>
+          </h1>
+          <p className="text-muted-foreground text-lg font-medium opacity-80">
+            Launch and orchestrate strategic hiring mandates across the global network.
           </p>
         </div>
-        <Button onClick={() => { setEditingJob(null); setIsFormOpen(true); }}>
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Create New Job
+        <Button
+          onClick={() => { setEditingJob(null); setIsFormOpen(true); }}
+          className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 text-md font-bold transition-all hover:scale-[1.02] flex gap-3"
+        >
+          <Plus className="w-5 h-5" />
+          Initiate Requisition
         </Button>
       </div>
 
-      {/* Error Alert */}
-      {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-          </svg>
-          <span className="text-red-800 font-medium">{error}</span>
-          <button onClick={() => setError(null)} className="ml-auto text-red-600 hover:text-red-800">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </button>
-        </div>
-      )}
+      {/* Global Alerts */}
+      <div className="space-y-3">
+        {error && (
+          <GlassCard className="border-destructive/20 bg-destructive/5 text-destructive p-5 flex items-center justify-between animate-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center gap-3 font-bold">
+              <AlertTriangle className="w-5 h-5" />
+              <span>{error}</span>
+            </div>
+            <button onClick={() => setError(null)} className="p-2 hover:bg-destructive/10 rounded-lg transition-colors">
+              <XCircle className="w-5 h-5" />
+            </button>
+          </GlassCard>
+        )}
 
-      {/* Success Alert */}
-      {publishSuccess && (
-        <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center gap-3">
-          <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-          <span className="text-emerald-800 font-medium">{publishSuccess}</span>
-        </div>
-      )}
+        {publishSuccess && (
+          <GlassCard className="border-emerald-500/20 bg-emerald-500/5 text-emerald-500 p-5 flex items-center gap-3 font-bold animate-in slide-in-from-top-4 duration-300">
+            <CheckCircle2 className="w-5 h-5" />
+            <span>{publishSuccess}</span>
+          </GlassCard>
+        )}
+      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg border border-slate-200 p-4">
-          <p className="text-sm text-slate-600">Total Jobs</p>
-          <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+      {/* Stats Summary Panel */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Mandates', value: jobs.length, sub: 'All statuses', color: 'primary' },
+          { label: 'Staged', value: jobs.filter(j => j.publishStatus === 'draft').length, sub: 'Draft status', color: 'muted-foreground' },
+          { label: 'Live', value: jobs.filter(j => j.publishStatus === 'published').length, sub: 'Market visible', color: 'emerald-500' },
+          { label: 'Closed', value: jobs.filter(j => j.publishStatus === 'closed').length, sub: 'Archives', color: 'destructive' },
+        ].map((stat, i) => (
+          <GlassCard key={i} className="p-6 overflow-hidden group">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2">{stat.label}</p>
+            <div className="flex items-end gap-3">
+              <span className={`text-4xl font-black tracking-tighter ${stat.color === 'primary' ? 'text-primary' : stat.color === 'emerald-500' ? 'text-emerald-500' : stat.color === 'destructive' ? 'text-destructive' : 'text-muted-foreground'}`}>{stat.value}</span>
+              <span className="text-[10px] font-bold text-muted-foreground/50 pb-1 uppercase italic leading-none">{stat.sub}</span>
+            </div>
+            <div className={`mt-4 h-1 w-full bg-muted rounded-full overflow-hidden`}>
+              <div
+                className={`h-full ${stat.color === 'primary' ? 'bg-primary' : stat.color === 'emerald-500' ? 'bg-emerald-500' : stat.color === 'destructive' ? 'bg-destructive' : 'bg-muted-foreground'} opacity-40 transition-all duration-1000`}
+                style={{ width: jobs.length ? `${(stat.value / jobs.length) * 100}%` : '0%' }}
+              />
+            </div>
+          </GlassCard>
+        ))}
+      </div>
+
+      {/* Workspace Controls */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-muted/20 p-2 rounded-2xl border border-border/40 backdrop-blur-sm">
+        <div className="relative group flex-1 min-w-[300px]">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all" />
+          <Input
+            placeholder="Query mandates by title, ID, or department..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-12 h-12 rounded-xl bg-background/50 border-none focus-visible:ring-2 focus-visible:ring-primary/20 font-medium"
+          />
         </div>
-        <div className="bg-white rounded-lg border border-slate-200 p-4">
-          <p className="text-sm text-slate-600">Draft</p>
-          <p className="text-2xl font-bold text-slate-700">{stats.draft}</p>
-        </div>
-        <div className="bg-white rounded-lg border border-slate-200 p-4">
-          <p className="text-sm text-slate-600">Published</p>
-          <p className="text-2xl font-bold text-emerald-600">{stats.published}</p>
-        </div>
-        <div className="bg-white rounded-lg border border-slate-200 p-4">
-          <p className="text-sm text-slate-600">Closed</p>
-          <p className="text-2xl font-bold text-red-600">{stats.closed}</p>
+        <div className="flex p-1 bg-background/40 rounded-[14px] border border-border/50">
+          {['all', 'draft', 'published', 'closed'].map((status) => (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${statusFilter === status
+                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/10'
+                : 'text-muted-foreground hover:bg-muted/50'
+                }`}
+            >
+              {status}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Filters */}
-      <Card className="mb-6">
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex-1 min-w-[250px]">
-            <Input
-              placeholder="Search jobs by title, department, or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2">
-            {['all', 'draft', 'published', 'closed'].map((status) => (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  statusFilter === status
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </Card>
-
-      {/* Jobs Table */}
-      <Card className="p-0">
+      {/* Mandate Register (Table) */}
+      <GlassCard className="overflow-hidden border-border/30">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Job Details
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Department
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Openings
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Posted Date
-                </th>
-                <th className="text-right px-6 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Actions
-                </th>
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-muted/30 border-b border-border/50">
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Detailed Identity</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Org Unit</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground text-center">Status Index</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground text-center">Velocity</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Timeline</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground text-right">Mandate Control</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-border/20">
               {filteredJobs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                    No jobs found matching your criteria.
+                  <td colSpan={6} className="px-8 py-32 text-center">
+                    <div className="flex flex-col items-center opacity-40">
+                      <Briefcase className="w-16 h-16 mb-6 stroke-[1]" />
+                      <p className="text-xl font-bold tracking-tighter">No strategic mandates identified.</p>
+                      <p className="text-xs font-semibold uppercase tracking-widest mt-2">Modify your query or initiate a new requisition.</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 filteredJobs.map((job, index) => (
-                  <tr key={job.id || job.requisitionId || `job-${index}`} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-medium text-slate-900">{job.title}</p>
-                        <p className="text-sm text-slate-500">{job.requisitionId}</p>
-                        <p className="text-sm text-slate-500">{job.location}</p>
+                  <tr key={job.id || job.requisitionId || `job-${index}`} className="group hover:bg-muted/40 transition-all duration-300">
+                    <td className="px-8 py-7">
+                      <div className="space-y-1">
+                        <p className="text-lg font-black text-foreground group-hover:text-primary transition-colors tracking-tighter leading-none">{job.title}</p>
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground tracking-widest uppercase">
+                          <span className="text-primary/70">{job.requisitionId}</span>
+                          <span className="w-1 h-1 bg-border rounded-full" />
+                          <span className="flex items-center gap-1.5"><MapPin className="w-3 h-3" /> {job.location}</span>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-slate-700">{job.department}</span>
+                    <td className="px-8 py-7">
+                      <Badge variant="outline" className="bg-muted/20 border-border text-[10px] font-black uppercase tracking-tighter py-1 px-3">
+                        {job.department}
+                      </Badge>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-8 py-7 text-center">
                       <StatusBadge status={job.publishStatus} />
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-slate-700">{job.openings}</span>
+                    <td className="px-8 py-7 text-center">
+                      <div className="inline-flex flex-col items-center">
+                        <span className="text-xl font-black text-foreground leading-none">{job.openings}</span>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Target</span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-slate-700">
-                        {job.postingDate || '-'}
-                      </span>
+                    <td className="px-8 py-7">
+                      <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+                        <Calendar className="w-3.5 h-3.5 opacity-40" />
+                        {job.postingDate ? (
+                          <span className="text-foreground">{new Date(job.postingDate).toLocaleDateString()}</span>
+                        ) : (
+                          <span className="italic opacity-40 uppercase text-[10px]">Pending Launch</span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-end gap-2">
+                    <td className="px-8 py-7">
+                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0">
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 rounded-xl hover:bg-background shadow-sm border border-transparent hover:border-border transition-all"
                           onClick={() => setSelectedJob(job)}
+                          title="Preview mandate"
                         >
-                          View
+                          <Eye className="w-4 h-4 text-muted-foreground" />
                         </Button>
                         {job.publishStatus === 'draft' && (
                           <>
                             <Button
-                              variant="outline"
-                              size="sm"
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 rounded-xl hover:bg-background shadow-sm border border-transparent hover:border-border transition-all text-primary"
                               onClick={() => handleEditJob(job)}
+                              title="Edit details"
                             >
-                              Edit
+                              <Edit3 className="w-4 h-4" />
                             </Button>
                             <Button
                               variant="default"
                               size="sm"
+                              className="h-10 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 font-bold shadow-lg shadow-emerald-500/10 transition-all font-black text-[10px] uppercase tracking-widest"
                               onClick={() => handlePublishJob(job.requisitionId)}
                             >
-                              Publish
+                              Go Live
                             </Button>
                           </>
                         )}
@@ -787,9 +814,10 @@ export default function HRManagerJobsPage() {
                           <Button
                             variant="destructive"
                             size="sm"
+                            className="h-10 px-4 rounded-xl font-bold font-black bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/10 transition-all uppercase text-[10px] tracking-widest"
                             onClick={() => handleCloseJob(job.requisitionId)}
                           >
-                            Close
+                            Terminate
                           </Button>
                         )}
                       </div>
@@ -800,24 +828,12 @@ export default function HRManagerJobsPage() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </GlassCard>
 
-      {/* Job Preview Modal */}
-      {selectedJob && (
-        <JobPreviewModal
-          job={selectedJob}
-          branding={defaultEmployerBranding}
-          onClose={() => setSelectedJob(null)}
-          onPublish={() => handlePublishJob(selectedJob.requisitionId)}
-          onCloseJob={() => handleCloseJob(selectedJob.requisitionId)}
-          isPublishing={isPublishing}
-        />
-      )}
-
-      {/* Create/Edit Job Modal */}
+      {/* Modals */}
       <JobFormModal
         isOpen={isFormOpen}
-        onClose={() => { setIsFormOpen(false); setEditingJob(null); }}
+        onClose={() => setIsFormOpen(false)}
         onSubmit={editingJob ? handleUpdateJob : handleCreateJob}
         templates={templates}
         initialData={editingJob ? {
@@ -829,6 +845,17 @@ export default function HRManagerJobsPage() {
         isEditing={!!editingJob}
         isLoading={isSubmitting}
       />
+
+      {selectedJob && (
+        <JobPreviewModal
+          job={selectedJob}
+          branding={defaultEmployerBranding}
+          onClose={() => setSelectedJob(null)}
+          onPublish={() => handlePublishJob(selectedJob.requisitionId)}
+          onCloseJob={() => handleCloseJob(selectedJob.requisitionId)}
+          isPublishing={isPublishing}
+        />
+      )}
     </div>
   );
 }
