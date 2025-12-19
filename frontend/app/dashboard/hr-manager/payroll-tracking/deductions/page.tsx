@@ -157,31 +157,30 @@ export default function DeductionsPage() {
         setMisconductDeductions(misconductList);
 
         // Process unpaid leave deductions - response is an object with unpaidLeaveRequests and payslipDeductions
-        const unpaidData = unpaidRes?.data;
+        const unpaidData = (unpaidRes as any)?.data;
         const unpaidList: UnpaidLeaveDeduction[] = [];
         let unpaidTotal = 0;
         if (unpaidData && typeof unpaidData === 'object') {
-          unpaidTotal = unpaidData.totalDeductionAmount || 0;
-          
+          const unpaidObj = unpaidData as any;
+          unpaidTotal = unpaidObj.totalDeductionAmount || 0;
           // Process unpaid leave requests
-          if (unpaidData.unpaidLeaveRequests && Array.isArray(unpaidData.unpaidLeaveRequests)) {
-            unpaidData.unpaidLeaveRequests.forEach((request: any, idx: number) => {
-              const deductionAmount = (request.days || 0) * (unpaidData.dailyRate || 0);
+          if (unpaidObj.unpaidLeaveRequests && Array.isArray(unpaidObj.unpaidLeaveRequests)) {
+            unpaidObj.unpaidLeaveRequests.forEach((request: any, idx: number) => {
+              const deductionAmount = (request.days || 0) * (unpaidObj.dailyRate || 0);
               unpaidList.push({
                 id: `${request.leaveRequestId}-request-${idx}`,
                 leaveType: request.leaveTypeName || 'Unpaid Leave',
                 days: request.days || 0,
-                dailyRate: unpaidData.dailyRate || 0,
+                dailyRate: unpaidObj.dailyRate || 0,
                 totalAmount: deductionAmount,
                 startDate: request.startDate,
                 endDate: request.endDate,
               });
             });
           }
-          
           // Process payslip deductions
-          if (unpaidData.payslipDeductions && Array.isArray(unpaidData.payslipDeductions)) {
-            unpaidData.payslipDeductions.forEach((deduction: any, idx: number) => {
+          if (unpaidObj.payslipDeductions && Array.isArray(unpaidObj.payslipDeductions)) {
+            unpaidObj.payslipDeductions.forEach((deduction: any, idx: number) => {
               unpaidList.push({
                 id: `${deduction.payslipId}-payslip-${idx}`,
                 leaveType: deduction.leaveTypeName || 'Unpaid Leave',
@@ -198,11 +197,12 @@ export default function DeductionsPage() {
         setUnpaidLeaveTotal(unpaidTotal);
 
         // Process attendance-based deductions - response is an object with deductions array
-        const attendanceData = attendanceRes?.data;
+        const attendanceData = (attendanceRes as any)?.data;
         const attendanceList: AttendanceDeduction[] = [];
         if (attendanceData && typeof attendanceData === 'object') {
-          if (attendanceData.deductions && Array.isArray(attendanceData.deductions)) {
-            attendanceData.deductions.forEach((deduction: any, idx: number) => {
+          const attendanceObj = attendanceData as any;
+          if (attendanceObj.deductions && Array.isArray(attendanceObj.deductions)) {
+            attendanceObj.deductions.forEach((deduction: any, idx: number) => {
               attendanceList.push({
                 id: `attendance-${idx}`,
                 type: deduction.type || 'Attendance Deduction',

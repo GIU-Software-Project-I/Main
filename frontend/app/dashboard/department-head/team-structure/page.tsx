@@ -84,8 +84,8 @@ export default function TeamStructurePage() {
         let members: TeamMember[] = [];
         if (Array.isArray(resData)) {
           members = resData;
-        } else if (resData?.data && Array.isArray(resData.data)) {
-          members = resData.data;
+        } else if ((resData as any)?.data && Array.isArray((resData as any).data)) {
+          members = (resData as any).data;
         }
         // Filter out any invalid entries
         setTeamMembers(members.filter(m => m && m._id));
@@ -97,8 +97,8 @@ export default function TeamStructurePage() {
         let requests: ChangeRequest[] = [];
         if (Array.isArray(resData)) {
           requests = resData;
-        } else if (resData?.data && Array.isArray(resData.data)) {
-          requests = resData.data;
+        } else if ((resData as any)?.data && Array.isArray((resData as any).data)) {
+          requests = (resData as any).data;
         }
         setMyRequests(requests.filter(r => r && r._id));
       }
