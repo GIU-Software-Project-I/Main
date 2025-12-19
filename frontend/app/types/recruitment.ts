@@ -387,7 +387,7 @@ export interface UploadDocumentRequest {
 
 export interface Referral {
   id: string;
-  referrerId: string;
+  referringEmployeeId: string;
   candidateId: string;
   requisitionId?: string;
   status: 'pending' | 'hired' | 'rejected';

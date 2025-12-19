@@ -8,13 +8,13 @@ import { Card } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
 import { ApplicationStage, InterviewMethod, InterviewStatus } from '@/app/types/enums';
-import { 
-  getInterviews, 
-  getApplications, 
+import {
+  getInterviews,
+  getApplications,
   scheduleInterview,
   cancelInterview,
   rescheduleInterview,
-  getEmployees 
+  getEmployees
 } from '@/app/services/recruitment';
 
 // =====================================================
@@ -78,25 +78,25 @@ interface NewInterview {
 function generateTimeSlots(): TimeSlot[] {
   const slots: TimeSlot[] = [];
   const today = new Date();
-  
+
   for (let day = 1; day <= 7; day++) {
     const date = new Date(today);
     date.setDate(today.getDate() + day);
-    
+
     // Skip weekends
     if (date.getDay() === 0 || date.getDay() === 6) continue;
-    
+
     const dateStr = date.toISOString().split('T')[0];
-    
+
     // Morning slots
     slots.push({ id: `${dateStr}-0900`, date: dateStr, startTime: '09:00', endTime: '10:00', available: true });
     slots.push({ id: `${dateStr}-1030`, date: dateStr, startTime: '10:30', endTime: '11:30', available: true });
-    
+
     // Afternoon slots
     slots.push({ id: `${dateStr}-1400`, date: dateStr, startTime: '14:00', endTime: '15:00', available: true });
     slots.push({ id: `${dateStr}-1530`, date: dateStr, startTime: '15:30', endTime: '16:30', available: true });
   }
-  
+
   return slots;
 }
 
@@ -110,9 +110,21 @@ function InterviewMethodBadge({ method }: { method: InterviewMethod }) {
     [InterviewMethod.VIDEO]: { label: 'Video Call', color: 'bg-purple-50 text-purple-700 border-purple-200' },
     [InterviewMethod.PHONE]: { label: 'Phone', color: 'bg-amber-50 text-amber-700 border-amber-200' },
   };
-  
-  const { label, color } = config[method];
-  
+
+  // Handle case sensitivity or missing config
+  const methodKey = Object.keys(config).find(k => k.toLowerCase() === method?.toLowerCase()) as InterviewMethod | undefined;
+  const safeConfig = methodKey ? config[methodKey] : undefined;
+
+  if (!safeConfig) {
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+        {method || 'Unknown'}
+      </span>
+    );
+  }
+
+  const { label, color } = safeConfig;
+
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${color}`}>
       {label}
@@ -126,9 +138,21 @@ function InterviewStatusBadge({ status }: { status: InterviewStatus }) {
     [InterviewStatus.COMPLETED]: { label: 'Completed', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
     [InterviewStatus.CANCELLED]: { label: 'Cancelled', color: 'bg-red-50 text-red-700 border-red-200' },
   };
-  
-  const { label, color } = config[status];
-  
+
+  // Handle case sensitivity or missing config
+  const statusKey = Object.keys(config).find(k => k.toLowerCase() === status?.toLowerCase()) as InterviewStatus | undefined;
+  const safeConfig = statusKey ? config[statusKey] : undefined;
+
+  if (!safeConfig) {
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+        {status || 'Unknown'}
+      </span>
+    );
+  }
+
+  const { label, color } = safeConfig;
+
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${color}`}>
       {label}
@@ -165,7 +189,7 @@ function ConfirmationModal({
           <h2 className="text-xl font-bold text-slate-900">Confirm Interview</h2>
           <p className="text-slate-600 mt-1">Please review the interview details before scheduling.</p>
         </div>
-        
+
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -191,7 +215,7 @@ function ConfirmationModal({
               </p>
             </div>
           </div>
-          
+
           <div>
             <label className="text-sm text-slate-500">Panel Members</label>
             <div className="flex flex-wrap gap-2 mt-1">
@@ -205,33 +229,33 @@ function ConfirmationModal({
               ))}
             </div>
           </div>
-          
+
           {interview.method === InterviewMethod.VIDEO && interview.videoLink && (
             <div>
               <label className="text-sm text-slate-500">Video Link</label>
               <p className="font-medium text-indigo-600 break-all">{interview.videoLink}</p>
             </div>
           )}
-          
+
           {interview.method === InterviewMethod.ONSITE && interview.location && (
             <div>
               <label className="text-sm text-slate-500">Location</label>
               <p className="font-medium text-slate-900">{interview.location}</p>
             </div>
           )}
-          
+
           {interview.notes && (
             <div>
               <label className="text-sm text-slate-500">Notes</label>
               <p className="text-slate-700">{interview.notes}</p>
             </div>
           )}
-          
+
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
             <strong>Note:</strong> Calendar invites will be sent automatically to the candidate and panel members.
           </div>
         </div>
-        
+
         <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
           <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
             Cancel
@@ -292,11 +316,14 @@ export default function InterviewSchedulingPage() {
       ]);
 
       // Filter applications that can have interviews scheduled (not rejected/withdrawn)
-      const eligibleApps = apps.filter(app => 
-        app.currentStage === ApplicationStage.SCREENING ||
-        app.currentStage === ApplicationStage.DEPARTMENT_INTERVIEW ||
-        app.currentStage === ApplicationStage.HR_INTERVIEW
-      );
+      const eligibleApps = apps.filter(app => {
+        const stage = app.currentStage?.toLowerCase();
+        return (
+          stage === ApplicationStage.SCREENING ||
+          stage === ApplicationStage.DEPARTMENT_INTERVIEW ||
+          stage === ApplicationStage.HR_INTERVIEW
+        );
+      });
 
       // Map applications for interview selection
       const appList: ApplicationForInterview[] = eligibleApps.map((app) => ({
@@ -306,16 +333,16 @@ export default function InterviewSchedulingPage() {
         candidateEmail: app.candidateEmail || '',
         jobTitle: app.jobTitle || 'Untitled Position',
         departmentName: app.departmentName || 'Not specified',
-        currentStage: app.currentStage,
+        currentStage: (app.currentStage?.toLowerCase() as ApplicationStage) || ApplicationStage.SCREENING,
       }));
-      
+
       console.log('📊 Interview Scheduling - Data Loaded:');
       console.log('  Total Applications:', apps.length);
       console.log('  Eligible Applications:', eligibleApps.length);
       console.log('  Interviews:', interviews.length);
       console.log('  Panel Members:', employees.length);
       console.log('  Applications List:', appList);
-      
+
       setApplications(appList);
 
       // Map interviews - get candidate names from applications
@@ -323,7 +350,7 @@ export default function InterviewSchedulingPage() {
       const interviewList: ScheduledInterview[] = interviews.map((int: any) => {
         // Find the application to get candidate details
         const app = apps.find(a => a.id === int.applicationId);
-        
+
         // Handle panel members - could be array of objects with employeeName or array of IDs
         let panelNames: string[] = [];
         if (int.panelMembers && Array.isArray(int.panelMembers)) {
@@ -339,7 +366,7 @@ export default function InterviewSchedulingPage() {
             return emp?.fullName || emp?.name || id;
           });
         }
-        
+
         return {
           id: int.id,
           applicationId: int.applicationId,
@@ -457,21 +484,21 @@ export default function InterviewSchedulingPage() {
   // Handle cancel interview (Test Case 10.11)
   const handleCancelInterview = async (interviewId: string) => {
     const reason = prompt('Please provide a reason for cancellation (optional):');
-    
+
     if (!confirm('Are you sure you want to cancel this interview? Notifications will be sent to all participants.')) {
       return;
     }
-    
+
     setCancellingInterviewId(interviewId);
     try {
       // Call cancel API endpoint (BR-19d: notifications sent automatically)
       await cancelInterview(interviewId, reason || undefined);
-      
+
       // Update local state
-      setScheduledInterviews(prev => 
-        prev.map(i => 
-          i.id === interviewId 
-            ? { ...i, status: InterviewStatus.CANCELLED } 
+      setScheduledInterviews(prev =>
+        prev.map(i =>
+          i.id === interviewId
+            ? { ...i, status: InterviewStatus.CANCELLED }
             : i
         )
       );
@@ -488,17 +515,17 @@ export default function InterviewSchedulingPage() {
   const handleConfirmSchedule = async () => {
     setIsSubmitting(true);
     setError(null);
-    
+
     try {
       const selectedSlot = timeSlots.find((s) => s.id === newInterview.selectedSlot);
-      
+
       if (!selectedSlot) {
         setError('Please select a valid time slot');
         return;
       }
 
       const scheduledDate = new Date(`${selectedSlot.date}T${selectedSlot.startTime}:00`);
-      
+
       let createdInterview;
       try {
         createdInterview = await scheduleInterview({
@@ -543,7 +570,7 @@ export default function InterviewSchedulingPage() {
         };
 
         setScheduledInterviews((prev) => [newScheduledInterview, ...prev]);
-        
+
         // Mark slot as unavailable
         setTimeSlots((prev) =>
           prev.map((slot) =>
@@ -666,9 +693,8 @@ export default function InterviewSchedulingPage() {
               <select
                 value={newInterview.applicationId}
                 onChange={(e) => setNewInterview({ ...newInterview, applicationId: e.target.value })}
-                className={`w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 ${
-                  errors.applicationId ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'
-                }`}
+                className={`w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 ${errors.applicationId ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'
+                  }`}
               >
                 <option value="">Choose a candidate...</option>
                 {applications.map((app) => (
@@ -728,13 +754,12 @@ export default function InterviewSchedulingPage() {
                     onClick={() => member.available && togglePanelMember(member.id)}
                     disabled={!member.available}
                     title={`${member.name} - ${member.role} (${member.department}) - ${member.email}${!member.available ? ' - Unavailable' : ''}`}
-                    className={`p-3 rounded-lg border text-left transition-colors ${
-                      newInterview.selectedPanel.includes(member.id)
-                        ? 'border-indigo-500 bg-indigo-50'
-                        : member.available
+                    className={`p-3 rounded-lg border text-left transition-colors ${newInterview.selectedPanel.includes(member.id)
+                      ? 'border-indigo-500 bg-indigo-50'
+                      : member.available
                         ? 'border-slate-200 hover:border-indigo-300'
                         : 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
@@ -760,7 +785,7 @@ export default function InterviewSchedulingPage() {
                 ))}
               </div>
               {errors.panel && <p className="text-red-600 text-sm mt-1">{errors.panel}</p>}
-              
+
               {/* Selected Panel Summary */}
               {newInterview.selectedPanel.length > 0 && (
                 <div className="mt-3 bg-indigo-50 border border-indigo-200 rounded-lg p-3">
@@ -802,13 +827,12 @@ export default function InterviewSchedulingPage() {
                     key={slot.id}
                     onClick={() => slot.available && setNewInterview({ ...newInterview, selectedSlot: slot.id })}
                     disabled={!slot.available}
-                    className={`p-3 rounded-lg border text-center transition-colors ${
-                      newInterview.selectedSlot === slot.id
-                        ? 'border-indigo-500 bg-indigo-50'
-                        : slot.available
+                    className={`p-3 rounded-lg border text-center transition-colors ${newInterview.selectedSlot === slot.id
+                      ? 'border-indigo-500 bg-indigo-50'
+                      : slot.available
                         ? 'border-slate-200 hover:border-indigo-300'
                         : 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed'
-                    }`}
+                      }`}
                   >
                     <p className="font-medium text-slate-900">
                       {new Date(slot.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -839,11 +863,10 @@ export default function InterviewSchedulingPage() {
                   <button
                     key={option.value}
                     onClick={() => setNewInterview({ ...newInterview, method: option.value })}
-                    className={`flex-1 p-4 rounded-lg border text-center transition-colors ${
-                      newInterview.method === option.value
-                        ? 'border-indigo-500 bg-indigo-50'
-                        : 'border-slate-200 hover:border-indigo-300'
-                    }`}
+                    className={`flex-1 p-4 rounded-lg border text-center transition-colors ${newInterview.method === option.value
+                      ? 'border-indigo-500 bg-indigo-50'
+                      : 'border-slate-200 hover:border-indigo-300'
+                      }`}
                   >
                     <span className="text-2xl mb-1 block">{option.icon}</span>
                     <span className="text-sm font-medium text-slate-700">{option.label}</span>
@@ -999,15 +1022,15 @@ export default function InterviewSchedulingPage() {
                         )}
                         {interview.status === InterviewStatus.SCHEDULED && (
                           <>
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => handleReschedule(interview.id)}
                             >
                               Reschedule
                             </Button>
-                            <Button 
-                              variant="destructive" 
+                            <Button
+                              variant="destructive"
                               size="sm"
                               onClick={() => handleCancelInterview(interview.id)}
                               disabled={cancellingInterviewId === interview.id}

@@ -122,6 +122,15 @@ const statusConfig = {
 
 function StatusBadge({ status }: { status: ApplicationStatus }) {
   const config = statusConfig[status];
+
+  if (!config) {
+    return (
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-600 border border-slate-200">
+        {status || 'Unknown'}
+      </span>
+    );
+  }
+
   return (
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${config.color}`}>
       {config.label}
@@ -131,6 +140,15 @@ function StatusBadge({ status }: { status: ApplicationStatus }) {
 
 function StageBadge({ stage }: { stage: ApplicationStage }) {
   const config = stageConfig[stage];
+
+  if (!config) {
+    return (
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-600 border border-slate-200">
+        {stage || 'Unknown'}
+      </span>
+    );
+  }
+
   return (
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${config.color}`}>
       {config.label}
@@ -203,12 +221,12 @@ export default function ApplicationDetailsPage({
     try {
       setLoading(true);
       setError(null);
-      
+
       const [appData, historyData] = await Promise.all([
         getApplicationById(resolvedParams.id),
         getApplicationHistory(resolvedParams.id).catch(() => []),
       ]);
-      
+
       // Get average score
       let avgScore = 0;
       try {
@@ -217,7 +235,7 @@ export default function ApplicationDetailsPage({
       } catch {
         // Score might not be available
       }
-      
+
       // Transform API response to local interface
       const appDetail: ApplicationDetail = {
         id: appData.id,
@@ -241,9 +259,9 @@ export default function ApplicationDetailsPage({
         scores: [],
         averageScore: avgScore,
       };
-      
+
       setApplication(appDetail);
-      
+
       // Transform history to communication logs
       const logs: CommunicationLog[] = (historyData as { id: string; type?: string; subject?: string; content?: string; createdBy?: string; createdAt?: string }[] || []).map((h) => ({
         id: h.id,
@@ -268,17 +286,17 @@ export default function ApplicationDetailsPage({
   // Validate feedback (BR-10, BR-22)
   const validateFeedback = (): boolean => {
     const errors: { score?: string; comments?: string } = {};
-    
+
     if (newFeedback.score < 1 || newFeedback.score > 100) {
       errors.score = 'Score must be between 1 and 100';
     }
-    
+
     if (!newFeedback.comments.trim()) {
       errors.comments = 'Comments are required';
     } else if (newFeedback.comments.trim().length < 20) {
       errors.comments = 'Comments must be at least 20 characters';
     }
-    
+
     setFeedbackErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -287,15 +305,15 @@ export default function ApplicationDetailsPage({
   // This handler is kept for compatibility but shows a message directing to interviews
   const handleSubmitFeedback = async () => {
     if (!validateFeedback() || !application) return;
-    
+
     try {
       setSubmittingFeedback(true);
       setError(null);
-      
+
       // Feedback must be submitted via interviews - this is a placeholder
       // In the real flow, users should go to the interview detail page to submit feedback
       setError('Please submit feedback from the Interview detail page. Navigate to Interviews and select the relevant interview.');
-      
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit feedback');
     } finally {
@@ -403,16 +421,20 @@ export default function ApplicationDetailsPage({
             )}
           </div>
           <div className="flex items-center gap-3">
-            <Link href={`/dashboard/hr-employee/recruitment/interviews?applicationId=${application.id}`}>
-              <Button variant="outline">Schedule Interview</Button>
-            </Link>
-            <Link href={`/dashboard/hr-employee/recruitment/applications/${application.id}/reject`}>
-              <Button variant="destructive">Reject</Button>
-            </Link>
-            {application.currentStage === ApplicationStage.HR_INTERVIEW && (
-              <Link href={`/dashboard/hr-employee/recruitment/offers?applicationId=${application.id}`}>
-                <Button variant="default">Create Offer</Button>
-              </Link>
+            {application.status !== ApplicationStatus.REJECTED && application.status !== ApplicationStatus.HIRED && (
+              <>
+                <Link href={`/dashboard/hr-employee/recruitment/interviews?applicationId=${application.id}`}>
+                  <Button variant="outline">Schedule Interview</Button>
+                </Link>
+                <Link href={`/dashboard/hr-employee/recruitment/applications/${application.id}/reject`}>
+                  <Button variant="destructive">Reject</Button>
+                </Link>
+                {application.currentStage === ApplicationStage.HR_INTERVIEW && (
+                  <Link href={`/dashboard/hr-employee/recruitment/offers?applicationId=${application.id}`}>
+                    <Button variant="default">Create Offer</Button>
+                  </Link>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -429,11 +451,10 @@ export default function ApplicationDetailsPage({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
-                activeTab === tab.id
+              className={`pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === tab.id
                   ? 'border-indigo-600 text-indigo-600'
                   : 'border-transparent text-slate-600 hover:text-slate-900'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -587,11 +608,10 @@ export default function ApplicationDetailsPage({
                       max="100"
                       value={newFeedback.score || ''}
                       onChange={(e) => setNewFeedback({ ...newFeedback, score: parseInt(e.target.value) || 0 })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                        feedbackErrors.score
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${feedbackErrors.score
                           ? 'border-red-300 focus:ring-red-500'
                           : 'border-slate-200 focus:ring-indigo-500'
-                      }`}
+                        }`}
                       placeholder="Enter score (1-100)"
                     />
                     {feedbackErrors.score && (
@@ -606,11 +626,10 @@ export default function ApplicationDetailsPage({
                       value={newFeedback.comments}
                       onChange={(e) => setNewFeedback({ ...newFeedback, comments: e.target.value })}
                       rows={4}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                        feedbackErrors.comments
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${feedbackErrors.comments
                           ? 'border-red-300 focus:ring-red-500'
                           : 'border-slate-200 focus:ring-indigo-500'
-                      }`}
+                        }`}
                       placeholder="Provide detailed feedback about the candidate..."
                     />
                     {feedbackErrors.comments && (
@@ -712,13 +731,12 @@ export default function ApplicationDetailsPage({
                 return (
                   <div key={stage} className="flex items-center gap-3">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        isCompleted
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${isCompleted
                           ? 'bg-emerald-500 text-white'
                           : isCurrent
-                          ? 'bg-indigo-500 text-white'
-                          : 'bg-slate-200 text-slate-500'
-                      }`}
+                            ? 'bg-indigo-500 text-white'
+                            : 'bg-slate-200 text-slate-500'
+                        }`}
                     >
                       {isCompleted ? (
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -729,9 +747,8 @@ export default function ApplicationDetailsPage({
                       )}
                     </div>
                     <span
-                      className={`text-sm ${
-                        isCompleted || isCurrent ? 'text-slate-900 font-medium' : 'text-slate-500'
-                      }`}
+                      className={`text-sm ${isCompleted || isCurrent ? 'text-slate-900 font-medium' : 'text-slate-500'
+                        }`}
                     >
                       {config.label}
                     </span>
@@ -749,7 +766,7 @@ export default function ApplicationDetailsPage({
                 <span className="font-medium text-slate-900">
                   {Math.ceil(
                     (new Date().getTime() - new Date(application.appliedDate).getTime()) /
-                      (1000 * 60 * 60 * 24)
+                    (1000 * 60 * 60 * 24)
                   )}
                 </span>
               </div>

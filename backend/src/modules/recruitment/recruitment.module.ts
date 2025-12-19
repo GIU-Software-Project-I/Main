@@ -29,9 +29,10 @@ import { LeaveEntitlement, LeaveEntitlementSchema } from "../leaves/models/leave
 import { LeaveRequest, LeaveRequestSchema } from "../leaves/models/leave-request.schema";
 import { LeaveType, LeaveTypeSchema } from "../leaves/models/leave-type.schema";
 
-// Employee Models for Integration
+// Employee Models
 import { EmployeeProfile, EmployeeProfileSchema } from "../employee/models/employee/employee-profile.schema";
 import { EmployeeSystemRole, EmployeeSystemRoleSchema } from "../employee/models/employee/employee-system-role.schema";
+import { Candidate, CandidateSchema } from "../employee/models/employee/Candidate.Schema";
 import { payGrade, payGradeSchema } from "../payroll/payroll-configuration/models/payGrades.schema";
 
 // Payroll Module for Service Integration
@@ -88,9 +89,9 @@ import { AuthModule } from "../auth/auth-module";
             // Employee Models
             { name: EmployeeProfile.name, schema: EmployeeProfileSchema },
             { name: EmployeeSystemRole.name, schema: EmployeeSystemRoleSchema },
+            { name: Candidate.name, schema: CandidateSchema },
         ]),
         SharedModule,
-
     ],
     controllers: [RecruitmentController, OnboardingController, OffboardingController],
     providers: [RecruitmentService, OnboardingService, OffboardingService],

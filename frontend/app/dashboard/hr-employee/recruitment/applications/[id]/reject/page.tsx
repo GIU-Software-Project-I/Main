@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
 import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
-import { getApplicationById, rejectApplication } from '@/app/services/recruitment';
+import { getApplicationById, sendRejectionNotification } from '@/app/services/recruitment';
 
 // =====================================================
 // Types
@@ -21,6 +21,7 @@ interface CandidateInfo {
   departmentName: string;
   appliedDate: string;
   currentStage: string;
+  status: string;
 }
 
 interface RejectionReason {
@@ -179,7 +180,7 @@ function EmailPreview({
           <span className="text-sm font-medium text-slate-900">{subject}</span>
         </div>
       </div>
-      
+
       {/* Email Body */}
       <div className="p-6">
         <div className="whitespace-pre-line text-slate-700 text-sm leading-relaxed">
@@ -222,13 +223,22 @@ export default function RejectApplicationPage({
     try {
       setLoading(true);
       setError(null);
-      
+
       const appData = await getApplicationById(resolvedParams.id);
-      
+
       if (!appData) {
         throw new Error('Application not found');
       }
-      
+
+      // Check if application can be rejected (BR-36: rejection allowed only once, not for hired/offer-accepted)
+      const status = appData.status?.toLowerCase() || '';
+      if (status === 'rejected') {
+        throw new Error('This application has already been rejected. Rejection is allowed only once per application.');
+      }
+      if (status === 'hired' || status === 'offer_accepted') {
+        throw new Error('Cannot reject a candidate who has already been hired or accepted an offer.');
+      }
+
       const candidateInfo: CandidateInfo = {
         id: appData.candidateId || appData.id,
         applicationId: `APP-${appData.id}`,
@@ -238,8 +248,9 @@ export default function RejectApplicationPage({
         departmentName: appData.departmentName || '',
         appliedDate: appData.createdAt || '',
         currentStage: appData.currentStage || 'Unknown',
+        status: appData.status || 'unknown',
       };
-      
+
       setCandidate(candidateInfo);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load application data');
@@ -279,19 +290,47 @@ export default function RejectApplicationPage({
     }
   };
 
-  // Send rejection (BR-36, BR-37)
+  // Send rejection (REC-022, BR-36, BR-37)
   const handleSendRejection = async () => {
     if (!candidate) return;
-    
+
     setSending(true);
     setError(null);
-    
+
     try {
-      // Build rejection reason with notes
-      const rejectionReason = `${selectedReason}${internalNotes ? ` - ${internalNotes}` : ''}`;
-      
-      await rejectApplication(resolvedParams.id, rejectionReason);
-      
+      // Build rejection reason (Status reason)
+      // Note: Internal notes are not supported by backend schema for candidate visibility safety, 
+      // so we only send the standard reason label for the status.
+      const dbReason = selectedReasonData?.label || selectedReason;
+
+      // Construct the FULL email body to always pass as "customMessage"
+      // This ensures the candidate receives the polite template content instead of just the reason label
+      let emailBody = '';
+      if (useCustomMessage) {
+        emailBody = customMessage;
+      } else {
+        const template = rejectionTemplates.find(t => t.id === selectedTemplate);
+        if (template) {
+          // Resolve placeholders
+          emailBody = template.body
+            .replace(/{candidateName}/g, candidate.candidateName)
+            .replace(/{jobTitle}/g, candidate.jobTitle)
+            .replace(/{companyName}/g, 'TechCorp Solutions')
+            .replace(/{senderName}/g, 'HR Team');
+        }
+      }
+
+      // Send automated rejection notification email (REC-022, BR-36)
+      // This endpoint handles both: updating status AND sending email/log
+      await sendRejectionNotification({
+        applicationId: resolvedParams.id,
+        candidateEmail: candidate.candidateEmail,
+        rejectionReason: dbReason,
+        templateId: undefined, // Static templates are not valid MongoIDs, so we don't send them to avoid validation errors
+        message: emailBody, // Always send the resolved body as the main message
+        customMessage: useCustomMessage ? customMessage : undefined, // Optional: Keep original custom input if needed
+      });
+
       setSent(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send rejection');
@@ -455,11 +494,10 @@ export default function RejectApplicationPage({
                 <button
                   key={reason.id}
                   onClick={() => setSelectedReason(reason.id)}
-                  className={`w-full p-3 rounded-lg border text-left transition-colors ${
-                    selectedReason === reason.id
-                      ? 'border-red-500 bg-red-50'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
+                  className={`w-full p-3 rounded-lg border text-left transition-colors ${selectedReason === reason.id
+                    ? 'border-red-500 bg-red-50'
+                    : 'border-slate-200 hover:border-slate-300'
+                    }`}
                 >
                   <p className="font-medium text-slate-900">{reason.label}</p>
                   <p className="text-sm text-slate-500">{reason.description}</p>
@@ -481,11 +519,10 @@ export default function RejectApplicationPage({
                     setSelectedTemplate(template.id);
                     setUseCustomMessage(false);
                   }}
-                  className={`w-full p-3 rounded-lg border text-left transition-colors ${
-                    selectedTemplate === template.id && !useCustomMessage
-                      ? 'border-indigo-500 bg-indigo-50'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
+                  className={`w-full p-3 rounded-lg border text-left transition-colors ${selectedTemplate === template.id && !useCustomMessage
+                    ? 'border-indigo-500 bg-indigo-50'
+                    : 'border-slate-200 hover:border-slate-300'
+                    }`}
                 >
                   <p className="font-medium text-slate-900">{template.name}</p>
                   <p className="text-sm text-slate-500 truncate">{template.subject}</p>
@@ -513,9 +550,8 @@ export default function RejectApplicationPage({
                     value={customMessage}
                     onChange={(e) => setCustomMessage(e.target.value)}
                     rows={8}
-                    className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
-                      errors.customMessage ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'
-                    }`}
+                    className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 ${errors.customMessage ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'
+                      }`}
                     placeholder="Enter your custom rejection message..."
                   />
                   {errors.customMessage && (
@@ -577,7 +613,7 @@ export default function RejectApplicationPage({
                 Confirm Rejection
               </h3>
               <p className="text-slate-600 text-center mb-6">
-                Are you sure you want to send a rejection email to <strong>{candidate.candidateName}</strong>? 
+                Are you sure you want to send a rejection email to <strong>{candidate.candidateName}</strong>?
                 This action will be logged in the communication history.
               </p>
               <div className="bg-slate-50 rounded-lg p-3 mb-6 text-sm">

@@ -7,7 +7,7 @@ import { Card } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
 import { ApplicationStage, ApplicationStatus } from '@/app/types/enums';
-import { getApplications, updateApplicationStage } from '@/app/services/recruitment';
+import { getApplications, getReferrals, updateApplicationStage } from '@/app/services/recruitment';
 
 // =====================================================
 // Types
@@ -86,6 +86,15 @@ const statusConfig = {
 
 function StatusBadge({ status }: { status: ApplicationStatus }) {
   const config = statusConfig[status];
+
+  if (!config) {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+        {status || 'Unknown'}
+      </span>
+    );
+  }
+
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${config.color}`}>
       {config.label}
@@ -95,6 +104,15 @@ function StatusBadge({ status }: { status: ApplicationStatus }) {
 
 function StageBadge({ stage }: { stage: ApplicationStage }) {
   const config = stageConfig[stage];
+
+  if (!config) {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+        {stage || 'Unknown'}
+      </span>
+    );
+  }
+
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${config.color}`}>
       {config.label}
@@ -171,9 +189,8 @@ function ApplicationCard({
                   setShowDropdown(false);
                 }}
                 disabled={application.currentStage === stage}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg ${
-                  application.currentStage === stage ? 'bg-slate-100 text-slate-400' : 'text-slate-700'
-                }`}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg ${application.currentStage === stage ? 'bg-slate-100 text-slate-400' : 'text-slate-700'
+                  }`}
               >
                 {config.label}
               </button>
@@ -336,7 +353,7 @@ function ApplicationsList({
                         View
                       </Button>
                     </Link>
-                    {app.status !== ApplicationStatus.REJECTED && (
+                    {app.status !== ApplicationStatus.REJECTED && app.status !== ApplicationStatus.HIRED && (
                       <Link href={`/dashboard/hr-employee/recruitment/applications/${app.id}/reject`}>
                         <Button variant="destructive" size="sm">
                           Reject
@@ -373,7 +390,14 @@ export default function HREmployeeApplicationsPipelinePage() {
     setLoading(true);
     setError(null);
     try {
-      const apps = await getApplications();
+      const [apps, referrals] = await Promise.all([
+        getApplications(),
+        getReferrals()
+      ]);
+
+      // Create a map of referrals for quick lookup
+      const referralMap = new Map(referrals.map(r => [r.candidateId, r]));
+
       // Map API response to expected format
       const mappedApplications: ApplicationCandidate[] = apps.map((app) => ({
         id: app.id,
@@ -383,9 +407,10 @@ export default function HREmployeeApplicationsPipelinePage() {
         candidateEmail: app.candidateEmail || '',
         jobTitle: app.jobTitle || 'Untitled Position',
         departmentName: app.departmentName || 'Not specified',
-        currentStage: app.currentStage,
-        status: app.status,
-        isReferral: false, // Would need to check referral endpoint
+        currentStage: (app.currentStage as string).toLowerCase() as ApplicationStage,
+        status: (app.status as string).toLowerCase() as ApplicationStatus,
+        isReferral: referralMap.has(app.candidateId),
+        referredBy: referralMap.get(app.candidateId)?.referringEmployeeId,
         appliedDate: app.createdAt,
         lastUpdated: app.updatedAt,
         score: undefined, // Would need to fetch from assessment
@@ -406,17 +431,17 @@ export default function HREmployeeApplicationsPipelinePage() {
   const handleStageChange = async (appId: string, newStage: ApplicationStage) => {
     try {
       await updateApplicationStage(appId, newStage);
-      
+
       // Update state optimistically
       setApplications((prev) =>
         prev.map((app) =>
           app.id === appId
             ? {
-                ...app,
-                currentStage: newStage,
-                lastUpdated: new Date().toISOString().split('T')[0],
-                status: newStage === ApplicationStage.OFFER ? ApplicationStatus.OFFER : ApplicationStatus.IN_PROCESS,
-              }
+              ...app,
+              currentStage: newStage,
+              lastUpdated: new Date().toISOString().split('T')[0],
+              status: newStage === ApplicationStage.OFFER ? ApplicationStatus.OFFER : ApplicationStatus.IN_PROCESS,
+            }
             : app
         )
       );
@@ -477,9 +502,8 @@ export default function HREmployeeApplicationsPipelinePage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setViewMode('kanban')}
-            className={`p-2 rounded-lg transition-colors ${
-              viewMode === 'kanban' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+            className={`p-2 rounded-lg transition-colors ${viewMode === 'kanban' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
             title="Kanban View"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -488,9 +512,8 @@ export default function HREmployeeApplicationsPipelinePage() {
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`p-2 rounded-lg transition-colors ${
-              viewMode === 'list' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+            className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
             title="List View"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -526,7 +549,7 @@ export default function HREmployeeApplicationsPipelinePage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-lg border border-slate-200 p-4">
           <p className="text-sm text-slate-600">Total Applications</p>
           <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
@@ -535,10 +558,7 @@ export default function HREmployeeApplicationsPipelinePage() {
           <p className="text-sm text-slate-600">In Process</p>
           <p className="text-2xl font-bold text-blue-600">{stats.inProcess}</p>
         </div>
-        <div className="bg-white rounded-lg border border-slate-200 p-4">
-          <p className="text-sm text-slate-600">Referrals</p>
-          <p className="text-2xl font-bold text-indigo-600">{stats.referrals}</p>
-        </div>
+
         <div className="bg-white rounded-lg border border-slate-200 p-4">
           <p className="text-sm text-slate-600">At Offer Stage</p>
           <p className="text-2xl font-bold text-emerald-600">{stats.atOffer}</p>
@@ -570,11 +590,10 @@ export default function HREmployeeApplicationsPipelinePage() {
             </select>
             <button
               onClick={() => setReferralFilter(referralFilter === true ? null : true)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                referralFilter === true
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${referralFilter === true
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />

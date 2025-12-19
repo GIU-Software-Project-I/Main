@@ -192,36 +192,24 @@ export default function OffersPage() {
       }
       
       setCandidates(candidatesForOffer);
-      // Map offers to local interface, using populated data from backend
-      setOffers(offersData.map((o: any) => {
-        // Use populated candidate data if available
-        const candidateName = o.candidateData 
-          ? (o.candidateData.fullName || `${o.candidateData.firstName || ''} ${o.candidateData.lastName || ''}`.trim() || 'Unknown')
-          : (o.candidateName || 'Unknown');
-        const candidateEmail = o.candidateData?.personalEmail || o.candidateEmail || '';
-        
-        // Use populated application data if available
-        const positionTitle = o.applicationData?.jobTitle || o.positionTitle || o.role || '';
-        const departmentName = o.applicationData?.departmentName || o.departmentName || '';
-        
-        return {
-          id: o.id,
-          applicationId: o.applicationId,
-          candidateId: o.candidateId,
-          candidateName,
-          candidateEmail,
-          positionTitle,
-          departmentName,
-          grossSalary: o.grossSalary,
-          signingBonus: o.signingBonus,
-          benefits: o.benefits || [],
-          role: o.role,
-          deadline: o.deadline,
-          applicantResponse: o.applicantResponse,
-          finalStatus: o.finalStatus,
-          createdAt: o.createdAt,
-        };
-      }));
+      // Map offers to local interface
+      setOffers(offersData.map(o => ({
+        id: o.id,
+        applicationId: o.applicationId,
+        candidateId: o.candidateId,
+        candidateName: o.candidateName || 'Unknown',
+        candidateEmail: o.candidateName, // Use candidateName as fallback since candidateEmail isn't in API type
+        positionTitle: o.positionTitle || '',
+        departmentName: o.departmentName || '',
+        grossSalary: o.grossSalary,
+        signingBonus: o.signingBonus,
+        benefits: o.benefits || [],
+        role: o.role,
+        deadline: o.deadline,
+        applicantResponse: o.applicantResponse,
+        finalStatus: o.finalStatus,
+        createdAt: o.createdAt,
+      })));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load offers data');
     } finally {

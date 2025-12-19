@@ -27,6 +27,7 @@ import {
   RecruitmentNotification,
   AuditLog,
   AnalyticsSummary,
+  Referral,
 } from '@/app/types/recruitment';
 import { ApplicationStage } from '@/app/types/enums';
 
@@ -512,7 +513,7 @@ export async function triggerPreboarding(applicationId: string): Promise<unknown
 function transformInterview(interview: any): Interview {
   // Handle populated applicationId (could be object or string)
   const applicationId = extractIdValue(interview.applicationId);
-  
+
   // Handle populated panel array (could contain objects or strings)
   const panel = Array.isArray(interview.panel)
     ? interview.panel.map((p: any) => extractIdValue(p))
@@ -742,7 +743,7 @@ function transformOffer(offer: any): JobOffer {
   const applicationId = extractIdValue(offer.applicationId);
   const candidateId = extractIdValue(offer.candidateId);
   const hrEmployeeId = extractIdValue(offer.hrEmployeeId);
-  
+
   // Handle populated approvers array
   const approvers = (offer.approvers || []).map((a: any) => ({
     ...a,
@@ -1056,13 +1057,13 @@ export async function createReferral(data: {
 export async function getReferrals(filters?: {
   referrerId?: string;
   status?: string;
-}): Promise<unknown[]> {
+}): Promise<Referral[]> {
   const params = new URLSearchParams();
   if (filters?.referrerId) params.append('referrerId', filters.referrerId);
   if (filters?.status) params.append('status', filters.status);
 
   const query = params.toString();
-  const response = await api.get<unknown[]>(`/recruitment/referrals${query ? `?${query}` : ''}`);
+  const response = await api.get<Referral[]>(`/recruitment/referrals${query ? `?${query}` : ''}`);
   if (response.error) {
     throw new Error(response.error);
   }
@@ -1158,9 +1159,11 @@ export async function sendStatusUpdateNotification(data: {
  */
 export async function sendRejectionNotification(data: {
   applicationId: string;
-  reason: string;
+  candidateEmail: string;
+  rejectionReason: string;
   templateId?: string;
   customMessage?: string;
+  message?: string;
 }): Promise<unknown> {
   const response = await api.post('/recruitment/notifications/rejection', data);
   if (response.error) {
@@ -1330,16 +1333,16 @@ export async function getPublishedJobs(): Promise<JobRequisition[]> {
     throw new Error(response.error);
   }
   const jobs = response.data || [];
-  
+
   // Transform and filter jobs
   return jobs
     .map(job => {
       // Extract ID
       const id = job._id || job.id || job.requisitionId;
-      
+
       // Extract title from template or direct field
       const title = job.title || job.templateTitle || (job.templateId?.title) || (job.templateId?.templateTitle) || '';
-      
+
       // Transform job data
       return {
         ...job,
@@ -1361,20 +1364,20 @@ export async function getPublishedJobs(): Promise<JobRequisition[]> {
         console.warn('Job missing ID:', job);
         return false;
       }
-      
+
       // Must have a title
       if (!job.title && !job.templateTitle) {
         console.warn('Job missing title:', job);
         return false;
       }
-      
+
       // Must have at least one opening
       const openings = job.numberOfOpenings || job.openings || 0;
       if (openings <= 0) {
         console.warn('Job has no openings:', job);
         return false;
       }
-      
+
       // Check if expired
       if (job.expiryDate) {
         const expiry = new Date(job.expiryDate);
@@ -1383,7 +1386,7 @@ export async function getPublishedJobs(): Promise<JobRequisition[]> {
           return false;
         }
       }
-      
+
       return true;
     });
 }

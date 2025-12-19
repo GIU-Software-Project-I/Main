@@ -13,6 +13,7 @@ import { AssessmentResult, AssessmentResultDocument } from '../models/assessment
 import { Offer, OfferDocument } from '../models/offer.schema';
 import { Contract, ContractDocument } from '../models/contract.schema';
 import { EmployeeProfile, EmployeeProfileDocument } from '../../employee/models/employee/employee-profile.schema';
+import { Candidate, CandidateDocument } from '../../employee/models/employee/Candidate.Schema';
 
 // DTOs
 import { CreateJobTemplateDto, UpdateJobTemplateDto, CreateJobRequisitionDto, PublishJobRequisitionDto, UpdateJobRequisitionDto, CreateApplicationDto, UpdateApplicationStageDto, UpdateApplicationStatusDto, AssignHrDto, CreateReferralDto, ScheduleInterviewDto, UpdateInterviewDto, SubmitFeedbackDto, CreateOfferDto, ApproveOfferDto, CandidateOfferResponseDto, SendNotificationDto, SendRejectionDto, } from '../dto/recruitment';
@@ -42,6 +43,7 @@ export class RecruitmentService {
         @InjectModel(Offer.name) private offerModel: Model<OfferDocument>,
         @InjectModel(Contract.name) private contractModel: Model<ContractDocument>,
         @InjectModel(EmployeeProfile.name) private employeeProfileModel: Model<EmployeeProfileDocument>,
+        @InjectModel(Candidate.name) private candidateModel: Model<CandidateDocument>,
         private readonly sharedRecruitmentService: SharedRecruitmentService,
         private readonly onboardingService: OnboardingService,
     ) { }
@@ -129,7 +131,7 @@ export class RecruitmentService {
     async getJobRequisitionById(id: string): Promise<JobRequisition> {
         // Try to find by MongoDB _id first, then by requisitionId string
         let requisition: JobRequisitionDocument | null = null;
-        
+
         // Check if it's a valid MongoDB ObjectId
         if (Types.ObjectId.isValid(id)) {
             requisition = await this.jobRequisitionModel
@@ -137,7 +139,7 @@ export class RecruitmentService {
                 .populate('templateId')
                 .exec();
         }
-        
+
         // If not found by _id, try requisitionId
         if (!requisition) {
             requisition = await this.jobRequisitionModel
@@ -149,11 +151,11 @@ export class RecruitmentService {
         if (!requisition) {
             throw new NotFoundException(`Job requisition with ID ${id} not found`);
         }
-        
+
         // Transform the result similar to getPublishedJobs
         const template = requisition.templateId as any;
         const job: any = requisition.toObject();
-        
+
         // Merge template data if available
         if (template) {
             const templateObj = typeof template.toObject === 'function' ? template.toObject() : template;
@@ -167,19 +169,19 @@ export class RecruitmentService {
                 job.salaryRange = templateObj.salaryRange;
             }
         }
-        
+
         // Ensure title field exists
         job.title = job.templateTitle || job.title || 'Untitled Position';
-        
+
         // Map openings to numberOfOpenings for frontend compatibility
         job.numberOfOpenings = job.openings || job.numberOfOpenings || 0;
-        
+
         return job;
     }
 
     async getPublishedJobs(): Promise<any[]> {
         const now = new Date();
-        
+
         // Find published jobs that are not expired
         const requisitions = await this.jobRequisitionModel
             .find({
@@ -201,22 +203,22 @@ export class RecruitmentService {
             .filter(req => {
                 // Must have a valid ID
                 if (!req._id && !req.requisitionId) return false;
-                
+
                 // Must have at least one opening
                 const openings = req.openings || 0;
                 if (openings <= 0) return false;
-                
+
                 // Must have a template with title (template is required for published jobs)
                 const template = req.templateId as any;
                 const hasTitle = template?.title || template?.templateTitle;
-                
+
                 return !!hasTitle; // Require template with title
             })
             .map(req => {
                 const template = req.templateId as any;
                 // Since we're using .lean(), req is already a plain object
                 const job: any = { ...req };
-                
+
                 // Merge template data if available
                 if (template) {
                     const templateObj = template;
@@ -230,16 +232,16 @@ export class RecruitmentService {
                         job.salaryRange = templateObj.salaryRange;
                     }
                 }
-                
+
                 // Ensure title field exists (from template)
                 job.title = job.templateTitle || 'Untitled Position';
-                
+
                 // Map openings to numberOfOpenings for frontend compatibility
                 job.numberOfOpenings = job.openings || job.numberOfOpenings || 0;
-                
+
                 // Ensure location is set
                 job.location = job.location || '';
-                
+
                 // Ensure _id is set (MongoDB ObjectId as string)
                 if (req._id) {
                     job._id = typeof req._id === 'object' && req._id.toString ? req._id.toString() : String(req._id);
@@ -247,7 +249,7 @@ export class RecruitmentService {
                 if (req.requisitionId) {
                     job.requisitionId = req.requisitionId;
                 }
-                
+
                 return job;
             });
 
@@ -704,38 +706,38 @@ export class RecruitmentService {
 
     async getInterviewById(id: string): Promise<Interview> {
         this.validateObjectId(id, 'id');
-        
+
         const interview = await this.interviewModel
             .findById(id)
             .populate('applicationId', 'candidateId requisitionId currentStage status')
             .populate('panel')
             .exec();
-        
+
         if (!interview) {
             throw new NotFoundException(`Interview with ID ${id} not found`);
         }
-        
+
         return interview;
     }
 
     async getAllInterviews(filters?: { applicationId?: string; interviewerId?: string; days?: number }): Promise<Interview[]> {
         const query: any = {};
-        
+
         if (filters?.applicationId) {
             query.applicationId = new Types.ObjectId(filters.applicationId);
         }
-        
+
         if (filters?.interviewerId) {
             query.panel = new Types.ObjectId(filters.interviewerId);
         }
-        
+
         if (filters?.days) {
             const now = new Date();
             const futureDate = new Date();
             futureDate.setDate(now.getDate() + filters.days);
             query.scheduledDate = { $gte: now, $lte: futureDate };
         }
-        
+
         return this.interviewModel
             .find(query)
             .populate('applicationId', 'candidateId requisitionId currentStage status')
@@ -1034,15 +1036,15 @@ export class RecruitmentService {
 
     async getAllOffers(filters?: { applicationId?: string; status?: OfferFinalStatus }): Promise<Offer[]> {
         const query: any = {};
-        
+
         if (filters?.applicationId) {
             query.applicationId = new Types.ObjectId(filters.applicationId);
         }
-        
+
         if (filters?.status) {
             query.finalStatus = filters.status;
         }
-        
+
         return this.offerModel
             .find(query)
             .populate({
@@ -1267,7 +1269,7 @@ export class RecruitmentService {
             // First get candidate details
             const candidate = await this.sharedRecruitmentService.validateCandidateExists(application.candidateId.toString());
             const candidateEmail = candidate.personalEmail;
-            
+
             // Try to find employee by email (employees created from candidates may have same email)
             let employee: EmployeeProfileDocument | null = null;
             if (candidateEmail) {
@@ -1278,11 +1280,11 @@ export class RecruitmentService {
                     ],
                 }).exec();
             }
-            
+
             if (employee) {
                 // Employee exists - check if onboarding already exists
                 const existingOnboarding = await this.onboardingService.getOnboardingByEmployeeId(employee._id.toString()).catch(() => null);
-                
+
                 if (existingOnboarding) {
                     return {
                         triggered: true,
@@ -1404,15 +1406,18 @@ export class RecruitmentService {
             throw new NotFoundException(`Application with ID ${dto.applicationId} not found`);
         }
 
+        // Use the short "rejectionReason" for the status
         await this.updateApplicationStatus(dto.applicationId, {
             status: ApplicationStatus.REJECTED,
             reason: dto.rejectionReason || 'Application not selected',
         });
 
+        // Use "message" (or "customMessage") for the email content
         await this.sharedRecruitmentService.sendRejectionNotification({
             candidateId: application.candidateId.toString(),
             applicationId: dto.applicationId,
             rejectionReason: dto.rejectionReason,
+            message: dto.message || dto.customMessage,
         });
 
         return {
@@ -1424,6 +1429,10 @@ export class RecruitmentService {
     async getCandidateById(id: string): Promise<any> {
         this.validateObjectId(id, 'id');
         return this.sharedRecruitmentService.validateCandidateExists(id);
+    }
+
+    async getAllCandidates(): Promise<Candidate[]> {
+        return this.candidateModel.find().sort({ createdAt: -1 }).exec();
     }
 
     async getEmailTemplates(): Promise<any[]> {

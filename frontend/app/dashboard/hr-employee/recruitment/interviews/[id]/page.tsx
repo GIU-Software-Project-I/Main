@@ -108,9 +108,21 @@ function InterviewMethodBadge({ method }: { method: InterviewMethod }) {
     [InterviewMethod.VIDEO]: { label: 'Video Call', color: 'bg-purple-50 text-purple-700 border-purple-200' },
     [InterviewMethod.PHONE]: { label: 'Phone', color: 'bg-amber-50 text-amber-700 border-amber-200' },
   };
-  
-  const { label, color } = config[method];
-  
+
+  // Handle case sensitivity or missing config
+  const methodKey = Object.keys(config).find(k => k.toLowerCase() === method?.toLowerCase()) as InterviewMethod | undefined;
+  const safeConfig = methodKey ? config[methodKey] : undefined;
+
+  if (!safeConfig) {
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+        {method || 'Unknown'}
+      </span>
+    );
+  }
+
+  const { label, color } = safeConfig;
+
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${color}`}>
       {label}
@@ -151,7 +163,7 @@ function ScoreSlider({
           {value}/{criterion.maxScore}
         </div>
       </div>
-      
+
       <div className="mb-3">
         <input
           type="range"
@@ -176,9 +188,8 @@ function ScoreSlider({
           value={comments}
           onChange={(e) => onCommentsChange(e.target.value)}
           rows={2}
-          className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
-            error ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'
-          }`}
+          className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${error ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'
+            }`}
           placeholder={`Provide specific feedback on ${criterion.name.toLowerCase()}...`}
         />
         {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
@@ -218,15 +229,15 @@ export default function InterviewFeedbackPage({
     try {
       setLoading(true);
       setError(null);
-      
+
       const interviewData = await getInterviewById(resolvedParams.id);
-      
+
       // Get application data for denormalized fields
       let candidateName = 'Unknown';
       let candidateEmail = '';
       let jobTitle = '';
       let departmentName = '';
-      
+
       try {
         const appData = await getApplicationById(interviewData.applicationId);
         candidateName = appData.candidateName || 'Unknown';
@@ -237,7 +248,7 @@ export default function InterviewFeedbackPage({
         // If we can't get application data, use defaults
         console.warn('Could not load application data for interview');
       }
-      
+
       // Transform API response to local interface
       const interviewDetail: InterviewDetail = {
         id: interviewData.id,
@@ -260,10 +271,10 @@ export default function InterviewFeedbackPage({
         })) : [],
         status: interviewData.status || InterviewStatus.SCHEDULED,
       };
-      
+
       setInterview(interviewDetail);
       setCriteria(assessmentCriteria);
-      
+
       // Initialize scores
       setAssessment((prev) => ({
         ...prev,
@@ -290,12 +301,12 @@ export default function InterviewFeedbackPage({
       const newScores = prev.scores.map((s) =>
         s.criterionId === criterionId ? { ...s, score } : s
       );
-      
+
       // Calculate overall score
       const totalMax = criteria.reduce((sum, c) => sum + c.maxScore, 0);
       const totalScore = newScores.reduce((sum, s) => sum + s.score, 0);
       const overallPercentage = Math.round((totalScore / totalMax) * 100);
-      
+
       return {
         ...prev,
         scores: newScores,
@@ -344,7 +355,7 @@ export default function InterviewFeedbackPage({
     try {
       setSubmitting(true);
       setError(null);
-      
+
       // Submit simple feedback with score and comments
       const feedbackData: SubmitFeedbackRequest = {
         interviewId: interview.id,
@@ -352,9 +363,9 @@ export default function InterviewFeedbackPage({
         score: assessment.overallScore,
         comments: assessment.generalComments,
       };
-      
+
       await submitInterviewFeedback(feedbackData);
-      
+
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit feedback');
@@ -486,10 +497,10 @@ export default function InterviewFeedbackPage({
       {/* Assessment Form (BR-21, BR-23) */}
       <Card className="mb-6">
         <p className="text-sm text-slate-600 mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <strong>Note:</strong> Use the pre-set criteria to ensure consistent and fair evaluation. 
+          <strong>Note:</strong> Use the pre-set criteria to ensure consistent and fair evaluation.
           All scores and comments are required for submission.
         </p>
-        
+
         <div className="space-y-4">
           {criteria.map((criterion) => {
             const scoreData = assessment.scores.find((s) => s.criterionId === criterion.id);
@@ -513,10 +524,9 @@ export default function InterviewFeedbackPage({
         {/* Overall Score Display */}
         <div className="bg-slate-50 rounded-lg p-4 mb-6 text-center">
           <p className="text-sm text-slate-600 mb-1">Calculated Overall Score</p>
-          <p className={`text-4xl font-bold ${
-            assessment.overallScore >= 70 ? 'text-emerald-600' : 
-            assessment.overallScore >= 50 ? 'text-amber-600' : 'text-red-600'
-          }`}>
+          <p className={`text-4xl font-bold ${assessment.overallScore >= 70 ? 'text-emerald-600' :
+              assessment.overallScore >= 50 ? 'text-amber-600' : 'text-red-600'
+            }`}>
             {assessment.overallScore}%
           </p>
         </div>
@@ -535,11 +545,10 @@ export default function InterviewFeedbackPage({
               <button
                 key={option.value}
                 onClick={() => setAssessment({ ...assessment, recommendation: option.value as AssessmentSubmission['recommendation'] })}
-                className={`p-4 rounded-lg border-2 text-center transition-colors ${
-                  assessment.recommendation === option.value
+                className={`p-4 rounded-lg border-2 text-center transition-colors ${assessment.recommendation === option.value
                     ? option.color
                     : 'border-slate-200 hover:border-slate-300'
-                }`}
+                  }`}
               >
                 <span className="text-2xl mb-1 block">{option.icon}</span>
                 <span className="text-sm font-medium text-slate-700">{option.label}</span>
@@ -557,9 +566,8 @@ export default function InterviewFeedbackPage({
             value={assessment.generalComments}
             onChange={(e) => setAssessment({ ...assessment, generalComments: e.target.value })}
             rows={5}
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-              errors.generalComments ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'
-            }`}
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.generalComments ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'
+              }`}
             placeholder="Provide an overall assessment of the candidate, including strengths, areas for improvement, and any additional observations from the interview..."
           />
           {errors.generalComments && (
