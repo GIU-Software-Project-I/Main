@@ -454,7 +454,52 @@ export class RecruitmentController {
     // Create, approve, and manage job offers
     // ============================================================
 
-    @Post('offers')//@Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
+    // @Post('offers')//@Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
+    // @ApiOperation({ summary: 'REC-014: Create a new job offer' })
+    // @ApiResponse({ status: 201, description: 'Offer created successfully' })
+    // @ApiResponse({ status: 409, description: 'Active offer already exists' })
+    // async createOffer(@Body() dto: CreateOfferDto) {
+    //     return this.recruitmentService.createOffer(dto);
+    // }
+
+    // @Get('offers')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
+    // @ApiOperation({ summary: 'REC-014: Get all offers with filters' })
+    // @ApiQuery({ name: 'applicationId', required: false, description: 'Filter by application ID' })
+    // @ApiQuery({ name: 'status', required: false, enum: OfferFinalStatus, description: 'Filter by offer status' })
+    // @ApiResponse({ status: 200, description: 'List of offers' })
+    // async getOffers(
+    //     @Query('applicationId') applicationId?: string,
+    //     @Query('status') status?: OfferFinalStatus,
+    // ) {
+    //     return this.recruitmentService.getAllOffers({ applicationId, status });
+    // }
+
+    // @Get('offers/:id')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
+    // @ApiOperation({ summary: 'REC-014: Get offer by ID' })
+    // @ApiParam({ name: 'id', description: 'Offer ID' })
+    // @ApiResponse({ status: 200, description: 'Offer details' })
+    // async getOfferById(@Param('id') id: string) {
+    //     return this.recruitmentService.getOfferById(id);
+    // }
+
+    // @Get('offers/application/:applicationId')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
+    // @ApiOperation({ summary: 'REC-014: Get offer for an application' })
+    // @ApiParam({ name: 'applicationId', description: 'Application ID' })
+    // @ApiResponse({ status: 200, description: 'Offer for application' })
+    // async getOfferByApplication(@Param('applicationId') applicationId: string) {
+    //     return this.recruitmentService.getOfferByApplication(applicationId);
+    // }
+
+    // @Patch('offers/:id/approve')//@Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+    // @ApiOperation({ summary: 'REC-014: Approve or reject an offer' })
+    // @ApiParam({ name: 'id', description: 'Offer ID' })
+    // @ApiResponse({ status: 200, description: 'Offer approval status updated' })
+    // async approveOffer(@Param('id') id: string, @Body() dto: ApproveOfferDto) {
+    //     return this.recruitmentService.approveOffer(id, dto);
+   // }
+
+   @Post('offers')
+    //@Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
     @ApiOperation({ summary: 'REC-014: Create a new job offer' })
     @ApiResponse({ status: 201, description: 'Offer created successfully' })
     @ApiResponse({ status: 409, description: 'Active offer already exists' })
@@ -462,7 +507,8 @@ export class RecruitmentController {
         return this.recruitmentService.createOffer(dto);
     }
 
-    @Get('offers')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
+    @Get('offers')
+    //@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
     @ApiOperation({ summary: 'REC-014: Get all offers with filters' })
     @ApiQuery({ name: 'applicationId', required: false, description: 'Filter by application ID' })
     @ApiQuery({ name: 'status', required: false, enum: OfferFinalStatus, description: 'Filter by offer status' })
@@ -474,7 +520,8 @@ export class RecruitmentController {
         return this.recruitmentService.getAllOffers({ applicationId, status });
     }
 
-    @Get('offers/:id')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
+    @Get('offers/:id')
+    //@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
     @ApiOperation({ summary: 'REC-014: Get offer by ID' })
     @ApiParam({ name: 'id', description: 'Offer ID' })
     @ApiResponse({ status: 200, description: 'Offer details' })
@@ -482,7 +529,8 @@ export class RecruitmentController {
         return this.recruitmentService.getOfferById(id);
     }
 
-    @Get('offers/application/:applicationId')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
+    @Get('offers/application/:applicationId')
+    //@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
     @ApiOperation({ summary: 'REC-014: Get offer for an application' })
     @ApiParam({ name: 'applicationId', description: 'Application ID' })
     @ApiResponse({ status: 200, description: 'Offer for application' })
@@ -490,7 +538,8 @@ export class RecruitmentController {
         return this.recruitmentService.getOfferByApplication(applicationId);
     }
 
-    @Patch('offers/:id/approve')//@Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+    @Patch('offers/:id/approve')
+    //@Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
     @ApiOperation({ summary: 'REC-014: Approve or reject an offer' })
     @ApiParam({ name: 'id', description: 'Offer ID' })
     @ApiResponse({ status: 200, description: 'Offer approval status updated' })
