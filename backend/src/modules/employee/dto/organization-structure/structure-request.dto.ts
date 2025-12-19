@@ -2,6 +2,7 @@ import { PartialType } from '@nestjs/mapped-types';
 import {
   IsEnum,
   IsMongoId,
+  IsNotEmpty,
   IsOptional,
   IsString,
 } from 'class-validator';
@@ -48,10 +49,11 @@ export class UpdateStructureRequestDto extends PartialType(
   status?: StructureRequestStatus;
 }
 
+// organization-structure.dto.ts
 export class SubmitApprovalDecisionDto {
   @IsMongoId()
-  @IsOptional()
-  approverEmployeeId?: string;
+  @IsNotEmpty() // REMOVE @IsOptional() and add @IsNotEmpty()
+  approverEmployeeId: string; // REMOVE the ? to make it required
 
   @IsEnum(ApprovalDecision)
   decision: ApprovalDecision;

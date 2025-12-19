@@ -197,7 +197,7 @@ export default function HRManagerApplicationsPage() {
                 <div className={`p-3 rounded-2xl bg-muted/50 border border-border/50 group-hover:scale-110 transition-transform ${s.color}`}>
                   <s.icon className="w-5 h-5" />
                 </div>
-                <Badge variant="ghost" className="text-[9px] font-black tracking-widest text-muted-foreground/50">{s.trend}</Badge>
+                <Badge variant="secondary" className="text-[9px] font-black tracking-widest text-muted-foreground/50">{s.trend}</Badge>
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">{s.label} Dossiers</p>
@@ -262,7 +262,7 @@ export default function HRManagerApplicationsPage() {
                   <SelectContent className="rounded-2xl max-w-[300px]">
                     <SelectItem value="all">All Mandates</SelectItem>
                     {jobs.map((job) => (
-                      <SelectItem key={job.id || job._id} value={job.id || job._id}>
+                      <SelectItem key={job.id || job._id || ''} value={job.id || job._id || ''}>
                         {job.requisitionId}: {job.templateTitle}
                       </SelectItem>
                     ))}
@@ -330,7 +330,7 @@ export default function HRManagerApplicationsPage() {
                           <td className="px-8 py-6">
                             <div className="space-y-1.5">
                               <p className="text-sm font-black text-foreground/90 leading-tight uppercase tracking-tighter">{app.jobTitle}</p>
-                              <Badge variant="ghost" className="p-0 text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest hover:text-primary transition-colors cursor-default">
+                              <Badge variant="secondary" className="p-0 text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest hover:text-primary transition-colors cursor-default">
                                 {app.departmentName}
                               </Badge>
                             </div>

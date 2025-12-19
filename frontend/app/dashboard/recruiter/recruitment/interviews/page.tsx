@@ -1,5 +1,5 @@
-'use client';
 
+'use client';   
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/app/context/AuthContext';
@@ -12,6 +12,7 @@ import { InterviewStatus, InterviewMethod } from '@/app/types/enums';
 import { GlassCard } from '@/app/components/ui/glass-card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
+import { Input } from '@/app/components/ui/input';
 import {
     Calendar,
     Clock,
@@ -22,9 +23,10 @@ import {
     ExternalLink,
     CheckCircle2,
     XCircle,
-    Search
+    Search,
+    Phone
 } from 'lucide-react';
-import { Input } from '@/app/components/ui/input';
+
 import { toast } from 'sonner';
 
 export default function RecruitInterviewsPage() {
@@ -177,7 +179,7 @@ export default function RecruitInterviewsPage() {
                                     <Button size="sm" variant="ghost">View Application</Button>
                                 </Link>
 
-                                {interview.method === InterviewMethod.VIDEO && interview.location.includes('http') && (
+                                {interview.method === InterviewMethod.VIDEO && interview.location?.includes('http') && (
                                     <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => window.open(interview.location, '_blank')}>
                                         Join Call <ExternalLink className="w-4 h-4 ml-2" />
                                     </Button>

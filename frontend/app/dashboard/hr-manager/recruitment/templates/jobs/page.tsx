@@ -101,7 +101,13 @@ export default function JobTemplatesPage() {
       setLoadingDepartments(true);
       const deptData = await organizationStructureService.getDepartments();
       // Extract department names from the response
-      const deptNames = (deptData || []).map((dept: any) => dept.name || dept.departmentName || dept.title).filter(Boolean);
+      let deptArray: any[] = [];
+      if (Array.isArray(deptData)) {
+        deptArray = deptData;
+      } else if (deptData && typeof deptData === 'object' && Array.isArray(deptData.data)) {
+        deptArray = deptData.data;
+      }
+      const deptNames = deptArray.map((dept: any) => dept.name || dept.departmentName || dept.title).filter(Boolean);
       // Fallback to static list if API returns empty
       setDepartments(deptNames.length > 0 ? deptNames : ['Engineering', 'Product', 'Human Resources', 'Finance', 'Marketing', 'Sales', 'Operations']);
     } catch (err) {
@@ -379,12 +385,14 @@ export default function JobTemplatesPage() {
                 <div className="flex-1 p-6 overflow-y-auto border-r border-slate-200">
                   <div className="space-y-5">
                     <Input
-                      label="Job Title *"
                       placeholder="e.g., Software Engineer"
                       value={formData.title}
                       onChange={(e) => handleInputChange('title', e.target.value)}
-                      error={errors.title}
                     />
+                    {errors.title && (
+                      <div className="text-xs text-red-500 mt-1">{errors.title}</div>
+                    )}
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Job Title *</label>
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">

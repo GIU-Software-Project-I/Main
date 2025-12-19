@@ -38,11 +38,11 @@ export default function PayrollTrackingPage() {
       try {
         // Fetch payslips to get stats
         const payslipsResponse = await payrollTrackingService.getEmployeePayslips(user.id);
-        const payslips = payslipsResponse?.data || [];
+        const payslips = (payslipsResponse?.data || []) as any[];
         
         // Fetch claims/disputes tracking
         const trackingResponse = await payrollTrackingService.trackClaimsAndDisputes(user.id);
-        const tracking = trackingResponse?.data || { claims: [], disputes: [] };
+        const tracking = (trackingResponse?.data || { claims: [], disputes: [] }) as { claims: any[]; disputes: any[] };
         
         const pendingClaims = tracking.claims?.filter((c: any) => c.status === 'PENDING' || c.status === 'IN_REVIEW')?.length || 0;
         const pendingDisputes = tracking.disputes?.filter((d: any) => d.status === 'PENDING' || d.status === 'IN_REVIEW')?.length || 0;

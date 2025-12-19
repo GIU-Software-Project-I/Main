@@ -8,6 +8,7 @@ import { AssessmentResult, AssessmentResultSchema } from "./models/assessment-re
 import { ClearanceChecklist, ClearanceChecklistSchema } from "./models/clearance-checklist.schema";
 import { JobTemplate, JobTemplateSchema } from './models/job-template.schema';
 import { JobRequisition, JobRequisitionSchema } from './models/job-requisition.schema';
+import { ProcessTemplate, ProcessTemplateSchema } from './models/process-template.schema';
 import { Referral, ReferralSchema } from './models/referral.schema';
 import { Interview, InterviewSchema } from './models/interview.schema';
 import { Offer, OfferSchema } from "./models/offer.schema";
@@ -63,6 +64,7 @@ import { AuthModule } from "../auth/auth-module";
             // Recruitment Models
             { name: JobTemplate.name, schema: JobTemplateSchema },
             { name: JobRequisition.name, schema: JobRequisitionSchema },
+            { name: ProcessTemplate.name, schema: ProcessTemplateSchema },
             { name: Application.name, schema: ApplicationSchema },
             { name: ApplicationStatusHistory.name, schema: ApplicationStatusHistorySchema },
             { name: Referral.name, schema: ReferralSchema },

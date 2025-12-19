@@ -200,6 +200,11 @@ export interface Interview {
   // Denormalized
   panelMembers?: InterviewPanelMember[];
 
+  // Added for location property used in UI
+  location?: string;
+  jobTitle?: string;
+  candidateName?: string;
+
   createdAt: string;
   updatedAt: string;
 }

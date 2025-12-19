@@ -74,9 +74,9 @@ export class ShiftExpiryScheduler implements OnModuleInit {
 
             if (!assignments.length) return;
 
-            const hrUsers = await this.findHRUsers();
+            const hrUsers = await this.findHRAdmins();
             this.logger.log(
-                `[ShiftExpiryScheduler][${trigger}] Found ${hrUsers.length} HR users`
+                `[ShiftExpiryScheduler][${trigger}] Found ${hrUsers.length} HR Admins`
             );
 
             for (const a of assignments) {
@@ -209,33 +209,62 @@ export class ShiftExpiryScheduler implements OnModuleInit {
     }
 
     /**
-     * HR discovery logic – unchanged (your original implementation)
+     * HR Admin discovery logic – for shift expiry notifications
      */
-    private async findHRUsers(): Promise<any[]> {
+    private async findHRAdmins(): Promise<any[]> {
         if (!this.connection.db) return [];
 
-        const HR_ROLE_CANDIDATES = ['HR Admin', 'HR_ADMIN', 'HRAdmin', 'hr admin'];
-        const allHRUsers = new Map<string, any>();
+        const HR_ADMIN_ROLES = [
+            'HR Admin', 'HR_ADMIN', 'HRAdmin', 'hr admin',
+            'HR Administrator', 'HR_ADMINISTRATOR',
+            'System Admin', 'SYSTEM_ADMIN'
+        ];
 
         try {
             const profiles = await this.connection.db
                 .collection('employee_system_roles')
                 .find({
-                    roles: { $in: HR_ROLE_CANDIDATES },
+                    roles: { $in: HR_ADMIN_ROLES },
                     $or: [{ isActive: true }, { status: 'ACTIVE' }, { status: { $exists: false } }],
                 })
                 .toArray();
 
-            profiles.forEach((p: any) => {
-                allHRUsers.set(p._id.toString(), {
-                    employeeProfileId: p._id,
-                    workEmail: p.workEmail,
-                    isActive: true,
-                });
-            });
-        } catch {}
-
-        return Array.from(allHRUsers.values());
+            return profiles.map((p: any) => ({
+                employeeProfileId: p._id,
+                workEmail: p.workEmail,
+                isActive: true,
+            }));
+        } catch {
+            return [];
+        }
     }
-    //
+
+    /**
+     * HR Manager discovery logic – for other HR-related notifications
+     */
+    private async findHRManagers(): Promise<any[]> {
+        if (!this.connection.db) return [];
+
+        const HR_MANAGER_ROLES = [
+            'HR Manager', 'HR_MANAGER', 'HRManager', 'hr manager'
+        ];
+
+        try {
+            const profiles = await this.connection.db
+                .collection('employee_system_roles')
+                .find({
+                    roles: { $in: HR_MANAGER_ROLES },
+                    $or: [{ isActive: true }, { status: 'ACTIVE' }, { status: { $exists: false } }],
+                })
+                .toArray();
+
+            return profiles.map((p: any) => ({
+                employeeProfileId: p._id,
+                workEmail: p.workEmail,
+                isActive: true,
+            }));
+        } catch {
+            return [];
+        }
+    }
 }
