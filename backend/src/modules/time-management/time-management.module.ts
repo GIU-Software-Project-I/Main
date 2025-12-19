@@ -36,6 +36,7 @@ import {BreakPermissionService} from "./services/BreakPermissionService";
 import {AuthModule} from "../auth/auth-module";
 import {TimeExceptionEscalationScheduler} from "./services/time-exception-escalation.scheduler";
 import {TestSchedulersController} from "./controllers/test-schedulers.controller";
+import {AttendanceDailySummaryScheduler} from "./services/attendance-daily-summary.scheduler";
 
 @Module({
     imports:
@@ -76,6 +77,7 @@ import {TestSchedulersController} from "./controllers/test-schedulers.controller
         HolidayService,
         ShiftExpiryScheduler,
         TimeExceptionEscalationScheduler,
+        AttendanceDailySummaryScheduler,
         RepeatedLatenessService,
         NotificationService,
         BreakPermissionService,

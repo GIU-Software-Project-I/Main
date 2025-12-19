@@ -133,6 +133,8 @@ export interface Candidate {
   address?: Address;
   profilePictureUrl?: string;
   resumeUrl?: string;
+  linkedInUrl?: string;
+  portfolioUrl?: string;
   notes?: string;
   status: CandidateStatus;
   password?: string;
@@ -154,11 +156,15 @@ export interface Application {
   currentStage: ApplicationStage;
   status: ApplicationStatus;
 
-  // Denormalized
+  // Denormalized (derived)
   candidateName?: string;
   candidateEmail?: string;
   jobTitle?: string;
   departmentName?: string;
+
+  // Populated fields
+  candidate?: Candidate;
+  requisition?: JobRequisition;
 
   createdAt: string;
   updatedAt: string;

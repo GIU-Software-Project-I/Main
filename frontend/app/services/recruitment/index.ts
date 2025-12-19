@@ -67,6 +67,31 @@ function extractIdValue(idValue: any): string {
   return String(idValue);
 }
 
+/**
+ * Transform application from backend to frontend format
+ */
+function transformApplication(app: any): Application {
+  const candidate = app.candidateId && typeof app.candidateId === 'object' ? app.candidateId : null;
+  const requisition = app.requisitionId && typeof app.requisitionId === 'object' ? app.requisitionId : null;
+  const template = requisition?.templateId && typeof requisition.templateId === 'object' ? requisition.templateId : null;
+
+  return {
+    ...app,
+    id: extractId(app),
+    candidateId: extractIdValue(app.candidateId),
+    requisitionId: extractIdValue(app.requisitionId),
+    candidate: candidate,
+    requisition: requisition,
+    // Add derived fields for easier use in lists
+    candidateName: candidate
+      ? `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || candidate.personalEmail
+      : app.candidateName,
+    candidateEmail: candidate?.personalEmail || app.candidateEmail,
+    jobTitle: requisition?.title || requisition?.templateTitle || template?.title || template?.templateTitle || app.jobTitle,
+    departmentName: requisition?.department || template?.department || app.departmentName,
+  };
+}
+
 // =====================================================
 // Job Templates
 // =====================================================
@@ -364,11 +389,7 @@ export async function getApplicationById(id: string): Promise<Application> {
   if (response.error || !response.data) {
     throw new Error(response.error || 'Application not found');
   }
-  const app = response.data;
-  return {
-    ...app,
-    id: extractId(app)
-  };
+  return transformApplication(response.data);
 }
 
 /**
@@ -399,7 +420,7 @@ export async function applyToJob(applicationData: PublicApplicationRequest): Pro
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to submit application');
   }
-  return response.data;
+  return transformApplication(response.data);
 }
 
 /**
@@ -410,7 +431,7 @@ export async function createApplication(data: CreateApplicationRequest): Promise
   if (response.error || !response.data) {
     throw new Error(response.error || 'Failed to create application');
   }
-  return response.data;
+  return transformApplication(response.data);
 }
 
 /**
@@ -484,11 +505,11 @@ export async function getApplicationHistory(id: string): Promise<unknown[]> {
  * Get applications by candidate
  */
 export async function getApplicationsByCandidate(candidateId: string): Promise<Application[]> {
-  const response = await api.get<Application[]>(`/recruitment/candidates/${candidateId}/applications`);
+  const response = await api.get<any[]>(`/recruitment/candidates/${candidateId}/applications`);
   if (response.error) {
     throw new Error(response.error);
   }
-  return response.data || [];
+  return (response.data || []).map(transformApplication);
 }
 
 /**
@@ -521,7 +542,7 @@ function transformInterview(interview: any): Interview {
 
   // Extract full application data if populated
   const applicationData = typeof interview.applicationId === 'object' && interview.applicationId
-    ? interview.applicationId
+    ? transformApplication(interview.applicationId)
     : undefined;
 
   // Extract full panel data if populated
@@ -537,6 +558,8 @@ function transformInterview(interview: any): Interview {
     // Preserve full populated data for display
     applicationData,
     panelData,
+    jobTitle: applicationData?.jobTitle || interview.jobTitle,
+    candidateName: applicationData?.candidateName || interview.candidateName,
   };
 }
 
@@ -754,13 +777,17 @@ function transformOffer(offer: any): JobOffer {
 
   // Extract full application data if populated (now includes all fields)
   const applicationData = typeof offer.applicationId === 'object' && offer.applicationId
-    ? offer.applicationId
+    ? transformApplication(offer.applicationId)
     : undefined;
 
   // Extract full candidate data if populated (now includes all fields)
   const candidateData = typeof offer.candidateId === 'object' && offer.candidateId
     ? offer.candidateId
     : undefined;
+
+  // Extract derived job info from populated application
+  const positionTitle = offer.positionTitle || offer.role || applicationData?.jobTitle;
+  const departmentName = offer.departmentName || applicationData?.departmentName;
 
   return {
     ...offer,
@@ -772,6 +799,8 @@ function transformOffer(offer: any): JobOffer {
     // Preserve full populated data for display
     applicationData,
     candidateData,
+    positionTitle,
+    departmentName,
     hrEmployeeData: typeof offer.hrEmployeeId === 'object' ? offer.hrEmployeeId : undefined,
   };
 }
@@ -953,7 +982,7 @@ export async function updateCandidate(id: string, data: Partial<Candidate>): Pro
 
 // =====================================================
 // Documents
-// =====================================================
+// =====================================================================
 
 /**
  * Upload a document (CV, etc.)

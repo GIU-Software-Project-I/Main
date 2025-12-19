@@ -276,6 +276,7 @@ export class SharedRecruitmentService {
         acceptanceDate: Date;
         departmentId?: string;
         positionId?: string;
+        contractType?: string; // BR 3f, 3g: Contract type required during onboarding
     }): Promise<{ employee: EmployeeProfile; temporaryPassword: string }> {
         const candidate = await this.validateCandidateExists(contractData.candidateId);
 
@@ -333,6 +334,7 @@ export class SharedRecruitmentService {
             password: hashedPassword,
             dateOfHire: contractData.acceptanceDate,
             contractStartDate: contractData.acceptanceDate,
+            contractType: contractData.contractType as any, // BR 3f, 3g: Set contract type
             status: EmployeeStatus.PROBATION,
             statusEffectiveFrom: new Date(),
             primaryDepartmentId: contractData.departmentId ? new Types.ObjectId(contractData.departmentId) : candidate.departmentId,

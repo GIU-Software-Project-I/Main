@@ -606,6 +606,12 @@ const PAYROLL_SPECIALIST_NAV: NavItem[] = [
       { label: 'Claims & Disputes', href: '/dashboard/payroll-specialist/payroll-tracking/claims-disputes', icon: 'alert-circle' },
     ],
   },
+    {
+        label: 'Export Time Exceptions',
+        href: '/dashboard/payroll-specialist/time-management',
+        icon: 'clock',
+    },
+
 ];
 
 const PAYROLL_SPECIALIST_SECTIONS: NavSection[] = [

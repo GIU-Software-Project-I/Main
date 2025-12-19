@@ -20,9 +20,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
-import { 
-  getRecruitmentDashboard, 
-  getJobs, 
+import {
+  getRecruitmentDashboard,
+  getJobs,
   getJobTemplates,
   getApplications,
   getInterviews,
@@ -315,7 +315,7 @@ export default function RecruitmentAnalyticsPage() {
     const metrics: JobMetric[] = filteredJobs.map(job => {
       const template = job.templateId ? templateMap.get(job.templateId) : undefined;
       const jobApps = applications.filter(a => a.requisitionId === job.id);
-      const jobInterviews = interviews.filter(i => 
+      const jobInterviews = interviews.filter(i =>
         jobApps.some(a => a.id === i.applicationId)
       );
       const jobHired = jobApps.filter(a => a.status === 'hired');
@@ -352,10 +352,10 @@ export default function RecruitmentAnalyticsPage() {
     hiredApps.forEach(app => {
       const hiredDate = new Date(app.updatedAt);
       const monthKey = `${hiredDate.getFullYear()}-${String(hiredDate.getMonth() + 1).padStart(2, '0')}`;
-      
+
       const created = new Date(app.createdAt);
       const days = Math.ceil((hiredDate.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       if (!monthlyHire[monthKey]) {
         monthlyHire[monthKey] = { total: 0, count: 0 };
       }
@@ -370,7 +370,7 @@ export default function RecruitmentAnalyticsPage() {
       d.setMonth(d.getMonth() - i);
       const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const monthData = monthlyHire[monthKey];
-      
+
       tthData.push({
         month: getMonthName(d),
         days: monthData ? Math.round(monthData.total / monthData.count) : 0,
@@ -382,7 +382,7 @@ export default function RecruitmentAnalyticsPage() {
 
   }, [rawData, dateFilter, departmentFilter]);
 
-  const filteredJobMetrics = useMemo(() => 
+  const filteredJobMetrics = useMemo(() =>
     jobMetrics.filter(
       (job) => departmentFilter === 'all' || job.department === departmentFilter
     ),
@@ -400,7 +400,7 @@ export default function RecruitmentAnalyticsPage() {
 
     // Prepare CSV content
     const csvRows: string[] = [];
-    
+
     // Header
     csvRows.push('Recruitment Analytics Report');
     csvRows.push(`Generated: ${new Date().toLocaleString()}`);
@@ -447,7 +447,7 @@ export default function RecruitmentAnalyticsPage() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute('href', url);
     link.setAttribute('download', `recruitment_analytics_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
@@ -664,10 +664,9 @@ export default function RecruitmentAnalyticsPage() {
                     {item.days > 0 ? `${item.days}d` : '-'}
                   </span>
                   <div
-                    className={`w-full rounded-t-md transition-all ${
-                      item.days > 0 ? 'bg-blue-500 hover:bg-blue-600' : 'bg-slate-200'
-                    }`}
-                    style={{ 
+                    className={`w-full rounded-t-md transition-all ${item.days > 0 ? 'bg-blue-500 hover:bg-blue-600' : 'bg-slate-200'
+                      }`}
+                    style={{
                       height: item.days > 0 ? `${(item.days / maxTimeToHire) * 100}%` : '4px',
                       minHeight: '4px'
                     }}
@@ -682,7 +681,7 @@ export default function RecruitmentAnalyticsPage() {
             <div className="grid grid-cols-3 gap-3 pt-3 border-t border-slate-100">
               <div className="text-center">
                 <p className="text-lg font-bold text-emerald-600">
-                  {timeToHire.filter(t => t.days > 0).length > 0 
+                  {timeToHire.filter(t => t.days > 0).length > 0
                     ? Math.min(...timeToHire.filter(t => t.days > 0).map(t => t.days))
                     : 0}d
                 </p>
@@ -694,7 +693,7 @@ export default function RecruitmentAnalyticsPage() {
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-amber-600">
-                  {timeToHire.filter(t => t.days > 0).length > 0 
+                  {timeToHire.filter(t => t.days > 0).length > 0
                     ? Math.max(...timeToHire.filter(t => t.days > 0).map(t => t.days))
                     : 0}d
                 </p>
@@ -773,11 +772,10 @@ export default function RecruitmentAnalyticsPage() {
                   </td>
                   <td className="py-3 px-4 text-center">
                     <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        job.status === 'open'
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${job.status === 'open'
                           ? 'bg-emerald-100 text-emerald-700'
                           : 'bg-slate-100 text-slate-600'
-                      }`}
+                        }`}
                     >
                       {job.status}
                     </span>
