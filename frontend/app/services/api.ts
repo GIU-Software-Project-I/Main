@@ -1,12 +1,6 @@
 
-// Force the correct API URL - environment variable may not be loading correctly
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
-
-// Log the API URL at startup for debugging
-if (typeof window !== 'undefined') {
-  console.log('[API] Base URL:', API_BASE_URL);
-  console.log('[API] Env value:', process.env.NEXT_PUBLIC_API_URL);
-}
+// API Base URL - always use localhost:9000
+const API_BASE_URL = 'http://localhost:9000';
 
 export interface ApiResponse<T = unknown> {
   data?: T;
