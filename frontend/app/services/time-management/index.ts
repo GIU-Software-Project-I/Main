@@ -917,7 +917,7 @@ export const timeManagementService = {
     exportTimeExceptionsCSV: async (): Promise<{ success: boolean; error?: string }> => {
         try {
             const token = typeof window !== 'undefined' ? document.cookie.split(';').find(c => c.trim().startsWith('access_token='))?.split('=')[1] : null;
-            const response = await fetch('https://LOCALHOST:4000/time-exceptions/export/csv', {
+            const response = await fetch('http://localhost:4000/time-exceptions/export/csv', {
                 method: 'GET',
                 headers: {
                     'Authorization': token ? `Bearer ${decodeURIComponent(token)}` : '',
@@ -950,7 +950,7 @@ export const timeManagementService = {
     exportTimeExceptionsJSON: async (): Promise<{ success: boolean; error?: string }> => {
         try {
             const token = typeof window !== 'undefined' ? document.cookie.split(';').find(c => c.trim().startsWith('access_token='))?.split('=')[1] : null;
-            const response = await fetch('https://LOCALHOST:4000/time-exceptions/export/json', {
+            const response = await fetch('http://localhost:4000/time-exceptions/export/json', {
                 method: 'GET',
                 headers: {
                     'Authorization': token ? `Bearer ${decodeURIComponent(token)}` : '',
