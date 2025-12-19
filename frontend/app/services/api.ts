@@ -1,6 +1,6 @@
 
 // API Base URL - always use localhost:9000
-const API_BASE_URL = 'http://localhost:9000';
+const API_BASE_URL =  'http://localhost:9000';
 
 export interface ApiResponse<T = unknown> {
   data?: T;
