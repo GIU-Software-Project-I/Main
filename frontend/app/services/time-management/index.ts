@@ -308,6 +308,40 @@ export enum HolidayType {
     WEEKLY_REST = 'WEEKLY_REST',
 }
 
+// Time Exception Type enum
+export enum TimeExceptionType {
+    MISSED_PUNCH = 'MISSED_PUNCH',
+    LATE = 'LATE',
+    EARLY_LEAVE = 'EARLY_LEAVE',
+    SHORT_TIME = 'SHORT_TIME',
+    OVERTIME_REQUEST = 'OVERTIME_REQUEST',
+    MANUAL_ADJUSTMENT = 'MANUAL_ADJUSTMENT',
+}
+
+// Time Exception Status enum
+export enum TimeExceptionStatus {
+    OPEN = 'OPEN',
+    PENDING = 'PENDING',
+    APPROVED = 'APPROVED',
+    REJECTED = 'REJECTED',
+    ESCALATED = 'ESCALATED',
+    RESOLVED = 'RESOLVED',
+}
+
+// Time Exception interface
+export interface TimeException {
+    _id: string;
+    employeeId: string;
+    type: TimeExceptionType;
+    attendanceRecordId: string;
+    assignedTo: string;
+    status: TimeExceptionStatus;
+    reason?: string;
+    handlerComment?: string;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
 // Holiday interfaces
 export interface Holiday {
     _id?: string;
@@ -880,13 +914,69 @@ export const timeManagementService = {
     },
 
     // Export time exceptions to CSV - GET /time-exceptions/export/csv
-    exportTimeExceptionsCSV: async () => {
-        return apiService.get('/time-exceptions/export/csv');
+    exportTimeExceptionsCSV: async (): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const token = typeof window !== 'undefined' ? document.cookie.split(';').find(c => c.trim().startsWith('access_token='))?.split('=')[1] : null;
+            const response = await fetch('https://LOCALHOST:4000/time-exceptions/export/csv', {
+                method: 'GET',
+                headers: {
+                    'Authorization': token ? `Bearer ${decodeURIComponent(token)}` : '',
+                },
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                return { success: false, error: `Export failed: ${response.statusText}` };
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `time-exceptions-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            return { success: true };
+        } catch (error: any) {
+            console.error('[TimeManagement] Export CSV failed:', error);
+            return { success: false, error: error.message || 'Export failed' };
+        }
     },
 
     // Export time exceptions to JSON - GET /time-exceptions/export/json
-    exportTimeExceptionsJSON: async () => {
-        return apiService.get('/time-exceptions/export/json');
+    exportTimeExceptionsJSON: async (): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const token = typeof window !== 'undefined' ? document.cookie.split(';').find(c => c.trim().startsWith('access_token='))?.split('=')[1] : null;
+            const response = await fetch('https://LOCALHOST:4000/time-exceptions/export/json', {
+                method: 'GET',
+                headers: {
+                    'Authorization': token ? `Bearer ${decodeURIComponent(token)}` : '',
+                },
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                return { success: false, error: `Export failed: ${response.statusText}` };
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `time-exceptions-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            return { success: true };
+        } catch (error: any) {
+            console.error('[TimeManagement] Export JSON failed:', error);
+            return { success: false, error: error.message || 'Export failed' };
+        }
     },
 
     // ============================================================

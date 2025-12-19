@@ -35,6 +35,12 @@ const convertApiNotificationToUI = (apiNotif: any): Notification => {
         title = 'Lateness Alert';
         actionUrl = '/portal/my-attendance';
         actionLabel = 'View Attendance';
+    } else if (apiType === 'LATE') {
+        category = 'attendance';
+        type = 'warning';
+        title = 'Late Arrival';
+        actionUrl = '/portal/my-attendance';
+        actionLabel = 'View Attendance';
     } else if (apiType === 'MISSED_PUNCH') {
         category = 'attendance';
         type = 'warning';
