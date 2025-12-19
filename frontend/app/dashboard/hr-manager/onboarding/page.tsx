@@ -17,7 +17,10 @@ import {
   Bell,
   Search,
   Filter,
-  ArrowRight
+  ArrowRight,
+  TrendingUp,
+  Activity,
+  UserPlus
 } from 'lucide-react';
 
 export default function OnboardingDashboard() {
@@ -71,10 +74,10 @@ export default function OnboardingDashboard() {
   };
 
   const getProgressColor = (progress: number) => {
-    if (progress >= 100) return 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]';
-    if (progress >= 50) return 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]';
-    if (progress >= 25) return 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]';
-    return 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]';
+    if (progress >= 100) return 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]';
+    if (progress >= 50) return 'bg-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]';
+    if (progress >= 25) return 'bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]';
+    return 'bg-destructive shadow-[0_0_15px_rgba(239,68,68,0.3)]';
   };
 
   if (loading) {
@@ -95,181 +98,113 @@ export default function OnboardingDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background/50 relative">
+    <div className="min-h-screen relative overflow-hidden">
       {/* Abstract Background Decoration */}
-      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-primary/5 to-transparent -z-10 pointer-events-none"></div>
+      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-primary/5 via-transparent to-transparent -z-10 pointer-events-none"></div>
+      <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/10 blur-[100px] rounded-full -z-10 animate-pulse"></div>
 
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-10">
 
         {/* Header Section */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
-              Onboarding Management
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 border-b border-border/50 pb-6">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+              Onboarding Excellence
             </h1>
-            <p className="text-muted-foreground text-lg">
-              Streamline the new hire experience and track progress.
+            <p className="text-muted-foreground text-lg font-medium">
+              orchestrate a world-class journey for your newest team members.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" className="h-10 gap-2 hover:bg-background/80 hover:scale-105 transition-all" asChild>
-              <Link href="/dashboard/hr-manager/onboarding/employee">
-                <Plus className="w-4 h-4 text-primary" />
-                <span>Create Employee</span>
+            <Button variant="outline" className="h-11 backdrop-blur-md bg-background/50 border-input hover:bg-accent gap-2" asChild>
+              <Link href="/dashboard/hr-manager/onboarding/checklists">
+                <CheckSquare className="w-4 h-4 text-primary" />
+                <span>Templates</span>
               </Link>
             </Button>
-            <Button className="h-10 gap-2 bg-gradient-to-r from-primary to-blue-600 hover:shadow-lg hover:shadow-primary/20 transition-all hover:scale-105" asChild>
-              <Link href="/dashboard/hr-manager/onboarding/checklists">
-                <CheckSquare className="w-4 h-4" />
-                <span>Manage Checklists</span>
+            <Button className="h-11 shadow-lg shadow-primary/20 bg-gradient-to-r from-primary to-blue-600 hover:shadow-xl transition-all hover:scale-[1.02] gap-2" asChild>
+              <Link href="/dashboard/hr-manager/onboarding/employee">
+                <UserPlus className="w-4 h-4" />
+                <span>New Onboarding</span>
               </Link>
             </Button>
           </div>
         </div>
 
         {error && (
-          <GlassCard className=" border-destructive/20 bg-destructive/5 text-destructive p-4 flex items-center justify-between">
+          <GlassCard className=" border-destructive/20 bg-destructive/5 text-destructive p-5 flex items-center justify-between animate-in fade-in slide-in-from-top-4">
             <div className="flex items-center gap-3">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-destructive/10 text-destructive text-xs font-bold">!</span>
-              <span>{error}</span>
+              <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center font-bold">!</div>
+              <span className="font-medium">{error}</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={fetchData} className="hover:bg-destructive/10">Retry</Button>
+            <Button variant="outline" size="sm" onClick={fetchData} className="hover:bg-destructive/10 border-destructive/20 text-destructive">Retry</Button>
           </GlassCard>
         )}
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <GlassCard variant="hover" className="p-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Users className="w-16 h-16 text-primary" />
-            </div>
-            <div className="space-y-2 relative z-10">
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Onboardings</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-bold text-foreground">{stats.total}</p>
-                <span className="text-xs text-green-500 font-medium">+12%</span>
-              </div>
-            </div>
-          </GlassCard>
-
-          <GlassCard variant="hover" className="p-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Clock className="w-16 h-16 text-blue-500" />
-            </div>
-            <div className="space-y-2 relative z-10">
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">In Progress</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">{stats.inProgress}</p>
-                <span className="text-xs text-muted-foreground">Active</span>
-              </div>
-            </div>
-          </GlassCard>
-
-          <GlassCard variant="hover" className="p-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <CheckCircle2 className="w-16 h-16 text-green-500" />
-            </div>
-            <div className="space-y-2 relative z-10">
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Completed</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-bold text-green-600 dark:text-green-400">{stats.completed}</p>
-                <span className="text-xs text-muted-foreground">Finished</span>
-              </div>
-            </div>
-          </GlassCard>
-
-          <GlassCard variant="hover" className="p-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Bell className="w-16 h-16 text-amber-500" />
-            </div>
-            <div className="space-y-2 relative z-10">
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Pending Tasks</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-bold text-amber-600 dark:text-amber-400">{stats.pendingTasks}</p>
-                <span className="text-xs text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Action Needed</span>
-              </div>
-            </div>
-          </GlassCard>
-        </div>
-
-        {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            {
-              href: '/dashboard/hr-manager/onboarding/checklists',
-              icon: CheckSquare,
-              color: 'text-primary',
-              bg: 'bg-primary/10',
-              title: 'Checklists',
-              desc: 'Create and manage checklists'
-            },
-            {
-              href: '/dashboard/hr-manager/onboarding/employee',
-              icon: Users,
-              color: 'text-green-600 dark:text-green-400',
-              bg: 'bg-green-500/10',
-              title: 'Profile Creation',
-              desc: 'From signed contracts'
-            },
-            {
-              href: '/dashboard/hr-manager/onboarding/payroll',
-              icon: DollarSign,
-              color: 'text-purple-600 dark:text-purple-400',
-              bg: 'bg-purple-500/10',
-              title: 'Payroll Setup',
-              desc: 'Initiate payroll & bonuses'
-            },
-            {
-              href: '#',
-              icon: Bell,
-              color: 'text-orange-600 dark:text-orange-400',
-              bg: 'bg-orange-500/10',
-              title: 'Reminders',
-              desc: 'Send batch reminders',
-              noLink: true
-            },
-          ].map((item, i) => (
-            item.noLink ? (
-              <GlassCard key={i} className="p-5 flex items-start gap-4 hover:bg-accent/50 transition-colors cursor-pointer">
-                <div className={`p-3 rounded-xl ${item.bg}`}>
-                  <item.icon className={`w-5 h-5 ${item.color}`} />
+            { label: 'Active Journey', value: stats.total, icon: Users, color: 'text-primary', trend: '+12%', sub: 'Total New Hires' },
+            { label: 'In Progress', value: stats.inProgress, icon: Activity, color: 'text-blue-500', trend: 'Active', sub: 'Action Required' },
+            { label: 'Completed', value: stats.completed, icon: CheckCircle2, color: 'text-emerald-500', trend: '100%', sub: 'Fully Integrated' },
+            { label: 'Pending Tasks', value: stats.pendingTasks, icon: Bell, color: 'text-amber-500', trend: 'Urgent', sub: 'Across All Hires' },
+          ].map((stat, i) => (
+            <GlassCard key={i} variant="hover" className="p-6 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <stat.icon className={`w-20 h-20 ${stat.color}`} />
+              </div>
+              <div className="space-y-3 relative z-10">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+                  <stat.icon className={`w-4 h-4 ${stat.color}`} />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">{item.title}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-4xl font-extrabold text-foreground tracking-tight">{stat.value}</p>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${stat.color} bg-current/10`}>{stat.trend}</span>
                 </div>
-              </GlassCard>
-            ) : (
-              <Link key={i} href={item.href}>
-                <GlassCard className="p-5 flex items-start gap-4 hover:bg-accent/50 transition-colors h-full group hover:border-primary/30">
-                  <div className={`p-3 rounded-xl ${item.bg} group-hover:scale-110 transition-transform`}>
-                    <item.icon className={`w-5 h-5 ${item.color}`} />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">{item.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
-                  </div>
-                </GlassCard>
-              </Link>
-            )
+                <p className="text-xs text-muted-foreground font-medium">{stat.sub}</p>
+              </div>
+            </GlassCard>
           ))}
         </div>
 
-        {/* Main Content Area */}
+        {/* Navigation Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { href: '/dashboard/hr-manager/onboarding/checklists', icon: CheckSquare, color: 'text-primary', title: 'Checklists', desc: 'Standardized workflows' },
+            { href: '/dashboard/hr-manager/onboarding/employee', icon: UserPlus, color: 'text-emerald-500', title: 'Auto-Create', desc: 'From signed offers' },
+            { href: '/dashboard/hr-manager/onboarding/payroll', icon: DollarSign, color: 'text-indigo-500', title: 'Payroll Sync', desc: 'Financial readiness' },
+            { href: '#', icon: Bell, color: 'text-amber-500', title: 'Auto-Reminders', desc: 'Keep everyone on track' },
+          ].map((item, i) => (
+            <Link key={i} href={item.href}>
+              <GlassCard className="p-5 flex items-center gap-4 hover:bg-muted/50 transition-all group hover:border-primary/20 hover:scale-[1.02]">
+                <div className={`p-3 rounded-2xl bg-muted/80 group-hover:bg-background border border-border group-hover:border-primary/10 transition-all`}>
+                  <item.icon className={`w-6 h-6 ${item.color}`} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-foreground group-hover:text-primary transition-colors text-sm">{item.title}</h3>
+                  <p className="text-[11px] text-muted-foreground font-medium">{item.desc}</p>
+                </div>
+              </GlassCard>
+            </Link>
+          ))}
+        </div>
+
+        {/* Main Workspace */}
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card/30 p-2 rounded-lg backdrop-blur-sm border border-border/50">
-            <div className="flex p-1 bg-muted/50 rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/20 p-2 rounded-2xl backdrop-blur-md border border-border/50">
+            <div className="flex p-1 bg-background/50 rounded-xl border border-border/50">
               {[
-                { label: 'All', value: 'all' },
-                { label: 'In Progress', value: 'in_progress' },
-                { label: 'Completed', value: 'completed' },
+                { label: 'All Hires', value: 'all' },
+                { label: 'Active', value: 'in_progress' },
+                { label: 'Success', value: 'completed' },
               ].map((filter) => (
                 <button
                   key={filter.value}
                   onClick={() => setFilterStatus(filter.value as any)}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${filterStatus === filter.value
-                      ? 'bg-background shadow-sm text-foreground scale-105'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                  className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${filterStatus === filter.value
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                     }`}
                 >
                   {filter.label}
@@ -277,39 +212,41 @@ export default function OnboardingDashboard() {
               ))}
             </div>
 
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="relative group min-w-[300px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <input
                 type="text"
-                placeholder="Search employees..."
-                className="pl-9 pr-4 py-2 bg-background/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-full sm:w-64"
+                placeholder="Search by name, role, or department..."
+                className="w-full pl-10 pr-4 py-2 bg-background/40 border border-border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
               />
             </div>
           </div>
 
-          <GlassCard className="overflow-hidden">
-            <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/5">
-              <h2 className="font-semibold text-foreground flex items-center gap-2">
-                Active Onboardings
-                <Badge variant="secondary" className="ml-2 text-xs">{filteredOnboardings.length}</Badge>
-              </h2>
-              <Button variant="ghost" size="sm" className="h-8 gap-1">
-                <Filter className="w-3.5 h-3.5" /> Filter
+          <GlassCard className="overflow-hidden border-border/40">
+            <div className="px-6 py-5 border-b border-border/50 flex items-center justify-between bg-muted/10">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-primary rounded-full" />
+                <h2 className="font-bold text-foreground tracking-tight">Active Onboarding Funnel</h2>
+                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 py-0.5">{filteredOnboardings.length}</Badge>
+              </div>
+              <Button variant="ghost" size="sm" className="h-9 gap-2 text-xs font-bold hover:bg-background">
+                <Filter className="w-3.5 h-3.5" />
+                Refine List
               </Button>
             </div>
 
-            <div className="divide-y divide-border/40">
+            <div className="divide-y divide-border/30">
               {filteredOnboardings.length === 0 ? (
-                <div className="p-16 text-center flex flex-col items-center">
-                  <div className="w-20 h-20 bg-muted/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
-                    <Users className="w-10 h-10 text-muted-foreground/50" />
+                <div className="p-20 text-center flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
+                  <div className="w-24 h-24 bg-muted/40 rounded-[2rem] flex items-center justify-center mb-8 rotate-12 group-hover:rotate-0 transition-transform">
+                    <TrendingUp className="w-10 h-10 text-muted-foreground/30" />
                   </div>
-                  <p className="text-xl font-medium text-foreground">No onboardings found</p>
-                  <p className="text-muted-foreground mt-2 max-w-sm">
-                    There are currently no active onboarding processes matching your criteria.
+                  <h3 className="text-2xl font-bold text-foreground">Awaiting New Talent</h3>
+                  <p className="text-muted-foreground mt-3 max-w-sm text-sm font-medium leading-relaxed">
+                    No active onboarding processes match your current view. Time to trigger some potential!
                   </p>
-                  <Button variant="outline" className="mt-6" onClick={() => setFilterStatus('all')}>
-                    Clear Filters
+                  <Button variant="outline" className="mt-8 rounded-xl border-border px-8" onClick={() => setFilterStatus('all')}>
+                    Show All Profiles
                   </Button>
                 </div>
               ) : (
@@ -317,59 +254,63 @@ export default function OnboardingDashboard() {
                   const progress = calculateProgress(onboarding.tasks);
                   const employee = typeof onboarding.employeeId === 'object' ? onboarding.employeeId as any : null;
                   const employeeName = employee
-                    ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'New Hire'
-                    : 'New Hire';
+                    ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Elite Talent'
+                    : 'Elite Talent';
 
                   return (
-                    <div key={onboarding._id} className="group hover:bg-accent/40 transition-colors p-6 relative">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${onboarding.completed
-                            ? 'bg-green-500/10 ring-1 ring-green-500/20'
-                            : 'bg-primary/10 ring-1 ring-primary/20'
+                    <div key={onboarding._id} className="group hover:bg-muted/30 transition-all p-6 relative">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+                        <div className="flex items-center gap-5">
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm transition-all group-hover:rotate-3 ${onboarding.completed
+                            ? 'bg-emerald-500/10 border border-emerald-500/20'
+                            : 'bg-primary/5 border border-primary/10'
                             }`}>
                             {onboarding.completed ? (
-                              <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+                              <CheckCircle2 className="w-7 h-7 text-emerald-500" />
                             ) : (
-                              <Users className="w-6 h-6 text-primary" />
+                              <UserPlus className="w-7 h-7 text-primary" />
                             )}
                           </div>
                           <div>
                             <div className="flex items-center gap-3">
-                              <Link href={`/dashboard/hr-manager/onboarding/checklists/${onboarding._id}`} className="font-semibold text-lg hover:text-primary transition-colors">
+                              <Link href={`/dashboard/hr-manager/onboarding/checklists/${onboarding._id}`} className="font-bold text-xl hover:text-primary transition-colors tracking-tight">
                                 {employeeName}
                               </Link>
-                              <Badge variant={onboarding.completed ? 'default' : 'outline'} className={onboarding.completed ? 'bg-green-600' : 'border-primary/50 text-foreground'}>
-                                {onboarding.completed ? 'Completed' : 'In Progress'}
-                              </Badge>
+                              {onboarding.completed ? (
+                                <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-none py-0.5">Ready</Badge>
+                              ) : (
+                                <Badge variant="outline" className="border-primary/30 text-primary py-0.5 bg-primary/5">Active</Badge>
+                              )}
                             </div>
-                            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                              <Clock className="w-3 h-3" />
-                              Started: {new Date(onboarding.createdAt).toLocaleDateString()}
+                            <div className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-3 font-semibold uppercase tracking-wider">
+                              <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Launched {new Date(onboarding.createdAt).toLocaleDateString()}</span>
+                              <span className="w-1 h-1 bg-border rounded-full" />
+                              <span className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> High Velocity</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-8 w-full sm:w-auto">
-                          <div className="flex-1 sm:w-64 space-y-2">
-                            <div className="flex justify-between text-xs font-medium">
-                              <span>Progress</span>
-                              <span className={onboarding.completed ? 'text-green-500' : 'text-primary'}>{progress}%</span>
+                        <div className="flex items-center gap-10 w-full md:w-auto">
+                          <div className="flex-1 md:w-72 space-y-3">
+                            <div className="flex justify-between items-end">
+                              <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">Journey Progress</span>
+                              <span className={`text-sm font-black ${onboarding.completed ? 'text-emerald-500' : 'text-primary'}`}>{progress}%</span>
                             </div>
-                            <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden shadow-inner">
+                            <div className="h-2.5 w-full bg-muted/50 rounded-full overflow-hidden border border-border/30">
                               <div
-                                className={`h-full rounded-full transition-all duration-1000 ease-out ${getProgressColor(progress)}`}
+                                className={`h-full rounded-full transition-all duration-1000 ease-in-out ${getProgressColor(progress)}`}
                                 style={{ width: `${progress}%` }}
                               ></div>
                             </div>
-                            <div className="text-xs text-muted-foreground text-right">
-                              {onboarding.tasks?.filter(t => t.status === OnboardingTaskStatus.COMPLETED).length || 0} of {onboarding.tasks?.length || 0} tasks completed
+                            <div className="text-[10px] text-muted-foreground font-bold flex justify-between">
+                              <span>{onboarding.tasks?.filter(t => t.status === OnboardingTaskStatus.COMPLETED).length || 0} Milestones Reached</span>
+                              <span>{onboarding.tasks?.length || 0} Total</span>
                             </div>
                           </div>
 
-                          <Button variant="ghost" size="icon" className="group-hover:translate-x-1 transition-transform" asChild>
+                          <Button variant="outline" size="icon" className="h-12 w-12 rounded-2xl group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 border-border group-hover:border-primary shadow-sm" asChild>
                             <Link href={`/dashboard/hr-manager/onboarding/checklists/${onboarding._id}`}>
-                              <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary" />
+                              <ArrowRight className="w-6 h-6" />
                             </Link>
                           </Button>
                         </div>

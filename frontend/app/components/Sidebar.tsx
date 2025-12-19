@@ -293,7 +293,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-border flex-shrink-0">
-          <Link href="/dashboard" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2" title="Go to Home">
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-lg">HR</span>
             </div>

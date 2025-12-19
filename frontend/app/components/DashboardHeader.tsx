@@ -1,9 +1,12 @@
 // filepath: d:\WebstormProjects\HR System\Main\frontend\app\components\DashboardHeader.tsx
 'use client';
 
+import Link from 'next/link';
+import { Home } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import NotificationDropdown from './NotificationDropdown';
 import UserMenu from './UserMenu';
+import { Button } from '@/app/components/ui/button';
 
 interface DashboardHeaderProps {
   onMenuClick: () => void;
@@ -38,6 +41,11 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
             </h1>
             <p className="text-sm text-muted-foreground">Welcome back to your dashboard</p>
           </div>
+          <Button variant="ghost" size="icon" asChild className="hidden md:flex">
+            <Link href="/" title="Go to Home">
+              <Home className="w-5 h-5" />
+            </Link>
+          </Button>
         </div>
 
         {/* Right side */}

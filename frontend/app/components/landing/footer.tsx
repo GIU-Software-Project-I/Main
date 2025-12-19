@@ -14,8 +14,9 @@ const footerLinks = {
     { name: 'Pricing', href: '#pricing' },
   ],
   company: [
+    { name: 'Home', href: '/' },
     { name: 'About Us', href: '#about' },
-    { name: 'Careers', href: '#careers' },
+    { name: 'Careers', href: '/careers' },
     { name: 'Blog', href: '#blog' },
     { name: 'Contact', href: '#contact' },
   ],
@@ -107,9 +108,26 @@ export function LandingFooter() {
             <ul className="space-y-3">
               {footerLinks.company.map((item) => (
                 <li key={item.name}>
-                  <a href={item.href} className="text-muted-foreground hover:text-primary transition-colors">
-                    {item.name}
-                  </a>
+                  {item.href.startsWith('#') ? (
+                    <a 
+                      href={item.href} 
+                      onClick={(e) => {
+                        e.preventDefault()
+                        const id = item.href.substring(1)
+                        const element = document.getElementById(id)
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                        }
+                      }}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {item.name}
+                    </a>
+                  ) : (
+                    <Link href={item.href} className="text-muted-foreground hover:text-primary transition-colors">
+                      {item.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

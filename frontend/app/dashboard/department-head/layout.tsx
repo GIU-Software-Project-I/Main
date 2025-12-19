@@ -10,7 +10,7 @@ export default function DepartmentHeadLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, getDashboardRoute } = useAuth();
   const router = useRouter();
 
   const allowedRoles = [
@@ -25,11 +25,18 @@ export default function DepartmentHeadLayout({
       router.push('/login');
       return;
     }
-    if (!hasAccess) {
-      router.push('/unauthorized');
+    
+    // Explicitly block candidates - redirect them to their dashboard
+    if (user?.role === SystemRole.JOB_CANDIDATE) {
+      router.replace('/dashboard/job-candidate');
       return;
     }
-  }, [isAuthenticated, hasAccess, router]);
+    
+    if (!hasAccess) {
+      router.replace(getDashboardRoute());
+      return;
+    }
+  }, [isAuthenticated, hasAccess, user, router, getDashboardRoute]);
 
   if (!isAuthenticated || !hasAccess) {
     return null;

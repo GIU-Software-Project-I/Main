@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Smooth scrolling for better navigation experience */
+html {
+  scroll-behavior: smooth;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================

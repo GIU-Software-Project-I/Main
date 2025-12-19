@@ -3,14 +3,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/app/context/AuthContext';
-import { getApplicationsByCandidate, getInterviews, getOfferByApplication } from '@/app/services/recruitment';
-import { Application, Interview } from '@/app/types/recruitment';
+import { getApplicationsByCandidate, getInterviews } from '@/app/services/recruitment';
+import { Application } from '@/app/types/recruitment';
 import { ApplicationStatus, InterviewStatus, ApplicationStage } from '@/app/types/enums';
-
-/**
- * Job Candidate Dashboard - REC-017
- * Real-time dashboard with actual application data
- */
+import { GlassCard } from '@/app/components/ui/glass-card';
+import { Button } from '@/app/components/ui/button';
+import { Badge } from '@/app/components/ui/badge';
+import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
+import {
+  Briefcase,
+  FileText,
+  Calendar,
+  CheckCircle2,
+  ArrowRight,
+  User,
+  MessageSquare,
+  AlertCircle,
+} from 'lucide-react';
 
 interface DashboardStats {
   totalApplications: number;
@@ -52,10 +61,8 @@ export default function JobCandidatePage() {
       setLoading(true);
       setError(null);
 
-      // Fetch candidate's applications
       const applications = await getApplicationsByCandidate(user.id);
 
-      // Calculate stats from real data
       const underReview = applications.filter(
         (a) => a.status === ApplicationStatus.IN_PROCESS || a.status === ApplicationStatus.SUBMITTED
       ).length;
@@ -68,7 +75,6 @@ export default function JobCandidatePage() {
         (a) => a.status !== ApplicationStatus.REJECTED && a.status !== ApplicationStatus.HIRED
       );
 
-      // Fetch interviews for the candidate
       let scheduledInterviews = 0;
       const upcomingList: UpcomingInterview[] = [];
 
@@ -78,7 +84,6 @@ export default function JobCandidatePage() {
           const scheduled = interviews.filter((i) => i.status === InterviewStatus.SCHEDULED);
           scheduledInterviews += scheduled.length;
 
-          // Add to upcoming list
           scheduled.forEach((interview) => {
             const date = new Date(interview.scheduledDate);
             upcomingList.push({
@@ -94,7 +99,6 @@ export default function JobCandidatePage() {
         }
       }
 
-      // Sort upcoming interviews by date
       upcomingList.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       setStats({
@@ -105,8 +109,8 @@ export default function JobCandidatePage() {
         status: hasActiveApplications ? 'Active' : 'No Active Applications',
       });
 
-      setUpcomingInterviews(upcomingList.slice(0, 3)); // Show top 3
-      setRecentApplications(applications.slice(0, 3)); // Show 3 most recent
+      setUpcomingInterviews(upcomingList.slice(0, 3));
+      setRecentApplications(applications.slice(0, 3));
     } catch (err: any) {
       setError(err.message || 'Failed to load dashboard data');
       console.error('Error fetching dashboard:', err);
@@ -119,133 +123,211 @@ export default function JobCandidatePage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  const statCards = [
+    {
+      label: 'Applications',
+      value: stats.totalApplications,
+      icon: <FileText className="w-5 h-5" />,
+      color: 'from-blue-500/20 to-blue-600/20',
+      iconColor: 'text-blue-500',
+    },
+    {
+      label: 'Under Review',
+      value: stats.underReview,
+      icon: <Briefcase className="w-5 h-5" />,
+      color: 'from-purple-500/20 to-purple-600/20',
+      iconColor: 'text-purple-500',
+    },
+    {
+      label: 'Interviews Scheduled',
+      value: stats.interviewsScheduled,
+      icon: <Calendar className="w-5 h-5" />,
+      color: 'from-cyan-500/20 to-cyan-600/20',
+      iconColor: 'text-cyan-500',
+    },
+    {
+      label: 'Offers Received',
+      value: stats.offersReceived,
+      icon: <CheckCircle2 className="w-5 h-5" />,
+      color: 'from-emerald-500/20 to-emerald-600/20',
+      iconColor: 'text-emerald-500',
+    },
+  ];
+
+  const quickActions = [
+    {
+      title: 'Browse Jobs',
+      description: 'Explore opportunities',
+      href: '/careers',
+      icon: <Briefcase className="w-5 h-5" />,
+      color: 'from-blue-500/10 to-blue-600/10',
+    },
+    {
+      title: 'My Applications',
+      description: 'Track your applications',
+      href: '/dashboard/job-candidate/recruitment/applications',
+      icon: <FileText className="w-5 h-5" />,
+      color: 'from-purple-500/10 to-purple-600/10',
+    },
+    {
+      title: 'My Profile',
+      description: 'Update your information',
+      href: '/portal/my-profile',
+      icon: <User className="w-5 h-5" />,
+      color: 'from-emerald-500/10 to-emerald-600/10',
+    },
+    {
+      title: 'Messages',
+      description: 'View communications',
+      href: '#',
+      icon: <MessageSquare className="w-5 h-5" />,
+      color: 'from-amber-500/10 to-amber-600/10',
+    },
+  ];
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-600">Loading your dashboard...</p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <LoadingSpinner size="lg" className="text-primary" />
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">
+          Loading Dashboard
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Job Candidate Portal</h1>
-          <p className="text-slate-600 mt-2">Track your applications and status</p>
+          <h1 className="text-3xl font-black tracking-tighter text-foreground">
+            Job Candidate Portal
+          </h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            Track your applications and status
+          </p>
         </div>
-        <Link href="/portal/my-profile">
-          <button className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+        <Button asChild variant="outline" className="rounded-xl">
+          <Link href="/portal/my-profile">
             My Profile
-          </button>
-        </Link>
+          </Link>
+        </Button>
       </div>
 
+      {/* Error Message */}
       {error && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <p className="text-amber-800 text-sm">{error}</p>
-        </div>
+        <GlassCard variant="strong" className="p-4 border-destructive/20">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-destructive">Unable to load data</p>
+              <p className="text-sm text-destructive/80 mt-1">{error}</p>
+            </div>
+          </div>
+        </GlassCard>
       )}
 
-      {/* Quick Stats - Real Data */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <p className="text-slate-600 text-sm">Applications</p>
-          <p className="text-2xl font-bold text-slate-900 mt-2">{stats.totalApplications}</p>
+      {/* Quick Stats */}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold text-foreground">Application Overview</h2>
+          <Badge variant="outline" className="text-xs">
+            Real-time
+          </Badge>
         </div>
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <p className="text-slate-600 text-sm">Under Review</p>
-          <p className="text-2xl font-bold text-purple-600 mt-2">{stats.underReview}</p>
-        </div>
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <p className="text-slate-600 text-sm">Interviews Scheduled</p>
-          <p className="text-2xl font-bold text-cyan-600 mt-2">{stats.interviewsScheduled}</p>
-        </div>
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <p className="text-slate-600 text-sm">Offers Received</p>
-          <p className="text-2xl font-bold text-emerald-600 mt-2">{stats.offersReceived}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {statCards.map((stat, index) => (
+            <GlassCard key={index} variant="hover" className="p-6 overflow-hidden relative group">
+              <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.color} blur-3xl group-hover:blur-2xl transition-all duration-500`} />
+              <div className="relative z-10 flex items-start justify-between">
+                <div className="space-y-2 flex-1">
+                  <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                    {stat.label}
+                  </p>
+                  <p className="text-3xl font-black text-foreground">
+                    {stat.value}
+                  </p>
+                </div>
+                <div className={`p-3 rounded-xl bg-background/50 border border-border/50 shadow-sm ${stat.iconColor}`}>
+                  {stat.icon}
+                </div>
+              </div>
+            </GlassCard>
+          ))}
         </div>
       </div>
 
       {/* Upcoming Interviews */}
       {upcomingInterviews.length > 0 && (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Upcoming Interviews</h2>
+        <GlassCard className="p-6">
+          <h2 className="text-lg font-bold text-foreground mb-4">Upcoming Interviews</h2>
           <div className="space-y-3">
             {upcomingInterviews.map((interview) => (
               <div
                 key={interview.id}
-                className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-100"
+                className="flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/20"
               >
                 <div>
-                  <p className="font-medium text-slate-900">{interview.jobTitle}</p>
-                  <p className="text-sm text-slate-600">{interview.type}</p>
+                  <p className="font-semibold text-foreground">{interview.jobTitle}</p>
+                  <p className="text-sm text-muted-foreground">{interview.type}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-blue-600">{interview.date}</p>
-                  <p className="text-sm text-slate-600">{interview.time}</p>
+                  <p className="font-semibold text-primary">{interview.date}</p>
+                  <p className="text-sm text-muted-foreground">{interview.time}</p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </GlassCard>
       )}
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h2>
+      <div>
+        <h2 className="text-lg font-bold text-foreground mb-6">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link href="/careers" className="contents">
-            <button className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center w-full">
-              <div className="text-2xl mb-2">💼</div>
-              <p className="font-medium text-slate-900">Browse Jobs</p>
-            </button>
-          </Link>
-          <Link href="/dashboard/job-candidate/recruitment/applications" className="contents">
-            <button className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center w-full">
-              <div className="text-2xl mb-2">📋</div>
-              <p className="font-medium text-slate-900">My Applications</p>
-            </button>
-          </Link>
-          <Link href="/portal/my-profile" className="contents">
-            <button className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center w-full">
-              <div className="text-2xl mb-2">👤</div>
-              <p className="font-medium text-slate-900">My Profile</p>
-            </button>
-          </Link>
-          <button className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-center">
-            <div className="text-2xl mb-2">💬</div>
-            <p className="font-medium text-slate-900">Messages</p>
-          </button>
+          {quickActions.map((action, index) => (
+            <Link key={index} href={action.href}>
+              <GlassCard variant="hover" className="p-5 cursor-pointer group text-center">
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${action.color} mb-4 w-fit mx-auto`}>
+                  <div className="text-foreground">
+                    {action.icon}
+                  </div>
+                </div>
+                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors mb-1">
+                  {action.title}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {action.description}
+                </p>
+              </GlassCard>
+            </Link>
+          ))}
         </div>
       </div>
 
       {/* Application Status Legend */}
-      <div className="bg-slate-50 rounded-lg border border-slate-200 p-6">
-        <h3 className="font-semibold text-slate-900 mb-3">Application Status Guide</h3>
+      <GlassCard className="p-6">
+        <h3 className="font-semibold text-foreground mb-4">Application Status Guide</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-            <span className="text-slate-600">Submitted</span>
+            <span className="text-muted-foreground">Submitted</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-purple-500"></span>
-            <span className="text-slate-600">In Review</span>
+            <span className="text-muted-foreground">In Review</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
-            <span className="text-slate-600">Offer Received</span>
+            <span className="text-muted-foreground">Offer Received</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-green-500"></span>
-            <span className="text-slate-600">Hired</span>
+            <span className="text-muted-foreground">Hired</span>
           </div>
         </div>
-      </div>
+      </GlassCard>
     </div>
   );
 }
-
