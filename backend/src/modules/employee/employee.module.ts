@@ -15,6 +15,10 @@ import {
   EmployeeProfileChangeRequest,
   EmployeeProfileChangeRequestSchema
 } from "./models/employee/ep-change-request.schema";
+import {
+  EmployeeProfileAuditLog,
+  EmployeeProfileAuditLogSchema
+} from "./models/audit/employee-profile-audit-log.schema";
 import { OrganizationStructureModule } from './organization-structure.module';
 import { EmployeeProfileController } from "./controllers/employee-profile.controller";
 
@@ -33,6 +37,7 @@ import { AuthModule } from "../auth/auth-module";
       { name: EmployeeSystemRole.name, schema: EmployeeSystemRoleSchema },
       { name: EmployeeQualification.name, schema: EmployeeQualificationSchema },
       { name: EmployeeProfileChangeRequest.name, schema: EmployeeProfileChangeRequestSchema },
+      { name: EmployeeProfileAuditLog.name, schema: EmployeeProfileAuditLogSchema },
     ]),
     OrganizationStructureModule,
     SharedModule,

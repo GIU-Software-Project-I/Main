@@ -35,61 +35,88 @@ export default function DisputesPage() {
       const response = await payrollSpecialistService.getAllDisputes(filters);
       console.log('Disputes response:', response);
 
+      // Determine the array source based on response structure
+      const disputesList = Array.isArray(response)
+        ? response
+        : (Array.isArray(response.data) ? response.data : []);
+
       // Map backend data to frontend format
-      if (response.data) {
-        const mappedDisputes: PayrollDispute[] = response.data.map((dispute: any) => {
-          console.log('Mapping dispute:', dispute.disputeId, 'Status:', dispute.status, 'PayslipId:', dispute.payslipId);
+      if (disputesList) {
+        const mappedDisputes: PayrollDispute[] = disputesList.map((dispute: any) => {
+          // Safe mapping with error handling per item
+          try {
+            console.log('Mapping dispute:', dispute.disputeId, 'Status:', dispute.status);
 
-          // Extract payslipId - could be:
-          // 1. A populated object with _id and payrollRunId
-          // 2. A raw ObjectId string
-          // 3. An ObjectId object with toString()
-          const payslipData = dispute.payslipId;
-          let payslipId = 'N/A';
-          let payPeriod = 'N/A';
+            // Extract payslipId - could be:
+            // 1. A populated object with _id and payrollRunId
+            // 2. A raw ObjectId string
+            // 3. An ObjectId object with toString()
+            const payslipData = dispute.payslipId;
+            let payslipId = 'N/A';
+            let payPeriod = 'N/A';
 
-          if (payslipData) {
-            if (typeof payslipData === 'object' && payslipData !== null) {
-              // Populated object or ObjectId object
-              payslipId = payslipData._id?.toString?.() || payslipData._id || payslipData.toString?.() || String(payslipData);
+            if (payslipData) {
+              if (typeof payslipData === 'object' && payslipData !== null) {
+                // Populated object or ObjectId object
+                payslipId = payslipData._id?.toString?.() || payslipData._id || payslipData.toString?.() || String(payslipData);
 
-              // Try to get payrollRunId if populated
-              if (payslipData.payrollRunId) {
-                const payrollRun = payslipData.payrollRunId;
-                if (typeof payrollRun === 'object' && payrollRun !== null && payrollRun.payrollPeriod) {
-                  const periodDate = new Date(payrollRun.payrollPeriod);
-                  payPeriod = periodDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                // Try to get payrollRunId if populated
+                if (payslipData.payrollRunId) {
+                  const payrollRun = payslipData.payrollRunId;
+                  if (typeof payrollRun === 'object' && payrollRun !== null && payrollRun.payrollPeriod) {
+                    const periodDate = new Date(payrollRun.payrollPeriod);
+                    payPeriod = periodDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                  }
                 }
+              } else if (typeof payslipData === 'string') {
+                // Raw ObjectId string
+                payslipId = payslipData;
               }
-            } else if (typeof payslipData === 'string') {
-              // Raw ObjectId string
-              payslipId = payslipData;
             }
-          }
 
-          return {
-            id: dispute._id,
-            disputeId: dispute.disputeId,
-            employeeId: dispute.employeeId?._id || dispute.employeeId,
-            employeeName: dispute.employeeId?.firstName && dispute.employeeId?.lastName
-              ? `${dispute.employeeId.firstName} ${dispute.employeeId.lastName}`
-              : 'Unknown',
-            employeeNumber: dispute.employeeId?.employeeId || 'N/A',
-            description: dispute.description,
-            payslipId: payslipId,
-            payPeriod: payPeriod,
-            status: dispute.status,
-            submittedAt: dispute.createdAt,
-            reviewedAt: dispute.updatedAt,
-            notes: dispute.resolutionComment,
-            rejectionRemarks: dispute.rejectionReason,
-            refundId: dispute.refundId?.toString() || dispute.refundId || 'N/A',
-            refundStatus: dispute.refundStatus || 'N/A',
-          } as PayrollDispute;
-        });
-        console.log('Mapped disputes:', mappedDisputes);
+            return {
+              id: dispute._id,
+              disputeId: dispute.disputeId,
+              employeeId: dispute.employeeId?._id || dispute.employeeId,
+              employeeName: dispute.employeeId?.firstName && dispute.employeeId?.lastName
+                ? `${dispute.employeeId.firstName} ${dispute.employeeId.lastName}`
+                : 'Unknown',
+              employeeNumber: dispute.employeeId?.employeeId || 'N/A',
+              description: dispute.description,
+              payslipId: payslipId,
+              payPeriod: payPeriod,
+              status: dispute.status,
+              submittedAt: dispute.createdAt,
+              reviewedAt: dispute.updatedAt,
+              notes: dispute.resolutionComment,
+              rejectionRemarks: dispute.rejectionReason,
+              refundId: dispute.refundId?.toString() || dispute.refundId || 'N/A',
+              refundStatus: dispute.refundStatus || 'N/A',
+            } as PayrollDispute;
+          } catch (err) {
+            console.error('Error mapping individual dispute:', err, dispute);
+            return null; // Will filter these out
+          }
+        }).filter(Boolean) as PayrollDispute[]; // Filter out failed mappings
+
+        console.log('Mapped disputes count:', mappedDisputes.length);
+
+        // Filter by period if needed (Client-side filtering as requested)
+        let finalDisputes = mappedDisputes;
+        if (filters.period) {
+          const [yearStr, monthStr] = filters.period.split('-');
+          const filterYear = parseInt(yearStr);
+          const filterMonth = parseInt(monthStr); // 1-12
+
+          finalDisputes = finalDisputes.filter(d => {
+            if (!d.submittedAt) return false;
+            const date = new Date(d.submittedAt);
+            return date.getFullYear() === filterYear && (date.getMonth() + 1) === filterMonth;
+          });
+        }
+
         // Show all disputes to specialists (including escalated for visibility)
-        setDisputes(mappedDisputes);
+        setDisputes(finalDisputes);
       }
     } catch (error) {
       console.error('Failed to load disputes:', error);
@@ -168,8 +195,10 @@ export default function DisputesPage() {
 
   const isUnderReview = (status?: string) => {
     if (!status) return false;
-    // Compare directly without normalization - status comes as 'under review' from backend
-    return status === 'under review';
+    // Normalize status: lowercase, trim, replace underscores with spaces
+    // This handles variations like 'UNDER_REVIEW', 'under_review', 'Under Review '
+    const normalized = status.toLowerCase().trim().replace(/_/g, ' ');
+    return normalized === 'under review';
   };
 
   if (!hasAccess) {

@@ -2,7 +2,6 @@ import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 // import controllers and services of the current subsystem
 import { PayrollTrackingController } from './controllers/payroll-tracking.controller';
-import { PayrollManagerController } from './controllers/payroll-manager.controller';
 import { PayrollTrackingService } from './services/payroll-tracking.service';
 // import schemas of the current subsystem
 import { refunds, refundsSchema } from './models/refunds.schema';
@@ -50,7 +49,7 @@ import { Shift, ShiftSchema } from "../../time-management/models/shift.schema";
       { name: Shift.name, schema: ShiftSchema },
     ]),
   ],
-  controllers: [PayrollTrackingController, PayrollManagerController],
+  controllers: [PayrollTrackingController],
   providers: [PayrollTrackingService],
   exports: [PayrollTrackingService],
 })

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { employeeProfileService } from '@/app/services/employee-profile';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -57,13 +57,20 @@ function LoadingButton({ isLoading, children, disabled, ...props }: LoadingButto
  */
 export default function EditProfilePage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'contact' | 'bio' | 'emergency' | 'correction'>('contact');
+    const [activeTab, setActiveTab] = useState<'contact' | 'bio' | 'education' | 'emergency' | 'correction'>('contact');
 
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && ['contact', 'bio', 'education', 'emergency', 'correction'].includes(tab)) {
+            setActiveTab(tab as any);
+        }
+    }, [searchParams]);
     // Contact Info State
     const [contactInfo, setContactInfo] = useState({
         mobilePhone: '',
@@ -100,6 +107,15 @@ export default function EditProfilePage() {
     });
     const [showContactForm, setShowContactForm] = useState(false);
 
+    // Education State
+    const [qualifications, setQualifications] = useState<any[]>([]);
+    const [editingQualificationId, setEditingQualificationId] = useState<string | null>(null);
+    const [qualificationForm, setQualificationForm] = useState({
+        establishmentName: '',
+        graduationType: 'BACHELOR',
+    });
+    const [showQualificationForm, setShowQualificationForm] = useState(false);
+
     useEffect(() => {
         const fetchProfile = async () => {
             try {
@@ -128,6 +144,9 @@ export default function EditProfilePage() {
 
                 // Initialize emergency contacts
                 setEmergencyContacts(data?.emergencyContacts || []);
+
+                // Initialize qualifications
+                setQualifications(data?.education || []);
             } catch (err: any) {
                 setError(err.message || 'Failed to load profile');
             } finally {
@@ -234,6 +253,68 @@ export default function EditProfilePage() {
         setShowContactForm(true);
     };
 
+    const handleSaveQualification = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            setSaving(true);
+            setError(null);
+
+            let updatedQuals;
+            if (editingQualificationId) {
+                // Update existing
+                const response = await employeeProfileService.updateQualification(profile._id, editingQualificationId, qualificationForm);
+                updatedQuals = response.data;
+                setSuccessMessage('Education detail updated successfully!');
+            } else {
+                // Add new
+                const response = await employeeProfileService.addQualification(profile._id, qualificationForm);
+                updatedQuals = response.data;
+                setSuccessMessage('Education detail added successfully!');
+            }
+
+            setQualifications(updatedQuals as any[]);
+            setShowQualificationForm(false);
+            setEditingQualificationId(null);
+            setQualificationForm({
+                establishmentName: '',
+                graduationType: 'BACHELOR',
+            });
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (err: any) {
+            setError(err.message || 'Failed to save education detail');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDeleteQualification = async (id: string) => {
+        if (!window.confirm('Are you sure you want to delete this education detail?')) return;
+
+        try {
+            setLoading(true);
+            const response = await employeeProfileService.deleteQualification(profile._id, id);
+            setQualifications(response.data as any[]);
+            setSuccessMessage('Education detail deleted successfully!');
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (err: any) {
+            setError(err.message || 'Failed to delete education detail');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const startEditQualification = (id: string) => {
+        const qual = qualifications.find(q => q._id === id);
+        if (qual) {
+            setQualificationForm({
+                establishmentName: qual.establishmentName,
+                graduationType: qual.graduationType,
+            });
+            setEditingQualificationId(id);
+            setShowQualificationForm(true);
+        }
+    };
+
     const handleSubmitCorrectionRequest = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!correctionRequest.requestDescription.trim()) {
@@ -335,6 +416,7 @@ export default function EditProfilePage() {
                 {[
                     { id: 'contact', label: 'Contact Details', icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.81 12.81 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg> },
                     { id: 'bio', label: 'Bio & Photo', icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg> },
+                    { id: 'education', label: 'Education', icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg> },
                     { id: 'emergency', label: 'Emergency', icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg> },
                     { id: 'correction', label: 'Corrections', icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg> },
                 ].map((tab: any) => (
@@ -367,6 +449,7 @@ export default function EditProfilePage() {
                                 value={contactInfo.mobilePhone}
                                 onChange={(e) => setContactInfo({ ...contactInfo, mobilePhone: e.target.value })}
                                 placeholder="+1 (555) 123-4567"
+                                required
                             />
                             <InputWithLabel
                                 label="Home Phone"
@@ -383,6 +466,7 @@ export default function EditProfilePage() {
                             value={contactInfo.personalEmail}
                             onChange={(e) => setContactInfo({ ...contactInfo, personalEmail: e.target.value })}
                             placeholder="your.email@example.com"
+                            required
                         />
 
                         <div className="space-y-6">
@@ -395,6 +479,7 @@ export default function EditProfilePage() {
                                     address: { ...prev.address, streetAddress: e.target.value }
                                 }))}
                                 placeholder="123 Main Street, Apt 4B"
+                                required
                             />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <InputWithLabel
@@ -405,6 +490,7 @@ export default function EditProfilePage() {
                                         address: { ...prev.address, city: e.target.value }
                                     }))}
                                     placeholder="New York"
+                                    required
                                 />
                                 <InputWithLabel
                                     label="Country"
@@ -414,6 +500,7 @@ export default function EditProfilePage() {
                                         address: { ...prev.address, country: e.target.value }
                                     }))}
                                     placeholder="United States"
+                                    required
                                 />
                             </div>
                         </div>
@@ -550,6 +637,101 @@ export default function EditProfilePage() {
                         </Link>
                     </div>
                 </form>
+            )}
+
+            {activeTab === 'education' && (
+                <div className="space-y-6">
+                    {!showQualificationForm ? (
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-lg font-bold text-foreground">Education & Qualifications</h3>
+                                <Button onClick={() => {
+                                    setQualificationForm({
+                                        establishmentName: '',
+                                        graduationType: 'BACHELOR',
+                                    });
+                                    setEditingQualificationId(null);
+                                    setShowQualificationForm(true);
+                                }}>
+                                    + Add Education
+                                </Button>
+                            </div>
+
+                            {qualifications.length === 0 ? (
+                                <div className="text-center py-16 bg-muted/20 rounded-3xl border border-border/50 border-dashed">
+                                    <div className="w-16 h-16 bg-muted/40 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <svg className="w-8 h-8 text-muted-foreground/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>
+                                    </div>
+                                    <h4 className="text-xl font-black text-foreground uppercase tracking-tight">No Education Details</h4>
+                                    <p className="text-muted-foreground text-sm mt-2 mb-8 max-w-xs mx-auto">Please add your academic background and professional qualifications.</p>
+                                    <Button onClick={() => setShowQualificationForm(true)} className="rounded-full px-8">Add Education</Button>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {qualifications.map((qual, index) => (
+                                        <div key={qual._id || index} className="relative p-6 rounded-lg border border-border bg-card">
+                                            <div className="mb-4">
+                                                <h4 className="font-bold text-lg text-foreground">{qual.establishmentName}</h4>
+                                                <p className="text-primary font-medium">{qual.graduationType}</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Button variant="outline" size="sm" onClick={() => startEditQualification(qual._id)}>
+                                                    Edit
+                                                </Button>
+                                                <Button variant="outline" size="sm" onClick={() => handleDeleteQualification(qual._id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20">
+                                                    Delete
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <form onSubmit={handleSaveQualification} className="bg-card rounded-lg border border-border shadow-sm p-6">
+                            <h3 className="text-lg font-bold text-foreground mb-6">
+                                {editingQualificationId ? 'Edit Education Detail' : 'Add Education Detail'}
+                            </h3>
+
+                            <div className="space-y-6">
+                                <InputWithLabel
+                                    label="Establishment Name"
+                                    value={qualificationForm.establishmentName}
+                                    onChange={(e) => setQualificationForm({ ...qualificationForm, establishmentName: e.target.value })}
+                                    required
+                                    placeholder="e.g. Cairo University"
+                                />
+
+                                <div className="w-full">
+                                    <Label className="block text-sm font-medium text-foreground mb-1.5">
+                                        Graduation Type
+                                    </Label>
+                                    <select
+                                        value={qualificationForm.graduationType}
+                                        onChange={(e) => setQualificationForm({ ...qualificationForm, graduationType: e.target.value as any })}
+                                        className="w-full px-4 py-2 border border-input bg-background rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                        required
+                                    >
+                                        <option value="UNDERGRADE">Undergraduate</option>
+                                        <option value="BACHELOR">Bachelor's Degree</option>
+                                        <option value="MASTER">Master's Degree</option>
+                                        <option value="PHD">PhD</option>
+                                        <option value="OTHER">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 mt-8">
+                                <LoadingButton type="submit" isLoading={saving}>
+                                    {editingQualificationId ? 'Update Detail' : 'Add Detail'}
+                                </LoadingButton>
+                                <Button type="button" variant="outline" onClick={() => setShowQualificationForm(false)}>
+                                    Cancel
+                                </Button>
+                            </div>
+                        </form>
+                    )}
+                </div>
             )}
 
             {activeTab === 'emergency' && (

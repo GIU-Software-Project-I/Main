@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { organizationStructureService } from '@/app/services/organization-structure';
+import { payrollConfigurationService } from '@/app/services/payroll-configuration';
+import RoleGuard from '@/app/components/RoleGuard';
+import { SystemRole } from '@/app/context/AuthContext';
 
 /**
  * Create/Edit Position - System Admin
@@ -22,6 +25,15 @@ interface Position {
   _id: string;
   title: string;
   code: string;
+  departmentId?: { _id: string; name?: string } | string;
+}
+
+interface PayGrade {
+  _id: string;
+  name?: string;
+  grade?: string;
+  code?: string;
+  status?: string;
 }
 
 export default function PositionFormPage() {
@@ -36,13 +48,17 @@ export default function PositionFormPage() {
 
   const [departments, setDepartments] = useState<Department[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
+  const [payGrades, setPayGrades] = useState<PayGrade[]>([]);
+  const [isTopRole, setIsTopRole] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
     code: '',
     departmentId: '',
     reportsToPositionId: '',
-    payGrade: '',
+    payGradeId: '',
+    jobKey: '',
+    costCenter: '',
     jobDescription: '',
     requirements: '',
     minSalary: '',
@@ -58,13 +74,15 @@ export default function PositionFormPage() {
 
   const fetchDependencies = async () => {
     try {
-      const [deptRes, posRes] = await Promise.all([
+      const [deptRes, posRes, payGradeRes] = await Promise.all([
         organizationStructureService.getDepartments(true),
         organizationStructureService.getPositions(undefined, true),
+        payrollConfigurationService.getPayGrades('APPROVED'),
       ]);
 
       if (deptRes.data) setDepartments(Array.isArray(deptRes.data) ? deptRes.data as Department[] : []);
       if (posRes.data) setPositions(Array.isArray(posRes.data) ? posRes.data as Position[] : []);
+      if (payGradeRes.data) setPayGrades(Array.isArray(payGradeRes.data) ? payGradeRes.data as PayGrade[] : []);
     } catch (err) {
       console.error('Failed to load dependencies:', err);
     }
@@ -81,12 +99,15 @@ export default function PositionFormPage() {
           code: pos.code || '',
           departmentId: pos.departmentId?._id || '',
           reportsToPositionId: pos.reportsToPositionId?._id || '',
-          payGrade: pos.payGrade || '',
+          payGradeId: pos.payGradeId || pos.payGrade?._id || '',
+          jobKey: pos.jobKey || '',
+          costCenter: pos.costCenter || '',
           jobDescription: pos.jobDescription || '',
           requirements: pos.requirements || '',
           minSalary: pos.minSalary?.toString() || '',
           maxSalary: pos.maxSalary?.toString() || '',
         });
+        setIsTopRole(!pos.reportsToPositionId);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load position');
@@ -103,6 +124,26 @@ export default function PositionFormPage() {
       return;
     }
 
+    if (!formData.jobKey.trim()) {
+      setError('Job Key is required (BR 10)');
+      return;
+    }
+
+    if (!formData.payGradeId) {
+      setError('Pay Grade is required (BR 10)');
+      return;
+    }
+
+    if (!formData.costCenter.trim()) {
+      setError('Cost Center is required (BR 30)');
+      return;
+    }
+
+    if (!isTopRole && !formData.reportsToPositionId) {
+      setError('Reporting manager is required unless this is a top-level role (BR 30)');
+      return;
+    }
+
     try {
       setSaving(true);
       setError(null);
@@ -111,8 +152,10 @@ export default function PositionFormPage() {
         title: formData.title.trim(),
         code: formData.code.trim().toUpperCase(),
         departmentId: formData.departmentId,
-        reportsToPositionId: formData.reportsToPositionId || undefined,
-        payGrade: formData.payGrade.trim() || undefined,
+        reportsToPositionId: isTopRole ? undefined : (formData.reportsToPositionId || undefined),
+        payGradeId: formData.payGradeId,
+        jobKey: formData.jobKey.trim(),
+        costCenter: formData.costCenter.trim(),
         jobDescription: formData.jobDescription.trim() || undefined,
         requirements: formData.requirements.trim() || undefined,
         minSalary: formData.minSalary ? parseFloat(formData.minSalary) : undefined,
@@ -135,20 +178,23 @@ export default function PositionFormPage() {
 
   if (loading) {
     return (
-      <div className="p-6 lg:p-8 bg-background min-h-screen">
-        <div className="max-w-2xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-muted rounded w-1/3"></div>
-            <div className="bg-card rounded-xl h-96"></div>
+      <RoleGuard allowedRoles={[SystemRole.SYSTEM_ADMIN, SystemRole.HR_ADMIN, SystemRole.HR_MANAGER]}>
+        <div className="p-6 lg:p-8 bg-background min-h-screen">
+          <div className="max-w-2xl mx-auto">
+            <div className="animate-pulse space-y-6">
+              <div className="h-8 bg-muted rounded w-1/3"></div>
+              <div className="bg-card rounded-xl h-96"></div>
+            </div>
           </div>
         </div>
-      </div>
+      </RoleGuard>
     );
   }
 
   return (
-    <div className="p-6 lg:p-8 bg-background min-h-screen">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <RoleGuard allowedRoles={[SystemRole.SYSTEM_ADMIN, SystemRole.HR_ADMIN, SystemRole.HR_MANAGER]}>
+      <div className="p-6 lg:p-8 bg-background min-h-screen">
+        <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link
@@ -212,6 +258,38 @@ export default function PositionFormPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
+                  Job Key <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.jobKey}
+                  onChange={(e) => setFormData({ ...formData, jobKey: e.target.value })}
+                  className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="e.g., JOB-ENG-IC3"
+                  required
+                />
+                <p className="text-xs text-muted-foreground mt-1">Required (BR 10)</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Cost Center <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.costCenter}
+                  onChange={(e) => setFormData({ ...formData, costCenter: e.target.value })}
+                  className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="e.g., CC-TECH-001"
+                  required
+                />
+                <p className="text-xs text-muted-foreground mt-1">Required (BR 30)</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Department <span className="text-destructive">*</span>
                 </label>
                 <select
@@ -232,14 +310,28 @@ export default function PositionFormPage() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Reports To
                 </label>
+                <div className="flex items-center gap-3 mb-2">
+                  <input
+                    id="is-top-role"
+                    type="checkbox"
+                    checked={isTopRole}
+                    onChange={(e) => {
+                      setIsTopRole(e.target.checked);
+                      if (e.target.checked) setFormData({ ...formData, reportsToPositionId: '' });
+                    }}
+                    className="h-4 w-4 border-border rounded"
+                  />
+                  <label htmlFor="is-top-role" className="text-sm text-foreground">This is a top-level/head position</label>
+                </div>
                 <select
                   value={formData.reportsToPositionId}
                   onChange={(e) => setFormData({ ...formData, reportsToPositionId: e.target.value })}
                   className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={isTopRole}
                 >
                   <option value="">None (Top-level)</option>
                   {positions
-                    .filter(p => p._id !== id)
+                    .filter(p => p._id !== id && (!formData.departmentId || (p as any).departmentId?._id === formData.departmentId || (p as any).departmentId === formData.departmentId))
                     .map((pos) => (
                       <option key={pos._id} value={pos._id}>{pos.title}</option>
                     ))}
@@ -253,13 +345,19 @@ export default function PositionFormPage() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Pay Grade
                 </label>
-                <input
-                  type="text"
-                  value={formData.payGrade}
-                  onChange={(e) => setFormData({ ...formData, payGrade: e.target.value })}
+                <select
+                  value={formData.payGradeId}
+                  onChange={(e) => setFormData({ ...formData, payGradeId: e.target.value })}
                   className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="e.g., G5"
-                />
+                  required
+                >
+                  <option value="">Select pay grade</option>
+                  {payGrades.map((pg) => (
+                    <option key={pg._id} value={pg._id}>
+                      {pg.code || pg.grade || pg.name || 'Unnamed'}
+                    </option>
+                  ))}
+                </select>
                 <p className="text-xs text-muted-foreground mt-1">Required (BR 10)</p>
               </div>
 
@@ -333,6 +431,7 @@ export default function PositionFormPage() {
         </form>
       </div>
     </div>
+    </RoleGuard>
   );
 }
 

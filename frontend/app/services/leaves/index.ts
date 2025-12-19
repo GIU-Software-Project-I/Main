@@ -1342,6 +1342,26 @@ resetLeaveYear: async (data: {
     if (addDays > 0) query.set('addDays', addDays.toString());
     return apiService.post(`/leaves/fix-unpaid-balances?${query.toString()}`);
   },
+
+  // User Role Management (REQ: HR Admin manages user roles and permissions)
+  /**
+   * Get user by ID or email for role management
+   * @param query - User ID (ObjectId) or email address
+   * @returns User profile with roles
+   */
+  getUserByIdOrEmail: async (query: string) => {
+    return apiService.get(`/leaves/users/search?q=${encodeURIComponent(query)}`);
+  },
+
+  /**
+   * Update user role for leave management
+   * @param userId - User ID (ObjectId)
+   * @param payload - Update payload with role and optional actorId
+   * @returns Updated user profile with roles
+   */
+  updateUserRole: async (userId: string, payload: { role: string; actorId?: string }) => {
+    return apiService.patch(`/leaves/users/${userId}/role`, payload);
+  },
 };
 
 

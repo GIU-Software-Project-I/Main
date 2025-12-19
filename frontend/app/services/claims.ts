@@ -53,7 +53,7 @@ export interface ClaimsListResponse {
 export const claimsService = {
   async getAllClaims(filters?: ClaimFilters): Promise<ClaimsListResponse> {
     const params = new URLSearchParams();
-    
+
     if (filters?.status && filters.status !== 'all') {
       params.append('status', filters.status);
     }
@@ -80,13 +80,13 @@ export const claimsService = {
     const response = await api.get<ClaimsListResponse>(
       `/payroll/tracking/claims${queryString ? `?${queryString}` : ''}`
     );
-    
+
     // Backend returns { success, data: [...], count }
     // The axios wrapper puts this in response.data
     if (!response.data) {
       throw new Error('No data received from API');
     }
-    
+
     // If response.data has a data property, use that (backend format)
     // Otherwise use response.data directly (for backward compatibility)
     if ((response.data as any).data) {
@@ -96,17 +96,17 @@ export const claimsService = {
         count: (response.data as any).count
       };
     }
-    
+
     return response.data;
   },
 
   async getClaimById(claimId: string): Promise<ClaimResponse> {
     const response = await api.get<ClaimResponse>(`/payroll/tracking/claims/${claimId}`);
-    
+
     if (!response.data) {
       throw new Error('No data received from API');
     }
-    
+
     return response.data;
   },
 
@@ -114,7 +114,7 @@ export const claimsService = {
     // Get specialist ID from auth context or pass it as parameter
     // For now, we'll use a placeholder - in real implementation this should come from auth
     const specialistId = 'specialist_id_placeholder';
-    
+
     const response = await api.put<ClaimResponse>(
       `/payroll/tracking/claims/${claimId}/review?action=approve&specialistId=${specialistId}`,
       {
@@ -122,11 +122,11 @@ export const claimsService = {
         reason: resolutionComment
       }
     );
-    
+
     if (!response.data) {
       throw new Error('No data received from API');
     }
-    
+
     return response.data;
   },
 
@@ -134,18 +134,18 @@ export const claimsService = {
     // Get specialist ID from auth context or pass it as parameter
     // For now, we'll use a placeholder - in real implementation this should come from auth
     const specialistId = 'specialist_id_placeholder';
-    
+
     const response = await api.put<ClaimResponse>(
       `/payroll/tracking/claims/${claimId}/review?action=reject&specialistId=${specialistId}`,
       {
         reason: rejectionReason
       }
     );
-    
+
     if (!response.data) {
       throw new Error('No data received from API');
     }
-    
+
     return response.data;
   }
 };

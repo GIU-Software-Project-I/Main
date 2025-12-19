@@ -1273,7 +1273,7 @@ export class PayrollTrackingService {
           employees: new Set()
         };
       }
-      
+
       acc[deptId].totalGross += this.resolveTotalGrossSalary(payslip) || 0;
       acc[deptId].totalNet += payslip.netPay || 0;
       acc[deptId].totalTax += payslip.deductionsDetails?.taxes?.reduce((sum, t) => sum + ((t as any)?.amount || 0), 0) || 0;
@@ -1437,7 +1437,11 @@ export class PayrollTrackingService {
 
   // REQ-PY-40: Payroll Manager confirm dispute approval (multi-step)
   async confirmDisputeApproval(disputeId: string, managerId: string, action: 'confirm' | 'reject', reason?: string) {
-    const dispute = await this.disputesModel.findById(disputeId);
+    // Try finding by MongoDB _id first, then by custom disputeId
+    let dispute = await this.disputesModel.findById(disputeId);
+    if (!dispute) {
+      dispute = await this.disputesModel.findOne({ disputeId: disputeId });
+    }
     if (!dispute) {
       throw new NotFoundException('Dispute not found');
     }
@@ -1452,23 +1456,23 @@ export class PayrollTrackingService {
       const originalSpecialistComment = dispute.resolutionComment || '';
       // Append manager confirmation, preserving original comment
       const managerNote = reason || `Confirmed by Payroll Manager ${managerId}`;
-      dispute.resolutionComment = originalSpecialistComment ? 
-        `${originalSpecialistComment} | Manager: ${managerNote}` : 
+      dispute.resolutionComment = originalSpecialistComment ?
+        `${originalSpecialistComment} | Manager: ${managerNote}` :
         managerNote;
       await dispute.save();
-      
+
       // Notify Finance that manager approved the dispute
       try {
         const financeUsers = await this.notificationService.findUsersByRole('Finance');
         console.log('[PayrollManager] Found finance users:', financeUsers.length);
-        
+
         if (financeUsers.length > 0) {
           for (const financeUser of financeUsers) {
             try {
-              const financeUserId = typeof financeUser.employeeProfileId === 'string' 
-                ? new Types.ObjectId(financeUser.employeeProfileId) 
+              const financeUserId = typeof financeUser.employeeProfileId === 'string'
+                ? new Types.ObjectId(financeUser.employeeProfileId)
                 : financeUser.employeeProfileId;
-              
+
               const notification = new this.notificationService['notificationModel']({
                 to: financeUserId,
                 type: 'DISPUTE_APPROVED',
@@ -1579,7 +1583,11 @@ export class PayrollTrackingService {
 
   // REQ-PY-43: Payroll Manager confirm claim approval
   async confirmClaimApproval(claimId: string, managerId: string, action: 'confirm' | 'reject', reason?: string) {
-    const claim = await this.claimsModel.findById(claimId);
+    // Try finding by MongoDB _id first, then by custom claimId
+    let claim = await this.claimsModel.findById(claimId);
+    if (!claim) {
+      claim = await this.claimsModel.findOne({ claimId: claimId });
+    }
     if (!claim) {
       throw new NotFoundException('Claim not found');
     }
@@ -1594,23 +1602,23 @@ export class PayrollTrackingService {
       const originalSpecialistComment = claim.resolutionComment || '';
       // Append manager confirmation, preserving original comment
       const managerNote = reason || `Confirmed by Payroll Manager ${managerId}`;
-      claim.resolutionComment = originalSpecialistComment ? 
-        `${originalSpecialistComment} | Manager: ${managerNote}` : 
+      claim.resolutionComment = originalSpecialistComment ?
+        `${originalSpecialistComment} | Manager: ${managerNote}` :
         managerNote;
       await claim.save();
-      
+
       // Notify Finance that manager approved the claim
       try {
         const financeUsers = await this.notificationService.findUsersByRole('Finance');
         console.log('[PayrollManager] Found finance users:', financeUsers.length);
-        
+
         if (financeUsers.length > 0) {
           for (const financeUser of financeUsers) {
             try {
-              const financeUserId = typeof financeUser.employeeProfileId === 'string' 
-                ? new Types.ObjectId(financeUser.employeeProfileId) 
+              const financeUserId = typeof financeUser.employeeProfileId === 'string'
+                ? new Types.ObjectId(financeUser.employeeProfileId)
                 : financeUser.employeeProfileId;
-              
+
               const notification = new this.notificationService['notificationModel']({
                 to: financeUserId,
                 type: 'CLAIM_APPROVED',
@@ -1825,7 +1833,7 @@ export class PayrollTrackingService {
           employeeCount: new Set()
         };
       }
-      
+
       acc[dept].totalGross += this.resolveTotalGrossSalary(payslip) || 0;
       acc[dept].totalNet += payslip.netPay || 0;
       acc[dept].employeeCount.add(payslip.employeeId.toString());
@@ -2024,6 +2032,7 @@ export class PayrollTrackingService {
     return this.claimsModel.find(query)
       .populate('employeeId', 'firstName lastName employeeId')
       .populate('financeStaffId', 'firstName lastName employeeId')
+      .populate('payrollSpecialistId', 'firstName lastName employeeId')
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -2081,6 +2090,7 @@ export class PayrollTrackingService {
         }
       })
       .populate('financeStaffId', 'firstName lastName employeeId')
+      .populate('payrollSpecialistId', 'firstName lastName employeeId')
       .sort({ createdAt: -1 })
       .exec();
 

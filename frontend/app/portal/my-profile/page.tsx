@@ -251,10 +251,10 @@ export default function EmployeeProfilePage() {
                                 <div className="flex items-center gap-3 text-muted-foreground">
                                     <Calendar className="w-4 h-4 text-primary" />
                                     <span className="text-sm">
-                                        {new Date(profile.dateOfBirth).toLocaleDateString('en-US', { 
-                                            month: 'long', 
-                                            day: 'numeric', 
-                                            year: 'numeric' 
+                                        {new Date(profile.dateOfBirth).toLocaleDateString('en-US', {
+                                            month: 'long',
+                                            day: 'numeric',
+                                            year: 'numeric'
                                         })}
                                     </span>
                                 </div>
@@ -270,7 +270,7 @@ export default function EmployeeProfilePage() {
                     <ExternalLink className="w-5 h-5" />
                     Quick Links
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     <Link href="/portal/my-performance">
                         <Button variant="outline" className="w-full justify-start gap-2 h-auto py-3">
                             <TrendingUp className="w-4 h-4" />
@@ -286,15 +286,6 @@ export default function EmployeeProfilePage() {
                             <div className="text-left">
                                 <div className="text-xs text-muted-foreground">Leaves</div>
                                 <div className="text-sm font-medium">Balance & Requests</div>
-                            </div>
-                        </Button>
-                    </Link>
-                    <Link href="/portal/my-payslips">
-                        <Button variant="outline" className="w-full justify-start gap-2 h-auto py-3">
-                            <DollarSign className="w-4 h-4" />
-                            <div className="text-left">
-                                <div className="text-xs text-muted-foreground">Payslips</div>
-                                <div className="text-sm font-medium">View Documents</div>
                             </div>
                         </Button>
                     </Link>
@@ -321,8 +312,8 @@ export default function EmployeeProfilePage() {
                         </h3>
                         <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
                             {profile.biography || (
-                                <span className="italic text-muted-foreground/70">No biography details provided. 
-                                    <Link href="/portal/my-profile/edit" className="text-primary hover:underline ml-1">
+                                <span className="italic text-muted-foreground/70">No biography details provided.
+                                    <Link href="/portal/my-profile/edit?tab=bio" className="text-primary hover:underline ml-1">
                                         Add one now
                                     </Link>
                                 </span>
@@ -409,7 +400,7 @@ export default function EmployeeProfilePage() {
                         ) : (
                             <p className="text-sm text-muted-foreground italic">
                                 No education details added.
-                                <Link href="/portal/my-profile/edit" className="text-primary hover:underline ml-1">
+                                <Link href="/portal/my-profile/edit?tab=education" className="text-primary hover:underline ml-1">
                                     Add education
                                 </Link>
                             </p>
@@ -419,23 +410,60 @@ export default function EmployeeProfilePage() {
 
                 {/* Right Column */}
                 <div className="space-y-6">
-                    {/* Personal Info */}
+                    {/* Employment Details */}
                     <GlassCard className="p-6">
-                        <h3 className="font-semibold text-lg text-foreground mb-4 flex items-center gap-2 border-b border-border/50 pb-3">
-                            <UserCircle className="w-5 h-5" />
-                            Personal Info
+                        <h3 className="font-semibold text-lg text-foreground mb-4 flex items-center justify-between border-b border-border/50 pb-3">
+                            <div className="flex items-center gap-2">
+                                <Briefcase className="w-5 h-5" />
+                                Employment Details
+                            </div>
+                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded uppercase tracking-tighter font-bold">Official Records</span>
                         </h3>
-                        <dl className="space-y-4">
+                        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                             <div>
-                                <dt className="text-xs text-muted-foreground uppercase font-semibold mb-1">Personal Email</dt>
-                                <dd className="text-sm font-medium text-foreground break-all">
-                                    {profile.personalEmail || <span className="text-muted-foreground">-</span>}
+                                <dt className="text-xs text-muted-foreground uppercase font-semibold mb-1 flex items-center gap-1">
+                                    Contract Type
+                                    <span className="text-primary">*</span>
+                                </dt>
+                                <dd className="text-sm font-bold text-foreground">
+                                    {profile.contractType || <span className="text-muted-foreground/50">-</span>}
                                 </dd>
                             </div>
                             <div>
-                                <dt className="text-xs text-muted-foreground uppercase font-semibold mb-1">Home Phone</dt>
+                                <dt className="text-xs text-muted-foreground uppercase font-semibold mb-1 flex items-center gap-1">
+                                    Work Type
+                                    <span className="text-primary">*</span>
+                                </dt>
+                                <dd className="text-sm font-bold text-foreground">
+                                    {profile.workType || <span className="text-muted-foreground/50">-</span>}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-xs text-muted-foreground uppercase font-semibold mb-1">Contract Start</dt>
                                 <dd className="text-sm font-medium text-foreground">
-                                    {profile.homePhone || <span className="text-muted-foreground">-</span>}
+                                    {profile.contractStartDate ? (
+                                        new Date(profile.contractStartDate).toLocaleDateString('en-US', {
+                                            month: 'long',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                        })
+                                    ) : (
+                                        <span className="text-muted-foreground">-</span>
+                                    )}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-xs text-muted-foreground uppercase font-semibold mb-1">Contract End</dt>
+                                <dd className="text-sm font-medium text-foreground">
+                                    {profile.contractEndDate ? (
+                                        new Date(profile.contractEndDate).toLocaleDateString('en-US', {
+                                            month: 'long',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                        })
+                                    ) : (
+                                        <span className="text-muted-foreground">-</span>
+                                    )}
                                 </dd>
                             </div>
                             {profile.gender && (
@@ -484,11 +512,10 @@ export default function EmployeeProfilePage() {
                                 {profile.emergencyContacts.map((contact: any, i: number) => (
                                     <div
                                         key={i}
-                                        className={`p-4 rounded-lg border ${
-                                            contact.isPrimary
-                                                ? 'border-primary/30 bg-primary/5'
-                                                : 'border-border/50 bg-muted/30'
-                                        }`}
+                                        className={`p-4 rounded-lg border ${contact.isPrimary
+                                            ? 'border-primary/30 bg-primary/5'
+                                            : 'border-border/50 bg-muted/30'
+                                            }`}
                                     >
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
@@ -517,7 +544,7 @@ export default function EmployeeProfilePage() {
                         ) : (
                             <p className="text-sm text-muted-foreground italic">
                                 No contacts added.
-                                <Link href="/portal/my-profile/edit" className="text-primary hover:underline ml-1">
+                                <Link href="/portal/my-profile/edit?tab=emergency" className="text-primary hover:underline ml-1">
                                     Add emergency contact
                                 </Link>
                             </p>
