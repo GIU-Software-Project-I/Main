@@ -410,23 +410,60 @@ export default function EmployeeProfilePage() {
 
                 {/* Right Column */}
                 <div className="space-y-6">
-                    {/* Personal Info */}
+                    {/* Employment Details */}
                     <GlassCard className="p-6">
-                        <h3 className="font-semibold text-lg text-foreground mb-4 flex items-center gap-2 border-b border-border/50 pb-3">
-                            <UserCircle className="w-5 h-5" />
-                            Personal Info
+                        <h3 className="font-semibold text-lg text-foreground mb-4 flex items-center justify-between border-b border-border/50 pb-3">
+                            <div className="flex items-center gap-2">
+                                <Briefcase className="w-5 h-5" />
+                                Employment Details
+                            </div>
+                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded uppercase tracking-tighter font-bold">Official Records</span>
                         </h3>
-                        <dl className="space-y-4">
+                        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                             <div>
-                                <dt className="text-xs text-muted-foreground uppercase font-semibold mb-1">Personal Email</dt>
-                                <dd className="text-sm font-medium text-foreground break-all">
-                                    {profile.personalEmail || <span className="text-muted-foreground">-</span>}
+                                <dt className="text-xs text-muted-foreground uppercase font-semibold mb-1 flex items-center gap-1">
+                                    Contract Type
+                                    <span className="text-primary">*</span>
+                                </dt>
+                                <dd className="text-sm font-bold text-foreground">
+                                    {profile.contractType || <span className="text-muted-foreground/50">-</span>}
                                 </dd>
                             </div>
                             <div>
-                                <dt className="text-xs text-muted-foreground uppercase font-semibold mb-1">Home Phone</dt>
+                                <dt className="text-xs text-muted-foreground uppercase font-semibold mb-1 flex items-center gap-1">
+                                    Work Type
+                                    <span className="text-primary">*</span>
+                                </dt>
+                                <dd className="text-sm font-bold text-foreground">
+                                    {profile.workType || <span className="text-muted-foreground/50">-</span>}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-xs text-muted-foreground uppercase font-semibold mb-1">Contract Start</dt>
                                 <dd className="text-sm font-medium text-foreground">
-                                    {profile.homePhone || <span className="text-muted-foreground">-</span>}
+                                    {profile.contractStartDate ? (
+                                        new Date(profile.contractStartDate).toLocaleDateString('en-US', {
+                                            month: 'long',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                        })
+                                    ) : (
+                                        <span className="text-muted-foreground">-</span>
+                                    )}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-xs text-muted-foreground uppercase font-semibold mb-1">Contract End</dt>
+                                <dd className="text-sm font-medium text-foreground">
+                                    {profile.contractEndDate ? (
+                                        new Date(profile.contractEndDate).toLocaleDateString('en-US', {
+                                            month: 'long',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                        })
+                                    ) : (
+                                        <span className="text-muted-foreground">-</span>
+                                    )}
                                 </dd>
                             </div>
                             {profile.gender && (

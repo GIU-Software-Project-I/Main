@@ -449,6 +449,7 @@ export default function EditProfilePage() {
                                 value={contactInfo.mobilePhone}
                                 onChange={(e) => setContactInfo({ ...contactInfo, mobilePhone: e.target.value })}
                                 placeholder="+1 (555) 123-4567"
+                                required
                             />
                             <InputWithLabel
                                 label="Home Phone"
@@ -465,6 +466,7 @@ export default function EditProfilePage() {
                             value={contactInfo.personalEmail}
                             onChange={(e) => setContactInfo({ ...contactInfo, personalEmail: e.target.value })}
                             placeholder="your.email@example.com"
+                            required
                         />
 
                         <div className="space-y-6">
@@ -477,6 +479,7 @@ export default function EditProfilePage() {
                                     address: { ...prev.address, streetAddress: e.target.value }
                                 }))}
                                 placeholder="123 Main Street, Apt 4B"
+                                required
                             />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <InputWithLabel
@@ -487,6 +490,7 @@ export default function EditProfilePage() {
                                         address: { ...prev.address, city: e.target.value }
                                     }))}
                                     placeholder="New York"
+                                    required
                                 />
                                 <InputWithLabel
                                     label="Country"
@@ -496,6 +500,7 @@ export default function EditProfilePage() {
                                         address: { ...prev.address, country: e.target.value }
                                     }))}
                                     placeholder="United States"
+                                    required
                                 />
                             </div>
                         </div>
