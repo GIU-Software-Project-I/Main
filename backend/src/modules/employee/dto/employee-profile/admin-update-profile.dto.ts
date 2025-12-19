@@ -86,6 +86,10 @@ export class AdminUpdateProfileDto {
     @IsMongoId()
     supervisorPositionId?: string;
 
+    @IsOptional()
+    @IsMongoId()
+    payGradeId?: string;
+
     // Employment Status (BR 3j)
     @IsOptional()
     @IsEnum(EmployeeStatus)

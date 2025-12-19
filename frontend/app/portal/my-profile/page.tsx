@@ -251,10 +251,10 @@ export default function EmployeeProfilePage() {
                                 <div className="flex items-center gap-3 text-muted-foreground">
                                     <Calendar className="w-4 h-4 text-primary" />
                                     <span className="text-sm">
-                                        {new Date(profile.dateOfBirth).toLocaleDateString('en-US', { 
-                                            month: 'long', 
-                                            day: 'numeric', 
-                                            year: 'numeric' 
+                                        {new Date(profile.dateOfBirth).toLocaleDateString('en-US', {
+                                            month: 'long',
+                                            day: 'numeric',
+                                            year: 'numeric'
                                         })}
                                     </span>
                                 </div>
@@ -270,7 +270,7 @@ export default function EmployeeProfilePage() {
                     <ExternalLink className="w-5 h-5" />
                     Quick Links
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     <Link href="/portal/my-performance">
                         <Button variant="outline" className="w-full justify-start gap-2 h-auto py-3">
                             <TrendingUp className="w-4 h-4" />
@@ -286,15 +286,6 @@ export default function EmployeeProfilePage() {
                             <div className="text-left">
                                 <div className="text-xs text-muted-foreground">Leaves</div>
                                 <div className="text-sm font-medium">Balance & Requests</div>
-                            </div>
-                        </Button>
-                    </Link>
-                    <Link href="/portal/my-payslips">
-                        <Button variant="outline" className="w-full justify-start gap-2 h-auto py-3">
-                            <DollarSign className="w-4 h-4" />
-                            <div className="text-left">
-                                <div className="text-xs text-muted-foreground">Payslips</div>
-                                <div className="text-sm font-medium">View Documents</div>
                             </div>
                         </Button>
                     </Link>
@@ -321,8 +312,8 @@ export default function EmployeeProfilePage() {
                         </h3>
                         <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
                             {profile.biography || (
-                                <span className="italic text-muted-foreground/70">No biography details provided. 
-                                    <Link href="/portal/my-profile/edit" className="text-primary hover:underline ml-1">
+                                <span className="italic text-muted-foreground/70">No biography details provided.
+                                    <Link href="/portal/my-profile/edit?tab=bio" className="text-primary hover:underline ml-1">
                                         Add one now
                                     </Link>
                                 </span>
@@ -409,7 +400,7 @@ export default function EmployeeProfilePage() {
                         ) : (
                             <p className="text-sm text-muted-foreground italic">
                                 No education details added.
-                                <Link href="/portal/my-profile/edit" className="text-primary hover:underline ml-1">
+                                <Link href="/portal/my-profile/edit?tab=education" className="text-primary hover:underline ml-1">
                                     Add education
                                 </Link>
                             </p>
@@ -484,11 +475,10 @@ export default function EmployeeProfilePage() {
                                 {profile.emergencyContacts.map((contact: any, i: number) => (
                                     <div
                                         key={i}
-                                        className={`p-4 rounded-lg border ${
-                                            contact.isPrimary
-                                                ? 'border-primary/30 bg-primary/5'
-                                                : 'border-border/50 bg-muted/30'
-                                        }`}
+                                        className={`p-4 rounded-lg border ${contact.isPrimary
+                                            ? 'border-primary/30 bg-primary/5'
+                                            : 'border-border/50 bg-muted/30'
+                                            }`}
                                     >
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
@@ -517,7 +507,7 @@ export default function EmployeeProfilePage() {
                         ) : (
                             <p className="text-sm text-muted-foreground italic">
                                 No contacts added.
-                                <Link href="/portal/my-profile/edit" className="text-primary hover:underline ml-1">
+                                <Link href="/portal/my-profile/edit?tab=emergency" className="text-primary hover:underline ml-1">
                                     Add emergency contact
                                 </Link>
                             </p>

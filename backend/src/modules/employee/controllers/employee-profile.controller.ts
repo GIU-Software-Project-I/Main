@@ -9,6 +9,7 @@ import { SearchEmployeesDto, PaginationQueryDto } from '../dto/employee-profile/
 import { ProcessChangeRequestDto } from '../dto/employee-profile/process-change-request.dto';
 import { ProfileChangeStatus, SystemRole } from '../enums/employee-profile.enums';
 import { AddEmergencyContactDto, UpdateEmergencyContactDto } from '../dto/employee-profile/emergency-contact.dto';
+import { AddQualificationDto, UpdateQualificationDto } from '../dto/employee-profile/qualification.dto';
 import { EmployeeProfileService } from '../services/employee-profile.service';
 
 import { AuthenticationGuard } from '../../auth/guards/authentication-guard';
@@ -86,6 +87,34 @@ export class EmployeeProfileController {
     @Delete('me/emergency-contacts/:index')
     async deleteEmergencyContact(@CurrentUser() user: JwtPayload, @Param('index') index: number) {
         return this.employeeProfileService.deleteEmergencyContact(user.sub, index);
+    }
+
+    // ==========================================
+    // QUALIFICATION MANAGEMENT ROUTES
+    // ==========================================
+
+    @Get('me/qualifications')
+    async getQualifications(@CurrentUser() user: JwtPayload) {
+        return this.employeeProfileService.getQualifications(user.sub);
+    }
+
+    @Post('me/qualifications')
+    async addQualification(@CurrentUser() user: JwtPayload, @Body() dto: AddQualificationDto) {
+        return this.employeeProfileService.addQualification(user.sub, dto);
+    }
+
+    @Patch('me/qualifications/:id')
+    async updateQualification(
+        @CurrentUser() user: JwtPayload,
+        @Param('id') id: string,
+        @Body() dto: UpdateQualificationDto
+    ) {
+        return this.employeeProfileService.updateQualification(user.sub, id, dto);
+    }
+
+    @Delete('me/qualifications/:id')
+    async deleteQualification(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+        return this.employeeProfileService.deleteQualification(user.sub, id);
     }
 
     // ==========================================

@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { organizationStructureService } from '@/app/services/organization-structure';
 import { employeeProfileService } from '@/app/services/employee-profile';
+import RoleGuard from '@/app/components/RoleGuard';
+import { SystemRole } from '@/app/context/AuthContext';
 
 /**
  * Create/Edit Department - System Admin
@@ -98,6 +100,11 @@ export default function DepartmentFormPage() {
       return;
     }
 
+    if (!formData.costCenter.trim()) {
+      setError('Cost Center is required (BR 30)');
+      return;
+    }
+
     try {
       setSaving(true);
       setError(null);
@@ -127,20 +134,23 @@ export default function DepartmentFormPage() {
 
   if (loading) {
     return (
-      <div className="p-6 lg:p-8 bg-background min-h-screen">
-        <div className="max-w-2xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-muted rounded w-1/3"></div>
-            <div className="bg-card rounded-xl h-96"></div>
+      <RoleGuard allowedRoles={[SystemRole.SYSTEM_ADMIN, SystemRole.HR_ADMIN, SystemRole.HR_MANAGER]}>
+        <div className="p-6 lg:p-8 bg-background min-h-screen">
+          <div className="max-w-2xl mx-auto">
+            <div className="animate-pulse space-y-6">
+              <div className="h-8 bg-muted rounded w-1/3"></div>
+              <div className="bg-card rounded-xl h-96"></div>
+            </div>
           </div>
         </div>
-      </div>
+      </RoleGuard>
     );
   }
 
   return (
-    <div className="p-6 lg:p-8 bg-background min-h-screen">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <RoleGuard allowedRoles={[SystemRole.SYSTEM_ADMIN, SystemRole.HR_ADMIN, SystemRole.HR_MANAGER]}>
+      <div className="p-6 lg:p-8 bg-background min-h-screen">
+        <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link
@@ -261,6 +271,7 @@ export default function DepartmentFormPage() {
                 onChange={(e) => setFormData({ ...formData, costCenter: e.target.value })}
                 className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="e.g., CC-HR-001"
+                required
               />
               <p className="text-xs text-muted-foreground mt-1">Required for payroll linkage (BR 30)</p>
             </div>
@@ -284,6 +295,7 @@ export default function DepartmentFormPage() {
         </form>
       </div>
     </div>
+    </RoleGuard>
   );
 }
 
