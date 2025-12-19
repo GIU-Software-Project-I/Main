@@ -807,16 +807,16 @@ export default function InsuranceBracketsPage() {
                         </button>
                         
                         {/* Edit button - Only show for DRAFT brackets */}
-                        {bracket.status === 'draft' && (
-                          <button
-                            onClick={() => handleEditClick(bracket)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-green-600 bg-green-500/5 text-green-600 rounded-lg hover:bg-green-500/10 transition-all duration-200"
-                            title="Edit"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                            Edit
-                          </button>
-                        )}
+                     {bracket.status === 'draft' && (
+  <button
+    onClick={() => handleEditClick(bracket)}
+    className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-input bg-background text-foreground rounded-lg hover:bg-muted transition-all duration-200"
+    title="Edit"
+  >
+    <Edit className="w-3.5 h-3.5" />
+    Edit
+  </button>
+)}
                       </div>
                     </td>
                   </tr>
