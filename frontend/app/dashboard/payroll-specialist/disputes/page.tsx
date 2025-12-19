@@ -51,28 +51,79 @@ export default function DisputesPage() {
             // 1. A populated object with _id and payrollRunId
             // 2. A raw ObjectId string
             // 3. An ObjectId object with toString()
-            const payslipData = dispute.payslipId;
-            let payslipId = 'N/A';
-            let payPeriod = 'N/A';
+            // 4. null if population failed (referenced document doesn't exist)
+            // Robust extraction for Payslip ID and Pay Period
+            let payslipIdForDisplay = 'N/A';
+            let payPeriodForDisplay = 'N/A';
 
-            if (payslipData) {
-              if (typeof payslipData === 'object' && payslipData !== null) {
-                // Populated object or ObjectId object
-                payslipId = payslipData._id?.toString?.() || payslipData._id || payslipData.toString?.() || String(payslipData);
+            // Check the raw payslipId field from the dispute
+            const payslipData = dispute.payslipId ?? dispute.paySlipId ?? null;
 
-                // Try to get payrollRunId if populated
-                if (payslipData.payrollRunId) {
+            console.log(`[DEBUG] Dispute ${dispute.disputeId} - payslipId raw:`, dispute.payslipId, 'type:', typeof dispute.payslipId);
+
+            if (payslipData !== null && payslipData !== undefined) {
+              if (typeof payslipData === 'object') {
+                // Populated object - extract _id
+                // Mongoose populated objects have _id as the document's ObjectId
+                const rawId = payslipData._id ?? payslipData.id ?? payslipData.$oid ?? null;
+                if (rawId) {
+                  payslipIdForDisplay = typeof rawId === 'string' ? rawId : (rawId.toString ? rawId.toString() : String(rawId));
+                } else {
+                  // If no _id found in object, try to stringify the whole object's toString
+                  const objStr = payslipData.toString ? payslipData.toString() : null;
+                  if (objStr && objStr !== '[object Object]' && objStr.length === 24) {
+                    // Looks like a MongoDB ObjectId string
+                    payslipIdForDisplay = objStr;
+                  }
+                }
+
+                if (payslipIdForDisplay === '[object Object]') payslipIdForDisplay = 'N/A';
+
+                // Try to get payPeriod from multiple possible sources
+                console.log(`[DEBUG] ${dispute.disputeId} payslipData keys:`, Object.keys(payslipData));
+
+                if (payslipData.payPeriod) {
+                  payPeriodForDisplay = payslipData.payPeriod;
+                } else if (payslipData.payrollRunId) {
                   const payrollRun = payslipData.payrollRunId;
-                  if (typeof payrollRun === 'object' && payrollRun !== null && payrollRun.payrollPeriod) {
-                    const periodDate = new Date(payrollRun.payrollPeriod);
-                    payPeriod = periodDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                  console.log(`[DEBUG] ${dispute.disputeId} payrollRunId:`, payrollRun, 'type:', typeof payrollRun);
+                  if (typeof payrollRun === 'object' && payrollRun !== null) {
+                    const periodDate = payrollRun.payrollPeriod ? new Date(payrollRun.payrollPeriod) : null;
+                    if (periodDate && !isNaN(periodDate.getTime())) {
+                      payPeriodForDisplay = periodDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                    } else if (payrollRun.runId) {
+                      payPeriodForDisplay = payrollRun.runId;
+                    } else if (payrollRun.startDate || payrollRun.endDate) {
+                      const startDate = payrollRun.startDate ? new Date(payrollRun.startDate) : null;
+                      if (startDate && !isNaN(startDate.getTime())) {
+                        payPeriodForDisplay = startDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                      }
+                    }
+                  } else if (typeof payrollRun === 'string') {
+                    // payrollRunId not populated, just an ObjectId string
+                    payPeriodForDisplay = 'N/A';
+                  }
+                } else if (payslipData.periodStart || payslipData.periodEnd) {
+                  // Try payslip's own period fields
+                  const periodDate = payslipData.periodStart ? new Date(payslipData.periodStart) :
+                    payslipData.periodEnd ? new Date(payslipData.periodEnd) : null;
+                  if (periodDate && !isNaN(periodDate.getTime())) {
+                    payPeriodForDisplay = periodDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                  }
+                } else if (payslipData.startDate || payslipData.endDate) {
+                  // Fallback to startDate/endDate
+                  const periodDate = payslipData.startDate ? new Date(payslipData.startDate) :
+                    payslipData.endDate ? new Date(payslipData.endDate) : null;
+                  if (periodDate && !isNaN(periodDate.getTime())) {
+                    payPeriodForDisplay = periodDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
                   }
                 }
               } else if (typeof payslipData === 'string') {
-                // Raw ObjectId string
-                payslipId = payslipData;
+                // Raw ObjectId string (not populated)
+                payslipIdForDisplay = payslipData;
               }
             }
+            console.log(`[Dispute Mapping] ${dispute.disputeId} -> Payslip: ${payslipIdForDisplay}, PayPeriod: ${payPeriodForDisplay}`);
 
             return {
               id: dispute._id,
@@ -83,8 +134,8 @@ export default function DisputesPage() {
                 : 'Unknown',
               employeeNumber: dispute.employeeId?.employeeId || 'N/A',
               description: dispute.description,
-              payslipId: payslipId,
-              payPeriod: payPeriod,
+              payslipId: payslipIdForDisplay,
+              payPeriod: payPeriodForDisplay,
               status: dispute.status,
               submittedAt: dispute.createdAt,
               reviewedAt: dispute.updatedAt,
