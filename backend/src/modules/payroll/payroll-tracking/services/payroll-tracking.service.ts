@@ -1273,13 +1273,8 @@ export class PayrollTrackingService {
           employees: new Set()
         };
       }
-<<<<<<< HEAD
       
       acc[deptId].totalGross += this.resolveTotalGrossSalary(payslip) || 0;
-=======
-
-      acc[deptId].totalGross += payslip.totalGrossSalary || 0;
->>>>>>> 49439fcd0e2867bdb41570ba5a728e85b0b17aec
       acc[deptId].totalNet += payslip.netPay || 0;
       acc[deptId].totalTax += payslip.deductionsDetails?.taxes?.reduce((sum, t) => sum + ((t as any)?.amount || 0), 0) || 0;
       acc[deptId].totalInsurance += payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + ((i as any)?.amount || 0), 0) || 0;
@@ -1830,13 +1825,8 @@ export class PayrollTrackingService {
           employeeCount: new Set()
         };
       }
-<<<<<<< HEAD
       
       acc[dept].totalGross += this.resolveTotalGrossSalary(payslip) || 0;
-=======
-
-      acc[dept].totalGross += payslip.totalGrossSalary || 0;
->>>>>>> 49439fcd0e2867bdb41570ba5a728e85b0b17aec
       acc[dept].totalNet += payslip.netPay || 0;
       acc[dept].employeeCount.add(payslip.employeeId.toString());
 

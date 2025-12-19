@@ -55,7 +55,6 @@ import {
   RefreshCw,
   Search,
   Shield,
-  Trash2,
   Users,
   ChevronRight,
   XCircle,
@@ -91,7 +90,6 @@ export default function PayGradesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [edit, setEdit] = useState<EditState>(null);
   const [view, setView] = useState<PayGrade | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   function normalize(raw: any): PayGrade {
     return {
@@ -265,23 +263,6 @@ export default function PayGradesPage() {
     setEdit(null);
   }
 
-  async function remove(id: string) {
-    setError(null);
-    setSuccess(null);
-    
-    try {
-      const res = await payrollConfigurationService.deletePayGrade(id as any);
-      if ((res as any)?.error) {
-        throw new Error((res as any).error);
-      }
-      
-      setSuccess("Pay grade deleted successfully");
-      setDeleteConfirm(null);
-      await load();
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to delete pay grade");
-    }
-  }
   
   function formatCurrency(amount: number) {
     return `EGP ${amount.toLocaleString('en-US', {
@@ -746,16 +727,6 @@ export default function PayGradesPage() {
                                     <Edit className="h-4 w-4" />
                                   </Button>
                                 )}
-                                
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setDeleteConfirm(pg.id)}
-                                  title="Delete"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
                               </>
                             )}
                           </div>
@@ -951,32 +922,6 @@ export default function PayGradesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Modal */}
-      <Dialog open={!!deleteConfirm} onOpenChange={(open: any) => !open && setDeleteConfirm(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-              Confirm Deletion
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this pay grade? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={() => deleteConfirm && remove(deleteConfirm)}
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
