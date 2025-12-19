@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { leavesService } from '@/app/services/leaves';
 import { useAuth } from '@/app/context/AuthContext';
+import { API_BASE_URL } from '@/app/services/api';
 import type { LeaveBalanceSummary } from '@/app/types/leaves';
 
 interface LeaveRequest {
@@ -61,7 +62,7 @@ export default function HRManagerLeavesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedRequests, setSelectedRequests] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
-  
+
   // Medical document verification modal state
   const [showMedicalVerificationModal, setShowMedicalVerificationModal] = useState(false);
   const [medicalModalMode, setMedicalModalMode] = useState<'view' | 'verify'>('view'); // 'view' or 'verify'
@@ -79,7 +80,7 @@ export default function HRManagerLeavesPage() {
     size?: number;
   } | null>(null);
   const [verifyingMedical, setVerifyingMedical] = useState(false);
-  
+
   // Entitlements state
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [employeeBalances, setEmployeeBalances] = useState<LeaveBalanceSummary[]>([]);
@@ -89,7 +90,7 @@ export default function HRManagerLeavesPage() {
     leaveTypeId: '',
     yearlyEntitlement: 0,
   });
-  
+
   // Adjustment state
   const [adjustmentForm, setAdjustmentForm] = useState({
     employeeId: '',
@@ -290,14 +291,14 @@ export default function HRManagerLeavesPage() {
   useEffect(() => {
     if (requests.length > 0 && leaveTypes.length > 0) {
       // Check if any request needs enrichment
-      const needsEnrichment = requests.some((req) => 
+      const needsEnrichment = requests.some((req) =>
         !req.leaveTypeName && req.leaveTypeId
       );
-      
+
       if (needsEnrichment) {
         const enrichedRequests = requests.map((req) => {
           if (!req.leaveTypeName && req.leaveTypeId) {
-            const leaveType = leaveTypes.find((lt) => 
+            const leaveType = leaveTypes.find((lt) =>
               (lt._id && lt._id === req.leaveTypeId) || (lt.id && lt.id === req.leaveTypeId)
             );
             if (leaveType) {
@@ -306,7 +307,7 @@ export default function HRManagerLeavesPage() {
           }
           return req;
         });
-        
+
         setRequests(enrichedRequests);
       }
     }
@@ -329,7 +330,7 @@ export default function HRManagerLeavesPage() {
       if (Array.isArray(response.data)) {
         // Enrich with leave type names
         const enriched = response.data.map((bal: LeaveBalanceSummary & { yearlyEntitlement?: number }) => {
-          const leaveType = leaveTypes.find((lt) => 
+          const leaveType = leaveTypes.find((lt) =>
             (lt._id && lt._id === bal.leaveTypeId) || (lt.id && lt.id === bal.leaveTypeId)
           );
           return {
@@ -357,15 +358,15 @@ export default function HRManagerLeavesPage() {
 
     if (!enrichedRequest.leaveTypeName && enrichedRequest.leaveTypeId) {
       // Find in cached leave types
-      const leaveType = leaveTypes.find((lt) => 
+      const leaveType = leaveTypes.find((lt) =>
         (lt._id && lt._id === enrichedRequest.leaveTypeId) || (lt.id && lt.id === enrichedRequest.leaveTypeId)
       );
-      
+
       if (leaveType) {
         enrichedRequest.leaveTypeName = leaveType.name;
       }
     }
-    
+
     setFinalizeRequest(enrichedRequest);
     setFinalizeDecision(decision);
     setFinalizeResult(null);
@@ -407,7 +408,7 @@ export default function HRManagerLeavesPage() {
       const overrideReason = finalizeOptions.isOverride ? finalizeOptions.overrideReason : undefined;
       const rejectReason = finalizeDecision === 'reject' ? finalizeOptions.rejectReason : undefined;
       const reason = overrideReason || rejectReason;
-      
+
       const response = await leavesService.hrFinalize(
         requestId,
         user.id,
@@ -440,7 +441,7 @@ export default function HRManagerLeavesPage() {
       const durationDays = finalizeRequest.durationDays || 0;
       const leaveTypeName = finalizeRequest.leaveTypeName || 'Leave';
       const isUnpaidLeave = leaveTypeName.toLowerCase().includes('unpaid');
-      
+
       // Check if this was a finalization of an already-approved request
       const wasAlreadyApproved = finalizeRequest.status === 'APPROVED' || finalizeRequest.status === 'approved';
 
@@ -455,13 +456,13 @@ export default function HRManagerLeavesPage() {
         };
       }
 
-      const actionMessage = wasAlreadyApproved 
-        ? (finalizeDecision === 'approve' 
-            ? `Leave request finalized successfully! Employee records updated and payroll adjusted. ${durationDays} day(s) of ${leaveTypeName} processed.`
-            : 'Leave request rejected and entitlement reversed.')
+      const actionMessage = wasAlreadyApproved
+        ? (finalizeDecision === 'approve'
+          ? `Leave request finalized successfully! Employee records updated and payroll adjusted. ${durationDays} day(s) of ${leaveTypeName} processed.`
+          : 'Leave request rejected and entitlement reversed.')
         : (finalizeDecision === 'approve'
-            ? `Leave request approved successfully! ${durationDays} day(s) of ${leaveTypeName} deducted from balance.`
-            : 'Leave request rejected.');
+          ? `Leave request approved successfully! ${durationDays} day(s) of ${leaveTypeName} deducted from balance.`
+          : 'Leave request rejected.');
 
       setFinalizeResult({
         ok: true,
@@ -483,8 +484,8 @@ export default function HRManagerLeavesPage() {
         wasAlreadyApproved && finalizeDecision === 'approve'
           ? 'Leave request finalized successfully! Employee records and payroll have been updated.'
           : finalizeDecision === 'approve'
-          ? 'Leave request approved successfully!'
-          : 'Leave request rejected.'
+            ? 'Leave request approved successfully!'
+            : 'Leave request rejected.'
       );
       setTimeout(() => setSuccessMessage(null), 5000);
 
@@ -532,7 +533,7 @@ export default function HRManagerLeavesPage() {
     try {
       setBulkProcessing(true);
       setError(null);
-      
+
       const requestIds = Array.from(selectedRequests);
       const response = await leavesService.bulkProcessRequests(requestIds, action, user.id);
 
@@ -562,26 +563,24 @@ export default function HRManagerLeavesPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Fetch attachment details
       const attachmentResponse = await leavesService.getAttachment(request.attachmentId);
-      
+
       if (attachmentResponse.error) {
         setError(attachmentResponse.error || 'Failed to load attachment');
         return;
       }
 
       const attachmentData = attachmentResponse.data || null;
-      
-      // If backend returned file info with staticUrl, use it
-      if (attachmentData && typeof attachmentData === 'object' && 'staticUrl' in attachmentData) {
-        // Backend provided a static URL - merge it into attachment data
-        const staticUrl = (attachmentData as Record<string, unknown>).staticUrl as string | undefined;
-        if (staticUrl && attachmentData) {
-          attachmentData.filePath = staticUrl.replace('http://localhost:9000', '');
-        }
+
+      // Backend provided a static URL - merge it into attachment data
+      const staticUrl = (attachmentData as Record<string, unknown>).staticUrl as string | undefined;
+      if (staticUrl && attachmentData) {
+        // Robust replacement of the origin part
+        attachmentData.filePath = staticUrl.replace(/^http?:\/\/[^/]+/, '');
       }
-      
+
       setMedicalAttachmentData(attachmentData);
       setSelectedMedicalAttachment({
         attachmentId: request.attachmentId,
@@ -595,7 +594,7 @@ export default function HRManagerLeavesPage() {
       });
       setMedicalModalMode(mode);
       setShowMedicalVerificationModal(true);
-      
+
       // Log for debugging
       if (attachmentData?.filePath) {
         console.log('[Medical Document] File path:', attachmentData.filePath);
@@ -623,7 +622,7 @@ export default function HRManagerLeavesPage() {
       setVerifyingMedical(true);
       setError(null);
       console.log('[Verify Medical] Verifying attachment:', selectedMedicalAttachment.attachmentId, 'for request:', selectedMedicalAttachment.requestId);
-      
+
       const response = await leavesService.validateMedicalAttachment(selectedMedicalAttachment.attachmentId, user.id);
 
       if (response.error) {
@@ -633,7 +632,7 @@ export default function HRManagerLeavesPage() {
         console.log('[Verify Medical] Success:', response.data);
         setSuccessMessage('Medical document verified successfully and recorded in audit trail');
         setTimeout(() => setSuccessMessage(null), 5000);
-        
+
         // Close modal and refresh requests
         setShowMedicalVerificationModal(false);
         setSelectedMedicalAttachment(null);
@@ -1341,16 +1340,15 @@ export default function HRManagerLeavesPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm capitalize ${
-                  activeTab === tab
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-                }`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm capitalize ${activeTab === tab
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                  }`}
               >
                 {tab === 'requests' ? 'Leave Requests' :
-                 tab === 'entitlements' ? 'Assign Entitlements' :
-                 tab === 'adjustments' ? 'Balance Adjustments' :
-                 'Auto Accruals'}
+                  tab === 'entitlements' ? 'Assign Entitlements' :
+                    tab === 'adjustments' ? 'Balance Adjustments' :
+                      'Auto Accruals'}
               </button>
             ))}
           </nav>
@@ -1369,11 +1367,10 @@ export default function HRManagerLeavesPage() {
                       setFilterStatus(status);
                       setCurrentPage(1);
                     }}
-                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                      filterStatus === status
-                        ? 'bg-foreground text-background'
-                        : 'bg-muted text-muted-foreground hover:bg-accent'
-                    }`}
+                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${filterStatus === status
+                      ? 'bg-foreground text-background'
+                      : 'bg-muted text-muted-foreground hover:bg-accent'
+                      }`}
                   >
                     {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
                   </button>
@@ -1478,7 +1475,7 @@ export default function HRManagerLeavesPage() {
                               // Check if THIS specific request's attachment has been verified
                               // Each request has its own approvalFlow array, so we check only THIS request's flow
                               const currentAttachmentId = request.attachmentId.toString();
-                              
+
                               // Find verification entries in THIS request's approvalFlow
                               const verificationEntries = (request.approvalFlow || []).filter(
                                 (flow): flow is typeof flow & { action: string } => 'action' in flow && flow.action === 'medical_document_verified'
@@ -1491,14 +1488,14 @@ export default function HRManagerLeavesPage() {
                                 if (attachmentId) {
                                   const flowAttachmentId = attachmentId.toString();
                                   return flowAttachmentId === currentAttachmentId ||
-                                         flowAttachmentId === request.attachmentId?.toString();
+                                    flowAttachmentId === request.attachmentId?.toString();
                                 }
-                                
+
                                 // If no attachmentId stored (legacy data), we can't be sure it's for THIS attachment
                                 // So we return false to be safe - user will need to re-verify
                                 return false;
                               });
-                              
+
                               return (
                                 <div className="mt-2 flex gap-2 flex-wrap">
                                   {/* View Document Button - Always available */}
@@ -1510,7 +1507,7 @@ export default function HRManagerLeavesPage() {
                                   >
                                     👁️ View Document
                                   </button>
-                                  
+
                                   {/* Verify Button - Only show if not verified */}
                                   {isVerified ? (
                                     <div className="px-3 py-1.5 text-sm font-medium text-success bg-success/10 dark:bg-success/20 rounded-lg border border-success/20 inline-flex items-center gap-1">
@@ -1553,7 +1550,7 @@ export default function HRManagerLeavesPage() {
                               // Check if HR has already finalized this request
                               const hrApproval = request.approvalFlow?.find((f) => f.role === 'hr');
                               const isFinalized = hrApproval?.status === 'approved';
-                              
+
                               return isFinalized ? (
                                 <span className="px-3 py-1.5 text-sm font-medium text-success">
                                   ✓ Finalized
@@ -1572,7 +1569,7 @@ export default function HRManagerLeavesPage() {
                               // Check if HR has already finalized this rejection
                               const hrApproval = request.approvalFlow?.find((f) => f.role === 'hr');
                               const isFinalized = hrApproval?.status === 'rejected';
-                              
+
                               return isFinalized ? (
                                 <span className="px-3 py-1.5 text-sm font-medium text-destructive">
                                   ✗ Rejected
@@ -1594,7 +1591,7 @@ export default function HRManagerLeavesPage() {
                     );
                   })}
                 </div>
-                
+
                 {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="px-6 py-4 border-t border-border flex items-center justify-between">
@@ -1703,7 +1700,7 @@ export default function HRManagerLeavesPage() {
                       </button>
                     </div>
                   </div>
-                  
+
                   {employeeBalances.length > 0 && (
                     <div className="space-y-2">
                       <h3 className="text-sm font-medium text-foreground">Leave Balances:</h3>
@@ -1711,9 +1708,8 @@ export default function HRManagerLeavesPage() {
                         <div key={balance.leaveTypeId} className="p-3 bg-muted/50 rounded-lg">
                           <div className="flex justify-between items-center">
                             <span className="font-medium text-foreground">{balance.leaveTypeName}</span>
-                            <span className={`text-sm font-medium ${
-                              balance.remaining < 0 ? 'text-destructive' : 'text-foreground'
-                            }`}>
+                            <span className={`text-sm font-medium ${balance.remaining < 0 ? 'text-destructive' : 'text-foreground'
+                              }`}>
                               {balance.remaining} / {balance.entitled} days
                             </span>
                           </div>
@@ -1729,7 +1725,7 @@ export default function HRManagerLeavesPage() {
                       ))}
                     </div>
                   )}
-                  
+
                   {/* Fix Unpaid Leave Balances Button */}
                   <div className="mt-4 pt-4 border-t border-border">
                     <button
@@ -2277,11 +2273,10 @@ export default function HRManagerLeavesPage() {
                             <td className="px-3 py-2 font-mono text-xs text-foreground">{suspension.employeeId.slice(-8)}</td>
                             <td className="px-3 py-2 text-foreground">{suspension.leaveTypeName}</td>
                             <td className="px-3 py-2">
-                              <span className={`px-2 py-0.5 text-xs rounded-full ${
-                                suspension.suspensionType === 'unpaid' 
-                                  ? 'bg-destructive/10 dark:bg-destructive/20 text-destructive' 
-                                  : 'bg-warning/10 dark:bg-warning/20 text-warning'
-                              }`}>
+                              <span className={`px-2 py-0.5 text-xs rounded-full ${suspension.suspensionType === 'unpaid'
+                                ? 'bg-destructive/10 dark:bg-destructive/20 text-destructive'
+                                : 'bg-warning/10 dark:bg-warning/20 text-warning'
+                                }`}>
                                 {suspension.suspensionType === 'unpaid' ? 'Unpaid' : 'Long Absence'}
                               </span>
                             </td>
@@ -2854,11 +2849,10 @@ export default function HRManagerLeavesPage() {
                         <button
                           type="button"
                           onClick={() => setSuspensionForm({ ...suspensionForm, suspensionType: 'unpaid' })}
-                          className={`p-3 rounded-lg border-2 text-left transition-colors ${
-                            suspensionForm.suspensionType === 'unpaid'
-                              ? 'border-red-500 bg-red-50'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
+                          className={`p-3 rounded-lg border-2 text-left transition-colors ${suspensionForm.suspensionType === 'unpaid'
+                            ? 'border-red-500 bg-red-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                            }`}
                         >
                           <span className="block font-medium text-gray-900">Unpaid Leave</span>
                           <span className="text-xs text-gray-500">5+ consecutive working days</span>
@@ -2866,11 +2860,10 @@ export default function HRManagerLeavesPage() {
                         <button
                           type="button"
                           onClick={() => setSuspensionForm({ ...suspensionForm, suspensionType: 'long_absence' })}
-                          className={`p-3 rounded-lg border-2 text-left transition-colors ${
-                            suspensionForm.suspensionType === 'long_absence'
-                              ? 'border-orange-500 bg-orange-50'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
+                          className={`p-3 rounded-lg border-2 text-left transition-colors ${suspensionForm.suspensionType === 'long_absence'
+                            ? 'border-orange-500 bg-orange-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                            }`}
                         >
                           <span className="block font-medium text-gray-900">Long Absence</span>
                           <span className="text-xs text-gray-500">30+ consecutive calendar days</span>
@@ -3189,9 +3182,8 @@ export default function HRManagerLeavesPage() {
             <div className="relative inline-block bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full">
               <div className="bg-white px-6 pt-6 pb-4">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                    finalizeDecision === 'approve' ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${finalizeDecision === 'approve' ? 'bg-green-100' : 'bg-red-100'
+                    }`}>
                     {finalizeDecision === 'approve' ? (
                       <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -3216,7 +3208,7 @@ export default function HRManagerLeavesPage() {
                       {(() => {
                         const wasAlreadyApproved = finalizeRequest.status === 'APPROVED' || finalizeRequest.status === 'approved';
                         if (finalizeDecision === 'approve') {
-                          return wasAlreadyApproved 
+                          return wasAlreadyApproved
                             ? 'Finalize this approved request to update employee records and adjust payroll accordingly'
                             : 'Approve this leave request and update employee records';
                         }
@@ -3274,7 +3266,7 @@ export default function HRManagerLeavesPage() {
                       const managerApproved = finalizeRequest.approvalFlow?.find((f) => f.role === 'manager')?.status === 'approved';
                       const isRejectedStatus = finalizeRequest.status === 'REJECTED' || finalizeRequest.status === 'rejected';
                       const isApprovedStatus = finalizeRequest.status === 'APPROVED' || finalizeRequest.status === 'approved';
-                      
+
                       // Show override option if:
                       // 1. Manager rejected and HR wants to approve (override rejection)
                       // 2. Manager approved and HR wants to reject (override approval)
@@ -3282,15 +3274,15 @@ export default function HRManagerLeavesPage() {
                       // Determine override scenarios
                       let isOverridingRejection = false;
                       let isOverridingApproval = false;
-                      
+
                       if (finalizeDecision === 'approve') {
                         isOverridingRejection = managerRejected || isRejectedStatus;
                       } else if (finalizeDecision === 'reject') {
                         isOverridingApproval = managerApproved && isApprovedStatus;
                       }
-                      
+
                       const shouldShowOverride = isOverridingRejection || isOverridingApproval;
-                      
+
                       if (shouldShowOverride) {
                         return (
                           <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
@@ -3298,7 +3290,7 @@ export default function HRManagerLeavesPage() {
                               <div>
                                 <p className="text-sm font-medium text-orange-900">Override Manager Decision</p>
                                 <p className="text-xs text-orange-700">
-                                  {isOverridingRejection 
+                                  {isOverridingRejection
                                     ? 'This request was rejected by the manager. You are overriding to approve.'
                                     : 'This request was approved by the manager. You are overriding to reject.'}
                                 </p>
@@ -3380,20 +3372,20 @@ export default function HRManagerLeavesPage() {
                         {(() => {
                           const wasAlreadyApproved = finalizeRequest.status === 'APPROVED' || finalizeRequest.status === 'approved';
                           const items = [];
-                          
+
                           if (!wasAlreadyApproved) {
                             items.push(<li key="balance">• Employee balance will be reduced by {finalizeRequest.durationDays || 0} day(s)</li>);
                           } else {
                             items.push(<li key="finalize">• Employee records will be updated (attendance, leave history)</li>);
                             items.push(<li key="payroll">• Payroll will be adjusted for unpaid leave days</li>);
                           }
-                          
+
                           if (finalizeOptions.syncPayroll && (finalizeRequest.leaveTypeName || '').toLowerCase().includes('unpaid') && finalizeRequest.durationDays > 0) {
                             items.push(<li key="deduction">• Payroll deduction: ${((finalizeOptions.baseSalary / finalizeOptions.workDaysInMonth) * (finalizeRequest.durationDays || 0)).toFixed(2)}</li>);
                           }
-                          
+
                           items.push(<li key="notify">• Employee, manager, and attendance coordinator will be notified</li>);
-                          
+
                           return items;
                         })()}
                       </ul>
@@ -3455,25 +3447,24 @@ export default function HRManagerLeavesPage() {
                   <button
                     onClick={handleHRFinalizeWithSync}
                     disabled={
-                      finalizeLoading || 
+                      finalizeLoading ||
                       (finalizeDecision === 'reject' && !finalizeOptions.rejectReason.trim()) ||
                       (finalizeDecision === 'approve' && finalizeOptions.isOverride && !finalizeOptions.overrideReason.trim())
                     }
-                    className={`px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 ${
-                      finalizeDecision === 'approve'
-                        ? 'bg-green-600 hover:bg-green-700'
-                        : 'bg-red-600 hover:bg-red-700'
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 ${finalizeDecision === 'approve'
+                      ? 'bg-green-600 hover:bg-green-700'
+                      : 'bg-red-600 hover:bg-red-700'
+                      }`}
                   >
                     {finalizeLoading
                       ? 'Processing...'
                       : (() => {
-                          const wasAlreadyApproved = finalizeRequest.status === 'APPROVED' || finalizeRequest.status === 'approved';
-                          if (finalizeDecision === 'approve') {
-                            return wasAlreadyApproved ? 'Finalize & Update Records' : 'Approve & Update Records';
-                          }
-                          return 'Reject Request';
-                        })()}
+                        const wasAlreadyApproved = finalizeRequest.status === 'APPROVED' || finalizeRequest.status === 'approved';
+                        if (finalizeDecision === 'approve') {
+                          return wasAlreadyApproved ? 'Finalize & Update Records' : 'Approve & Update Records';
+                        }
+                        return 'Reject Request';
+                      })()}
                   </button>
                 )}
               </div>
@@ -3539,7 +3530,7 @@ export default function HRManagerLeavesPage() {
                         </div>
                       )}
                     </div>
-                    
+
                     {/* Download and Open Buttons */}
                     {selectedMedicalAttachment?.attachmentId && medicalAttachmentData && (() => {
                       // Determine file URL - could be external URL, data URL, static file path, or server endpoint
@@ -3550,11 +3541,11 @@ export default function HRManagerLeavesPage() {
                       const isExternalUrl = filePath.startsWith('http://') || filePath.startsWith('https://');
                       const isDataUrl = filePath.startsWith('data:');
                       const isStaticPath = filePath.startsWith('/uploads/') || filePath.startsWith('uploads/');
-                      
+
                       // Construct download URL
                       let downloadUrl: string;
                       let showWarning = false;
-                      
+
                       if (staticUrl) {
                         // Backend provided a static URL - use it
                         downloadUrl = staticUrl;
@@ -3571,7 +3562,7 @@ export default function HRManagerLeavesPage() {
                         // Use download endpoint - it will handle the file appropriately
                         downloadUrl = `http://localhost:9000/leaves/attachments/${selectedMedicalAttachment.attachmentId}/download`;
                       }
-                      
+
                       return (
                         <div className="space-y-2">
                           <div className="flex gap-2 pt-3 border-t border-gray-200">
@@ -3630,7 +3621,7 @@ export default function HRManagerLeavesPage() {
                     const isExternalUrl = filePath.startsWith('http://') || filePath.startsWith('https://');
                     const isDataUrl = filePath.startsWith('data:');
                     const isStaticPath = filePath.startsWith('/uploads/') || filePath.startsWith('uploads/');
-                    
+
                     // Construct preview URL
                     let previewUrl: string;
                     if (isExternalUrl || isDataUrl) {
@@ -3641,7 +3632,7 @@ export default function HRManagerLeavesPage() {
                     } else {
                       previewUrl = `http://localhost:9000/leaves/attachments/${selectedMedicalAttachment?.attachmentId}/download`;
                     }
-                    
+
                     return (
                       <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
                         <div className="p-4 bg-white">

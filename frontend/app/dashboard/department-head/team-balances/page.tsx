@@ -72,7 +72,7 @@ export default function TeamBalancesPage() {
       const today = new Date().toISOString().split('T')[0];
 
       const [balancesRes, upcomingRes, typesRes] = await Promise.all([
-        leavesService.getTeamBalances(user.id).catch(err => ({ data: [], error: err.message })),
+        leavesService.getTeamBalances(user.id).catch((err: any) => ({ data: [], error: err.message })),
         leavesService.getTeamRequests(user.id, {
           status: 'approved',
           from: today,

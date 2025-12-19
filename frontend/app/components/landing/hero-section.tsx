@@ -60,13 +60,13 @@ export function HeroSection() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-400">
-            <Button size="xl" className="h-14 px-8 text-lg rounded-full shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:scale-105" asChild>
+            <Button size="lg" className="h-14 px-8 text-lg rounded-full shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:scale-105" asChild>
               <Link href="/dashboard">
                 Get Started Now
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button variant="outline" size="xl" className="h-14 px-8 text-lg rounded-full backdrop-blur-sm bg-background/50 border-border/50 hover:bg-accent/50 transition-all hover:scale-105" asChild>
+            <Button variant="outline" size="lg" className="h-14 px-8 text-lg rounded-full backdrop-blur-sm bg-background/50 border-border/50 hover:bg-accent/50 transition-all hover:scale-105" asChild>
               <Link href="/careers">
                 View Careers
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -74,7 +74,7 @@ export function HeroSection() {
             </Button>
             <Button 
               variant="outline" 
-              size="xl" 
+              size="lg" 
               className="h-14 px-8 text-lg rounded-full backdrop-blur-sm bg-background/50 border-border/50 hover:bg-accent/50 transition-all hover:scale-105"
               onClick={(e) => {
                 e.preventDefault()

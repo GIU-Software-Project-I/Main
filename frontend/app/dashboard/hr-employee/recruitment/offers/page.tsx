@@ -8,6 +8,7 @@ import { Card } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { LoadingSpinner } from '@/app/components/ui/loading-spinner';
 import { OfferResponseStatus, OfferFinalStatus, ApplicationStage } from '@/app/types/enums';
+import { getOfferResponseStatusConfig } from '@/app/utils/recruitment-theme';
 import { 
   getOffers, 
   createOffer, 
@@ -86,17 +87,11 @@ const availableBenefits = [
 // =====================================================
 
 function OfferStatusBadge({ status }: { status: OfferResponseStatus }) {
-  const config = {
-    [OfferResponseStatus.PENDING]: { label: 'Pending', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-    [OfferResponseStatus.ACCEPTED]: { label: 'Accepted', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-    [OfferResponseStatus.REJECTED]: { label: 'Rejected', color: 'bg-red-50 text-red-700 border-red-200' },
-  };
-  
-  const { label, color } = config[status];
+  const config = getOfferResponseStatusConfig(status);
   
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${color}`}>
-      {label}
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.badge}`}>
+      {config.label}
     </span>
   );
 }
@@ -115,7 +110,7 @@ function PreboardingButton({
   // HR Employee cannot trigger pre-boarding - only HR Manager can (REC-029)
   // Show informational badge instead
   return (
-    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
       Ready for Pre-boarding
     </span>
   );
@@ -389,24 +384,24 @@ export default function OffersPage() {
 
       {/* Success Alert */}
       {successMessage && (
-        <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center gap-3">
-          <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+        <div className="mb-6 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-4 flex items-center gap-3">
+          <svg className="w-5 h-5 text-slate-700 dark:text-slate-300" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
           </svg>
-          <span className="text-emerald-800 font-medium">{successMessage}</span>
+          <span className="text-slate-800 dark:text-slate-200 font-medium">{successMessage}</span>
         </div>
       )}
 
       {/* Error Alert */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+        <div className="mb-6 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-4 flex items-center gap-3">
+          <svg className="w-5 h-5 text-slate-700 dark:text-slate-300" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
           </svg>
-          <span className="text-red-800 font-medium">{error}</span>
+          <span className="text-slate-800 dark:text-slate-200 font-medium">{error}</span>
           <button 
             onClick={() => setError(null)}
-            className="ml-auto text-red-600 hover:text-red-800"
+            className="ml-auto text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
           >
             ×
           </button>
@@ -421,11 +416,11 @@ export default function OffersPage() {
         </div>
         <div className="bg-white rounded-lg border border-slate-200 p-4">
           <p className="text-sm text-slate-600">Pending Response</p>
-          <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
+          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.pending}</p>
         </div>
         <div className="bg-white rounded-lg border border-slate-200 p-4">
           <p className="text-sm text-slate-600">Accepted</p>
-          <p className="text-2xl font-bold text-emerald-600">{stats.accepted}</p>
+          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.accepted}</p>
         </div>
         <div className="bg-white rounded-lg border border-slate-200 p-4">
           <p className="text-sm text-slate-600">Awaiting Pre-boarding</p>
@@ -440,7 +435,7 @@ export default function OffersPage() {
             {/* Select Candidate */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Select Candidate <span className="text-red-500">*</span>
+                Select Candidate <span className="text-slate-700 dark:text-slate-300">*</span>
               </label>
               {candidates.length === 0 ? (
                 <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-center text-slate-600">
@@ -465,7 +460,7 @@ export default function OffersPage() {
                           <p className="text-xs text-slate-400">{candidate.departmentName}</p>
                         </div>
                         <div className="text-right">
-                          <span className={`text-lg font-bold ${candidate.averageScore >= 70 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          <span className={`text-lg font-bold ${candidate.averageScore >= 70 ? 'text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'}`}>
                             {candidate.averageScore}%
                           </span>
                           <p className="text-xs text-slate-500">Score</p>
@@ -484,7 +479,7 @@ export default function OffersPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Gross Salary (EGP/month) <span className="text-red-500">*</span>
+                  Gross Salary (EGP/month) <span className="text-slate-700 dark:text-slate-300">*</span>
                 </label>
                 <Input
                   type="number"
@@ -522,7 +517,7 @@ export default function OffersPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Response Deadline <span className="text-red-500">*</span>
+                  Response Deadline <span className="text-slate-700 dark:text-slate-300">*</span>
                 </label>
                 <Input
                   type="date"
@@ -536,7 +531,7 @@ export default function OffersPage() {
             {/* Benefits Selection */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Benefits Package <span className="text-red-500">*</span>
+                  Benefits Package <span className="text-slate-700 dark:text-slate-300">*</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {availableBenefits.map((benefit) => (
@@ -554,7 +549,7 @@ export default function OffersPage() {
                 ))}
               </div>
               {errors.benefits && (
-                <p className="text-red-600 text-sm mt-1">{errors.benefits}</p>
+                <p className="text-slate-700 dark:text-slate-300 text-sm mt-1">{errors.benefits}</p>
               )}
             </div>
 
@@ -686,14 +681,14 @@ export default function OffersPage() {
       {stats.preboardingReady > 0 && (
         <Card className="mt-6 border-indigo-200 bg-indigo-50">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-              <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center border border-slate-300 dark:border-slate-600">
+              <svg className="w-6 h-6 text-slate-800 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-indigo-900">Pre-boarding Ready</h3>
-              <p className="text-sm text-indigo-700">
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100">Pre-boarding Ready</h3>
+              <p className="text-sm text-slate-700 dark:text-slate-300">
                 {stats.preboardingReady} accepted offer{stats.preboardingReady > 1 ? 's are' : ' is'} ready for pre-boarding. 
                 Trigger pre-boarding to initiate onboarding tasks (contract signing, forms, etc.) as per REC-029.
               </p>

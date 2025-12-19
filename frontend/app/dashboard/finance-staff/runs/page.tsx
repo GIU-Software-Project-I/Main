@@ -63,6 +63,7 @@ interface PayrollRun {
   frozen?: boolean;
   payslipsGenerated?: boolean;
   payslipsGeneratedAt?: string;
+  currency?: string;
 }
 
 interface Payslip {
@@ -212,9 +213,10 @@ export default function FinanceStaffRunsPage() {
   return 'secondary';
 };
 
-  const formatCurrency = (amount: number | undefined) => {
-    if (amount === undefined || amount === null) return 'EGP 0';
-    return `EGP ${amount.toLocaleString()}`;
+  // Helper to format currency with dynamic currency code
+  const formatCurrency = (amount: number | undefined, currency: string = 'EGP') => {
+    if (amount === undefined || amount === null) return `${currency} 0`;
+    return `${currency} ${amount.toLocaleString()}`;
   };
 
   const formatDate = (dateStr: string | undefined) => {
@@ -402,7 +404,7 @@ export default function FinanceStaffRunsPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Total Net Payroll</p>
                     <p className="text-2xl font-bold text-success">
-                      {formatCurrency(runs.reduce((sum, r) => sum + (r.totalnetpay || 0), 0))}
+                      {formatCurrency(runs.reduce((sum, r) => sum + (r.totalnetpay || 0), 0), runs[0]?.currency)}
                     </p>
                   </div>
                   <div className="p-2 bg-success/10 rounded-lg">
@@ -547,15 +549,15 @@ export default function FinanceStaffRunsPage() {
                       <div className="bg-muted/30 rounded-lg p-3 mb-4">
                         <div className="flex justify-between text-sm mb-1">
                           <span className="text-muted-foreground">Gross Pay</span>
-                          <span className="text-foreground">{formatCurrency(run.totalGrossPay)}</span>
+                          <span className="text-foreground">{formatCurrency(run.totalGrossPay, run.currency)}</span>
                         </div>
                         <div className="flex justify-between text-sm mb-1">
                           <span className="text-muted-foreground">Taxes</span>
-                          <span className="text-destructive">-{formatCurrency(run.totalTaxes || run.totalTaxDeductions)}</span>
+                          <span className="text-destructive">-{formatCurrency(run.totalTaxes || run.totalTaxDeductions, run.currency)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Insurance</span>
-                          <span className="text-destructive">-{formatCurrency(run.totalInsurance || run.totalInsuranceDeductions)}</span>
+                          <span className="text-destructive">-{formatCurrency(run.totalInsurance || run.totalInsuranceDeductions, run.currency)}</span>
                         </div>
                       </div>
 
@@ -563,7 +565,7 @@ export default function FinanceStaffRunsPage() {
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-sm text-muted-foreground">Total Net Pay</span>
                           <span className="text-lg font-bold text-success">
-                            {formatCurrency(run.totalnetpay)}
+                            {formatCurrency(run.totalnetpay, run.currency)}
                           </span>
                         </div>
                         {/* Approval Status */}
@@ -657,13 +659,13 @@ export default function FinanceStaffRunsPage() {
                     <div className="bg-muted/50 rounded-lg p-4">
                       <div className="text-sm text-muted-foreground">Gross Pay</div>
                       <div className="text-xl font-bold text-foreground">
-                        {formatCurrency(selectedRun.totalGrossPay || runDetails?.totalGrossPay)}
+                        {formatCurrency(selectedRun.totalGrossPay || runDetails?.totalGrossPay, selectedRun.currency || runDetails?.currency)}
                       </div>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-4">
                       <div className="text-sm text-muted-foreground">Total Deductions</div>
                       <div className="text-xl font-bold text-destructive">
-                        -{formatCurrency(selectedRun.totalDeductions || runDetails?.totalDeductions)}
+                        -{formatCurrency(selectedRun.totalDeductions || runDetails?.totalDeductions, selectedRun.currency || runDetails?.currency)}
                       </div>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-4">
@@ -675,7 +677,7 @@ export default function FinanceStaffRunsPage() {
                     <div className="bg-success/10 border border-success/20 rounded-lg p-4">
                       <div className="text-sm text-success">Net Pay</div>
                       <div className="text-2xl font-bold text-success">
-                        {formatCurrency(selectedRun.totalnetpay)}
+                        {formatCurrency(selectedRun.totalnetpay, selectedRun.currency)}
                       </div>
                     </div>
                   </div>

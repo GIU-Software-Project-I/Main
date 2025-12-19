@@ -1,9 +1,9 @@
-
 'use client';
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { payrollExecutionService } from '@/app/services/payroll-execution';
+import { payrollConfigurationService } from '@/app/services/payroll-configuration';
 import { ThemeCustomizer, ThemeCustomizerTrigger } from '@/app/components/theme-customizer';
 
 interface Stats {
@@ -28,7 +28,7 @@ interface RecentRun {
 }
 
 export default function PayrollSpecialistPage() {
-    const [themeCustomizerOpen, setThemeCustomizerOpen] = useState(false);
+  const [themeCustomizerOpen, setThemeCustomizerOpen] = useState(false);
   const [stats, setStats] = useState<Stats>({
     pendingRuns: 0,
     totalEmployees: 0,
@@ -39,12 +39,48 @@ export default function PayrollSpecialistPage() {
   });
   const [recentRuns, setRecentRuns] = useState<RecentRun[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Add company currency state
+  const [companyCurrency, setCompanyCurrency] = useState<string>('EGP');
+  const [loadingCurrency, setLoadingCurrency] = useState<boolean>(true);
 
   useEffect(() => {
+    fetchCompanyCurrency();
     fetchData();
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch company currency from CompanyWideSettings API
+  const fetchCompanyCurrency = async () => {
+    try {
+      setLoadingCurrency(true);
+      const response = await payrollConfigurationService.getCompanyWideSettings() as any;
+      
+      // Extract currency from the response based on your API structure
+      if (response?.data) {
+        const settings = response.data;
+        // Try different possible property names for currency
+        const currency = 
+          settings.currency ||
+          settings.companyCurrency ||
+          settings.defaultCurrency ||
+          settings.financialSettings?.currency ||
+          'EGP';
+        
+        setCompanyCurrency(currency);
+      } else if (response?.currency) {
+        // Direct currency property
+        setCompanyCurrency(response.currency);
+      }
+    } catch (error) {
+      console.error('Failed to fetch company currency from CompanyWideSettings:', error);
+      // Fallback to EGP if API fails
+      setCompanyCurrency('EGP');
+    } finally {
+      setLoadingCurrency(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -92,7 +128,17 @@ export default function PayrollSpecialistPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => `EGP ${amount.toLocaleString()}`;
+  // Update formatCurrency to use company-wide currency
+  const formatCurrency = (amount: number | undefined | null, currency?: string): string => {
+    const curr = currency || companyCurrency || 'EGP';
+    if (amount === undefined || amount === null || isNaN(amount)) {
+      return `${curr} 0`;
+    }
+    return `${curr} ${amount.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
+  };
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -120,6 +166,16 @@ export default function PayrollSpecialistPage() {
     return <span className={`px-2 py-1 text-xs font-medium rounded-full ${s.bg} ${s.text}`}>{s.label}</span>;
   };
 
+  // Add currency badge component
+  const CurrencyBadge = () => (
+    <div className="inline-flex items-center px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium">
+      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      {loadingCurrency ? '...' : companyCurrency}
+    </div>
+  );
+
   return (
     <div className="relative space-y-6 bg-background min-h-screen">
       {/* Floating Theme Customizer Trigger */}
@@ -128,7 +184,10 @@ export default function PayrollSpecialistPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Payroll Specialist Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Manage payroll processing and configurations</p>
+          <p className="text-muted-foreground mt-1">
+            Manage payroll processing and configurations 
+            <span className="ml-2"><CurrencyBadge /></span>
+          </p>
         </div>
         <Link href="/dashboard/payroll-specialist/runs?tab=create">
           <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium">
@@ -237,9 +296,12 @@ export default function PayrollSpecialistPage() {
       <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-card-foreground">Recent Payroll Runs</h2>
-          <Link href="/dashboard/payroll-specialist/runs" className="text-sm text-primary hover:text-primary/80">
-            View all →
-          </Link>
+          <div className="flex items-center gap-2">
+            <CurrencyBadge />
+            <Link href="/dashboard/payroll-specialist/runs" className="text-sm text-primary hover:text-primary/80">
+              View all →
+            </Link>
+          </div>
         </div>
 
         {loading ? (
@@ -269,7 +331,9 @@ export default function PayrollSpecialistPage() {
                     </td>
                     <td className="py-3 px-4 text-muted-foreground group-hover:text-foreground transition-colors">{run.entity || run.entityName || 'N/A'}</td>
                     <td className="py-3 px-4 text-muted-foreground group-hover:text-foreground transition-colors">{run.employees || run.totalEmployees || 0}</td>
-                    <td className="py-3 px-4 text-card-foreground group-hover:text-foreground font-medium transition-colors">{formatCurrency(run.totalnetpay || 0)}</td>
+                    <td className="py-3 px-4 text-card-foreground group-hover:text-foreground font-medium transition-colors">
+                      {formatCurrency(run.totalnetpay || 0)}
+                    </td>
                     <td className="py-3 px-4 group-hover:text-foreground transition-colors">{getStatusBadge(run.status)}</td>
                     <td className="py-3 px-4 text-muted-foreground group-hover:text-foreground text-sm transition-colors">{formatDate(run.createdAt)}</td>
                   </tr>

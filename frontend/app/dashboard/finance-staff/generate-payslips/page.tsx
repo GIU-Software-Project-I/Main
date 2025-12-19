@@ -94,9 +94,10 @@ export default function GeneratePayslipsPage() {
     }
   };
 
-  const formatCurrency = (amount: number | undefined) => {
-    if (amount === undefined || amount === null) return 'EGP 0';
-    return `EGP ${amount.toLocaleString()}`;
+  // Accept currency param, fallback to EGP
+  const formatCurrency = (amount: number | undefined, currency: string = 'EGP') => {
+    if (amount === undefined || amount === null) return `${currency} 0`;
+    return `${currency} ${amount.toLocaleString()}`;
   };
 
   const formatDate = (dateStr: string | undefined) => {
@@ -253,7 +254,7 @@ export default function GeneratePayslipsPage() {
                             <div className="flex items-center gap-2 mt-1">
                               <DollarSign className="h-4 w-4 text-muted-foreground" />
                               <span className="font-medium text-success">
-                                {formatCurrency(runDetails.totalnetpay)}
+                                {formatCurrency(runDetails.totalnetpay, runDetails.currency || 'EGP')}
                               </span>
                             </div>
                           </div>

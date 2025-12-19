@@ -42,10 +42,10 @@ const commonPositionNames = [
 ];
 
 const statusColors = {
-  draft: 'bg-yellow-100 text-yellow-800',
-  pending_approval: 'bg-orange-100 text-orange-800',
-  approved: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
+  draft: 'bg-muted/10 text-muted-foreground',
+  pending_approval: 'bg-warning/10 text-warning-foreground',
+  approved: 'bg-success/10 text-success-foreground',
+  rejected: 'bg-destructive/10 text-destructive-foreground',
 };
 
 const statusLabels = {
@@ -486,12 +486,12 @@ export default function SigningBonusesPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Signing Bonuses</h1>
-            <p className="text-slate-600 mt-2">Loading signing bonuses...</p>
+            <h1 className="text-3xl font-bold text-foreground">Signing Bonuses</h1>
+            <p className="text-muted-foreground mt-2">Loading signing bonuses...</p>
           </div>
         </div>
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </div>
     );
@@ -500,16 +500,16 @@ export default function SigningBonusesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Signing Bonuses Configuration</h1>
-          <p className="text-slate-600 mt-2">Configure signing bonus policies for different positions to seamlessly incorporate new hires into payroll</p>
+          <h1 className="text-3xl font-bold text-foreground">Signing Bonuses Configuration</h1>
+          <p className="text-muted-foreground mt-2">Configure signing bonus policies for different positions to seamlessly incorporate new hires into payroll</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={fetchSigningBonuses}
             disabled={loading}
-            className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors font-medium"
+            className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted/50 disabled:opacity-50 transition-colors font-medium"
           >
             {loading ? 'Refreshing...' : 'Refresh'}
           </button>
@@ -519,13 +519,13 @@ export default function SigningBonusesPage() {
               setCalcInputs(prev => ({ ...prev, pendingAllowances: '' }));
               setShowCalculateModal(true);
             }}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-95 transition-colors font-medium"
           >
             Calculate Entitelments
           </button>
           <button
             onClick={handleCreateClick}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-95 transition-colors font-medium"
           >
             + Create Signing Bonus
           </button>
@@ -534,12 +534,12 @@ export default function SigningBonusesPage() {
 
       {/* Success Alert */}
       {success && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="text-green-600 font-bold">Success</div>
-          <p className="text-green-800 font-medium">{success}</p>
+        <div className="bg-success/10 border border-success/20 rounded-lg p-4 flex items-center gap-3">
+          <div className="text-success-foreground font-bold">Success</div>
+          <p className="text-success-foreground font-medium">{success}</p>
           <button 
             onClick={() => setSuccess(null)}
-            className="ml-auto text-green-600 hover:text-green-800"
+            className="ml-auto text-success-foreground hover:text-success-foreground"
           >
             ×
           </button>
@@ -548,15 +548,15 @@ export default function SigningBonusesPage() {
 
       {/* Error Alert */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="text-red-600 font-bold">Failed</div>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center gap-3">
+          <div className="text-destructive-foreground font-bold">Failed</div>
           <div>
-            <p className="text-red-800 font-medium">Error</p>
-            <p className="text-red-700 text-sm mt-1">{error}</p>
+            <p className="text-destructive-foreground font-medium">Error</p>
+            <p className="text-destructive-foreground text-sm mt-1">{error}</p>
           </div>
           <button 
             onClick={() => setError(null)}
-            className="ml-auto text-red-600 hover:text-red-800"
+            className="ml-auto text-destructive-foreground hover:text-destructive-foreground"
           >
             ×
           </button>
@@ -564,10 +564,10 @@ export default function SigningBonusesPage() {
       )}
 
      {/* Filters */}
-<div className="bg-white rounded-lg border border-slate-200 p-4">
+<div className="bg-card rounded-lg border border-border p-4">
   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
     <div>
-      <label className="block text-sm font-medium text-slate-700 mb-2">
+      <label className="block text-sm font-medium text-foreground mb-2">
         Search Signing Bonuses
       </label>
       <input
@@ -575,19 +575,19 @@ export default function SigningBonusesPage() {
         name="search"
         value={filters.search}
         onChange={handleFilterChange}
-        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+        className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
         placeholder="Search by position name..."
       />
     </div>
     <div>
-      <label className="block text-sm font-medium text-slate-700 mb-2">
+      <label className="block text-sm font-medium text-foreground mb-2">
         Status Filter
       </label>
       <select
         name="status"
         value={filters.status}
         onChange={handleFilterChange}
-        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+        className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
       >
         <option value="">All Statuses</option>
         <option value="draft">Draft</option>
@@ -601,7 +601,7 @@ export default function SigningBonusesPage() {
           setFilters({ search: '', status: '' });
           setPagination(prev => ({ ...prev, page: 1 }));
         }}
-        className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium w-full"
+        className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted/50 transition-colors font-medium w-full"
       >
         Clear Filters
       </button>
@@ -610,26 +610,26 @@ export default function SigningBonusesPage() {
 </div>
 
       {/* Signing Bonuses Table */}
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
-        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900">
+      <div className="bg-card rounded-lg border border-border shadow-sm">
+        <div className="p-6 border-b border-border flex items-center justify-between">
+          <h2 className="text-xl font-bold text-foreground">
             Signing Bonuses ({pagination.total})
-            {loading && <span className="text-slate-500 text-sm ml-2">Updating...</span>}
+            {loading && <span className="text-muted-foreground text-sm ml-2">Updating...</span>}
           </h2>
-          <div className="text-sm text-slate-600">
+          <div className="text-sm text-muted-foreground">
             Page {pagination.page} of {pagination.totalPages || 1}
           </div>
         </div>
         
         {signingBonuses.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-slate-600 font-medium">No signing bonuses found</p>
-            <p className="text-slate-500 text-sm mt-1">
+            <p className="text-muted-foreground font-medium">No signing bonuses found</p>
+            <p className="text-muted-foreground text-sm mt-1">
               {filters.search || filters.status ? 'Try changing your filters' : 'Create your first signing bonus to get started'}
             </p>
             <button
               onClick={handleCreateClick}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-95 transition-colors font-medium"
             >
               Create Signing Bonus
             </button>
@@ -639,33 +639,53 @@ export default function SigningBonusesPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
-                    <th className="text-left py-4 px-6 font-semibold text-slate-700">Position Name</th>
-                    <th className="text-left py-4 px-6 font-semibold text-slate-700">Signing Bonus Amount</th>
-                    <th className="text-left py-4 px-6 font-semibold text-slate-700">Status</th>
-                    <th className="text-left py-4 px-6 font-semibold text-slate-700">Created</th>
-                    <th className="text-left py-4 px-6 font-semibold text-slate-700">Actions</th>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="text-left py-4 px-6 font-semibold text-foreground">Position Name</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground">Signing Bonus Amount</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground">Status</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground">Created</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {signingBonuses.map((signingBonus) => (
-                    <tr key={signingBonus._id} className="border-b border-slate-100 hover:bg-slate-50">
+                    <tr key={signingBonus._id} className="border-b border-border hover:bg-muted/20">
                       <td className="py-4 px-6">
                         <div>
-                          <p className="font-medium text-slate-900">{signingBonus.positionName}</p>
+                          <p className="font-medium text-foreground">{signingBonus.positionName}</p>
                         </div>
                       </td>
                       <td className="py-4 px-6">
-                        <span className="text-slate-700 font-medium">
+                        <span className="text-foreground font-medium">
                           {formatCurrency(signingBonus.amount)}
                         </span>
                       </td>
-                      <td className="py-4 px-6">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusColors[signingBonus.status] || 'bg-gray-100 text-gray-800'}`}>
-                          {statusLabels[signingBonus.status] || signingBonus.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-slate-700 text-sm">
+  <td className="py-4 px-6">
+    <span className={`
+      inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+      ${signingBonus.status === 'approved' 
+        ? 'bg-green-100 text-green-800' 
+        : signingBonus.status === 'draft' 
+        ? 'bg-yellow-100 text-yellow-800'
+        : signingBonus.status === 'rejected' 
+        ? 'bg-red-100 text-red-800'
+        : signingBonus.status === 'pending_approval'
+        ? 'bg-yellow-100 text-yellow-800'
+        : 'bg-muted/20 text-foreground'
+      }
+    `}>
+      {signingBonus.status === 'approved' 
+        ? 'Approved' 
+        : signingBonus.status === 'draft' 
+        ? 'Draft'
+        : signingBonus.status === 'rejected' 
+        ? 'Rejected'
+        : signingBonus.status === 'pending_approval'
+        ? 'Pending Approval'
+        : signingBonus.status}
+    </span>
+  </td>
+                      <td className="py-4 px-6 text-foreground text-sm">
                         {formatDate(signingBonus.createdAt)}
                       </td>
                       <td className="py-4 px-6">
@@ -673,7 +693,7 @@ export default function SigningBonusesPage() {
                           {/* View button */}
                           <button
                             onClick={() => handleViewClick(signingBonus)}
-                            className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-300 rounded-lg transition-colors"
+                            className="px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/5 border border-border rounded-lg transition-colors"
                             title="View Details"
                           >
                             View
@@ -683,7 +703,7 @@ export default function SigningBonusesPage() {
                           {signingBonus.status === 'draft' && (
                             <button
                               onClick={() => handleEditClick(signingBonus)}
-                              className="px-3 py-1.5 text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 border border-green-300 rounded-lg transition-colors"
+                              className="px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/5 border border-border rounded-lg transition-colors"
                               title="Edit"
                             >
                               Edit
@@ -696,7 +716,7 @@ export default function SigningBonusesPage() {
                             <button
                               onClick={() => handleDeleteSigningBonus(signingBonus)}
                               disabled={actionLoading}
-                              className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                              className="p-1.5 text-muted-foreground hover:text-destructive-foreground hover:bg-destructive/10 rounded transition-colors disabled:opacity-50"
                               title="Delete"
                             >
                               🗑️
@@ -712,15 +732,15 @@ export default function SigningBonusesPage() {
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="p-6 border-t border-slate-200 flex items-center justify-between">
-                <div className="text-sm text-slate-600">
+              <div className="p-6 border-t border-border flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
                   Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} signing bonuses
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handlePageChange(pagination.page - 1)}
                     disabled={pagination.page === 1 || loading}
-                    className="px-3 py-1 border border-slate-300 text-slate-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                    className="px-3 py-1 border border-border text-muted-foreground rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50"
                   >
                     Previous
                   </button>
@@ -742,7 +762,7 @@ export default function SigningBonusesPage() {
                           key={pageNum}
                           onClick={() => handlePageChange(pageNum)}
                           disabled={loading}
-                          className={`px-3 py-1 rounded ${pagination.page === pageNum ? 'bg-blue-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-50'}`}
+                          className={`px-3 py-1 rounded ${pagination.page === pageNum ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground hover:bg-muted/50'}`}
                         >
                           {pageNum}
                         </button>
@@ -752,7 +772,7 @@ export default function SigningBonusesPage() {
                   <button
                     onClick={() => handlePageChange(pagination.page + 1)}
                     disabled={pagination.page === pagination.totalPages || loading}
-                    className="px-3 py-1 border border-slate-300 text-slate-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                    className="px-3 py-1 border border-border text-muted-foreground rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50"
                   >
                     Next
                   </button>
@@ -764,9 +784,9 @@ export default function SigningBonusesPage() {
       </div>
 
       {/* Information Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-2">Payroll Specialist Information</h3>
-        <ul className="text-blue-800 text-sm space-y-2">
+      <div className="bg-muted/5 border border-border rounded-lg p-6">
+        <h3 className="font-semibold text-foreground mb-2">Payroll Specialist Information</h3>
+        <ul className="text-muted-foreground text-sm space-y-2">
           <li>• As a Payroll Specialist, you can <span className="font-semibold">create draft</span> signing bonus policies</li>
           <li>• You can <span className="font-semibold">edit draft</span> signing bonus policies only</li>
           <li>• You can <span className="font-semibold">view all</span> signing bonus policies (draft, approved, rejected)</li>
@@ -780,15 +800,15 @@ export default function SigningBonusesPage() {
      {/* Create Modal */}
 {showCreateModal && (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-    <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-      <div className="p-6 border-b border-slate-200">
-        <h3 className="text-xl font-bold text-slate-900">
+    <div className="bg-card rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="p-6 border-b border-border">
+        <h3 className="text-xl font-bold text-foreground">
           Create New Signing Bonus Policy
         </h3>
       </div>
       <div className="p-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Position Name *
           </label>
           <input
@@ -796,7 +816,7 @@ export default function SigningBonusesPage() {
             name="positionName"
             value={formData.positionName}
             onChange={handleChange}
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+            className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
             required
             placeholder="e.g., Senior Software Engineer"
             list="position-suggestions"
@@ -806,39 +826,39 @@ export default function SigningBonusesPage() {
               <option key={option.value} value={option.value} />
             ))}
           </datalist>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Enter the position name for this signing bonus policy. Common positions include Junior, Mid, and Senior levels.
           </p>
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Signing Bonus Amount (USD) *
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-slate-500">$</span>
+              <span className="text-muted-foreground">$</span>
             </div>
             <input
               type="number"
               name="amount"
               value={formData.amount}
               onChange={handleChange}
-              className="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+              className="w-full pl-8 pr-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
               required
               placeholder="e.g., 5000"
               step="0.01"
               min="0"
             />
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             One-time signing bonus amount for this position. Must be 0 or greater.
           </p>
         </div>
         
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <p className="text-sm font-medium text-amber-800 mb-2">Important Notes</p>
-          <ul className="text-xs text-amber-700 space-y-1">
+        <div className="p-4 border border-border rounded-lg">
+          <p className="text-sm font-medium text-foreground mb-2">Important Notes</p>
+          <ul className="text-xs text-muted-foreground space-y-1">
             <li>• Signing bonus will be created as <span className="font-semibold">DRAFT</span></li>
             <li>• Payroll Manager approval is required before use</li>
             <li>• Duplicate position names are not allowed</li>
@@ -847,18 +867,18 @@ export default function SigningBonusesPage() {
           </ul>
         </div>
       </div>
-      <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+      <div className="p-6 border-t border-border flex justify-end gap-3">
         <button
           onClick={() => setShowCreateModal(false)}
           disabled={actionLoading}
-          className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors font-medium"
+          className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted/50 disabled:opacity-50 transition-colors font-medium"
         >
           Cancel
         </button>
         <button
           onClick={handleCreateSigningBonus}
           disabled={actionLoading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-slate-400 transition-colors font-medium"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-95 disabled:opacity-50 transition-colors font-medium"
         >
           {actionLoading ? 'Creating...' : 'Create Signing Bonus'}
         </button>
@@ -870,84 +890,71 @@ export default function SigningBonusesPage() {
       {/* Edit Modal */}
       {showEditModal && selectedSigningBonus && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200">
-              <h3 className="text-xl font-bold text-slate-900">
-                Edit Signing Bonus Policy
-              </h3>
-              <p className="text-slate-600 text-sm mt-1">Editing: {selectedSigningBonus.positionName}</p>
+          <div className="bg-card rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-xl font-bold text-foreground">Edit Signing Bonus</h3>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Position Name *
-                </label>
-               <input
-  type="text"
-  name="positionName"
-  value={formData.positionName}
-  onChange={handleChange}
-  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900" // ← Added text-slate-900
-  required
-  placeholder="e.g., Senior Software Engineer"
-  list="position-suggestions-edit"
-/>
+                <label className="block text-sm font-medium text-foreground mb-2">Position Name *</label>
+                <input
+                  type="text"
+                  name="positionName"
+                  value={formData.positionName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
+                  required
+                  placeholder="e.g., Senior Software Engineer"
+                  list="position-suggestions-edit"
+                />
                 <datalist id="position-suggestions-edit">
                   {commonPositionNames.map((option) => (
                     <option key={option.value} value={option.value} />
                   ))}
                 </datalist>
-                <p className="text-xs text-slate-500 mt-1">
-                  Enter the position name for this signing bonus policy.
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Enter the position name for this signing bonus policy.</p>
               </div>
-              
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Signing Bonus Amount (USD) *
-                </label>
+                <label className="block text-sm font-medium text-foreground mb-2">Signing Bonus Amount (USD) *</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-slate-500">$</span>
+                    <span className="text-muted-foreground">$</span>
                   </div>
-              <input
-  type="number"
-  name="amount"
-  value={formData.amount}
-  onChange={handleChange}
-  className="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900" // ← Added text-slate-900
-  required
-  placeholder="e.g., 5000"
-  step="0.01"
-  min="0"
-/>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleChange}
+                    className="w-full pl-8 pr-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
+                    required
+                    placeholder="e.g., 5000"
+                    step="0.01"
+                    min="0"
+                  />
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  One-time signing bonus amount for this position.
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">One-time signing bonus amount for this position.</p>
               </div>
-              
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm font-medium text-blue-800 mb-2">Editing Notice</p>
-                <ul className="text-xs text-blue-700 space-y-1">
+              <div className="p-4 bg-muted/5 border border-border rounded-lg">
+                <p className="text-sm text-foreground"><span className="font-semibold">Editing Notice:</span></p>
+                <ul className="text-xs text-foreground space-y-1 mt-1">
                   <li>• You can only edit DRAFT signing bonuses</li>
                   <li>• Changing the position name will be checked for duplicates</li>
                   <li>• Once approved, this policy cannot be edited or deleted</li>
                 </ul>
               </div>
             </div>
-            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+            <div className="p-6 border-t border-border flex justify-end gap-3">
               <button
                 onClick={() => setShowEditModal(false)}
                 disabled={actionLoading}
-                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors font-medium"
+                className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted/50 disabled:opacity-50 transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpdateSigningBonus}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-slate-400 transition-colors font-medium"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-95 disabled:opacity-50 transition-colors font-medium"
               >
                 {actionLoading ? 'Updating...' : 'Update Signing Bonus'}
               </button>
@@ -959,63 +966,80 @@ export default function SigningBonusesPage() {
       {/* View Modal */}
       {showViewModal && selectedSigningBonus && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200">
-              <h3 className="text-xl font-bold text-slate-900">Signing Bonus Details</h3>
+          <div className="bg-card rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-xl font-bold text-foreground">Signing Bonus Details</h3>
             </div>
             <div className="p-6 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h4 className="text-lg font-bold text-slate-900">{selectedSigningBonus.positionName}</h4>
-                  <p className="text-sm text-slate-500 mt-2">Status</p>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-2 ${statusColors[selectedSigningBonus.status] || 'bg-gray-100 text-gray-800'}`}>
-                    {statusLabels[selectedSigningBonus.status] || selectedSigningBonus.status}
-                  </span>
+                  <h4 className="text-lg font-bold text-foreground mb-2">{selectedSigningBonus.positionName}</h4>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm text-primary">Status</span>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-1
+                      ${selectedSigningBonus.status === 'approved'
+                        ? 'bg-green-100 text-green-800'
+                        : selectedSigningBonus.status === 'draft'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : selectedSigningBonus.status === 'rejected'
+                        ? 'bg-red-100 text-red-800'
+                        : selectedSigningBonus.status === 'pending_approval'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-muted/20 text-foreground'}
+                    `}>
+                      {selectedSigningBonus.status === 'approved'
+                        ? 'Approved'
+                        : selectedSigningBonus.status === 'draft'
+                        ? 'Draft'
+                        : selectedSigningBonus.status === 'rejected'
+                        ? 'Rejected'
+                        : selectedSigningBonus.status === 'pending_approval'
+                        ? 'Pending Approval'
+                        : selectedSigningBonus.status}
+                    </span>
+                  </div>
                 </div>
               </div>
-              
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-slate-500">Signing Bonus Amount</p>
-                  <p className="font-medium text-slate-900 text-xl">{formatCurrency(selectedSigningBonus.amount)}</p>
-                  <p className="text-xs text-slate-500 mt-1">One-time payment for new hires</p>
+                  <p className="text-sm text-primary">Signing Bonus Amount</p>
+                  <p className="font-medium text-foreground text-xl">{formatCurrency(selectedSigningBonus.amount)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">One-time payment for new hires</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Created</p>
-                  <p className="font-medium text-slate-900">{formatDate(selectedSigningBonus.createdAt)}</p>
+                  <p className="text-sm text-primary">Created</p>
+                  <p className="font-medium text-foreground">{formatDate(selectedSigningBonus.createdAt)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Last Modified</p>
-                  <p className="font-medium text-slate-900">{formatDate(selectedSigningBonus.updatedAt)}</p>
+                  <p className="text-sm text-primary">Last Modified</p>
+                  <p className="font-medium text-foreground">{formatDate(selectedSigningBonus.updatedAt)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Created By</p>
-                  <p className="font-medium text-slate-900">{selectedSigningBonus.createdBy || 'N/A'}</p>
+                  <p className="text-sm text-primary">Created By</p>
+                  <p className="font-medium text-foreground">{selectedSigningBonus.createdBy || 'N/A'}</p>
                 </div>
                 {(selectedSigningBonus.status === 'approved' || selectedSigningBonus.status === 'rejected') && (
                   <div>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-primary">
                       {selectedSigningBonus.status === 'approved' ? 'Approved By' : 'Rejected By'}
                     </p>
-                    <p className="font-medium text-slate-900">{selectedSigningBonus.approvedBy || 'N/A'}</p>
+                    <p className="font-medium text-foreground">{selectedSigningBonus.approvedBy || 'N/A'}</p>
                   </div>
                 )}
                 {(selectedSigningBonus.status === 'approved' || selectedSigningBonus.status === 'rejected') && (
                   <div>
-                    <p className="text-sm text-slate-500">
-                      {selectedSigningBonus.status === 'rejected' ? 'Rejected At' : 'Approved At'}
+                    <p className="text-sm text-primary">
+                      {selectedSigningBonus.status === 'approved' ? 'Approved At' : 'Rejected At'}
                     </p>
-                    <p className="font-medium text-slate-900">{selectedSigningBonus.approvedAt ? formatDate(selectedSigningBonus.approvedAt) : 'N/A'}</p>
+                    <p className="font-medium text-foreground">{selectedSigningBonus.approvedAt ? formatDate(selectedSigningBonus.approvedAt) : 'N/A'}</p>
                   </div>
                 )}
               </div>
-              
-             
             </div>
-            <div className="p-6 border-t border-slate-200 flex justify-end">
+            <div className="p-6 border-t border-border flex justify-end">
               <button
                 onClick={() => setShowViewModal(false)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
               >
                 Close
               </button>
@@ -1027,107 +1051,107 @@ export default function SigningBonusesPage() {
       {/* Calculate Entitlements Modal */}
       {showCalculateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200">
-              <h3 className="text-xl font-bold text-slate-900">Calculate Resignation Entitlements</h3>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label className="block text-sm text-slate-600 mb-1">Monthly Salary (USD)</label>
-                  <input
-                    type="number"
-                    name="monthlySalary"
-                    value={calcInputs.monthlySalary}
-                    onChange={(e) => setCalcInputs(prev => ({ ...prev, monthlySalary: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded"
-                    placeholder="e.g., 2000"
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-600 mb-1">Employment Start Date</label>
-                  <input type="date" value={calcInputs.startDate} onChange={(e) => setCalcInputs(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border rounded" />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-600 mb-1">Resignation Date</label>
-                  <input type="date" value={calcInputs.resignationDate} onChange={(e) => setCalcInputs(prev => ({ ...prev, resignationDate: e.target.value }))} className="w-full px-3 py-2 border rounded" />
-                </div>
-                {/* Removed Last Working Date - not required for this calculation flow. */}
-                <div>
-                  <label className="block text-sm text-slate-600 mb-1">Accrued Leave Days</label>
-                  <input type="number" value={calcInputs.accruedLeaveDays} onChange={(e) => setCalcInputs(prev => ({ ...prev, accruedLeaveDays: e.target.value }))} className="w-full px-3 py-2 border rounded" min="0" />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-600 mb-1">Pending Allowances (total USD)</label>
-                  <input type="number" value={calcInputs.pendingAllowances} onChange={(e) => setCalcInputs(prev => ({ ...prev, pendingAllowances: e.target.value }))} className="w-full px-3 py-2 border rounded" min="0" />
-                </div>
+          <div className="bg-card rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-border">
+                <h3 className="text-xl font-bold text-foreground">Calculate Resignation Entitlements</h3>
               </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm text-foreground mb-1">Monthly Salary (USD)</label>
+                    <input
+                      type="number"
+                      name="monthlySalary"
+                      value={calcInputs.monthlySalary}
+                      onChange={(e) => setCalcInputs(prev => ({ ...prev, monthlySalary: e.target.value }))}
+                      className="w-full px-3 py-2 border border-input rounded text-foreground"
+                      placeholder="e.g., 2000"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-foreground mb-1">Employment Start Date</label>
+                    <input type="date" value={calcInputs.startDate} onChange={(e) => setCalcInputs(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-input rounded text-foreground" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-foreground mb-1">Resignation Date</label>
+                    <input type="date" value={calcInputs.resignationDate} onChange={(e) => setCalcInputs(prev => ({ ...prev, resignationDate: e.target.value }))} className="w-full px-3 py-2 border border-input rounded text-foreground" />
+                  </div>
+                  {/* Removed Last Working Date - not required for this calculation flow. */}
+                  <div>
+                    <label className="block text-sm text-foreground mb-1">Accrued Leave Days</label>
+                    <input type="number" value={calcInputs.accruedLeaveDays} onChange={(e) => setCalcInputs(prev => ({ ...prev, accruedLeaveDays: e.target.value }))} className="w-full px-3 py-2 border border-input rounded text-foreground" min="0" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-foreground mb-1">Pending Allowances (total USD)</label>
+                    <input type="number" value={calcInputs.pendingAllowances} onChange={(e) => setCalcInputs(prev => ({ ...prev, pendingAllowances: e.target.value }))} className="w-full px-3 py-2 border border-input rounded text-foreground" min="0" />
+                  </div>
+                </div>
 
-              {/* Results are shown in the summary modal below; inline results removed. */}
+                {/* Results are shown in the summary modal below; inline results removed. */}
 
-              {/* Calculation Rules Explanation */}
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
-                <h4 className="font-semibold mb-2 text-blue-900">Calculation Rules (summary)</h4>
-                <ul className="text-sm text-blue-800 space-y-2">
-                  <li>• Accrued leave = accrued_days × (monthly_salary / 30).</li>
-                  <li>• Pending allowances = added as entered.</li>
-                  <li>• Gratuity (default): first 5 years = 21 days/year; after 5 years = 30 days/year.</li>
-                </ul>
+                {/* Calculation Rules Explanation */}
+                <div className="mt-4 p-4 bg-muted/5 border border-border rounded">
+                  <h4 className="font-semibold mb-2 text-foreground">Calculation Rules (summary)</h4>
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    <li>• Accrued leave = accrued_days × (monthly_salary / 30).</li>
+                    <li>• Pending allowances = added as entered.</li>
+                    <li>• Gratuity (default): first 5 years = 21 days/year; after 5 years = 30 days/year.</li>
+                  </ul>
+                </div>
               </div>
+                <div className="p-6 border-t border-border flex justify-end gap-3">
+                  <button onClick={() => { setShowCalculateModal(false); setCalcResult(null); }} className="px-4 py-2 border border-border rounded text-muted-foreground">Cancel</button>
+                  <button
+                    onClick={() => {
+                      const monthly = parseFloat(calcInputs.monthlySalary || '0');
+                      const accruedDays = parseFloat(calcInputs.accruedLeaveDays || '0');
+                      const pending = parseFloat(calcInputs.pendingAllowances || '0');
+                      const start = calcInputs.startDate ? new Date(calcInputs.startDate) : null;
+                      const resign = calcInputs.resignationDate ? new Date(calcInputs.resignationDate) : null;
+                      let years = 0;
+                      if (start && resign && !isNaN(start.getTime()) && !isNaN(resign.getTime())) {
+                        years = (resign.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365);
+                      }
+                      const accruedLeavePayout = Math.max(0, accruedDays) * (monthly / 30);
+                      const fullYears = Math.floor(Math.max(0, years));
+                      // Tiered gratuity: first 5 years = 21 days/year, after 5 years = 30 days/year
+                      const yearsFirstTier = Math.min(fullYears, 5);
+                      const yearsSecondTier = Math.max(0, fullYears - 5);
+                      const gratuity = (yearsFirstTier * (monthly * (21 / 30))) + (yearsSecondTier * (monthly * (30 / 30)));
+                      const totalPayout = accruedLeavePayout + pending + gratuity;
+                      setCalcResult({ accruedLeavePayout, pendingAllowances: pending, gratuity, totalPayout, years: fullYears });
+                      setShowCalculateSummaryModal(true);
+                    }}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-95 transition-colors"
+                  >
+                    Calculate
+                  </button>
+                </div>
             </div>
-              <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
-                <button onClick={() => { setShowCalculateModal(false); setCalcResult(null); }} className="px-4 py-2 border rounded">Cancel</button>
-                <button
-                  onClick={() => {
-                    const monthly = parseFloat(calcInputs.monthlySalary || '0');
-                    const accruedDays = parseFloat(calcInputs.accruedLeaveDays || '0');
-                    const pending = parseFloat(calcInputs.pendingAllowances || '0');
-                    const start = calcInputs.startDate ? new Date(calcInputs.startDate) : null;
-                    const resign = calcInputs.resignationDate ? new Date(calcInputs.resignationDate) : null;
-                    let years = 0;
-                    if (start && resign && !isNaN(start.getTime()) && !isNaN(resign.getTime())) {
-                      years = (resign.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365);
-                    }
-                    const accruedLeavePayout = Math.max(0, accruedDays) * (monthly / 30);
-                    const fullYears = Math.floor(Math.max(0, years));
-                    // Tiered gratuity: first 5 years = 21 days/year, after 5 years = 30 days/year
-                    const yearsFirstTier = Math.min(fullYears, 5);
-                    const yearsSecondTier = Math.max(0, fullYears - 5);
-                    const gratuity = (yearsFirstTier * (monthly * (21 / 30))) + (yearsSecondTier * (monthly * (30 / 30)));
-                    const totalPayout = accruedLeavePayout + pending + gratuity;
-                    setCalcResult({ accruedLeavePayout, pendingAllowances: pending, gratuity, totalPayout, years: fullYears });
-                    setShowCalculateSummaryModal(true);
-                  }}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                >
-                  Calculate
-                </button>
-              </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Calculate Summary Modal */}
       {showCalculateSummaryModal && calcResult && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200">
-              <h3 className="text-xl font-bold text-slate-900">Calculated Entitlements Summary</h3>
-              <p className="text-sm text-slate-600 mt-1">Review the breakdown below. These values are estimates based on entered data and default rules.</p>
+          <div className="bg-card rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-xl font-bold text-foreground">Calculated Entitlements Summary</h3>
+              <p className="text-sm text-muted-foreground mt-1">Review the breakdown below. These values are estimates based on entered data and default rules.</p>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 gap-2">
-                <div><span className="text-sm text-slate-500">Service Years (rounded down):</span> <span className="font-medium">{calcResult.years}</span></div>
-                <div><span className="text-sm text-slate-500">Accrued Leave Payout:</span> <span className="font-medium">{formatCurrency(calcResult.accruedLeavePayout)}</span></div>
-                <div><span className="text-sm text-slate-500">Pending Allowances:</span> <span className="font-medium">{formatCurrency(calcResult.pendingAllowances)}</span></div>
-                <div><span className="text-sm text-slate-500">Estimated Gratuity:</span> <span className="font-medium">{formatCurrency(calcResult.gratuity)}</span></div>
-                <div className="border-t pt-2"><span className="text-sm text-slate-500">Total Estimated Payout:</span> <span className="font-medium">{formatCurrency(calcResult.totalPayout)}</span></div>
+                <div><span className="text-sm text-foreground">Service Years (rounded down):</span> <span className="font-medium text-foreground">{calcResult.years}</span></div>
+                <div><span className="text-sm text-foreground">Accrued Leave Payout:</span> <span className="font-medium text-foreground">{formatCurrency(calcResult.accruedLeavePayout)}</span></div>
+                <div><span className="text-sm text-foreground">Pending Allowances:</span> <span className="font-medium text-foreground">{formatCurrency(calcResult.pendingAllowances)}</span></div>
+                <div><span className="text-sm text-foreground">Estimated Gratuity:</span> <span className="font-medium text-foreground">{formatCurrency(calcResult.gratuity)}</span></div>
+                <div className="border-t pt-2"><span className="text-sm text-foreground">Total Estimated Payout:</span> <span className="font-medium text-foreground">{formatCurrency(calcResult.totalPayout)}</span></div>
               </div>
-              <div className="text-xs text-slate-500">Note: These calculations use default rule multipliers (first 5 years: 21 days/year; after 5 years: 30 days/year).</div>
+              <div className="text-xs text-muted-foreground">Note: These calculations use default rule multipliers (first 5 years: 21 days/year; after 5 years: 30 days/year).</div>
             </div>
-            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
-              <button onClick={() => { setShowCalculateSummaryModal(false); setShowCalculateModal(false); setCalcResult(null); }} className="px-4 py-2 border rounded">Close</button>
+            <div className="p-6 border-t border-border flex justify-end gap-3">
+              <button onClick={() => { setShowCalculateSummaryModal(false); setShowCalculateModal(false); setCalcResult(null); }} className="px-4 py-2 border border-border text-foreground rounded">Close</button>
             </div>
           </div>
         </div>

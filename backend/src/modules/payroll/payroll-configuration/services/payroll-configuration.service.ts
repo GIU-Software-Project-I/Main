@@ -1144,6 +1144,20 @@ async createTerminationBenefit(createDto: CreateTerminationBenefitDto): Promise<
         return { ...saved.toObject(), status: this.companySettingsStatus };
     }
 
+    // New method to get only the currency
+    async getCompanyCurrency() {
+        let settings = await this.companySettingsModel.findOne().exec();
+        if (!settings) {
+            settings = new this.companySettingsModel({
+                payDate: new Date(),
+                timeZone: 'Africa/Cairo',
+                currency: 'EGP',
+            });
+            await settings.save();
+        }
+        return { currency: settings.currency || 'EGP' };
+    }
+
     async approveCompanyWideSettings() {
         const settings = await this.companySettingsModel.findOne().exec();
         if (!settings) {

@@ -188,7 +188,7 @@ export default function DeductionsPage() {
         setMisconductDeductions(misconductList);
 
         // Process unpaid leave deductions - response is an object with unpaidLeaveRequests and payslipDeductions
-        const unpaidData = unpaidRes?.data as UnpaidLeaveResponse | null;
+        const unpaidData = (unpaidRes as any)?.data as UnpaidLeaveResponse | null;
         const unpaidList: UnpaidLeaveDeduction[] = [];
         let unpaidTotal = 0;
         if (unpaidData && typeof unpaidData === 'object') {
@@ -229,7 +229,7 @@ export default function DeductionsPage() {
         setUnpaidLeaveTotal(unpaidTotal);
 
         // Process attendance-based deductions - response is an object with deductions array
-        const attendanceData = attendanceRes?.data as AttendanceResponse | null;
+        const attendanceData = (attendanceRes as any)?.data as AttendanceResponse | null;
         const attendanceList: AttendanceDeduction[] = [];
         if (attendanceData && typeof attendanceData === 'object') {
           if (attendanceData.deductions && Array.isArray(attendanceData.deductions)) {

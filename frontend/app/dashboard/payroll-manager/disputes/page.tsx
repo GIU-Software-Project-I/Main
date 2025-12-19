@@ -60,51 +60,31 @@ export default function PayrollManagerDisputesPage() {
       setError('Missing dispute or user information');
       return;
     }
-
-    if (!selectedDispute.id) {
-      setError('Dispute ID is missing. Please refresh the page and try again.');
-      console.error('Selected dispute:', selectedDispute);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setSuccessMessage(null);
-
     try {
-      console.log('[DisputesPage] Confirming dispute:', { 
-        disputeId: selectedDispute.id, 
-        managerId: user.id, 
-        action: confirmationAction 
-      });
-      
       const response = await payrollManagerService.confirmDispute({
         disputeId: selectedDispute.id,
         confirmed: confirmationAction === 'approve',
         notes: confirmationNotes,
       }, user.id);
-
       if (response.error) {
         setError(`Failed to ${confirmationAction} dispute: ${response.error}`);
         return;
       }
-
       if (response.data) {
         setSuccessMessage(`Dispute ${confirmationAction === 'approve' ? 'approved' : 'rejected'} successfully`);
         setShowConfirmModal(false);
         setSelectedDispute(null);
         setConfirmationNotes('');
-        
-        // Reload disputes
         await loadDisputes();
       }
     } catch (error) {
-      console.error('Failed to process dispute:', error);
       setError(`Failed to ${confirmationAction} dispute. Please try again.`);
     } finally {
       setLoading(false);
     }
   };
+
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -134,34 +114,7 @@ export default function PayrollManagerDisputesPage() {
 
   const disputes = filterDisputes();
 
-  const handleRejectDispute = async () => {
-    if (!selectedDispute) return;
 
-    try {
-      const response = await payrollManagerService.confirmDispute({
-        disputeId: selectedDispute.id,
-        confirmed: false,
-        notes: confirmationNotes,
-      });
-
-      if (response.error) {
-        console.error('Failed to reject dispute:', response.error);
-        alert(`Error: ${response.error}`);
-        return;
-      }
-
-      if (response.data) {
-        setShowConfirmModal(false);
-        setSelectedDispute(null);
-        setConfirmationNotes('');
-        // Reload disputes to get updated list
-        await loadDisputes();
-      }
-    } catch (error) {
-      console.error('Failed to reject dispute:', error);
-      alert('Failed to reject dispute. Please try again.');
-    }
-  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
