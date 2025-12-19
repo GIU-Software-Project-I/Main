@@ -84,11 +84,23 @@ export function useThemeManager() {
     const styles = darkMode ? theme.preset.styles.dark : theme.preset.styles.light
     const root = document.documentElement
 
-
     // Apply CSS variables to :root
+    // Inline styles have higher specificity than stylesheet rules, so they will override
     Object.entries(styles).forEach(([key, value]) => {
       root.style.setProperty(`--${key}`, value)
     })
+
+    // Ensure success, warning, and info variables are always set (they might not be in theme presets)
+    // These are defined in globals.css but we need to ensure they're preserved or reset
+    if (!styles.success) {
+      root.style.setProperty('--success', darkMode ? 'oklch(0.627 0.194 149.214)' : 'oklch(0.627 0.194 149.214)')
+    }
+    if (!styles.warning) {
+      root.style.setProperty('--warning', darkMode ? 'oklch(0.769 0.188 70.08)' : 'oklch(0.769 0.188 70.08)')
+    }
+    if (!styles.info) {
+      root.style.setProperty('--info', darkMode ? 'oklch(0.623 0.214 259.815)' : 'oklch(0.623 0.214 259.815)')
+    }
 
     // Update brand colors values when theme changes
     updateBrandColorsFromTheme(styles)
@@ -104,6 +116,17 @@ export function useThemeManager() {
       root.style.setProperty(`--${key}`, value)
     })
 
+    // Ensure success, warning, and info variables are always set
+    if (!styles.success) {
+      root.style.setProperty('--success', darkMode ? 'oklch(0.627 0.194 149.214)' : 'oklch(0.627 0.194 149.214)')
+    }
+    if (!styles.warning) {
+      root.style.setProperty('--warning', darkMode ? 'oklch(0.769 0.188 70.08)' : 'oklch(0.769 0.188 70.08)')
+    }
+    if (!styles.info) {
+      root.style.setProperty('--info', darkMode ? 'oklch(0.623 0.214 259.815)' : 'oklch(0.623 0.214 259.815)')
+    }
+
     // Update brand colors values when theme changes
     updateBrandColorsFromTheme(styles)
   }, [resetTheme, updateBrandColorsFromTheme])
@@ -113,9 +136,21 @@ export function useThemeManager() {
     const themeVars = darkMode ? themeData.dark : themeData.light
     
     // Apply all variables from the theme
+    // Inline styles have higher specificity than stylesheet rules
     Object.entries(themeVars).forEach(([variable, value]) => {
       root.style.setProperty(`--${variable}`, value)
     })
+    
+    // Ensure success, warning, and info variables are always set
+    if (!themeVars.success) {
+      root.style.setProperty('--success', darkMode ? 'oklch(0.627 0.194 149.214)' : 'oklch(0.627 0.194 149.214)')
+    }
+    if (!themeVars.warning) {
+      root.style.setProperty('--warning', darkMode ? 'oklch(0.769 0.188 70.08)' : 'oklch(0.769 0.188 70.08)')
+    }
+    if (!themeVars.info) {
+      root.style.setProperty('--info', darkMode ? 'oklch(0.623 0.214 259.815)' : 'oklch(0.623 0.214 259.815)')
+    }
     
     // Update brand colors values for the customizer UI
     const newBrandColors: Record<string, string> = {}

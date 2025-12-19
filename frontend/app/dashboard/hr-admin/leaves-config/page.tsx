@@ -1064,8 +1064,8 @@ const handleResetLeaveYear = async () => {
     { id: 'eligibility', label: 'Eligibility Rules' },
     { id: 'calendar', label: 'Calendar & Holidays' },
     { id: 'accruals', label: 'Accruals / Carry Forward / Recalc' },
-    { id: 'entitlements', label: 'Entitlements (REQ-008)' },
-    { id: 'manual-adjustment', label: 'Manual Adjust Balances (REQ-013)' },
+    { id: 'entitlements', label: 'Entitlements' },
+    { id: 'manual-adjustment', label: 'Manual Adjust Balances' },
     { id: 'reset', label: 'Leave Year Reset' },
     { id: 'access-control', label: 'Access Control (Roles)' },
   ];
@@ -1131,29 +1131,29 @@ const handleResetLeaveYear = async () => {
       {/* ========================= */}
       {activeTab === 'categories' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               {editingCategory ? 'Edit Category' : 'Create New Category'}
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Name *</label>
                 <input
                   type="text"
                   value={categoryForm.name}
                   onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., Paid Leave, Unpaid Leave"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Description</label>
                 <textarea
                   value={categoryForm.description}
                   onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   rows={3}
                   placeholder="Optional description"
                 />
@@ -1163,7 +1163,7 @@ const handleResetLeaveYear = async () => {
                 <button
                   onClick={editingCategory ? () => handleUpdateCategory(editingCategory) : handleCreateCategory}
                   disabled={loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
                 >
                   {loading ? 'Saving...' : editingCategory ? 'Update' : 'Create'}
                 </button>
@@ -1175,7 +1175,7 @@ const handleResetLeaveYear = async () => {
                       setCategoryForm({ name: '', description: '' });
                       clearMessages();
                     }}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    className="px-4 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-accent transition-colors"
                   >
                     Cancel
                   </button>
@@ -1184,15 +1184,15 @@ const handleResetLeaveYear = async () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Existing Categories</h2>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Existing Categories</h2>
 
             <div className="space-y-2">
               {categories.map((cat) => (
-                <div key={cat._id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                <div key={cat._id} className="flex items-center justify-between p-3 border border-border rounded-lg bg-card">
                   <div>
-                    <p className="font-medium text-gray-900">{cat.name}</p>
-                    {cat.description && <p className="text-sm text-gray-500">{cat.description}</p>}
+                    <p className="font-medium text-foreground">{cat.name}</p>
+                    {cat.description && <p className="text-sm text-muted-foreground">{cat.description}</p>}
                   </div>
 
                   <div className="flex gap-2">
@@ -1202,13 +1202,13 @@ const handleResetLeaveYear = async () => {
                         setCategoryForm({ name: cat.name, description: cat.description || '' });
                         clearMessages();
                       }}
-                      className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                      className="px-3 py-1 text-sm bg-primary/10 dark:bg-primary/20 text-primary rounded hover:bg-primary/20 transition-colors"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDeleteCategory(cat._id)}
-                      className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded hover:bg-red-100"
+                      className="px-3 py-1 text-sm bg-destructive/10 dark:bg-destructive/20 text-destructive rounded hover:bg-destructive/20 transition-colors"
                     >
                       Delete
                     </button>
@@ -1217,7 +1217,7 @@ const handleResetLeaveYear = async () => {
               ))}
 
               {categories.length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-4">No categories found. Create one above.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No categories found. Create one above.</p>
               )}
             </div>
           </div>
@@ -1229,40 +1229,40 @@ const handleResetLeaveYear = async () => {
       {/* ========================= */}
       {activeTab === 'types' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               {editingType ? 'Edit Leave Type' : 'Create New Leave Type'}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Code *</label>
                 <input
                   type="text"
                   value={typeForm.code}
                   onChange={(e) => setTypeForm({ ...typeForm, code: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., ANNUAL, SICK, MISSION"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Name *</label>
                 <input
                   type="text"
                   value={typeForm.name}
                   onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., Annual Leave"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Category *</label>
                 <select
                   value={typeForm.categoryId}
                   onChange={(e) => setTypeForm({ ...typeForm, categoryId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 >
                   <option value="">Select category</option>
                   {categories.map((cat) => (
@@ -1274,18 +1274,18 @@ const handleResetLeaveYear = async () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Description</label>
                 <input
                   type="text"
                   value={typeForm.description}
                   onChange={(e) => setTypeForm({ ...typeForm, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="Optional description / special rules note"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Max Duration (Days)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Max Duration (Days)</label>
                 <input
                   type="number"
                   value={typeForm.maxDurationDays ?? ''}
@@ -1295,13 +1295,13 @@ const handleResetLeaveYear = async () => {
                       maxDurationDays: e.target.value ? Number(e.target.value) : undefined,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., 30"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Min Tenure (Months)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Min Tenure (Months)</label>
                 <input
                   type="number"
                   value={typeForm.minTenureMonths ?? ''}
@@ -1311,7 +1311,7 @@ const handleResetLeaveYear = async () => {
                       minTenureMonths: e.target.value ? Number(e.target.value) : undefined,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., 6"
                 />
               </div>
@@ -1322,9 +1322,9 @@ const handleResetLeaveYear = async () => {
                   id="paid"
                   checked={typeForm.paid}
                   onChange={(e) => setTypeForm({ ...typeForm, paid: e.target.checked })}
-                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  className="h-4 w-4 text-primary border-border rounded focus:ring-primary"
                 />
-                <label htmlFor="paid" className="text-sm text-gray-700">
+                <label htmlFor="paid" className="text-sm text-foreground">
                   Paid Leave
                 </label>
               </div>
@@ -1335,9 +1335,9 @@ const handleResetLeaveYear = async () => {
                   id="deductible"
                   checked={typeForm.deductible}
                   onChange={(e) => setTypeForm({ ...typeForm, deductible: e.target.checked })}
-                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  className="h-4 w-4 text-primary border-border rounded focus:ring-primary"
                 />
-                <label htmlFor="deductible" className="text-sm text-gray-700">
+                <label htmlFor="deductible" className="text-sm text-foreground">
                   Deductible from Balance
                 </label>
               </div>
@@ -1348,22 +1348,22 @@ const handleResetLeaveYear = async () => {
                   id="requiresAttachment"
                   checked={typeForm.requiresAttachment}
                   onChange={(e) => setTypeForm({ ...typeForm, requiresAttachment: e.target.checked })}
-                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  className="h-4 w-4 text-primary border-border rounded focus:ring-primary"
                 />
-                <label htmlFor="requiresAttachment" className="text-sm text-gray-700">
+                <label htmlFor="requiresAttachment" className="text-sm text-foreground">
                   Requires Attachment
                 </label>
               </div>
 
               {typeForm.requiresAttachment && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Attachment Type</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Attachment Type</label>
                   <select
                     value={typeForm.attachmentType}
                     onChange={(e) =>
                       setTypeForm({ ...typeForm, attachmentType: e.target.value as 'medical' | 'document' | 'other' })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   >
                     <option value="medical">Medical</option>
                     <option value="document">Document</option>
@@ -1377,7 +1377,7 @@ const handleResetLeaveYear = async () => {
               <button
                 onClick={editingType ? () => handleUpdateType(editingType) : handleCreateType}
                 disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
                 {loading ? 'Saving...' : editingType ? 'Update' : 'Create'}
               </button>
@@ -1389,44 +1389,44 @@ const handleResetLeaveYear = async () => {
                     resetTypeForm();
                     clearMessages();
                   }}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                  className="px-4 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-accent transition-colors"
                 >
                   Cancel
                 </button>
               )}
             </div>
 
-            <div className="mt-4 text-sm text-gray-500">
+            <div className="mt-4 text-sm text-muted-foreground">
               Tip: For special absence/mission types (bereavement, mission, jury duty), create a type here and define rules
               via Policy + Eligibility + Attachment flags.
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Existing Leave Types</h2>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Existing Leave Types</h2>
 
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-border">
+                <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paid</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Code</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Paid</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
                   </tr>
                 </thead>
 
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-card divide-y divide-border">
                   {types.map((t) => {
                     const category = categories.find((c) => c._id === t.categoryId);
                     return (
-                      <tr key={t._id}>
-                        <td className="px-4 py-3 text-sm text-gray-900">{t.code}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                      <tr key={t._id} className="hover:bg-accent/30 transition-colors">
+                        <td className="px-4 py-3 text-sm text-foreground">{t.code}</td>
+                        <td className="px-4 py-3 text-sm text-foreground">
                           {t.name}
-                          {category && <span className="text-gray-500 ml-2">({category.name})</span>}
+                          {category && <span className="text-muted-foreground ml-2">({category.name})</span>}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{t.paid ? 'Yes' : 'No'}</td>
+                        <td className="px-4 py-3 text-sm text-foreground">{t.paid ? 'Yes' : 'No'}</td>
                         <td className="px-4 py-3 text-sm">
                           <div className="flex gap-2">
                             <button
@@ -1446,12 +1446,12 @@ const handleResetLeaveYear = async () => {
                                 });
                                 clearMessages();
                               }}
-                              className="text-blue-600 hover:text-blue-800"
+                              className="text-primary hover:text-primary/80 transition-colors"
                             >
                               Edit
                             </button>
 
-                            <button onClick={() => handleDeleteType(t._id)} className="text-red-600 hover:text-red-800">
+                            <button onClick={() => handleDeleteType(t._id)} className="text-destructive hover:text-destructive/80 transition-colors">
                               Delete
                             </button>
                           </div>
@@ -1463,7 +1463,7 @@ const handleResetLeaveYear = async () => {
               </table>
 
               {types.length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-4">No leave types found. Create one above.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No leave types found. Create one above.</p>
               )}
             </div>
           </div>
@@ -1475,18 +1475,18 @@ const handleResetLeaveYear = async () => {
       {/* ========================= */}
       {activeTab === 'policies' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               {editingPolicy ? 'Edit Policy' : 'Create New Policy'}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Leave Type *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Leave Type *</label>
                 <select
                   value={policyForm.leaveTypeId}
                   onChange={(e) => setPolicyForm({ ...policyForm, leaveTypeId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 >
                   <option value="">Select leave type</option>
                   {types.map((t) => (
@@ -1498,13 +1498,13 @@ const handleResetLeaveYear = async () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Accrual Method *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Accrual Method *</label>
                 <select
                   value={policyForm.accrualMethod}
                   onChange={(e) =>
                     setPolicyForm({ ...policyForm, accrualMethod: e.target.value as 'monthly' | 'yearly' | 'per-term' })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 >
                   <option value="monthly">Monthly</option>
                   <option value="yearly">Yearly</option>
@@ -1514,7 +1514,7 @@ const handleResetLeaveYear = async () => {
 
               {policyForm.accrualMethod === 'monthly' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Rate</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Monthly Rate</label>
                   <input
                     type="number"
                     step="0.1"
@@ -1525,7 +1525,7 @@ const handleResetLeaveYear = async () => {
                         monthlyRate: e.target.value ? Number(e.target.value) : undefined,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                     placeholder="e.g., 1.67"
                   />
                 </div>
@@ -1533,7 +1533,7 @@ const handleResetLeaveYear = async () => {
 
               {policyForm.accrualMethod === 'yearly' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Yearly Rate</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Yearly Rate</label>
                   <input
                     type="number"
                     step="0.1"
@@ -1541,14 +1541,14 @@ const handleResetLeaveYear = async () => {
                     onChange={(e) =>
                       setPolicyForm({ ...policyForm, yearlyRate: e.target.value ? Number(e.target.value) : undefined })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                     placeholder="e.g., 20"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rounding Rule</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Rounding Rule</label>
                 <select
                   value={policyForm.roundingRule}
                   onChange={(e) =>
@@ -1557,7 +1557,7 @@ const handleResetLeaveYear = async () => {
                       roundingRule: e.target.value as 'none' | 'round' | 'round_up' | 'round_down',
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 >
                   <option value="none">None</option>
                   <option value="round">Round</option>
@@ -1567,18 +1567,18 @@ const handleResetLeaveYear = async () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Min Notice Days</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Min Notice Days</label>
                 <input
                   type="number"
                   value={policyForm.minNoticeDays}
                   onChange={(e) => setPolicyForm({ ...policyForm, minNoticeDays: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., 3"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Max Consecutive Days</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Max Consecutive Days</label>
                 <input
                   type="number"
                   value={policyForm.maxConsecutiveDays ?? ''}
@@ -1588,7 +1588,7 @@ const handleResetLeaveYear = async () => {
                       maxConsecutiveDays: e.target.value ? Number(e.target.value) : undefined,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., 30"
                 />
               </div>
@@ -1599,9 +1599,9 @@ const handleResetLeaveYear = async () => {
                   id="carryForward"
                   checked={policyForm.carryForwardAllowed}
                   onChange={(e) => setPolicyForm({ ...policyForm, carryForwardAllowed: e.target.checked })}
-                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  className="h-4 w-4 text-primary border-border rounded"
                 />
-                <label htmlFor="carryForward" className="text-sm text-gray-700">
+                <label htmlFor="carryForward" className="text-sm text-foreground">
                   Allow Carry Forward
                 </label>
               </div>
@@ -1609,7 +1609,7 @@ const handleResetLeaveYear = async () => {
               {policyForm.carryForwardAllowed && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Carry Forward (Days)</label>
+                    <label className="block text-sm font-medium text-foreground mb-1">Max Carry Forward (Days)</label>
                     <input
                       type="number"
                       value={policyForm.maxCarryForward ?? ''}
@@ -1619,13 +1619,13 @@ const handleResetLeaveYear = async () => {
                           maxCarryForward: e.target.value ? Number(e.target.value) : undefined,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                       placeholder="e.g., 5"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Expiry After (Months)</label>
+                    <label className="block text-sm font-medium text-foreground mb-1">Expiry After (Months)</label>
                     <input
                       type="number"
                       value={policyForm.expiryAfterMonths ?? ''}
@@ -1635,7 +1635,7 @@ const handleResetLeaveYear = async () => {
                           expiryAfterMonths: e.target.value ? Number(e.target.value) : undefined,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                       placeholder="e.g., 12"
                     />
                   </div>
@@ -1647,7 +1647,7 @@ const handleResetLeaveYear = async () => {
               <button
                 onClick={editingPolicy ? () => handleUpdatePolicy(editingPolicy) : handleCreatePolicy}
                 disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
               >
                 {loading ? 'Saving...' : editingPolicy ? 'Update' : 'Create'}
               </button>
@@ -1659,31 +1659,31 @@ const handleResetLeaveYear = async () => {
                     resetPolicyForm();
                     clearMessages();
                   }}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                  className="px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-accent"
                 >
                   Cancel
                 </button>
               )}
             </div>
 
-            <div className="mt-4 text-sm text-gray-500">
-              Approval workflow is enforced by backend endpoints (employee submits → manager approve/reject → HR finalize).
+            <div className="mt-4 text-sm text-muted-foreground">
+              Approval workflow is enforced (employee submits → manager approve/reject → HR finalize).
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Existing Policies</h2>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Existing Policies</h2>
 
             <div className="space-y-2">
               {policies.map((p) => {
                 const leaveTypeId = p.leaveTypeId;
                 const t = types.find((x: LeaveType) => (x._id || x.id) === leaveTypeId);
                 return (
-                  <div key={p._id} className="p-4 border border-gray-200 rounded-lg">
+                  <div key={p._id} className="p-4 border border-border rounded-lg">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-medium text-gray-900">{t?.name || 'Unknown Type'}</p>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="font-medium text-foreground">{t?.name || 'Unknown Type'}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
                           Accrual: {p.accrualMethod} | Notice: {p.minNoticeDays} days | Carry Forward:{' '}
                           {p.carryForwardAllowed ? `Yes (max ${p.maxCarryForward ?? 0})` : 'No'}
                         </p>
@@ -1707,14 +1707,14 @@ const handleResetLeaveYear = async () => {
                             });
                             clearMessages();
                           }}
-                          className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                          className="px-3 py-1 text-sm bg-primary/10 dark:bg-primary/20 text-primary rounded hover:bg-primary/20"
                         >
                           Edit
                         </button>
 
                         <button
                           onClick={() => handleDeletePolicy(p._id)}
-                          className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded hover:bg-red-100"
+                          className="px-3 py-1 text-sm bg-destructive/10 dark:bg-destructive/20 text-destructive rounded hover:bg-destructive/20"
                         >
                           Delete
                         </button>
@@ -1725,7 +1725,7 @@ const handleResetLeaveYear = async () => {
               })}
 
               {policies.length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-4">No policies found. Create one above.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No policies found. Create one above.</p>
               )}
             </div>
           </div>
@@ -1737,12 +1737,12 @@ const handleResetLeaveYear = async () => {
       {/* ========================= */}
       {activeTab === 'eligibility' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Set Eligibility Rules</h2>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Set Eligibility Rules</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Leave Type *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Leave Type *</label>
                 <select
                   value={selectedTypeForEligibility}
                   onChange={(e) => {
@@ -1750,7 +1750,7 @@ const handleResetLeaveYear = async () => {
                     clearMessages();
                     if (e.target.value) fetchEligibilityForType(e.target.value);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 >
                   <option value="">Select leave type</option>
                   {types.map((t) => (
@@ -1762,7 +1762,7 @@ const handleResetLeaveYear = async () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Minimum Tenure (Months)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Minimum Tenure (Months)</label>
                 <input
                   type="number"
                   value={eligibilityForm.minTenureMonths ?? ''}
@@ -1772,13 +1772,13 @@ const handleResetLeaveYear = async () => {
                       minTenureMonths: e.target.value ? Number(e.target.value) : undefined,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., 6"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Positions Allowed (comma-separated)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Positions Allowed (comma-separated)</label>
                 <input
                   type="text"
                   value={eligibilityForm.positionsAllowed.join(', ')}
@@ -1788,13 +1788,13 @@ const handleResetLeaveYear = async () => {
                       positionsAllowed: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., Intern, Junior, Senior, Manager"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Contract Types Allowed (comma-separated)
                 </label>
                 <input
@@ -1806,13 +1806,13 @@ const handleResetLeaveYear = async () => {
                       contractTypesAllowed: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., Full-time, Part-time, Contract"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Employment Types Allowed (comma-separated)
                 </label>
                 <input
@@ -1824,7 +1824,7 @@ const handleResetLeaveYear = async () => {
                       employmentTypes: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., Permanent, Temporary"
                 />
               </div>
@@ -1832,14 +1832,11 @@ const handleResetLeaveYear = async () => {
               <button
                 onClick={handleSaveEligibility}
                 disabled={loading || !selectedTypeForEligibility}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
               >
                 {loading ? 'Saving...' : 'Save Eligibility Rules'}
               </button>
 
-              <div className="text-sm text-gray-500">
-                Backend endpoint used: <span className="font-mono">PATCH /leaves/types/:id/eligibility</span>
-              </div>
             </div>
           </div>
         </div>
@@ -1850,9 +1847,9 @@ const handleResetLeaveYear = async () => {
       {/* ========================= */}
       {activeTab === 'calendar' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-center gap-4 mb-2">
-              <label className="block text-sm font-medium text-gray-700">Year</label>
+              <label className="block text-sm font-medium text-foreground">Year</label>
               <input
                 type="number"
                 value={selectedYear}
@@ -1861,38 +1858,33 @@ const handleResetLeaveYear = async () => {
                   setSelectedYear(year);
                   fetchCalendar(year);
                 }}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 
-            <div className="text-sm text-gray-500">
-              Backend endpoints used: <span className="font-mono">GET /leaves/calendar/:year</span>,{' '}
-              <span className="font-mono">POST /leaves/calendar/holidays</span>,{' '}
-              <span className="font-mono">POST /leaves/calendar/blocked-periods</span>
-            </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Holiday</h2>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Add Holiday</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Date *</label>
                 <input
                   type="date"
                   value={holidayForm.date}
                   onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Reason</label>
                 <input
                   type="text"
                   value={holidayForm.reason}
                   onChange={(e) => setHolidayForm({ ...holidayForm, reason: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., New Year"
                 />
               </div>
@@ -1901,43 +1893,43 @@ const handleResetLeaveYear = async () => {
             <button
               onClick={handleAddHoliday}
               disabled={loading}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
             >
               {loading ? 'Adding...' : 'Add Holiday'}
             </button>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Blocked Period</h2>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Add Blocked Period</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">From Date *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">From Date *</label>
                 <input
                   type="date"
                   value={blockedPeriodForm.from}
                   onChange={(e) => setBlockedPeriodForm({ ...blockedPeriodForm, from: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">To Date *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">To Date *</label>
                 <input
                   type="date"
                   value={blockedPeriodForm.to}
                   onChange={(e) => setBlockedPeriodForm({ ...blockedPeriodForm, to: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reason *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Reason *</label>
                 <input
                   type="text"
                   value={blockedPeriodForm.reason}
                   onChange={(e) => setBlockedPeriodForm({ ...blockedPeriodForm, reason: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., Company Closure"
                 />
               </div>
@@ -1946,26 +1938,26 @@ const handleResetLeaveYear = async () => {
             <button
               onClick={handleAddBlockedPeriod}
               disabled={loading}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
             >
               {loading ? 'Adding...' : 'Add Blocked Period'}
             </button>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Holidays & Blocked Periods</h2>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Holidays & Blocked Periods</h2>
 
             <div className="space-y-6">
               <div>
-                <h3 className="font-medium text-gray-900 mb-2">Holidays</h3>
+                <h3 className="font-medium text-foreground mb-2">Holidays</h3>
                 {calendar && calendar.holidays.length > 0 ? (
                   <div className="space-y-2">
                     {calendar.holidays.map((date) => (
-                      <div key={date} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+                      <div key={date} className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm">
                         <span>{date}</span>
                         <button
                           onClick={() => handleRemoveHoliday(date)}
-                          className="text-red-600 hover:text-red-800"
+                          className="text-destructive hover:text-destructive/80"
                           disabled={loading}
                         >
                           Remove
@@ -1974,25 +1966,25 @@ const handleResetLeaveYear = async () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">No holidays for this year.</p>
+                  <p className="text-sm text-muted-foreground">No holidays for this year.</p>
                 )}
               </div>
 
               <div>
-                <h3 className="font-medium text-gray-900 mb-2">Blocked Periods</h3>
+                <h3 className="font-medium text-foreground mb-2">Blocked Periods</h3>
                 {calendar && calendar.blockedPeriods.length > 0 ? (
                   <div className="space-y-2">
                     {calendar.blockedPeriods.map((bp, idx) => (
                       <div
                         key={`${bp.from}-${bp.to}-${idx}`}
-                        className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm"
+                        className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm"
                       >
                         <span>
                           {bp.from} → {bp.to} — {bp.reason}
                         </span>
                         <button
                           onClick={() => handleRemoveBlockedPeriod(bp.from, bp.to)}
-                          className="text-red-600 hover:text-red-800"
+                          className="text-destructive hover:text-destructive/80"
                           disabled={loading}
                         >
                           Remove
@@ -2001,7 +1993,7 @@ const handleResetLeaveYear = async () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">No blocked periods for this year.</p>
+                  <p className="text-sm text-muted-foreground">No blocked periods for this year.</p>
                 )}
               </div>
             </div>
@@ -2014,26 +2006,26 @@ const handleResetLeaveYear = async () => {
       {/* ========================= */}
       {activeTab === 'accruals' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Run Accrual</h2>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Run Accrual</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reference Date</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Reference Date</label>
                 <input
                   type="date"
                   value={accrualForm.referenceDate}
                   onChange={(e) => setAccrualForm({ ...accrualForm, referenceDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Accrual Method</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Accrual Method</label>
                 <select
                   value={accrualForm.method}
                   onChange={(e) => setAccrualForm({ ...accrualForm, method: e.target.value as 'monthly' | 'yearly' | 'per-term' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 >
                   <option value="monthly">Monthly</option>
                   <option value="yearly">Yearly</option>
@@ -2042,11 +2034,11 @@ const handleResetLeaveYear = async () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rounding Rule</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Rounding Rule</label>
                 <select
                   value={accrualForm.roundingRule}
                   onChange={(e) => setAccrualForm({ ...accrualForm, roundingRule: e.target.value as 'none' | 'round' | 'round_up' | 'round_down' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 >
                   <option value="none">None</option>
                   <option value="round">Round</option>
@@ -2059,32 +2051,29 @@ const handleResetLeaveYear = async () => {
             <button
               onClick={handleRunAccrual}
               disabled={loading}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
             >
               {loading ? 'Running...' : 'Run Accrual'}
             </button>
 
-            <div className="mt-2 text-sm text-gray-500">
-              Backend endpoint: <span className="font-mono">POST /leaves/accruals/run</span>
-            </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Carry Forward</h2>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Carry Forward</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reference Date</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Reference Date</label>
                 <input
                   type="date"
                   value={carryForwardForm.referenceDate}
                   onChange={(e) => setCarryForwardForm({ ...carryForwardForm, referenceDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cap Days (optional)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Cap Days (optional)</label>
                 <input
                   type="number"
                   value={carryForwardForm.capDays ?? ''}
@@ -2094,13 +2083,13 @@ const handleResetLeaveYear = async () => {
                       capDays: e.target.value ? Number(e.target.value) : undefined,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., 5"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Months (optional)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Expiry Months (optional)</label>
                 <input
                   type="number"
                   value={carryForwardForm.expiryMonths ?? ''}
@@ -2110,7 +2099,7 @@ const handleResetLeaveYear = async () => {
                       expiryMonths: e.target.value ? Number(e.target.value) : undefined,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., 12"
                 />
               </div>
@@ -2119,27 +2108,24 @@ const handleResetLeaveYear = async () => {
             <button
               onClick={handleCarryForward}
               disabled={loading}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
             >
               {loading ? 'Running...' : 'Run Carry Forward'}
             </button>
 
-            <div className="mt-2 text-sm text-gray-500">
-              Backend endpoint: <span className="font-mono">POST /leaves/accruals/carryforward</span>
-            </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recalculate Single Employee</h2>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Recalculate Single Employee</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Employee ID *</label>
                 <input
                   type="text"
                   value={recalcEmployeeId}
                   onChange={(e) => setRecalcEmployeeId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="MongoId"
                 />
               </div>
@@ -2147,15 +2133,12 @@ const handleResetLeaveYear = async () => {
               <button
                 onClick={handleRecalcEmployee}
                 disabled={loading}
-                className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+                className="px-4 py-2 bg-foreground text-primary-foreground rounded-lg hover:bg-foreground/90 disabled:opacity-50"
               >
                 {loading ? 'Processing...' : 'Recalculate'}
               </button>
             </div>
 
-            <div className="mt-2 text-sm text-gray-500">
-              Backend endpoint: <span className="font-mono">GET /leaves/accruals/employee/:id/recalc</span>
-            </div>
           </div>
         </div>
       )}
@@ -2165,30 +2148,30 @@ const handleResetLeaveYear = async () => {
       {/* ========================= */}
       {activeTab === 'entitlements' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Entitlements (REQ-008)</h2>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Entitlements</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Employee IDs *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Employee IDs *</label>
                 <textarea
                   value={entForm.employeeIds}
                   onChange={(e) => setEntForm({ ...entForm, employeeIds: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   rows={3}
                   placeholder="One employeeId OR multiple separated by comma/new line"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   For Load/Summary you must enter exactly 1 employeeId. For Assign you can enter a group.
                 </p>
               </div>
 
               <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Leave Type *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Leave Type *</label>
                 <select
                   value={entForm.leaveTypeId}
                   onChange={(e) => setEntForm({ ...entForm, leaveTypeId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 >
                   <option value="">Select leave type</option>
                   {types.map((t) => (
@@ -2200,13 +2183,13 @@ const handleResetLeaveYear = async () => {
               </div>
 
               <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Yearly Entitlement (days) *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Yearly Entitlement (days) *</label>
                 <input
                   type="number"
                   min="0"
                   value={entForm.yearlyEntitlement}
                   onChange={(e) => setEntForm({ ...entForm, yearlyEntitlement: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., 21"
                 />
               </div>
@@ -2216,7 +2199,7 @@ const handleResetLeaveYear = async () => {
               <button
                 onClick={loadEntitlements}
                 disabled={loading}
-                className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+                className="px-4 py-2 bg-foreground text-primary-foreground rounded-lg hover:bg-foreground/90 disabled:opacity-50"
               >
                 {loading ? 'Loading...' : 'Load Entitlements (single)'}
               </button>
@@ -2224,7 +2207,7 @@ const handleResetLeaveYear = async () => {
               <button
                 onClick={loadEntitlementSummary}
                 disabled={loading}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+                className="px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-accent disabled:opacity-50"
               >
                 {loading ? 'Loading...' : 'Load Summary (single)'}
               </button>
@@ -2232,57 +2215,52 @@ const handleResetLeaveYear = async () => {
               <button
                 onClick={handleAssignEntitlement}
                 disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
               >
                 {loading ? 'Saving...' : 'Assign / Update (single or group)'}
               </button>
             </div>
 
-            <div className="mt-3 text-sm text-gray-500">
-              Backend endpoints: <span className="font-mono">GET /leaves/entitlements/:employeeId</span>,{' '}
-              <span className="font-mono">POST /leaves/entitlements/assign</span>,{' '}
-              <span className="font-mono">GET /leaves/employees/:employeeId/entitlement-summary</span>
-            </div>
           </div>
 
           {entSummary && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Entitlement Summary</h3>
-              <pre className="text-xs bg-gray-50 border border-gray-200 rounded-lg p-3 overflow-auto">
+            <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-3">Entitlement Summary</h3>
+              <pre className="text-xs bg-muted/50 border border-border rounded-lg p-3 overflow-auto">
                 {JSON.stringify(entSummary, null, 2)}
               </pre>
             </div>
           )}
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Entitlements ({entitlements.length})</h3>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Current Entitlements ({entitlements.length})</h3>
 
             {entitlements.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No entitlements loaded.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No entitlements loaded.</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-muted/50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Leave Type</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Yearly</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Accrued</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Taken</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pending</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remaining</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Leave Type</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Yearly</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Accrued</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Taken</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Pending</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Remaining</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-card divide-y divide-border">
                     {entitlements.map((e, idx) => (
                       <tr key={e._id ?? `${e.leaveTypeId}-${idx}`}>
-                        <td className="px-4 py-3 text-sm text-gray-900">{String(getTypeName(e.leaveTypeId))}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{e.yearlyEntitlement ?? '-'}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        <td className="px-4 py-3 text-sm text-foreground">{String(getTypeName(e.leaveTypeId))}</td>
+                        <td className="px-4 py-3 text-sm text-foreground">{e.yearlyEntitlement ?? '-'}</td>
+                        <td className="px-4 py-3 text-sm text-foreground">
                           {(e.accruedRounded ?? e.accruedActual) ?? '-'}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{e.taken ?? '-'}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{e.pending ?? '-'}</td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{e.remaining ?? '-'}</td>
+                        <td className="px-4 py-3 text-sm text-foreground">{e.taken ?? '-'}</td>
+                        <td className="px-4 py-3 text-sm text-foreground">{e.pending ?? '-'}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-foreground">{e.remaining ?? '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -2294,26 +2272,26 @@ const handleResetLeaveYear = async () => {
       )}
 
       {/* ========================= */}
-      {/* Manual Adjustments Tab (REQ-013) */}
+      {/* Manual Adjustments Tab */}
       {/* ========================= */}
       {activeTab === 'manual-adjustment' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Manual Adjust Balances (REQ-013)</h2>
-            <p className="text-sm text-gray-500 mb-4">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-2">Manual Adjust Balances</h2>
+            <p className="text-sm text-muted-foreground mb-4">
               Create an adjustment record + update entitlement balance (audit trail via backend).
             </p>
 
             {/* Preview balances */}
             {adjPreviewEntitlements.length > 0 && (
-              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-blue-900 mb-2">Current Balances</h3>
+              <div className="mb-4 bg-primary/10 dark:bg-primary/20 border border-primary/30 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-primary mb-2">Current Balances</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {adjPreviewEntitlements.map((e, idx) => (
                     <div key={e._id ?? `${e.leaveTypeId}-${idx}`} className="text-xs">
                       <div className="flex justify-between">
-                        <span className="text-blue-900 font-medium">{String(getTypeName(e.leaveTypeId))}</span>
-                        <span className="text-blue-800">Remaining: {(e.remaining ?? 0).toFixed(2)}</span>
+                        <span className="text-primary font-medium">{String(getTypeName(e.leaveTypeId))}</span>
+                        <span className="text-primary/80">Remaining: {(e.remaining ?? 0).toFixed(2)}</span>
                       </div>
                     </div>
                   ))}
@@ -2324,23 +2302,23 @@ const handleResetLeaveYear = async () => {
             {/* Form */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Employee ID *</label>
                 <input
                   type="text"
                   value={adjForm.employeeId}
                   onChange={(e) => setAdjForm({ ...adjForm, employeeId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="MongoId"
                 />
-                <p className="text-xs text-gray-500 mt-1">When you type an ID, balances auto-load for preview.</p>
+                <p className="text-xs text-muted-foreground mt-1">When you type an ID, balances auto-load for preview.</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Leave Type *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Leave Type *</label>
                 <select
                   value={adjForm.leaveTypeId}
                   onChange={(e) => setAdjForm({ ...adjForm, leaveTypeId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 >
                   <option value="">Select leave type</option>
                   {types.map((t) => (
@@ -2352,72 +2330,72 @@ const handleResetLeaveYear = async () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Adjustment Type *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Adjustment Type *</label>
                 <select
                   value={adjForm.adjustmentType}
                   onChange={(e) => setAdjForm({ ...adjForm, adjustmentType: e.target.value as AdjustmentType })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 >
                   <option value="add">Add Days</option>
                   <option value="deduct">Deduct Days</option>
                   <option value="encashment">Encashment</option>
                 </select>
-                <p className="text-xs text-gray-500 mt-1">Remove “Encashment” if backend enum doesn’t support it.</p>
+                <p className="text-xs text-muted-foreground mt-1">Remove “Encashment” if backend enum doesn’t support it.</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Amount (days) *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Amount (days) *</label>
                 <input
                   type="number"
                   step="0.5"
                   min="0"
                   value={adjForm.amount}
                   onChange={(e) => setAdjForm({ ...adjForm, amount: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., 2.5"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reason *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Reason *</label>
                 <input
                   type="text"
                   value={adjForm.reason}
                   onChange={(e) => setAdjForm({ ...adjForm, reason: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="Correction / One-time grant / carry-over fix"
                 />
               </div>
 
               <div className="md:col-span-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">HR User ID (auto) *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">HR User ID (auto) *</label>
                 <input
                   type="text"
                   value={adjForm.hrUserId || getActorId()}
                   readOnly
-                  className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg"
+                  className="w-full px-3 py-2 border border-border bg-muted/50 rounded-lg"
                 />
               </div>
             </div>
 
             {/* Preview after */}
             {adjForm.employeeId && adjForm.leaveTypeId && adjForm.amount && currentAdjRemaining !== null && (
-              <div className="mt-4 grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="mt-4 grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg border border-border">
                 <div>
-                  <p className="text-xs text-gray-600">Current Remaining</p>
-                  <p className="text-2xl font-bold text-gray-900">{Number(currentAdjRemaining).toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">Current Remaining</p>
+                  <p className="text-2xl font-bold text-foreground">{Number(currentAdjRemaining).toFixed(2)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600">After</p>
+                  <p className="text-xs text-muted-foreground">After</p>
                   <p
                     className={`text-2xl font-bold ${
-                      afterAdjRemaining !== null && afterAdjRemaining >= 0 ? 'text-green-600' : 'text-red-600'
+                      afterAdjRemaining !== null && afterAdjRemaining >= 0 ? 'text-success' : 'text-destructive'
                     }`}
                   >
                     {afterAdjRemaining === null ? '-' : afterAdjRemaining.toFixed(2)}
                   </p>
                   {afterAdjRemaining !== null && afterAdjRemaining < 0 && (
-                    <p className="text-xs text-red-600 mt-1">⚠ likely rejected if backend blocks negative balance</p>
+                    <p className="text-xs text-destructive mt-1">⚠ likely rejected if backend blocks negative balance</p>
                   )}
                 </div>
               </div>
@@ -2426,38 +2404,35 @@ const handleResetLeaveYear = async () => {
             <button
               onClick={handleCreateAdjustment}
               disabled={loading}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
             >
               {loading ? 'Saving...' : 'Create Adjustment'}
             </button>
 
-            <div className="mt-2 text-sm text-gray-500">
-              Backend endpoint: <span className="font-mono">POST /leaves/adjustments</span>
-            </div>
           </div>
 
           {/* History */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Adjustment History</h3>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Adjustment History</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Employee ID *</label>
                 <input
                   type="text"
                   value={adjHistoryFilter.employeeId}
                   onChange={(e) => setAdjHistoryFilter({ ...adjHistoryFilter, employeeId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="MongoId"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Leave Type (optional)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Leave Type (optional)</label>
                 <select
                   value={adjHistoryFilter.leaveTypeId}
                   onChange={(e) => setAdjHistoryFilter({ ...adjHistoryFilter, leaveTypeId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 >
                   <option value="">All</option>
                   {types.map((t) => (
@@ -2471,7 +2446,7 @@ const handleResetLeaveYear = async () => {
               <button
                 onClick={loadAdjustmentHistory}
                 disabled={loading}
-                className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+                className="px-4 py-2 bg-foreground text-primary-foreground rounded-lg hover:bg-foreground/90 disabled:opacity-50"
               >
                 {loading ? 'Loading...' : 'Load History'}
               </button>
@@ -2479,20 +2454,20 @@ const handleResetLeaveYear = async () => {
 
             <div className="mt-4">
               {adjHistory.length === 0 ? (
-                <p className="text-sm text-gray-500">No history loaded.</p>
+                <p className="text-sm text-muted-foreground">No history loaded.</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-muted/50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Leave Type</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reason</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Leave Type</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Type</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Amount</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Reason</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-card divide-y divide-border">
                       {adjHistory.map((h, idx) => (
                         <tr key={h._id ?? idx}>
                           <td className="px-4 py-3 text-sm">{(h.createdAt || h.date || '').toString().slice(0, 10) || '-'}</td>
@@ -2508,9 +2483,6 @@ const handleResetLeaveYear = async () => {
               )}
             </div>
 
-            <div className="mt-2 text-sm text-gray-500">
-              Backend endpoint: <span className="font-mono">GET /leaves/employees/:employeeId/adjustment-history</span>
-            </div>
           </div>
         </div>
       )}
@@ -2520,8 +2492,8 @@ const handleResetLeaveYear = async () => {
 {/* ========================= */}
 {activeTab === "reset" && (
   <div className="space-y-6">
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">
+    <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+      <h2 className="text-lg font-semibold text-foreground mb-4">
         Reset Leave Year
       </h2>
 
@@ -2535,7 +2507,7 @@ const handleResetLeaveYear = async () => {
 
         {/* Strategy */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-foreground mb-1">
             Reset Strategy *
           </label>
           <select
@@ -2550,7 +2522,7 @@ const handleResetLeaveYear = async () => {
                 referenceDate: strategy === "custom" ? (prev.referenceDate ?? new Date().toISOString().slice(0, 10)) : undefined,
               }));
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="hireDate">By First Vacation Date</option>
             <option value="calendarYear">Calendar Year (Jan 1)</option>
@@ -2561,7 +2533,7 @@ const handleResetLeaveYear = async () => {
         {/* Custom date */}
         {resetForm.strategy === "custom" && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               Reference Date *
             </label>
             <input
@@ -2570,10 +2542,10 @@ const handleResetLeaveYear = async () => {
               onChange={(e) =>
                 setResetForm((prev) => ({ ...prev, referenceDate: e.target.value }))
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
             />
             {!resetForm.referenceDate && (
-              <p className="text-xs text-red-600 mt-1">
+              <p className="text-xs text-destructive mt-1">
                 Reference date is required for Custom strategy.
               </p>
             )}
@@ -2581,10 +2553,10 @@ const handleResetLeaveYear = async () => {
         )}
 
         {/* Dry run toggle */}
-        <div className="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2">
+        <div className="flex items-center justify-between border border-border rounded-lg px-3 py-2">
           <div>
-            <p className="text-sm font-medium text-gray-800">Dry Run (Preview)</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-sm font-medium text-foreground">Dry Run (Preview)</p>
+            <p className="text-xs text-muted-foreground">
               Preview changes without updating MongoDB
             </p>
           </div>
@@ -2594,8 +2566,8 @@ const handleResetLeaveYear = async () => {
             onClick={() => setResetForm((prev) => ({ ...prev, dryRun: !prev.dryRun }))}
             className={`px-3 py-1 rounded-full text-sm border ${
               resetForm.dryRun
-                ? "bg-green-50 border-green-300 text-green-700"
-                : "bg-red-50 border-red-300 text-red-700"
+                ? "bg-success/10 dark:bg-success/20 border-success/30 text-success"
+                : "bg-destructive/10 dark:bg-destructive/20 border-destructive/30 text-destructive"
             }`}
           >
             {resetForm.dryRun ? "ON" : "OFF"}
@@ -2610,7 +2582,7 @@ const handleResetLeaveYear = async () => {
               loading ||
               (resetForm.strategy === "custom" && !resetForm.referenceDate)
             }
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            className="px-4 py-2 bg-destructive text-primary-foreground rounded-lg hover:bg-destructive/90 disabled:opacity-50"
           >
             {loading
               ? "Processing..."
@@ -2620,10 +2592,6 @@ const handleResetLeaveYear = async () => {
           </button>
         </div>
 
-        <div className="text-sm text-gray-500">
-          Backend endpoint:{" "}
-          <span className="font-mono">POST /leaves/accruals/reset-year</span>
-        </div>
       </div>
     </div>
   </div>
