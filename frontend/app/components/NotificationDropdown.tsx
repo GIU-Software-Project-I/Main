@@ -112,7 +112,12 @@ export default function NotificationDropdown() {
                         let title = 'Notification';
                         let actionUrl: string | undefined;
 
-                        if (apiType.includes('SHIFT_EXPIRY')) {
+                        // Handle lateness/threshold notifications
+                        if (apiType.includes('LATENESS_THRESHOLD') || apiType.includes('REPEATED_LATENESS') || apiType === 'EMPLOYEE_LATENESS_THRESHOLD') {
+                            type = 'warning';
+                            title = 'Lateness Alert';
+                            actionUrl = user?.role?.includes('HR') ? '/dashboard/hr-manager/time-management/Lateness' : '/portal/my-attendance';
+                        } else if (apiType.includes('SHIFT_EXPIRY')) {
                             type = 'warning';
                             title = 'Shift Expiry Alert';
                             actionUrl = '/dashboard/system-admin/time-management/ShiftAssignments';
@@ -128,6 +133,13 @@ export default function NotificationDropdown() {
                             type = 'info';
                             title = 'Payroll Update';
                             actionUrl = '/portal/my-payslips';
+                        } else if (apiType.includes('ATTENDANCE_') || apiType === 'MISSED_PUNCH') {
+                            type = 'warning';
+                            title = 'Attendance Alert';
+                            actionUrl = '/portal/my-attendance';
+                        } else if (apiType) {
+                            // Fallback - convert API type to readable title
+                            title = apiType.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase());
                         }
 
                         const createdAt = new Date(notif.createdAt || new Date());

@@ -893,9 +893,41 @@ export const timeManagementService = {
     // REPEATED LATENESS TRACKING (Disciplinary)
     // ============================================================
 
+    // Get lateness counts for all employees in a single batch request - GET /time-management/repeated-lateness/counts
+    getAllLatenessCounts: async (): Promise<{ employeeId: string; count: number }[]> => {
+        const response = await apiService.get('/time-management/repeated-lateness/counts') as any;
+        // Handle different response structures
+        if (Array.isArray(response?.data)) {
+            return response.data;
+        } else if (Array.isArray(response)) {
+            return response;
+        }
+        return [];
+    },
+
     // Get repeated lateness count for an employee - GET /time-management/repeated-lateness/:employeeId/count
     getRepeatedLatenessCount: async (employeeId: string) => {
         return apiService.get(`/time-management/repeated-lateness/${employeeId}/count`);
+    },
+
+    // Get detailed lateness records for an employee - GET /time-management/repeated-lateness/:employeeId/records
+    getRepeatedLatenessRecords: async (
+        employeeId: string,
+        options?: {
+            onlyUnresolved?: boolean;
+            windowDays?: number;
+        }
+    ) => {
+        const params = new URLSearchParams();
+        if (options?.onlyUnresolved !== undefined) {
+            params.append('onlyUnresolved', String(options.onlyUnresolved));
+        }
+        if (options?.windowDays !== undefined) {
+            params.append('windowDays', String(options.windowDays));
+        }
+        const queryString = params.toString();
+        const url = `/time-management/repeated-lateness/${employeeId}/records${queryString ? `?${queryString}` : ''}`;
+        return apiService.get(url);
     },
 
     // Evaluate and escalate repeated lateness - POST /time-management/repeated-lateness/:employeeId/evaluate

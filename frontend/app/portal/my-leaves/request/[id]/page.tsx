@@ -40,7 +40,11 @@ export default function EditLeaveRequestPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [leaveTypeMap, setLeaveTypeMap] = useState<LeaveTypeMap>({});
+  const [requestStatus, setRequestStatus] = useState<string>('');
+  const [canEdit, setCanEdit] = useState(true);
+  const [originalLeaveTypeId, setOriginalLeaveTypeId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<{
     type: LeaveTypeKey;
@@ -72,12 +76,54 @@ export default function EditLeaveRequestPage() {
         leavesService.getLeaveTypes(),
       ]);
 
-      if (!reqRes.data) {
-        setError('Leave request not found.');
+      if (reqRes.error || !reqRes.data) {
+        setError(reqRes.error || 'Leave request not found.');
         return;
       }
 
-      const req = reqRes.data as BackendLeaveRequest;
+      req = reqRes.data as BackendLeaveRequest;
+      
+      // Debug: Log the entire request to see what we're working with
+      console.log('🔍 Full request data:', JSON.stringify(req, null, 2));
+      const status = (req.status || '').toUpperCase();
+      setRequestStatus(status);
+
+      // Store original leave type ID - handle all possible formats
+      let originalId: string | null = null;
+      
+      if (req.leaveTypeId) {
+        if (typeof req.leaveTypeId === 'string') {
+          originalId = req.leaveTypeId;
+        } else if (typeof req.leaveTypeId === 'object' && req.leaveTypeId !== null) {
+          originalId = (req.leaveTypeId as any)._id?.toString() || String(req.leaveTypeId);
+        } else {
+          originalId = String(req.leaveTypeId);
+        }
+      }
+      
+      // Also check alternative locations
+      if (!originalId && (req as any).leaveTypeId) {
+        originalId = String((req as any).leaveTypeId);
+      }
+      
+      if (originalId && originalId !== 'undefined' && originalId !== 'null' && originalId.trim() !== '') {
+        setOriginalLeaveTypeId(originalId);
+      } else {
+        console.error('CRITICAL: No leave type ID found in request!', {
+          hasLeaveTypeId: !!req.leaveTypeId,
+          leaveTypeIdValue: req.leaveTypeId,
+          requestKeys: Object.keys(req),
+        });
+      }
+
+      // Check if request can be edited (only PENDING or RETURNED_FOR_CORRECTION)
+      const editableStatuses = ['PENDING', 'RETURNED_FOR_CORRECTION'];
+      const canBeEdited = editableStatuses.includes(status);
+      setCanEdit(canBeEdited);
+
+      if (!canBeEdited) {
+        setError(`This leave request cannot be edited because it is ${status}. Only pending or returned-for-correction requests can be modified.`);
+      }
 
       // Map leave type names/codes for keys and for submit
       if (Array.isArray(typesRes.data)) {
@@ -87,16 +133,59 @@ export default function EditLeaveRequestPage() {
         for (const t of types) {
           const name = (t.name || '').toLowerCase();
           const code = (t.code || '').toLowerCase();
+          // Handle both id and _id fields, and convert to string
+          const typeId = String(t.id || (t as any)._id || '');
+
+          if (!typeId || typeId === 'undefined' || typeId === 'null') {
+            console.warn('Leave type missing ID:', t);
+            continue;
+          }
 
           if (!map.annual && (name.includes('annual') || code.includes('annual'))) {
-            map.annual = t.id;
+            map.annual = typeId;
+            console.log('Mapped annual leave type:', typeId, name);
           } else if (!map.sick && (name.includes('sick') || code.includes('sick'))) {
-            map.sick = t.id;
-          } else if (!map.personal && (name.includes('personal') || code.includes('personal'))) {
-            map.personal = t.id;
+            map.sick = typeId;
+            console.log('Mapped sick leave type:', typeId, name);
+          } else if (!map.personal && (name.includes('unpaid') || code.includes('unpaid'))) {
+            map.personal = typeId;
+            console.log('Mapped unpaid/personal leave type:', typeId, name);
           }
         }
 
+        // If original leave type ID exists, ensure it's mapped correctly
+        const originalId = req.leaveTypeId || (req as any).leaveTypeId?._id || (req as any).leaveTypeId?.toString();
+        if (originalId) {
+          const originalIdString = String(originalId);
+          const originalType = types.find(t => {
+            const tId = String(t.id || (t as any)._id || '');
+            return tId === originalIdString;
+          });
+          
+          if (originalType) {
+            const name = (originalType.name || '').toLowerCase();
+            const code = (originalType.code || '').toLowerCase();
+            
+            // Map to appropriate key based on type name, but don't overwrite if already mapped
+            if ((name.includes('annual') || code.includes('annual')) && !map.annual) {
+              map.annual = originalIdString;
+              console.log('Mapped original annual leave type:', originalIdString);
+            } else if ((name.includes('sick') || code.includes('sick')) && !map.sick) {
+              map.sick = originalIdString;
+              console.log('Mapped original sick leave type:', originalIdString);
+            } else if ((name.includes('unpaid') || code.includes('unpaid') || name.includes('personal') || code.includes('personal'))) {
+              // For unpaid/personal, always set if not already set, or if it matches the original
+              if (!map.personal || map.personal === originalIdString) {
+                map.personal = originalIdString;
+                console.log('Mapped original unpaid/personal leave type:', originalIdString);
+              }
+            }
+          } else {
+            console.warn('Original leave type not found in types list:', originalIdString);
+          }
+        }
+
+        console.log('Leave type map:', map, 'Original leave type ID:', req.leaveTypeId);
         setLeaveTypeMap(map);
       }
 
@@ -131,7 +220,7 @@ export default function EditLeaveRequestPage() {
   const toTypeKey = (name?: string): LeaveTypeKey => {
     const n = (name || '').toLowerCase();
     if (n.includes('sick')) return 'sick';
-    if (n.includes('personal')) return 'personal';
+    if (n.includes('unpaid')) return 'personal';
     return 'annual';
   };
 
@@ -146,9 +235,29 @@ export default function EditLeaveRequestPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
 
     if (!user || !params?.id) {
       setError('Missing user or request id.');
+      return;
+    }
+
+    if (!canEdit) {
+      setError('This leave request cannot be edited.');
+      return;
+    }
+
+    // Validate form data
+    if (!formData.startDate || !formData.endDate) {
+      setError('Please select both start and end dates.');
+      return;
+    }
+
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+    
+    if (start > end) {
+      setError('Start date must be before or equal to end date.');
       return;
     }
 
@@ -158,22 +267,64 @@ export default function EditLeaveRequestPage() {
       return;
     }
 
-    const leaveTypeId = leaveTypeMap[formData.type];
+    if (!formData.reason || formData.reason.trim().length === 0) {
+      setError('Please provide a reason for your leave request.');
+      return;
+    }
+
+    // Get leave type ID - always use original if available, otherwise try mapping
+    let leaveTypeId: string | undefined;
+    
+    // First priority: use original leave type ID (most reliable)
+    if (originalLeaveTypeId) {
+      leaveTypeId = String(originalLeaveTypeId);
+      console.log('Using original leave type ID:', leaveTypeId);
+    } else {
+      // Fallback: try to get from mapping
+      const mappedId = leaveTypeMap[formData.type];
+      if (mappedId) {
+        leaveTypeId = String(mappedId);
+        console.log('Using mapped leave type ID:', leaveTypeId, 'for type:', formData.type);
+      }
+    }
+    
+    // If no ID found, that's OK - we'll just not update the leave type
+    // The backend will keep the existing leave type if none is provided
+    if (!leaveTypeId) {
+      console.warn('No leave type ID available - will keep existing leave type');
+    }
 
     try {
       setSaving(true);
 
-      await leavesService.updateRequest(params.id, {
+      const updateData: any = {
         from: formData.startDate,
         to: formData.endDate,
         durationDays: days,
-        justification: formData.reason,
+        justification: formData.reason.trim(),
         postLeave: formData.postLeave,
-        ...(leaveTypeId ? { leaveTypeId } : {}),
-      });
+      };
+      
+      // Only include leaveTypeId if we have one
+      if (leaveTypeId) {
+        updateData.leaveTypeId = leaveTypeId;
+      }
+      
+      const response = await leavesService.updateRequest(params.id, updateData);
 
-      router.push('/portal/my-leaves');
+      if (response.error) {
+        setError(response.error || 'Failed to update leave request');
+        return;
+      }
+
+      setSuccess('Leave request updated successfully!');
+      
+      // Redirect after a short delay to show success message
+      setTimeout(() => {
+        router.push('/portal/my-leaves');
+      }, 1500);
     } catch (err) {
+      console.error('Update error:', err);
       const message = err instanceof Error ? err.message : 'Failed to update leave request';
       setError(message);
     } finally {
@@ -187,13 +338,35 @@ export default function EditLeaveRequestPage() {
       return;
     }
 
-    if (!confirm('Are you sure you want to cancel this leave request?')) return;
+    // Check if request can be cancelled (PENDING or APPROVED)
+    const cancellableStatuses = ['PENDING', 'APPROVED'];
+    if (!cancellableStatuses.includes(requestStatus)) {
+      setError(`This leave request cannot be cancelled because it is ${requestStatus}. Only pending or approved requests can be cancelled.`);
+      return;
+    }
+
+    if (!confirm('Are you sure you want to cancel this leave request? This action cannot be undone.')) return;
 
     try {
       setSaving(true);
-      await leavesService.cancelRequest(params.id, user.id);
-      router.push('/portal/my-leaves');
+      setError(null);
+      setSuccess(null);
+
+      const response = await leavesService.cancelRequest(params.id, user.id);
+
+      if (response.error) {
+        setError(response.error || 'Failed to cancel leave request');
+        return;
+      }
+
+      setSuccess('Leave request cancelled successfully!');
+      
+      // Redirect after a short delay to show success message
+      setTimeout(() => {
+        router.push('/portal/my-leaves');
+      }, 1500);
     } catch (err) {
+      console.error('Cancel error:', err);
       const message = err instanceof Error ? err.message : 'Failed to cancel leave request';
       setError(message);
     } finally {
@@ -236,7 +409,42 @@ export default function EditLeaveRequestPage() {
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error}
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="font-medium">Error</p>
+                <p className="text-sm mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="font-medium">Success</p>
+                <p className="text-sm mt-1">{success}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {requestStatus && (
+          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+            <p className="text-sm">
+              <span className="font-medium">Status:</span> {requestStatus}
+              {!canEdit && (
+                <span className="ml-2 text-blue-600">
+                  (This request cannot be edited in its current state)
+                </span>
+              )}
+            </p>
           </div>
         )}
 
@@ -252,7 +460,7 @@ export default function EditLeaveRequestPage() {
               {[
                 { value: 'annual', label: 'Annual Leave', color: 'blue' },
                 { value: 'sick', label: 'Sick Leave', color: 'red' },
-                { value: 'personal', label: 'Personal Leave', color: 'purple' },
+                { value: 'personal', label: 'Unpaid Leave', color: 'purple' },
               ].map((type) => (
                 <button
                   key={type.value}
@@ -260,7 +468,7 @@ export default function EditLeaveRequestPage() {
                   onClick={() =>
                     setFormData((prev) => ({
                       ...prev,
-                      type: type.value as LeaveTypeKey,
+                      type: type.value,
                     }))
                   }
                   className={`p-3 rounded-lg border-2 text-sm font-medium transition-colors ${
@@ -361,10 +569,10 @@ export default function EditLeaveRequestPage() {
             <button
               type="button"
               onClick={handleCancelRequest}
-              disabled={saving}
+              disabled={saving || !['PENDING', 'APPROVED'].includes(requestStatus)}
               className="px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel Request
+              {saving ? 'Cancelling...' : 'Cancel Request'}
             </button>
             <div className="flex items-center gap-3">
               <Link
@@ -375,7 +583,7 @@ export default function EditLeaveRequestPage() {
               </Link>
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || !canEdit}
                 className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? 'Saving...' : 'Save Changes'}

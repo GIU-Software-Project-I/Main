@@ -1005,27 +1005,29 @@ export default function TerminationBenefitsPage() {
                 <div>
                   <h4 className="text-lg font-bold text-foreground">{selectedTerminationBenefit.name}</h4>
                   <p className="text-sm text-primary mt-2">Status</p>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-1
-                      ${selectedTerminationBenefit.status === 'approved'
-                        ? 'bg-green-100 text-green-800'
-                        : selectedTerminationBenefit.status === 'draft'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : selectedTerminationBenefit.status === 'rejected'
-                        ? 'bg-red-100 text-red-800'
-                        : selectedTerminationBenefit.status === 'pending_approval'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-muted/20 text-foreground'}
-                    `}>
-                      {selectedTerminationBenefit.status === 'approved'
-                        ? 'Approved'
-                        : selectedTerminationBenefit.status === 'draft'
-                        ? 'Draft'
-                        : selectedTerminationBenefit.status === 'rejected'
-                        ? 'Rejected'
-                        : selectedTerminationBenefit.status === 'pending_approval'
-                        ? 'Pending Approval'
-                        : selectedTerminationBenefit.status}
-                    </span>
+                                    <span className={`
+  inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-medium mt-1 w-fit
+  ${selectedTerminationBenefit.status === 'approved' 
+    ? 'bg-green-100 text-green-800' 
+    : selectedTerminationBenefit.status === 'draft' 
+    ? 'bg-yellow-100 text-yellow-800'
+    : selectedTerminationBenefit.status === 'rejected' 
+    ? 'bg-red-100 text-red-800'
+    : selectedTerminationBenefit.status === 'pending_approval'
+    ? 'bg-yellow-100 text-yellow-800'
+    : 'bg-muted/20 text-foreground'
+  }
+`}>
+  {selectedTerminationBenefit.status === 'approved' 
+    ? 'Approved' 
+    : selectedTerminationBenefit.status === 'draft' 
+    ? 'Draft'
+    : selectedTerminationBenefit.status === 'rejected' 
+    ? 'Rejected'
+    : selectedTerminationBenefit.status === 'pending_approval'
+    ? 'Pending Approval'
+    : selectedTerminationBenefit.status}
+</span>
                 </div>
               </div>
               

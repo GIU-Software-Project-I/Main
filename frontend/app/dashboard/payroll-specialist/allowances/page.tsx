@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { payrollConfigurationService } from '@/app/services/payroll-configuration';
 import { useAuth } from '@/app/context/AuthContext';
+import { se } from 'date-fns/locale';
 
 // Type definitions based on your API response
 interface Allowance {
@@ -808,27 +809,29 @@ export default function AllowancesPage() {
                   <h4 className="text-lg font-bold text-foreground mb-2">{selectedAllowance.name}</h4>
                   <div className="flex flex-col gap-1">
                     <span className="text-sm text-primary">Status</span>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-1
-                      ${selectedAllowance.status === 'approved'
-                        ? 'bg-green-100 text-green-800'
-                        : selectedAllowance.status === 'draft'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : selectedAllowance.status === 'rejected'
-                        ? 'bg-red-100 text-red-800'
-                        : selectedAllowance.status === 'pending_approval'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-muted/20 text-foreground'}
-                    `}>
-                      {selectedAllowance.status === 'approved'
-                        ? 'Approved'
-                        : selectedAllowance.status === 'draft'
-                        ? 'Draft'
-                        : selectedAllowance.status === 'rejected'
-                        ? 'Rejected'
-                        : selectedAllowance.status === 'pending_approval'
-                        ? 'Pending Approval'
-                        : selectedAllowance.status}
-                    </span>
+                    <span className={`
+  inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-medium mt-1 w-fit
+  ${selectedAllowance.status === 'approved' 
+    ? 'bg-green-100 text-green-800' 
+    : selectedAllowance.status === 'draft' 
+    ? 'bg-yellow-100 text-yellow-800'
+    : selectedAllowance.status === 'rejected' 
+    ? 'bg-red-100 text-red-800'
+    : selectedAllowance.status === 'pending_approval'
+    ? 'bg-yellow-100 text-yellow-800'
+    : 'bg-muted/20 text-foreground'
+  }
+`}>
+  {selectedAllowance.status === 'approved' 
+    ? 'Approved' 
+    : selectedAllowance.status === 'draft' 
+    ? 'Draft'
+    : selectedAllowance.status === 'rejected' 
+    ? 'Rejected'
+    : selectedAllowance.status === 'pending_approval'
+    ? 'Pending Approval'
+    : selectedAllowance.status}
+</span>
                   </div>
                 </div>
               </div>

@@ -13,6 +13,7 @@ import {UnifiedLeaveController} from "./controllers/leaves.controller";
 import {LeaveType, LeaveTypeSchema} from "./models/leave-type.schema";
 import {SharedModule} from "../shared/shared.module";
 import {AuthModule} from "../auth/auth-module";
+import {OrganizationStructureModule} from "../employee/organization-structure.module";
 
 
 @Module({
@@ -28,6 +29,7 @@ import {AuthModule} from "../auth/auth-module";
     {name:Attachment.name, schema: AttachmentSchema}
   ]),
       SharedModule,
+      OrganizationStructureModule,
   ],
   controllers: [UnifiedLeaveController],
   providers: [UnifiedLeaveService],
