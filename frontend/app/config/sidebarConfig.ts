@@ -130,6 +130,14 @@ const DEPARTMENT_EMPLOYEE_SECTIONS: NavSection[] = [
           { label: 'Claims & Disputes', href: '/dashboard/department-employee/payroll-tracking/claims-disputes', icon: 'alert-circle' },
         ],
       },
+      {
+        label: 'Organization',
+        href: '/portal/my-organization',
+        icon: 'building',
+        children: [
+          { label: 'Org Chart', href: '/portal/my-organization', icon: 'git-branch' },
+        ],
+      },
     ],
   },
   SELF_SERVICE_SECTION,
@@ -180,6 +188,14 @@ const DEPARTMENT_HEAD_SECTIONS: NavSection[] = [
         label: 'Team Performance',
         href: '/dashboard/department-head/performance',
         icon: 'bar-chart',
+      },
+      {
+        label: 'Organization',
+        href: '/dashboard/department-head/organization-structure/org-chart',
+        icon: 'building',
+        children: [
+          { label: 'Org Chart', href: '/dashboard/department-head/organization-structure/org-chart', icon: 'git-branch' },
+        ],
       },
     ],
   },

@@ -15,7 +15,7 @@ export class SharedOrganizationService {
         @InjectModel(NotificationLog.name) private notificationModel: Model<NotificationLogDocument>,
         @InjectModel(EmployeeProfile.name) private employeeProfileModel: Model<EmployeeProfileDocument>,
         @InjectModel(EmployeeSystemRole.name) private systemRoleModel: Model<EmployeeSystemRoleDocument>,
-    ) {}
+    ) { }
 
     private validateObjectId(id: string, fieldName: string): void {
         if (!Types.ObjectId.isValid(id)) {
@@ -51,7 +51,13 @@ export class SharedOrganizationService {
     }
 
     private async notifyHRUsers(type: string, message: string): Promise<void> {
-        const hrUsers = await this.findUsersByRoles([SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.HR_EMPLOYEE]);
+        // Includes System Admin as they also need to be notified of requests
+        const hrUsers = await this.findUsersByRoles([
+            SystemRole.HR_MANAGER,
+            SystemRole.HR_ADMIN,
+            SystemRole.HR_EMPLOYEE,
+            SystemRole.SYSTEM_ADMIN
+        ]);
         for (const user of hrUsers) {
             await this.createNotification(user.employeeProfileId, type, message);
         }
@@ -128,6 +134,12 @@ export class SharedOrganizationService {
             ? `Your structure change request (${requestId}) has been approved.${commentStr}`
             : `Your structure change request (${requestId}) has been rejected.${commentStr}`;
         await this.createNotification(requesterId, 'STRUCTURE_CHANGE_PROCESSED', message);
+    }
+
+    async getEmployeeName(employeeId: string): Promise<string> {
+        this.validateObjectId(employeeId, 'employeeId');
+        const employee = await this.employeeProfileModel.findById(employeeId).select('firstName lastName').exec();
+        return employee ? `${employee.firstName} ${employee.lastName}` : 'Unknown Employee';
     }
 }
 

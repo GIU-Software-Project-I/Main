@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import {
   Table,
   TableBody,
@@ -10,8 +10,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+} from '@/app/components/ui/table';
+import { Badge } from '@/app/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -19,11 +19,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+} from '@/app/components/ui/dialog';
+import { Input } from '@/app/components/ui/input';
+import { Textarea } from '@/app/components/ui/textarea';
 import { organizationStructureService } from '@/app/services/organization-structure';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Loader2, Trash2, RotateCcw, AlertCircle } from 'lucide-react';
 
 interface Position {
@@ -79,8 +79,8 @@ export default function PositionsPage() {
   const loadPositions = async () => {
     try {
       setLoading(true);
-      const result = await organizationStructureService.getAllPositions();
-      setPositions(result.data || []);
+      const result = await organizationStructureService.getPositions();
+      setPositions((result.data as Position[]) || []);
     } catch (error) {
       console.error('Failed to load positions:', error);
       toast.error('Failed to load positions');

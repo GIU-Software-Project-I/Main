@@ -16,7 +16,7 @@ import type { JwtPayload } from '../../auth/token/jwt-payload';
 @Controller('organization-structure')
 @UseGuards(AuthenticationGuard, AuthorizationGuard)
 export class OrganizationStructureController {
-    constructor(private readonly orgService: OrganizationStructureService) {}
+    constructor(private readonly orgService: OrganizationStructureService) { }
 
     @Post('departments')
     @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
@@ -250,21 +250,30 @@ export class OrganizationStructureController {
         return this.orgService.cancelChangeRequest(id);
     }
 
-   // In your controller
-@Post('change-requests/:id/approvals')
-@Roles(SystemRole.DEPARTMENT_HEAD, SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
-async submitApprovalDecision(
-    @Param('id') id: string,
-    @Body() dto: SubmitApprovalDecisionDto,
-    @CurrentUser() user: JwtPayload
-) {
-    // Pass the user's ID as performedBy
-    return this.orgService.submitApprovalDecision(id, dto, user.sub);
-}
+    // In your controller
+    @Post('change-requests/:id/approvals')
+    @Roles(SystemRole.DEPARTMENT_HEAD, SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+    async submitApprovalDecision(
+        @Param('id') id: string,
+        @Body() dto: SubmitApprovalDecisionDto,
+        @CurrentUser() user: JwtPayload
+    ) {
+        // Pass the user's ID as performedBy
+        return this.orgService.submitApprovalDecision(id, dto, user.sub);
+    }
 
     @Get('org-chart')
-    getOrganizationChart() {
-        return this.orgService.getOrganizationChart();
+    getOrganizationChart(@CurrentUser() user: JwtPayload) {
+        // If Sys Admin, HR Admin/Manager -> Full chart
+        const unrestrictedRoles = [SystemRole.SYSTEM_ADMIN, SystemRole.HR_ADMIN, SystemRole.HR_MANAGER];
+        const hasUnrestrictedRole = user.roles.some(role => unrestrictedRoles.includes(role as SystemRole));
+
+        if (hasUnrestrictedRole) {
+            return this.orgService.getOrganizationChart();
+        }
+
+        // Otherwise -> Scoped chart
+        return this.orgService.getScopedOrgChart(user.sub, user.roles);
     }
 
     @Get('change-logs/:entityType/:entityId')
