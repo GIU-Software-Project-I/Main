@@ -250,11 +250,17 @@ export class OrganizationStructureController {
         return this.orgService.cancelChangeRequest(id);
     }
 
-    @Post('change-requests/:id/approvals')
-    @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
-    submitApprovalDecision(@Param('id') id: string, @Body() dto: SubmitApprovalDecisionDto, @CurrentUser() user: JwtPayload) {
-        return this.orgService.submitApprovalDecision(id, { ...dto, approverEmployeeId: user.sub }, user.sub);
-    }
+   // In your controller
+@Post('change-requests/:id/approvals')
+@Roles(SystemRole.DEPARTMENT_HEAD, SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+async submitApprovalDecision(
+    @Param('id') id: string,
+    @Body() dto: SubmitApprovalDecisionDto,
+    @CurrentUser() user: JwtPayload
+) {
+    // Pass the user's ID as performedBy
+    return this.orgService.submitApprovalDecision(id, dto, user.sub);
+}
 
     @Get('org-chart')
     getOrganizationChart() {

@@ -141,8 +141,6 @@ export class OrganizationStructureService {
         });
 
         return department;
-
-
     }
 
     async getDepartmentById(id: string): Promise<Department> {
@@ -789,7 +787,7 @@ export class OrganizationStructureService {
         }
         this.validateObjectId(dto.requestedByEmployeeId, 'requestedByEmployeeId');
 
-        if(dto.targetDepartmentId) {
+        if (dto.targetDepartmentId) {
             this.validateObjectId(dto.targetDepartmentId, 'targetDepartmentId');
             const department = await this.departmentModel.findById(dto.targetDepartmentId);
             if (!department) {
@@ -805,30 +803,43 @@ export class OrganizationStructureService {
             }
         }
 
+        // Check for existing pending request with proper ObjectId conversion
         const existingPendingRequest = await this.changeRequestModel.findOne({
             requestedByEmployeeId: new Types.ObjectId(dto.requestedByEmployeeId),
             status: { $in: [StructureRequestStatus.DRAFT, StructureRequestStatus.SUBMITTED, StructureRequestStatus.UNDER_REVIEW] },
             requestType: dto.requestType,
-            targetDepartmentId: dto.targetDepartmentId ? new Types.ObjectId(dto.targetDepartmentId) : undefined,
-            targetPositionId: dto.targetPositionId ? new Types.ObjectId(dto.targetPositionId) : undefined,
+            ...(dto.targetDepartmentId && {
+                targetDepartmentId: new Types.ObjectId(dto.targetDepartmentId)
+            }),
+            ...(dto.targetPositionId && {
+                targetPositionId: new Types.ObjectId(dto.targetPositionId)
+            }),
         });
 
         if (existingPendingRequest) {
             throw new ConflictException('A similar pending request already exists');
         }
 
-        const request = await this.changeRequestModel.create({
+        // Manually generate _id before create()
+        const requestData = {
+            _id: new Types.ObjectId(), // Explicitly generate _id
             requestNumber: this.generateRequestNumber(),
             requestedByEmployeeId: new Types.ObjectId(dto.requestedByEmployeeId),
             requestType: dto.requestType,
-            targetDepartmentId: dto.targetDepartmentId ? new Types.ObjectId(dto.targetDepartmentId) : undefined,
-            targetPositionId: dto.targetPositionId ? new Types.ObjectId(dto.targetPositionId) : undefined,
-            details: dto.details,
-            reason: dto.reason,
+            ...(dto.targetDepartmentId && {
+                targetDepartmentId: new Types.ObjectId(dto.targetDepartmentId)
+            }),
+            ...(dto.targetPositionId && {
+                targetPositionId: new Types.ObjectId(dto.targetPositionId)
+            }),
+            ...(dto.details && { details: dto.details }),
+            ...(dto.reason && { reason: dto.reason }),
             status: StructureRequestStatus.SUBMITTED,
             submittedByEmployeeId: new Types.ObjectId(dto.requestedByEmployeeId),
             submittedAt: new Date(),
-        });
+        };
+
+        const request = await this.changeRequestModel.create(requestData);
 
         await this.logChange({
             action: ChangeLogAction.CREATED,
@@ -979,80 +990,166 @@ export class OrganizationStructureService {
         return this.createPaginatedResponse(data as StructureChangeRequest[], total, page, limit);
     }
 
-    async submitApprovalDecision(changeRequestId: string, dto: SubmitApprovalDecisionDto, performedBy?: string): Promise<StructureApproval> {
-        this.validateObjectId(changeRequestId, 'changeRequestId');
+   async submitApprovalDecision(changeRequestId: string, dto: SubmitApprovalDecisionDto, performedBy?: string): Promise<StructureApproval> {
+    console.log('[DEBUG] ========== START submitApprovalDecision ==========');
+    console.log('[DEBUG] Input parameters:', {
+        changeRequestId,
+        dto: JSON.stringify(dto, null, 2),
+        performedBy
+    });
 
-        if (!dto.approverEmployeeId) {
-            throw new BadRequestException('Approver employee ID is required');
+    this.validateObjectId(changeRequestId, 'changeRequestId');
+
+    // Handle optional approverEmployeeId - use performedBy if not provided
+    let approverEmployeeId = dto.approverEmployeeId || performedBy;
+    
+    if (!approverEmployeeId) {
+        console.log('[DEBUG] ERROR: Neither approverEmployeeId nor performedBy provided');
+        throw new BadRequestException('Approver employee ID is required. Either provide approverEmployeeId in request or ensure user is authenticated.');
+    }
+    
+    console.log('[DEBUG] Using approverEmployeeId:', approverEmployeeId);
+    this.validateObjectId(approverEmployeeId, 'approverEmployeeId');
+
+    // Try to find the change request
+    let changeRequest: StructureChangeRequestDocument | null = null;
+    
+    // Method 1: Try findById first (standard approach)
+    changeRequest = await this.changeRequestModel.findById(changeRequestId);
+    
+    if (!changeRequest) {
+        console.log('[DEBUG] findById failed. Trying alternative methods...');
+        
+        // Method 2: Try with explicit ObjectId
+        try {
+            const objectId = new Types.ObjectId(changeRequestId);
+            changeRequest = await this.changeRequestModel.findOne({ _id: objectId });
+        } catch (err) {
+            console.log('[DEBUG] ObjectId creation failed:', err.message);
         }
-        this.validateObjectId(dto.approverEmployeeId, 'approverEmployeeId');
-
-        const changeRequest = await this.changeRequestModel.findById(changeRequestId);
+        
         if (!changeRequest) {
-            throw new NotFoundException('Change request not found');
+            console.log('[DEBUG] ERROR: Change request not found after all attempts');
+            throw new NotFoundException(`Change request not found for ID: ${changeRequestId}`);
         }
+    }
 
-        console.log(`[SubmitApprovalDecision] Request ID: ${changeRequestId}, Current status: ${changeRequest.status}, Decision: ${dto.decision}`);
+    console.log('[DEBUG] Found change request:', {
+        _id: changeRequest._id.toString(),
+        requestNumber: changeRequest.requestNumber,
+        currentStatus: changeRequest.status,
+        requestedByEmployeeId: changeRequest.requestedByEmployeeId?.toString(),
+    });
 
-        // Check if status is actionable (case-insensitive, including 'pending')
-        const normalizedStatus = changeRequest.status?.toUpperCase();
-        const actionableStatuses = ['SUBMITTED', 'UNDER_REVIEW', 'PENDING'];
-        if (!actionableStatuses.includes(normalizedStatus)) {
-            throw new BadRequestException(`Cannot approve/reject request with status ${changeRequest.status}`);
-        }
+    // Check if status is actionable
+    const actionableStatuses = [
+        StructureRequestStatus.SUBMITTED, 
+        StructureRequestStatus.UNDER_REVIEW
+    ];
+    
+    if (!actionableStatuses.includes(changeRequest.status)) {
+        console.log('[DEBUG] ERROR: Status not actionable. Current:', changeRequest.status, 'Allowed:', actionableStatuses);
+        throw new BadRequestException(
+            `Cannot approve/reject request with status ${changeRequest.status}. ` +
+            `Only requests with status ${actionableStatuses.join(' or ')} can be processed.`
+        );
+    }
 
-        const existingDecision = await this.approvalModel.findOne({
+    // Check if this approver has already submitted a decision for this request
+    const existingDecision = await this.approvalModel.findOne({
+        changeRequestId: new Types.ObjectId(changeRequestId),
+        approverEmployeeId: new Types.ObjectId(approverEmployeeId),
+        decision: { $ne: ApprovalDecision.PENDING },
+    });
+
+    if (existingDecision) {
+        console.log('[DEBUG] ERROR: Approver already submitted decision:', existingDecision._id);
+        throw new ConflictException('This approver has already submitted a decision for this request');
+    }
+
+    // Validate required fields
+    if (dto.decision === ApprovalDecision.REJECTED && !dto.comments) {
+        console.log('[DEBUG] ERROR: Comments required for rejection');
+        throw new BadRequestException('Comments are required when rejecting a request');
+    }
+
+    console.log('[DEBUG] Decision to process:', dto.decision);
+    console.log('[DEBUG] Comments:', dto.comments);
+
+    // Determine new status for the change request
+    let newStatus: StructureRequestStatus;
+    if (dto.decision === ApprovalDecision.APPROVED) {
+        newStatus = StructureRequestStatus.APPROVED;
+    } else if (dto.decision === ApprovalDecision.REJECTED) {
+        newStatus = StructureRequestStatus.REJECTED;
+    } else {
+        newStatus = changeRequest.status; // Keep current status for PENDING
+    }
+
+    console.log('[DEBUG] Status transition:', {
+        from: changeRequest.status,
+        to: newStatus,
+        decision: dto.decision
+    });
+
+    try {
+        // FIX: Manually create _id before saving - this is required because your schema has auto: true
+        const approvalData = {
+            _id: new Types.ObjectId(), // <-- CRITICAL FIX: Manually generate _id
             changeRequestId: new Types.ObjectId(changeRequestId),
-            approverEmployeeId: new Types.ObjectId(dto.approverEmployeeId),
-            decision: { $ne: ApprovalDecision.PENDING },
-        });
-
-        if (existingDecision) {
-            throw new ConflictException('This approver has already submitted a decision');
-        }
-
-        if (dto.decision === ApprovalDecision.REJECTED && !dto.comments) {
-            throw new BadRequestException('Comments are required when rejecting a request');
-        }
-
-        const approval = await this.approvalModel.create({
-            changeRequestId: new Types.ObjectId(changeRequestId),
-            approverEmployeeId: new Types.ObjectId(dto.approverEmployeeId),
+            approverEmployeeId: new Types.ObjectId(approverEmployeeId),
             decision: dto.decision,
             decidedAt: new Date(),
             comments: dto.comments,
+        };
+
+        console.log('[DEBUG] Creating approval with data:', approvalData);
+
+        // Create the approval record
+        const approval = await this.approvalModel.create(approvalData);
+
+        console.log('[DEBUG] Created approval record:', {
+            approvalId: approval._id,
+            changeRequestId: approval.changeRequestId,
+            approverEmployeeId: approval.approverEmployeeId,
+            decision: approval.decision
         });
 
-        // Determine new status
-        let newStatus: StructureRequestStatus;
-        if (dto.decision === ApprovalDecision.APPROVED) {
-            newStatus = StructureRequestStatus.APPROVED;
-        } else if (dto.decision === ApprovalDecision.REJECTED) {
-            newStatus = StructureRequestStatus.REJECTED;
-        } else {
-            newStatus = changeRequest.status;
-        }
+        // Update the change request status
+        const beforeStatus = changeRequest.status;
+        changeRequest.status = newStatus;
+        
+        const updatedRequest = await changeRequest.save();
+        
+        console.log('[DEBUG] Updated change request:', {
+            requestId: updatedRequest._id,
+            requestNumber: updatedRequest.requestNumber,
+            beforeStatus,
+            afterStatus: updatedRequest.status
+        });
 
-        console.log(`[SubmitApprovalDecision] Updating status from ${changeRequest.status} to ${newStatus}`);
-
-        // Use findByIdAndUpdate to ensure the update is persisted
-        const updatedRequest = await this.changeRequestModel.findByIdAndUpdate(
-            changeRequestId,
-            { $set: { status: newStatus } },
-            { new: true }
-        );
-
-        console.log(`[SubmitApprovalDecision] Updated request status: ${updatedRequest?.status}`);
-
+        // Log the approval creation
         await this.logChange({
-            action: ChangeLogAction.UPDATED,
+            action: ChangeLogAction.CREATED,
             entityType: 'StructureApproval',
             entityId: approval._id,
-            performedByEmployeeId: performedBy,
+            performedByEmployeeId: performedBy || approverEmployeeId,
             summary: `${dto.decision} change request: ${changeRequest.requestNumber}`,
             after: approval.toObject(),
         });
 
+        // Log the status change on the request itself
+        await this.logChange({
+            action: ChangeLogAction.UPDATED,
+            entityType: 'StructureChangeRequest',
+            entityId: changeRequest._id,
+            performedByEmployeeId: performedBy || approverEmployeeId,
+            summary: `Status changed from ${beforeStatus} to ${newStatus} for request: ${changeRequest.requestNumber}`,
+            before: { status: beforeStatus },
+            after: { status: newStatus },
+        });
+
+        // Send notification
         try {
             await this.sharedOrganizationService.notifyStructureChangeRequestProcessed(
                 changeRequest.requestedByEmployeeId.toString(),
@@ -1060,14 +1157,20 @@ export class OrganizationStructureService {
                 dto.decision,
                 dto.comments
             );
+            console.log('[DEBUG] Notification sent successfully');
         } catch (notifyError) {
-            console.error('[SubmitApprovalDecision] Notification error:', notifyError);
+            console.error('[DEBUG] Notification error (non-fatal):', notifyError);
             // Don't throw - notification failure shouldn't fail the approval
         }
 
+        console.log('[DEBUG] ========== END submitApprovalDecision ==========');
         return approval;
+        
+    } catch (error) {
+        console.error('[DEBUG] ERROR in submitApprovalDecision:', error);
+        throw error;
     }
-
+}
     async getApprovalsByChangeRequest(changeRequestId: string): Promise<StructureApproval[]> {
         this.validateObjectId(changeRequestId, 'changeRequestId');
         return this.approvalModel.find({ changeRequestId: new Types.ObjectId(changeRequestId) })
