@@ -41,10 +41,10 @@ const commonTerminationBenefits = [
 ];
 
 const statusColors = {
-  draft: 'bg-yellow-100 text-yellow-800',
-  pending_approval: 'bg-orange-100 text-orange-800',
-  approved: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
+  draft: 'bg-muted/10 text-muted-foreground',
+  pending_approval: 'bg-warning/10 text-warning-foreground',
+  approved: 'bg-success/10 text-success-foreground',
+  rejected: 'bg-destructive/10 text-destructive-foreground',
 };
 
 const statusLabels = {
@@ -486,12 +486,12 @@ export default function TerminationBenefitsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Termination & Resignation Benefits</h1>
-            <p className="text-slate-600 mt-2">Loading termination benefits...</p>
+            <h1 className="text-3xl font-bold text-foreground">Termination & Resignation Benefits</h1>
+            <p className="text-muted-foreground mt-2">Loading termination benefits...</p>
           </div>
         </div>
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </div>
     );
@@ -502,20 +502,20 @@ export default function TerminationBenefitsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Termination & Resignation Benefits</h1>
-          <p className="text-slate-600 mt-2">Configure benefits and terms for employee offboarding to ensure seamless and legally compliant processes</p>
+          <h1 className="text-3xl font-bold text-foreground">Termination & Resignation Benefits</h1>
+          <p className="text-muted-foreground mt-2">Configure benefits and terms for employee offboarding to ensure seamless and legally compliant processes</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={fetchTerminationBenefits}
             disabled={loading}
-            className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors font-medium"
+            className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted/50 disabled:opacity-50 transition-colors font-medium"
           >
             {loading ? 'Refreshing...' : 'Refresh'}
           </button>
           <button
             onClick={handleCreateClick}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-95 transition-colors font-medium"
           >
             + Create Benefit
           </button>
@@ -524,12 +524,12 @@ export default function TerminationBenefitsPage() {
 
       {/* Success Alert */}
       {success && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="text-green-600 font-bold">Success</div>
-          <p className="text-green-800 font-medium">{success}</p>
+        <div className="bg-success/10 border border-success/20 rounded-lg p-4 flex items-center gap-3">
+          <div className="text-success-foreground font-bold">Success</div>
+          <p className="text-success-foreground font-medium">{success}</p>
           <button 
             onClick={() => setSuccess(null)}
-            className="ml-auto text-green-600 hover:text-green-800"
+            className="ml-auto text-success-foreground hover:text-success-foreground"
           >
             ×
           </button>
@@ -538,15 +538,15 @@ export default function TerminationBenefitsPage() {
 
       {/* Error Alert */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="text-red-600 font-bold">Failed</div>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center gap-3">
+          <div className="text-destructive-foreground font-bold">Failed</div>
           <div>
-            <p className="text-red-800 font-medium">Error</p>
-            <p className="text-red-700 text-sm mt-1">{error}</p>
+            <p className="text-destructive-foreground font-medium">Error</p>
+            <p className="text-destructive-foreground text-sm mt-1">{error}</p>
           </div>
           <button 
             onClick={() => setError(null)}
-            className="ml-auto text-red-600 hover:text-red-800"
+            className="ml-auto text-destructive-foreground hover:text-destructive-foreground"
           >
             ×
           </button>
@@ -554,10 +554,10 @@ export default function TerminationBenefitsPage() {
       )}
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
+      <div className="bg-card rounded-lg border border-border p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Search Benefits
             </label>
             <input
@@ -565,19 +565,19 @@ export default function TerminationBenefitsPage() {
               name="search"
               value={filters.search}
               onChange={handleFilterChange}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+              className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
               placeholder="Search by name or terms..."
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Status Filter
             </label>
             <select
               name="status"
               value={filters.status}
               onChange={handleFilterChange}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+              className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
             >
               <option value="">All Statuses</option>
               <option value="draft">Draft</option>
@@ -591,7 +591,7 @@ export default function TerminationBenefitsPage() {
                 setFilters({ search: '', status: '' });
                 setPagination(prev => ({ ...prev, page: 1 }));
               }}
-              className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium w-full"
+              className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted/50 transition-colors font-medium w-full"
             >
               Clear Filters
             </button>
@@ -600,26 +600,26 @@ export default function TerminationBenefitsPage() {
       </div>
 
       {/* Termination Benefits Table */}
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
-        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900">
+      <div className="bg-card rounded-lg border border-border shadow-sm">
+        <div className="p-6 border-b border-border flex items-center justify-between">
+          <h2 className="text-xl font-bold text-foreground">
             Termination Benefits ({pagination.total})
-            {loading && <span className="text-slate-500 text-sm ml-2">Updating...</span>}
+            {loading && <span className="text-muted-foreground text-sm ml-2">Updating...</span>}
           </h2>
-          <div className="text-sm text-slate-600">
+          <div className="text-sm text-muted-foreground">
             Page {pagination.page} of {pagination.totalPages || 1}
           </div>
         </div>
         
         {terminationBenefits.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-slate-600 font-medium">No termination benefits found</p>
-            <p className="text-slate-500 text-sm mt-1">
+            <p className="text-muted-foreground font-medium">No termination benefits found</p>
+            <p className="text-muted-foreground text-sm mt-1">
               {filters.search || filters.status ? 'Try changing your filters' : 'Create your first termination benefit to get started'}
             </p>
             <button
               onClick={handleCreateClick}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-95 transition-colors font-medium"
             >
               Create Termination Benefit
             </button>
@@ -629,39 +629,59 @@ export default function TerminationBenefitsPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
-                    <th className="text-left py-4 px-6 font-semibold text-slate-700">Benefit Name</th>
-                    <th className="text-left py-4 px-6 font-semibold text-slate-700">Amount</th>
-                    <th className="text-left py-4 px-6 font-semibold text-slate-700">Terms</th>
-                    <th className="text-left py-4 px-6 font-semibold text-slate-700">Status</th>
-                    <th className="text-left py-4 px-6 font-semibold text-slate-700">Created</th>
-                    <th className="text-left py-4 px-6 font-semibold text-slate-700">Actions</th>
+                  <tr className="border-b border-border bg-muted/5">
+                    <th className="text-left py-4 px-6 font-semibold text-foreground">Benefit Name</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground">Amount</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground">Terms</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground">Status</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground">Created</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {terminationBenefits.map((benefit) => (
-                    <tr key={benefit._id} className="border-b border-slate-100 hover:bg-slate-50">
+                    <tr key={benefit._id} className="border-b border-border hover:bg-muted/5">
                       <td className="py-4 px-6">
                         <div>
-                          <p className="font-medium text-slate-900">{benefit.name}</p>
+                          <p className="font-medium text-foreground">{benefit.name}</p>
                         </div>
                       </td>
                       <td className="py-4 px-6">
-                        <span className="text-slate-700 font-medium">
+                        <span className="text-foreground font-medium">
                           {formatCurrency(benefit.amount)}
                         </span>
                       </td>
                       <td className="py-4 px-6">
-                        <p className="text-slate-700 text-sm line-clamp-2" title={benefit.terms || 'No terms specified'}>
-                          {benefit.terms || <span className="text-slate-400 italic">No terms specified</span>}
+                        <p className="text-foreground text-sm line-clamp-2" title={benefit.terms || 'No terms specified'}>
+                          {benefit.terms || <span className="text-muted-foreground italic">No terms specified</span>}
                         </p>
                       </td>
                       <td className="py-4 px-6">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusColors[benefit.status] || 'bg-gray-100 text-gray-800'}`}>
-                          {statusLabels[benefit.status] || benefit.status}
-                        </span>
+                        <span className={`
+      inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+      ${benefit.status === 'approved' 
+        ? 'bg-green-100 text-green-800' 
+        : benefit.status === 'draft' 
+        ? 'bg-yellow-100 text-yellow-800'
+        : benefit.status === 'rejected' 
+        ? 'bg-red-100 text-red-800'
+        : benefit.status === 'pending_approval'
+        ? 'bg-yellow-100 text-yellow-800'
+        : 'bg-muted/20 text-foreground'
+      }
+    `}>
+      {benefit.status === 'approved' 
+        ? 'Approved' 
+        : benefit.status === 'draft' 
+        ? 'Draft'
+        : benefit.status === 'rejected' 
+        ? 'Rejected'
+        : benefit.status === 'pending_approval'
+        ? 'Pending Approval'
+        : benefit.status}
+    </span>
                       </td>
-                      <td className="py-4 px-6 text-slate-700 text-sm">
+                      <td className="py-4 px-6 text-foreground text-sm">
                         {formatDate(benefit.createdAt)}
                       </td>
                       <td className="py-4 px-6">
@@ -669,7 +689,7 @@ export default function TerminationBenefitsPage() {
                           {/* View button */}
                           <button
                             onClick={() => handleViewClick(benefit)}
-                            className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-300 rounded-lg transition-colors"
+                            className="px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/5 border border-border rounded-lg transition-colors"
                             title="View Details"
                           >
                             View
@@ -679,24 +699,11 @@ export default function TerminationBenefitsPage() {
                           {benefit.status === 'draft' && (
                             <button
                               onClick={() => handleEditClick(benefit)}
-                              className="px-3 py-1.5 text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 border border-green-300 rounded-lg transition-colors"
-                              title="Edit"
+                              className="px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/5 border border-border rounded-lg transition-colors"
                             >
                               Edit
                             </button>
                           )}
-                          
-                          {/* Delete button - Only for DRAFT termination benefits
-                          {benefit.status === 'draft' && (
-                            <button
-                              onClick={() => handleDeleteTerminationBenefit(benefit)}
-                              disabled={actionLoading}
-                              className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                              title="Delete"
-                            >
-                              🗑️
-                            </button>
-                          )} */}
                         </div>
                       </td>
                     </tr>
@@ -707,15 +714,15 @@ export default function TerminationBenefitsPage() {
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="p-6 border-t border-slate-200 flex items-center justify-between">
-                <div className="text-sm text-slate-600">
+              <div className="p-6 border-t border-border flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
                   Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} benefits
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handlePageChange(pagination.page - 1)}
                     disabled={pagination.page === 1 || loading}
-                    className="px-3 py-1 border border-slate-300 text-slate-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                    className="px-3 py-1 border border-border text-muted-foreground rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/5"
                   >
                     Previous
                   </button>
@@ -737,7 +744,7 @@ export default function TerminationBenefitsPage() {
                           key={pageNum}
                           onClick={() => handlePageChange(pageNum)}
                           disabled={loading}
-                          className={`px-3 py-1 rounded ${pagination.page === pageNum ? 'bg-blue-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-50'}`}
+                          className={`px-3 py-1 rounded ${pagination.page === pageNum ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground hover:bg-muted/5'}`}
                         >
                           {pageNum}
                         </button>
@@ -747,7 +754,7 @@ export default function TerminationBenefitsPage() {
                   <button
                     onClick={() => handlePageChange(pagination.page + 1)}
                     disabled={pagination.page === pagination.totalPages || loading}
-                    className="px-3 py-1 border border-slate-300 text-slate-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                    className="px-3 py-1 border border-border text-muted-foreground rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/5"
                   >
                     Next
                   </button>
@@ -759,9 +766,9 @@ export default function TerminationBenefitsPage() {
       </div>
 
       {/* Information Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-2">Payroll Specialist Information</h3>
-        <ul className="text-blue-800 text-sm space-y-2">
+      <div className="bg-muted/5 border border-border rounded-lg p-6">
+        <h3 className="font-semibold text-foreground mb-2">Payroll Specialist Information</h3>
+        <ul className="text-muted-foreground text-sm space-y-2">
           <li>• As a Payroll Specialist, you can <span className="font-semibold">create draft</span> termination/resignation benefit policies</li>
           <li>• You can <span className="font-semibold">edit draft</span> termination benefit policies only</li>
           <li>• You can <span className="font-semibold">view all</span> termination benefits (draft, approved, rejected)</li>
@@ -775,15 +782,15 @@ export default function TerminationBenefitsPage() {
       {/* Create Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200">
-              <h3 className="text-xl font-bold text-slate-900">
+          <div className="bg-card rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-xl font-bold text-foreground">
                 Create New Termination Benefit
               </h3>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Benefit Name *
                 </label>
                 <input
@@ -791,7 +798,7 @@ export default function TerminationBenefitsPage() {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+                  className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
                   required
                   placeholder="e.g., End of Service Gratuity"
                   list="benefit-suggestions"
@@ -801,56 +808,56 @@ export default function TerminationBenefitsPage() {
                     <option key={option.value} value={option.value} />
                   ))}
                 </datalist>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Enter a unique name for this termination benefit.
                 </p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Amount (USD) *
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-slate-500">$</span>
+                    <span className="text-muted-foreground">$</span>
                   </div>
                   <input
                     type="number"
                     name="amount"
                     value={formData.amount}
                     onChange={handleChange}
-                    className="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+                    className="w-full pl-8 pr-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
                     required
                     placeholder="e.g., 5000"
                     step="0.01"
                     min="0"
                   />
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Benefit amount. Must be 0 or greater.
                 </p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Terms & Conditions (Optional)
                 </label>
                 <textarea
                   name="terms"
                   value={formData.terms}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+                  className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
                   placeholder="e.g., Applicable after 2 years of continuous service"
                   rows={3}
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Describe the conditions and terms for this benefit (optional)
                 </p>
               </div>
               
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-sm font-medium text-amber-800 mb-2">Important Notes</p>
-                <ul className="text-xs text-amber-700 space-y-1">
+              <div className="p-4 border border-border rounded-lg">
+                <p className="text-sm font-medium text-foreground mb-2">Important Notes</p>
+                <ul className="text-xs text-warning-foreground space-y-1">
                   <li>• Benefit will be created as <span className="font-semibold">DRAFT</span></li>
                   <li>• Payroll Manager approval is required before use</li>
                   <li>• Duplicate benefit names are not allowed</li>
@@ -858,18 +865,18 @@ export default function TerminationBenefitsPage() {
                 </ul>
               </div>
             </div>
-            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+            <div className="p-6 border-t border-border flex justify-end gap-3">
               <button
                 onClick={() => setShowCreateModal(false)}
                 disabled={actionLoading}
-                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors font-medium"
+                className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted/50 disabled:opacity-50 transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateTerminationBenefit}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-slate-400 transition-colors font-medium"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-95 disabled:opacity-50 transition-colors font-medium"
               >
                 {actionLoading ? 'Creating...' : 'Create Benefit'}
               </button>
@@ -881,16 +888,16 @@ export default function TerminationBenefitsPage() {
       {/* Edit Modal */}
       {showEditModal && selectedTerminationBenefit && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200">
-              <h3 className="text-xl font-bold text-slate-900">
+          <div className="bg-card rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-xl font-bold text-foreground">
                 Edit Termination Benefit
               </h3>
-              <p className="text-slate-600 text-sm mt-1">Editing: {selectedTerminationBenefit.name}</p>
+              <p className="text-muted-foreground text-sm mt-1">Editing: {selectedTerminationBenefit.name}</p>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Benefit Name *
                 </label>
                 <input
@@ -898,7 +905,7 @@ export default function TerminationBenefitsPage() {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+                  className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
                   required
                   placeholder="e.g., End of Service Gratuity"
                   list="benefit-suggestions-edit"
@@ -908,56 +915,56 @@ export default function TerminationBenefitsPage() {
                     <option key={option.value} value={option.value} />
                   ))}
                 </datalist>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Enter a unique name for this termination benefit.
                 </p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Amount (USD) *
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-slate-500">$</span>
+                    <span className="text-muted-foreground">$</span>
                   </div>
                   <input
                     type="number"
                     name="amount"
                     value={formData.amount}
                     onChange={handleChange}
-                    className="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+                    className="w-full pl-8 pr-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
                     required
                     placeholder="e.g., 5000"
                     step="0.01"
                     min="0"
                   />
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Benefit amount.
                 </p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Terms & Conditions (Optional)
                 </label>
                 <textarea
                   name="terms"
                   value={formData.terms}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+                  className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
                   placeholder="e.g., Applicable after 2 years of continuous service"
                   rows={3}
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Describe the conditions and terms for this benefit (optional)
                 </p>
               </div>
               
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm font-medium text-blue-800 mb-2">Editing Notice (BR27)</p>
-                <ul className="text-xs text-blue-700 space-y-1">
+              <div className="p-4 bg-muted/5 border border-border rounded-lg">
+                <p className="text-sm font-medium text-foreground mb-2">Editing Notice (BR27)</p>
+                <ul className="text-xs text-muted-foreground space-y-1">
                   <li>• You can only edit DRAFT termination benefits</li>
                   <li>• Changing the benefit name will be checked for duplicates</li>
                   <li>• Once approved, this benefit cannot be edited or deleted</li>
@@ -966,18 +973,18 @@ export default function TerminationBenefitsPage() {
                 </ul>
               </div>
             </div>
-            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+            <div className="p-6 border-t border-border flex justify-end gap-3">
               <button
                 onClick={() => setShowEditModal(false)}
                 disabled={actionLoading}
-                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors font-medium"
+                className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted/50 disabled:opacity-50 transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpdateTerminationBenefit}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-slate-400 transition-colors font-medium"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-95 disabled:opacity-50 transition-colors font-medium"
               >
                 {actionLoading ? 'Updating...' : 'Update Benefit'}
               </button>
@@ -989,75 +996,93 @@ export default function TerminationBenefitsPage() {
       {/* View Modal */}
       {showViewModal && selectedTerminationBenefit && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200">
-              <h3 className="text-xl font-bold text-slate-900">Termination Benefit Details</h3>
-            </div>
+          <div className="bg-card rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-border">
+                <h3 className="text-xl font-bold text-foreground">Termination Benefit Details</h3>
+              </div>
             <div className="p-6 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h4 className="text-lg font-bold text-slate-900">{selectedTerminationBenefit.name}</h4>
-                  <p className="text-sm text-slate-500 mt-2">Status</p>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-2 ${statusColors[selectedTerminationBenefit.status] || 'bg-gray-100 text-gray-800'}`}>
-                    {statusLabels[selectedTerminationBenefit.status] || selectedTerminationBenefit.status}
-                  </span>
+                  <h4 className="text-lg font-bold text-foreground">{selectedTerminationBenefit.name}</h4>
+                  <p className="text-sm text-primary mt-2">Status</p>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-1
+                      ${selectedTerminationBenefit.status === 'approved'
+                        ? 'bg-green-100 text-green-800'
+                        : selectedTerminationBenefit.status === 'draft'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : selectedTerminationBenefit.status === 'rejected'
+                        ? 'bg-red-100 text-red-800'
+                        : selectedTerminationBenefit.status === 'pending_approval'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-muted/20 text-foreground'}
+                    `}>
+                      {selectedTerminationBenefit.status === 'approved'
+                        ? 'Approved'
+                        : selectedTerminationBenefit.status === 'draft'
+                        ? 'Draft'
+                        : selectedTerminationBenefit.status === 'rejected'
+                        ? 'Rejected'
+                        : selectedTerminationBenefit.status === 'pending_approval'
+                        ? 'Pending Approval'
+                        : selectedTerminationBenefit.status}
+                    </span>
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-slate-500">Amount</p>
-                  <p className="font-medium text-slate-900 text-xl">{formatCurrency(selectedTerminationBenefit.amount)}</p>
+                  <p className="text-sm text-primary">Amount</p>
+                  <p className="font-medium text-foreground text-xl">{formatCurrency(selectedTerminationBenefit.amount)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Created</p>
-                  <p className="font-medium text-slate-900">{formatDate(selectedTerminationBenefit.createdAt)}</p>
+                  <p className="text-sm text-primary">Created</p>
+                  <p className="font-medium text-foreground">{formatDate(selectedTerminationBenefit.createdAt)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Last Modified</p>
-                  <p className="font-medium text-slate-900">{formatDate(selectedTerminationBenefit.updatedAt)}</p>
+                  <p className="text-sm text-primary">Last Modified</p>
+                  <p className="font-medium text-foreground">{formatDate(selectedTerminationBenefit.updatedAt)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Created</p>
-                  <p className="font-medium text-slate-900">{formatDate(selectedTerminationBenefit.createdAt)}</p>
+                  <p className="text-sm text-primary">Created</p>
+                  <p className="font-medium text-foreground">{formatDate(selectedTerminationBenefit.createdAt)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Last Modified</p>
-                  <p className="font-medium text-slate-900">{formatDate(selectedTerminationBenefit.updatedAt)}</p>
+                  <p className="text-sm text-primary">Last Modified</p>
+                  <p className="font-medium text-foreground">{formatDate(selectedTerminationBenefit.updatedAt)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Created By</p>
-                  <p className="font-medium text-slate-900">{selectedTerminationBenefit.createdBy || 'N/A'}</p>
+                  <p className="text-sm text-primary">Created By</p>
+                  <p className="font-medium text-foreground">{selectedTerminationBenefit.createdBy || 'N/A'}</p>
                 </div>
                 {(selectedTerminationBenefit.status === 'approved' || selectedTerminationBenefit.status === 'rejected') && (
                   <div>
-                    <p className="text-sm text-slate-500">{selectedTerminationBenefit.status === 'approved' ? 'Approved By' : 'Rejected By'}</p>
-                    <p className="font-medium text-slate-900">{selectedTerminationBenefit.approvedBy || 'N/A'}</p>
+                    <p className="text-sm text-primary">{selectedTerminationBenefit.status === 'approved' ? 'Approved By' : 'Rejected By'}</p>
+                    <p className="font-medium text-foreground">{selectedTerminationBenefit.approvedBy || 'N/A'}</p>
                   </div>
                 )}
                 {(selectedTerminationBenefit.status === 'approved' || selectedTerminationBenefit.status === 'rejected') && (
                   <div>
-                    <p className="text-sm text-slate-500">{selectedTerminationBenefit.status === 'rejected' ? 'Rejected At' : 'Approved At'}</p>
-                    <p className="font-medium text-slate-900">{selectedTerminationBenefit.approvedAt ? formatDate(selectedTerminationBenefit.approvedAt) : 'N/A'}</p>
+                    <p className="text-sm text-muted-foreground">{selectedTerminationBenefit.status === 'rejected' ? 'Rejected At' : 'Approved At'}</p>
+                    <p className="font-medium text-foreground">{selectedTerminationBenefit.approvedAt ? formatDate(selectedTerminationBenefit.approvedAt) : 'N/A'}</p>
                   </div>
                 )}
               </div>
               
               {selectedTerminationBenefit.terms && (
                 <div>
-                  <p className="text-sm font-medium text-slate-700 mb-2">Terms & Conditions</p>
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                    <p className="text-slate-700 whitespace-pre-wrap">{selectedTerminationBenefit.terms}</p>
+                  <p className="text-sm font-medium text-primary mb-2">Terms & Conditions</p>
+                  <div className="bg-muted/5 border border-border rounded-lg p-4">
+                    <p className="text-foreground whitespace-pre-wrap">{selectedTerminationBenefit.terms}</p>
                   </div>
                 </div>
               )}
               
              
             </div>
-            <div className="p-6 border-t border-slate-200 flex justify-end">
+            <div className="p-6 border-t border-border flex justify-end">
               <button
                 onClick={() => setShowViewModal(false)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-95 transition-colors font-medium"
               >
                 Close
               </button>

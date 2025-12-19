@@ -1,95 +1,25 @@
 'use client';
 
-import { SetStateAction, useEffect, useMemo, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { payrollConfigurationService } from '@/app/services/payroll-configuration';
 import { useAuth } from '@/app/context/AuthContext';
-import { ThemeCustomizer, ThemeCustomizerTrigger } from '@/app/components/theme-customizer';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../../../components/ui/card";
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { Label } from "../../../components/ui/label";
-import { Badge } from "../../../components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../../components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../../components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../../components/ui/dialog";
-import {
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  CreditCard,
-  DollarSign,
-  Edit,
-  Eye,
-  Filter,
-  HelpCircle,
-  PlusCircle,
-  RefreshCw,
-  Search,
-  Shield,
-  Users,
-  ChevronRight,
-  XCircle,
-  Building,
-  Calendar,
-  FileText,
-  Settings,
-  Calculator,
-  TrendingUp,
-  Percent,
-  CalendarDays,
-  Hash
-} from "lucide-react";
 
-// Status enum to match Pay Grades page
-enum ConfigStatus {
-  DRAFT = 'draft',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  PENDING_APPROVAL = 'pending_approval'
-}
-
+// Type definitions based on your API response
 interface PayType {
-  id: string;
+  _id: string;
   type: string;
   amount: number;
-  status: ConfigStatus;
+  status: 'draft' | 'approved' | 'rejected' | 'pending_approval';
   createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
   approvedBy?: string;
-  createdAt?: string;
-  updatedAt?: string;
   approvedAt?: string;
   rejectionReason?: string;
-  __v?: number;
+  __v: number;
 }
 
-// Predefined pay types
+// Predefined pay types based on requirements
 const payTypeOptions = [
   { value: 'Hourly', label: 'Hourly' },
   { value: 'Daily', label: 'Daily' },
@@ -98,312 +28,338 @@ const payTypeOptions = [
   { value: 'Contract-Based', label: 'Contract-Based' },
 ];
 
-// Form types
-type CreateForm = {
-  type: string;
-  amount: string;
+const statusColors = {
+  // Draft: yellow shade with white text
+  draft: 'bg-warning/80 text-foreground',
+  // Pending: keep warning token (lighter)
+  pending_approval: 'bg-warning/10 text-warning-foreground',
+  // Approved: green shade with white text
+  approved: 'bg-success/80 text-foreground',
+  // Rejected: darker destructive background with white text
+  rejected: 'bg-destructive/80 text-foreground',
 };
 
-type EditState = {
-  id: string;
-  type: string;
-  amount: string;
-} | null;
-
-// Calculate form type
-type CalculateForm = {
-  hoursPerWeek: string;
-  weeksPerMonth: string;
-  contractDuration: string;
-  roleType: string;
+const statusLabels = {
+  draft: 'Draft',
+  pending_approval: 'Pending Approval',
+  approved: 'Approved',
+  rejected: 'Rejected',
 };
 
 export default function PayTypesPage() {
-  const { user, isLoading: authLoading } = useAuth();
-  const [form, setForm] = useState<CreateForm>({ type: "", amount: "" });
-  const [creating, setCreating] = useState(false);
+  const { user } = useAuth();
+  const [payTypes, setPayTypes] = useState<PayType[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [items, setItems] = useState<PayType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
-  const [filter, setFilter] = useState<"all" | ConfigStatus>("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [edit, setEdit] = useState<EditState>(null);
-  const [view, setView] = useState<PayType | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [showCalculateModal, setShowCalculateModal] = useState(false);
   const [selectedPayType, setSelectedPayType] = useState<PayType | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
   const [calculationResult, setCalculationResult] = useState<any>(null);
   
   // Calculate form state
-  const [calculateForm, setCalculateForm] = useState<CalculateForm>({
-    hoursPerWeek: "40",
-    weeksPerMonth: "4",
-    contractDuration: "12",
-    roleType: "full-time",
+  const [calculateFormData, setCalculateFormData] = useState({
+    hoursPerWeek: '40',
+    weeksPerMonth: '4',
+    contractDuration: '12',
+    roleType: 'full-time',
+  });
+  
+  // Search and filter state
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+  });
+  
+  // Form state - ONLY the fields your backend expects
+  const [formData, setFormData] = useState({
+    type: '',
+    amount: '',
   });
 
-  function normalize(raw: any): PayType {
-    return {
-      id: raw.id ?? raw._id ?? String(Math.random()),
-      type: raw.type ?? "",
-      amount: Number(raw.amount ?? 0),
-      status: raw.status ?? ConfigStatus.DRAFT,
-      createdBy: raw.createdBy ?? raw.createdByEmployeeId ?? undefined,
-      approvedBy: raw.approvedBy ?? undefined,
-      createdAt: raw.createdAt ?? raw.created_at ?? undefined,
-      updatedAt: raw.updatedAt ?? raw.updated_at ?? undefined,
-      approvedAt: raw.approvedAt ?? raw.approved_at ?? undefined,
-      rejectionReason: raw.rejectionReason ?? undefined,
-      __v: raw.__v ?? undefined,
-    } as PayType;
-  }
+  // Fetch pay types on component mount
+  useEffect(() => {
+    fetchPayTypes();
+  }, []);
 
-  async function load() {
-    setLoading(true);
-    setError(null);
+  const fetchPayTypes = async () => {
     try {
-      const res = await payrollConfigurationService.getPayTypes();
-      if ((res as any)?.error) {
-        throw new Error((res as any).error);
+      setLoading(true);
+      setError(null);
+      
+      const response = await payrollConfigurationService.getPayTypes();
+      
+      if (response.error) {
+        throw new Error(response.error);
       }
-
-      const data = (res as any)?.data;
-      const candidates = [
-        data?.data,
-        data,
-        res,
-      ];
-
-      const list = candidates.find(Array.isArray) || [];
-      setItems(list.map(normalize));
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to load pay types");
+      
+      if (!response.data) {
+        console.warn('No data in response');
+        setPayTypes([]);
+        return;
+      }
+      
+      const apiData = response.data as any;
+      
+      if (apiData.data && Array.isArray(apiData.data)) {
+        setPayTypes(apiData.data);
+      } 
+      else if (Array.isArray(apiData)) {
+        setPayTypes(apiData);
+      }
+      else {
+        console.warn('Unexpected response structure:', apiData);
+        setPayTypes([]);
+      }
+      
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch pay types');
+      console.error('Error fetching pay types:', err);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  useEffect(() => {
-    load();
-  }, []);
+const handleCreatePayType = async () => {
+  try {
+    // Basic frontend validation - just check for empty fields
+    if (!formData.type || !formData.amount) {
+      setError('Please fill all required fields');
+      return;
+    }
 
-  const filtered = useMemo(() => {
-    let result = items;
+    // Convert amount to number - backend will validate the minimum value
+    const amountNum = parseFloat(formData.amount);
     
-    if (filter !== "all") {
-      result = result.filter((i) => i.status === filter);
+    if (isNaN(amountNum)) {
+      setError('Amount must be a valid number');
+      return;
+    }
+
+    setActionLoading(true);
+    
+    // Get the employee ID - REQUIRED by backend DTO
+    let createdByEmployeeId = user?.id || '';
+    
+    if (!createdByEmployeeId) {
+      setError('Unable to identify user. Please make sure you are logged in.');
+      setActionLoading(false);
+      return;
     }
     
-    if (searchTerm) {
-      result = result.filter((pt) => {
-        const searchText = [
-          pt.type,
-          pt.createdBy,
-          pt.approvedBy,
-          pt.id
-        ].filter(Boolean).join(" ").toLowerCase();
+    // Validate that createdByEmployeeId looks like a MongoDB ObjectId
+    // MongoDB ObjectIds are 24-character hex strings
+    const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+    if (!objectIdRegex.test(createdByEmployeeId)) {
+      console.warn('Employee ID does not look like a MongoDB ObjectId:', createdByEmployeeId);
+      // Continue anyway - the backend validation will catch it
+    }
+    
+    // Prepare the data exactly as the DTO expects
+    const apiData = {
+      type: formData.type,
+      amount: amountNum,
+      createdByEmployeeId: createdByEmployeeId,
+    };
+    
+    console.log('Creating pay type with data:', apiData);
+    
+    const response = await payrollConfigurationService.createPayType(apiData);
+    
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    
+    // Check for backend validation errors
+    if (response.data) {
+      const responseData = response.data as any;
+      
+      // Handle various error response formats
+      if (responseData.message && responseData.message.includes('already exists')) {
+        throw new Error(responseData.message);
+      }
+      else if (responseData.error) {
+        throw new Error(responseData.error);
+      }
+      else if (responseData.statusCode && responseData.statusCode >= 400) {
+        // Extract validation messages if available
+        const errorMessage = responseData.message || 
+                            responseData.error?.message || 
+                            'Failed to create pay type';
+        throw new Error(errorMessage);
+      }
+    }
+    
+    setSuccess('Pay type created successfully as DRAFT');
+    setShowModal(false);
+    resetForm();
+    fetchPayTypes();
+  } catch (err: any) {
+    console.error('Create error details:', err);
+    
+    // Extract error message from various possible formats
+    let errorMessage = 'Failed to create pay type';
+    
+    if (err.message) {
+      errorMessage = err.message;
+    } else if (err.response?.data?.message) {
+      errorMessage = err.response.data.message;
+    } else if (err.response?.data?.error?.message) {
+      errorMessage = err.response.data.error.message;
+    }
+    
+    // Format backend validation errors nicely
+    if (errorMessage.includes('minimum')) {
+      errorMessage = errorMessage.replace('amount must not be less than 6000', 'Amount must be at least $6,000 (backed by industry minimum wage standards)');
+    }
+    
+    // Special handling for ObjectId conversion errors
+    if (errorMessage.includes('ObjectId') || errorMessage.includes('Cast to ObjectId')) {
+      errorMessage = 'User identification issue. Please try logging out and back in.';
+    }
+    
+    setError(errorMessage);
+  } finally {
+    setActionLoading(false);
+  }
+};
+  const handleUpdatePayType = async () => {
+    if (!selectedPayType) return;
+    
+    try {
+      // Basic frontend validation
+      if (!formData.type || !formData.amount) {
+        setError('Please fill all required fields');
+        return;
+      }
+
+      // Convert amount to number - backend will validate
+      const amountNum = parseFloat(formData.amount);
+      
+      if (isNaN(amountNum)) {
+        setError('Amount must be a valid number');
+        return;
+      }
+
+      setActionLoading(true);
+      
+      const updateData = {
+        type: formData.type,
+        amount: amountNum,
+      };
+      
+      const response = await payrollConfigurationService.updatePayType(
+        selectedPayType._id,
+        updateData
+      );
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      // Check for backend validation errors
+      if (response.data) {
+        const responseData = response.data as any;
         
-        return searchText.includes(searchTerm.toLowerCase());
-      });
-    }
-    
-    return result;
-  }, [items, filter, searchTerm]);
-
-  async function create() {
-    if (!form.type || !form.amount) {
-      setError("Please fill in all fields");
-      return;
-    }
-    
-    if (!user?.id) {
-      setError(`User not authenticated. Please log in again.`);
-      return;
-    }
-    
-    setCreating(true);
-    setError(null);
-    setSuccess(null);
-    
-    try {
-      const amount = Number(form.amount);
-      
-      if (amount < 6000) {
-        throw new Error("Amount must be at least $6,000 (industry minimum wage standard)");
+        if (responseData.statusCode && responseData.statusCode >= 400) {
+          throw new Error(responseData.message || 'Failed to update pay type');
+        }
       }
       
-      const payload = {
-        type: form.type,
-        amount,
-        createdByEmployeeId: user.id,
-      };
+      setSuccess('Pay type updated successfully');
+      setShowModal(false);
+      resetForm();
+      fetchPayTypes();
+    } catch (err: any) {
+      console.error('Update error details:', err);
       
-      const res = await payrollConfigurationService.createPayType(payload as any);
-      if ((res as any)?.error) {
-        throw new Error((res as any).error);
+      let errorMessage = 'Failed to update pay type';
+      if (err.message) {
+        errorMessage = err.message;
       }
       
-      setSuccess("Pay type created successfully as DRAFT");
-      setForm({ type: "", amount: "" });
-      await load();
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to create pay type");
+      // Format backend validation errors
+      if (errorMessage.includes('minimum')) {
+        errorMessage = errorMessage.replace('amount must not be less than 6000', 'Amount must be at least $6,000');
+      }
+      
+      setError(errorMessage);
     } finally {
-      setCreating(false);
+      setActionLoading(false);
     }
-  }
+  };
 
-  function beginEdit(pt: PayType) {
-    if (pt.status !== ConfigStatus.DRAFT) {
-      setError("Only DRAFT pay types can be edited");
+  const handleEditClick = (payType: PayType) => {
+    // Check if pay type can be edited (only draft status)
+    if (payType.status !== 'draft') {
+      setError('Only DRAFT pay types can be edited. Approved or rejected pay types cannot be modified.');
       return;
     }
     
-    setEdit({ 
-      id: pt.id, 
-      type: pt.type ?? "", 
-      amount: String(pt.amount ?? 0)
+    setSelectedPayType(payType);
+    setFormData({
+      type: payType.type,
+      amount: payType.amount.toString(),
     });
-  }
-
-  async function saveEdit() {
-    if (!edit) return;
     
-    setError(null);
-    setSuccess(null);
-    
-    try {
-      const amount = Number(edit.amount);
-      
-      if (amount < 6000) {
-        throw new Error("Amount must be at least $6,000");
-      }
-      
-      const payload = {
-        type: edit.type,
-        amount,
-      };
-      
-      const res = await payrollConfigurationService.updatePayType(edit.id as any, payload as any);
-      if ((res as any)?.error) {
-        throw new Error((res as any).error);
-      }
-      
-      setSuccess("Pay type updated successfully");
-      setEdit(null);
-      await load();
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to save changes");
-    }
-  }
+    setShowModal(true);
+  };
 
-  function cancelEdit() {
-    setEdit(null);
-  }
+  const handleViewClick = (payType: PayType) => {
+    setSelectedPayType(payType);
+    setShowViewModal(true);
+  };
 
-  
-  function formatCurrency(amount: number) {
-    return `$${amount.toLocaleString('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    })}`;
-  }
-  
-  function formatDate(dateStr?: string) {
-    if (!dateStr) return 'Not available';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
-  
-  function getStatusBadge(status: ConfigStatus) {
-    switch (status) {
-      case ConfigStatus.APPROVED:
-        return (
-          <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Approved
-          </Badge>
-        );
-      case ConfigStatus.REJECTED:
-        return (
-          <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">
-            <XCircle className="h-3 w-3 mr-1" />
-            Rejected
-          </Badge>
-        );
-      case ConfigStatus.DRAFT:
-        return (
-          <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
-            <Edit className="h-3 w-3 mr-1" />
-            Draft
-          </Badge>
-        );
-      case ConfigStatus.PENDING_APPROVAL:
-        return (
-          <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
-            <Clock className="h-3 w-3 mr-1" />
-            Pending Approval
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  }
-
-  function handleCalculateClick(pt: PayType) {
-    if (pt.status !== ConfigStatus.APPROVED) {
-      setError("Only APPROVED pay types can be used for calculation");
-      return;
-    }
-    
-    setSelectedPayType(pt);
-    setCalculateForm({
-      hoursPerWeek: "40",
-      weeksPerMonth: "4",
-      contractDuration: "12",
-      roleType: "full-time",
+  const handleCalculateClick = (payType: PayType) => {
+    setSelectedPayType(payType);
+    setCalculateFormData({
+      hoursPerWeek: '40',
+      weeksPerMonth: '4',
+      contractDuration: '12',
+      roleType: 'standard',
     });
     setCalculationResult(null);
     setShowCalculateModal(true);
-  }
+  };
 
-  function handleCalculateSalary() {
+  const handleCalculateSalary = () => {
     if (!selectedPayType) return;
 
-    const hoursPerWeek = parseFloat(calculateForm.hoursPerWeek) || 40;
-    const weeksPerMonth = parseFloat(calculateForm.weeksPerMonth) || 4;
-    const contractDuration = parseFloat(calculateForm.contractDuration) || 12;
-    const roleType = calculateForm.roleType;
+    const hoursPerWeek = parseFloat(calculateFormData.hoursPerWeek) || 40;
+    const weeksPerMonth = parseFloat(calculateFormData.weeksPerMonth) || 4;
+    const contractDuration = parseFloat(calculateFormData.contractDuration) || 12;
+    const roleType = calculateFormData.roleType;
     const baseAmount = selectedPayType.amount;
     let baseSalary = 0;
     let calculation = '';
 
+    // Role logic
     switch (roleType) {
       case 'full-time':
+        // Full-time: Monthly salary × months
         baseSalary = baseAmount * contractDuration;
-        calculation = `${formatCurrency(baseAmount)} × ${contractDuration} months (Full-time)`;
+        calculation = `$${baseAmount} × ${contractDuration} months (Full-time)`;
         break;
       case 'part-time':
+        // Part-time: 0.5 × Monthly salary × months
         baseSalary = baseAmount * 0.5 * contractDuration;
-        calculation = `${formatCurrency(baseAmount)} × 0.5 × ${contractDuration} months (Part-time)`;
+        calculation = `$${baseAmount} × 0.5 × ${contractDuration} months (Part-time)`;
         break;
       case 'hourly':
+        // Hourly: Hourly rate × hours/week × weeks/month × months
         baseSalary = baseAmount * hoursPerWeek * weeksPerMonth * contractDuration;
-        calculation = `${formatCurrency(baseAmount)} × ${hoursPerWeek} hrs/wk × ${weeksPerMonth} wks/mo × ${contractDuration} months (Hourly)`;
+        calculation = `$${baseAmount} × ${hoursPerWeek} hrs/wk × ${weeksPerMonth} wks/mo × ${contractDuration} months (Hourly)`;
         break;
       case 'commission-based':
+        // Commission-based: Just show base (user can add commission externally)
         baseSalary = baseAmount * contractDuration;
-        calculation = `${formatCurrency(baseAmount)} × ${contractDuration} months (Commission-based, excludes commission)`;
+        calculation = `$${baseAmount} × ${contractDuration} months (Commission-based, excludes commission)`;
         break;
       default:
         baseSalary = baseAmount * contractDuration;
-        calculation = `${formatCurrency(baseAmount)} × ${contractDuration} months`;
+        calculation = `$${baseAmount} × ${contractDuration} months`;
     }
 
     setCalculationResult({
@@ -414,639 +370,523 @@ export default function PayTypesPage() {
       roleType,
       contractDuration,
     });
+  };
+
+  const handleCalculateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setCalculateFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+      type: '',
+      amount: '',
+    });
+    setSelectedPayType(null);
+  };
+
+  const handleCreateClick = () => {
+    resetForm();
+    setShowModal(true);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Filter pay types based on search and status
+  const filteredPayTypes = payTypes.filter(payType => {
+    const matchesSearch = !filters.search || 
+      payType.type.toLowerCase().includes(filters.search.toLowerCase());
+    const matchesStatus = !filters.status || payType.status === filters.status;
+    return matchesSearch && matchesStatus;
+  });
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Pay Types</h1>
+            <p className="text-muted-foreground mt-2">Loading pay types...</p>
+          </div>
+        </div>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-6 relative">
-      {/* Theme Customizer Trigger */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <ThemeCustomizerTrigger 
-          onClick={() => setShowThemeCustomizer(true)}
-        />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Pay Types Configuration</h1>
+          <p className="text-muted-foreground mt-2">Define employee pay types (hourly, daily, weekly, monthly, contract-based) for salary calculation</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={fetchPayTypes}
+            className="px-4 py-2 border border-input text-foreground rounded-lg hover:bg-muted transition-colors font-medium"
+          >
+            Refresh
+          </button>
+          <button
+            onClick={handleCreateClick}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+          >
+            Create Pay Type
+          </button>
+        </div>
       </div>
-      
-      {/* Theme Customizer Modal */}
-      {showThemeCustomizer && (
-        <ThemeCustomizer open={showThemeCustomizer} onOpenChange={setShowThemeCustomizer} />
+
+      {/* Success Alert */}
+      {success && (
+        <div className="bg-success/10 border border-success/20 rounded-lg p-4 flex items-center gap-3">
+          <div className="text-success font-bold">Success</div>
+          <p className="text-success-foreground font-medium">{success}</p>
+          <button 
+            onClick={() => setSuccess(null)}
+            className="ml-auto text-success hover:text-success/80"
+          >
+            ×
+          </button>
+        </div>
       )}
 
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-            <span className="hover:text-primary transition-colors">Payroll Configuration</span>
-            <ChevronRight className="h-3 w-3" />
-            <span className="text-foreground font-medium">Pay Types</span>
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center gap-3">
+          <div className="text-destructive font-bold">Failed</div>
+          <div>
+            <p className="text-destructive/90 font-medium">Validation Error</p>
+            <p className="text-destructive-foreground text-sm mt-1">{error}</p>
           </div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <DollarSign className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                Pay Types
-              </h1>
-              <p className="text-muted-foreground">
-                Define employee pay types for salary calculation and compensation management
-              </p>
-            </div>
-          </div>
+          <button 
+            onClick={() => setError(null)}
+            className="ml-auto text-destructive hover:text-destructive/80"
+          >
+            ×
+          </button>
         </div>
+      )}
 
-        {/* Status Messages */}
-        {error && (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-destructive" />
-              <span className="text-destructive">{error}</span>
-            </div>
+      {/* Filters */}
+      <div className="bg-card rounded-lg border border-border p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Search Pay Types
+            </label>
+            <input
+              type="text"
+              name="search"
+              value={filters.search}
+              onChange={handleFilterChange}
+              className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-ring text-foreground"
+              placeholder="Search by pay type name..."
+            />
           </div>
-        )}
-
-        {success && (
-          <div className="bg-success/10 border border-success/20 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-success" />
-              <span className="text-success font-medium">{success}</span>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Status Filter
+            </label>
+            <select
+              name="status"
+              value={filters.status}
+              onChange={handleFilterChange}
+              className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-ring text-foreground"
+            >
+              <option value="">All Statuses</option>
+              <option value="draft">Draft</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
           </div>
-        )}
-
-        {/* Debug Info */}
-        {!user && !authLoading && (
-          <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-warning" />
-              <span className="text-warning">Debug: User object is null. Check localStorage for 'hr_user' key.</span>
-            </div>
-          </div>
-        )}
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Create Form */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PlusCircle className="h-5 w-5" />
-                Create New Pay Type
-              </CardTitle>
-              <CardDescription>
-                Define a new pay type for salary calculation. Drafts require manager approval.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="type">Pay Type</Label>
-                    <Select
-                      value={form.type}
-                      onValueChange={(value) => setForm((f) => ({ ...f, type: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select pay type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {payTypeOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="amount">Amount (USD)</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      placeholder="6000"
-                      value={form.amount}
-                      onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                    <h4 className="text-sm font-medium text-foreground">Guidelines</h4>
-                  </div>
-                  <ul className="text-xs text-muted-foreground space-y-1 ml-6 list-disc">
-                    <li>Select from predefined pay types (Hourly, Daily, Weekly, Monthly, Contract-Based)</li>
-                    <li>Minimum amount is $6,000 based on industry minimum wage standards</li>
-                    <li>Drafts will require manager approval before activation</li>
-                    <li>Approved pay types can be used for salary calculations</li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={create} 
-                disabled={creating || !form.type || !form.amount}
-                className="w-full"
+          <div className="flex items-end">
+              <button
+                onClick={() => setFilters({ search: '', status: '' })}
+                className="px-4 py-2 border border-input text-foreground rounded-lg hover:bg-muted transition-colors font-medium w-full"
               >
-                {creating ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Create Pay Type Draft
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-
-          {/* Information Panel */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                Salary Calculation
-              </CardTitle>
-              <CardDescription>
-                Understanding pay type calculations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3 p-3 bg-primary/10 rounded-lg">
-                  <div className="p-1 bg-primary/20 rounded">
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-foreground text-sm mb-1">Base Calculations</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Each pay type has specific calculation formulas
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-3 bg-green-500/10 rounded-lg">
-                  <div className="p-1 bg-green-500/20 rounded">
-                    <Percent className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-foreground text-sm mb-1">Role Multipliers</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Full-time, part-time, hourly, and commission-based roles
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-3 bg-purple-500/10 rounded-lg">
-                  <div className="p-1 bg-purple-500/20 rounded">
-                    <CalendarDays className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-foreground text-sm mb-1">Contract Terms</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Duration, hours, and weeks affect final calculations
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-3 bg-amber-500/10 rounded-lg">
-                  <div className="p-1 bg-amber-500/20 rounded">
-                    <Clock className="h-4 w-4 text-amber-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-foreground text-sm mb-1">Approval Required</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Drafts await manager review before calculation use
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p>• Only approved pay types can be used for calculations</p>
-                <p>• Drafts require manager approval for activation</p>
-                <p>• Minimum amount enforced at $6,000</p>
-              </div>
-            </CardFooter>
-          </Card>
-        </div>
-
-        {/* Pay Types List */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              All Pay Types
-            </CardTitle>
-            <CardDescription>
-              Manage existing pay types across all statuses
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Search and Filter */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search pay types..."
-                  className="pl-9"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Select value={filter} onValueChange={(value) => setFilter(value as any)}>
-                  <SelectTrigger className="w-[130px]">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Filter status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value={ConfigStatus.DRAFT}>Draft</SelectItem>
-                    <SelectItem value={ConfigStatus.PENDING_APPROVAL}>Pending</SelectItem>
-                    <SelectItem value={ConfigStatus.APPROVED}>Approved</SelectItem>
-                    <SelectItem value={ConfigStatus.REJECTED}>Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="icon" onClick={load}>
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Table */}
-            {loading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
-                ))}
-              </div>
-            ) : filtered.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="pt-6">
-                  <div className="text-center py-8">
-                    <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
-                      <CreditCard className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-medium text-foreground mb-1">
-                      {searchTerm ? "No matching pay types" : "No pay types yet"}
-                    </h3>
-                    <p className="text-muted-foreground">
-                      {searchTerm ? "Try a different search term" : "Create your first pay type using the form above"}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="border rounded-lg">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Pay Type</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created By</TableHead>
-                      <TableHead>Approved By</TableHead>
-                      <TableHead>Created Date</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((pt) => (
-                      <TableRow key={pt.id}>
-                        <TableCell>
-                          <div className="font-medium text-foreground">
-                            {edit?.id === pt.id ? (
-                              <Select
-                                value={edit.type}
-                                onValueChange={(value) => setEdit((s) => (s ? { ...s, type: value } : s))}
-                              >
-                                <SelectTrigger className="w-32">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {payTypeOptions.map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>
-                                      {option.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              pt.type
-                            )}
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell className="text-right">
-                          {edit?.id === pt.id ? (
-                            <Input
-                              type="number"
-                              value={edit.amount}
-                              onChange={(e) => setEdit((s) => (s ? { ...s, amount: e.target.value } : s))}
-                              className="w-32 ml-auto"
-                            />
-                          ) : (
-                            <div className="flex items-center justify-end gap-2">
-                              <DollarSign className="h-3 w-3 text-muted-foreground" />
-                              <span className="font-medium">{formatCurrency(pt.amount)}</span>
-                            </div>
-                          )}
-                        </TableCell>
-                        
-                        <TableCell>
-                          {getStatusBadge(pt.status)}
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="text-sm">
-                            {pt.createdBy || (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="text-sm">
-                            {pt.approvedBy || (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="text-sm text-muted-foreground">
-                            {formatDate(pt.createdAt)}
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="flex justify-end gap-2">
-                            {edit?.id === pt.id ? (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={saveEdit}
-                                  className="h-8"
-                                >
-                                  Save
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={cancelEdit}
-                                  className="h-8"
-                                >
-                                  Cancel
-                                </Button>
-                              </>
-                            ) : (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setView(pt)}
-                                  title="View details"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                
-                                {pt.status === ConfigStatus.DRAFT && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => beginEdit(pt)}
-                                    title="Edit"
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                )}
-                                
-                                {pt.status === ConfigStatus.APPROVED && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleCalculateClick(pt)}
-                                    title="Calculate"
-                                  >
-                                    <Calculator className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                </div>
-                <Badge variant="outline" className="border-primary/30 text-primary">
-                  {items.length} total
-                </Badge>
-              </div>
-              <h3 className="font-semibold text-foreground mt-3">All Types</h3>
-              <p className="text-xs text-muted-foreground mt-1">Total pay type configurations</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="p-2 bg-amber-100 rounded-lg">
-                  <Edit className="h-5 w-5 text-amber-600" />
-                </div>
-                <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700">
-                  {items.filter(i => i.status === ConfigStatus.DRAFT).length} pending
-                </Badge>
-              </div>
-              <h3 className="font-semibold text-foreground mt-3">Drafts</h3>
-              <p className="text-xs text-muted-foreground mt-1">Awaiting approval</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                </div>
-                <Badge variant="outline" className="border-green-300 bg-green-50 text-green-700">
-                  {items.filter(i => i.status === ConfigStatus.APPROVED).length} active
-                </Badge>
-              </div>
-              <h3 className="font-semibold text-foreground mt-3">Approved</h3>
-              <p className="text-xs text-muted-foreground mt-1">Ready for calculation</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <XCircle className="h-5 w-5 text-red-600" />
-                </div>
-                <Badge variant="outline" className="border-red-300 bg-red-50 text-red-700">
-                  {items.filter(i => i.status === ConfigStatus.REJECTED).length} rejected
-                </Badge>
-              </div>
-              <h3 className="font-semibold text-foreground mt-3">Rejected</h3>
-              <p className="text-xs text-muted-foreground mt-1">Needs revision</p>
-            </CardContent>
-          </Card>
+                Clear Filters
+              </button>
+          </div>
         </div>
       </div>
 
-      {/* View Modal */}
-      <Dialog open={!!view} onOpenChange={(open) => !open && setView(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              Pay Type Details
-            </DialogTitle>
-            <DialogDescription>
-              View complete information about this pay type configuration
-            </DialogDescription>
-          </DialogHeader>
-          
-          {view && (
-            <div className="space-y-6">
-              {/* Header Info */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground">{view.type}</h3>
-                  <p className="text-sm text-muted-foreground">ID: {view.id}</p>
-                </div>
-                {getStatusBadge(view.status)}
+      {/* Pay Types Table */}
+      <div className="bg-card rounded-lg border border-border shadow-sm">
+        <div className="p-6 border-b border-border">
+          <h2 className="text-xl font-bold text-foreground">
+            Pay Types ({filteredPayTypes.length})
+            {(filters.search || filters.status) && (
+              <span className="text-muted-foreground text-sm ml-2">of {payTypes.length} total</span>
+            )}
+          </h2>
+        </div>
+        
+        {filteredPayTypes.length === 0 ? (
+          <div className="p-12 text-center">
+            <p className="text-muted-foreground font-medium">
+              {(filters.search || filters.status) ? 'No pay types match your filters' : 'No pay types found'}
+            </p>
+            <p className="text-muted-foreground text-sm mt-1">
+              {(filters.search || filters.status) ? 'Try adjusting your search criteria' : 'Create your first pay type to get started'}
+            </p>
+            {!(filters.search || filters.status) && (
+              <button
+                onClick={handleCreateClick}
+                className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+              >
+                Create Pay Type
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">Pay Type</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">Amount</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">Status</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">Created</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPayTypes.map((payType) => (
+                  <tr key={payType._id} className="border-b border-border hover:bg-muted/20">
+                    <td className="py-4 px-6">
+                      <div>
+                        <p className="font-medium text-foreground">{payType.type}</p>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className="text-foreground font-medium">
+                        {formatCurrency(payType.amount)}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                                   <span className={`
+  inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-1
+  ${payType.status === 'approved' 
+    ? 'bg-green-100 text-green-800' 
+    : payType.status === 'draft' 
+    ? 'bg-yellow-100 text-yellow-800'
+    : payType.status === 'rejected' 
+    ? 'bg-red-100 text-red-800'
+    : payType.status === 'pending_approval'
+    ? 'bg-yellow-100 text-yellow-800'
+    : 'bg-muted/20 text-foreground'
+  }
+`}>
+  {payType.status === 'approved' 
+    ? 'Approved' 
+    : payType.status === 'draft' 
+    ? 'Draft'
+    : payType.status === 'rejected' 
+    ? 'Rejected'
+    : payType.status === 'pending_approval'
+    ? 'Pending Approval'
+    : payType.status}
+</span>
+                    </td>
+                    <td className="py-4 px-6 text-foreground">{formatDate(payType.createdAt)}</td>
+                    <td className="py-4 px-6">
+                      <div className="flex gap-2">
+                        {/* View button - Always visible */}
+                        <button
+                          onClick={() => handleViewClick(payType)}
+                          className="px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/5 border border-border rounded-lg transition-colors"
+                          title="View Details"
+                        >
+                          View
+                        </button>
+                        
+                        {/* Edit button - Only show for DRAFT pay types */}
+                        {payType.status === 'draft' && (
+                          <button
+                            onClick={() => handleEditClick(payType)}
+                            className="px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/5 border border-border rounded-lg transition-colors"
+                            title="Edit"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        
+                        {/* Calculate button - Only show for APPROVED pay types */}
+                        {payType.status === 'approved' && (
+                          <button
+                            onClick={() => handleCalculateClick(payType)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-primary bg-primary/5 text-primary rounded-lg hover:bg-primary/10 transition-all duration-200"
+                            title="Calculate Base Salary"
+                          >
+                            Calculate
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Information Box */}
+      <div className="bg-muted/5 border border-border rounded-lg p-6">
+        <h3 className="font-semibold text-foreground mb-2">Payroll Specialist Information</h3>
+        <ul className="text-muted-foreground text-sm space-y-2">
+          <li>• As a Payroll Specialist, you can <span className="font-semibold">create draft</span> pay types</li>
+          <li>• You can <span className="font-semibold">edit draft</span> pay types only</li>
+          <li>• You can <span className="font-semibold">view all</span> pay types (draft, approved, rejected)</li>
+          <li>• <span className="font-semibold">Approved</span> and <span className="font-semibold">rejected</span> pay types cannot be modified</li>
+          <li>• Pay types are used to calculate salaries according to employment agreements</li>
+          <li>• <span className="font-semibold">Backend Validation:</span> Minimum amount is $6,000 (enforced by backend)</li>
+          <li>• <span className="font-semibold">Note:</span> The backend handles all validations including amount minimums, duplicate types, and data integrity</li>
+        </ul>
+      </div>
+
+      {/* Create/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-xl font-bold text-foreground">
+                {selectedPayType ? 'Edit Pay Type' : 'Create Pay Type'}
+              </h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Pay Type *
+                </label>
+                <select
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-input rounded-lg font-medium text-muted-foreground focus:outline-none focus:ring-ring"
+                  required
+                >
+                  <option value="">Select a pay type</option>
+                  {payTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">Select the pay type for salary calculation</p>
               </div>
-
-              {/* Amount Details */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Base Amount
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-primary" />
-                    <span className="text-2xl font-bold text-foreground">
-                      {formatCurrency(view.amount)}
-                    </span>
+              
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Amount (USD) *
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-muted-foreground">$</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Base rate for {view.type.toLowerCase()} pay type calculations
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Metadata */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-foreground">Metadata</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label className="text-sm text-muted-foreground">Created By</Label>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>{view.createdBy || 'Unknown'}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm text-muted-foreground">Approved By</Label>
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-muted-foreground" />
-                      <span>{view.approvedBy || 'Not approved'}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm text-muted-foreground">Created Date</Label>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{formatDate(view.createdAt)}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm text-muted-foreground">Last Updated</Label>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{formatDate(view.updatedAt) || 'Never'}</span>
-                    </div>
-                  </div>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleChange}
+                    className="w-full pl-8 pr-4 py-2 border border-input rounded-lg font-medium text-foreground focus:outline-none focus:ring-ring"
+                    required
+                    placeholder="e.g., 6000"
+                    step="0.01"
+                    min="0"
+                  />
                 </div>
-
-                {/* Rejection Reason */}
-                {view.rejectionReason && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <XCircle className="h-4 w-4 text-red-600" />
-                      <h5 className="font-medium text-red-800">Rejection Reason</h5>
-                    </div>
-                    <p className="text-red-700 text-sm">{view.rejectionReason}</p>
-                  </div>
-                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Base amount for this pay type. <span className="font-semibold">Backend enforces minimum of $6,000</span>
+                </p>
+                <div className="mt-2 p-3 border border-border rounded-lg" style={{ background: 'transparent' }}>
+                  <p className="font-semibold text-foreground mb-2">Backend Validation Notice</p>
+                  <p className="text-muted-foreground text-sm space-y-2">
+                    The backend will validate that the amount meets the minimum requirement of $6,000. 
+                    If validation fails, an error message will be displayed above.
+                  </p>
+                </div>
               </div>
             </div>
-          )}
+            <div className="p-6 border-t border-border flex justify-end gap-3">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 border border-input text-foreground rounded-lg hover:bg-muted transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={selectedPayType ? handleUpdatePayType : handleCreatePayType}
+                disabled={actionLoading}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted/40 transition-colors font-medium"
+              >
+                {actionLoading ? 'Saving...' : selectedPayType ? 'Update' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setView(null)}>
-              Close
-            </Button>
-            {view?.status === ConfigStatus.DRAFT && (
-              <Button onClick={() => {
-                beginEdit(view);
-                setView(null);
-              }}>
-                Edit Pay Type
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* View Modal */}
+      {showViewModal && selectedPayType && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-xl font-bold text-foreground">Pay Type Details</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="text-lg font-bold text-foreground mb-2">{selectedPayType.type}</h4>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm text-primary">Status</span>
+<span className={`
+  inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-1
+  ${selectedPayType.status === 'approved' 
+    ? 'bg-green-100 text-green-800' 
+    : selectedPayType.status === 'draft' 
+    ? 'bg-yellow-100 text-yellow-800'
+    : selectedPayType.status === 'rejected' 
+    ? 'bg-red-100 text-red-800'
+    : selectedPayType.status === 'pending_approval'
+    ? 'bg-yellow-100 text-yellow-800'
+    : 'bg-muted/20 text-foreground'
+  }
+`}>
+  {selectedPayType.status === 'approved' 
+    ? 'Approved' 
+    : selectedPayType.status === 'draft' 
+    ? 'Draft'
+    : selectedPayType.status === 'rejected' 
+    ? 'Rejected'
+    : selectedPayType.status === 'pending_approval'
+    ? 'Pending Approval'
+    : selectedPayType.status}
+</span>
+                  </div>
+                </div>
+               
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-primary">Amount</p>
+                  <p className="font-medium text-foreground text-xl">{formatCurrency(selectedPayType.amount)}</p>
+                </div>
+              
+                <div>
+                  <p className="text-sm text-primary">Created</p>
+                  <p className="font-medium text-foreground">{formatDate(selectedPayType.createdAt)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-primary">Last Modified</p>
+                  <p className="font-medium text-foreground">{formatDate(selectedPayType.updatedAt)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-primary">Created By</p>
+                  <p className="font-medium text-foreground">{selectedPayType.createdBy || 'N/A'}</p>
+                </div>
+                {/* Approved By/At or Rejected By/At */}
+                {(selectedPayType.status === 'approved' || selectedPayType.status === 'rejected') && (
+                  <>
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedPayType.status === 'approved' ? 'Approved By' : 'Rejected By'}
+                      </p>
+                      <p className="font-medium text-foreground">{selectedPayType.approvedBy || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedPayType.status === 'approved' ? 'Approved At' : 'Rejected At'}
+                      </p>
+                      <p className="font-medium text-foreground">{selectedPayType.approvedAt ? formatDate(selectedPayType.approvedAt) : 'N/A'}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              {selectedPayType.rejectionReason && (
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                  <p className="text-sm font-medium text-destructive mb-1">Rejection Reason</p>
+                  <p className="text-destructive-foreground">{selectedPayType.rejectionReason}</p>
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t border-border flex justify-end">
+              <button
+                onClick={() => setShowViewModal(false)}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Calculate Modal */}
-      <Dialog open={showCalculateModal} onOpenChange={setShowCalculateModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Calculator className="h-5 w-5" />
-              Calculate Base Salary
-            </DialogTitle>
-            <DialogDescription>
-              Calculate salary based on {selectedPayType?.type} rate and contract terms
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedPayType && (
-            <div className="space-y-6">
+      {showCalculateModal && selectedPayType && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-xl font-bold text-foreground">Calculate Base Salary</h3>
+              <p className="text-muted-foreground text-sm mt-1">
+                Calculate salary based on {selectedPayType.type} rate and contract terms
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
               {/* Pay Type Info */}
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="bg-muted/10 border border-border rounded-lg p-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-sm font-medium text-purple-800">Pay Type</p>
-                    <p className="text-lg font-bold text-purple-900">{selectedPayType.type}</p>
+                    <p className="text-sm font-medium text-primary">Pay Type</p>
+                    <p className="text-lg font-bold text-foreground">{selectedPayType.type}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium text-purple-800">Base Rate</p>
-                    <p className="text-lg font-bold text-purple-900">{formatCurrency(selectedPayType.amount)}</p>
+                    <p className="text-sm font-medium text-primary">Base Rate</p>
+                    <p className="text-lg font-bold text-foreground">{formatCurrency(selectedPayType.amount)}</p>
                   </div>
                 </div>
               </div>
@@ -1057,14 +897,15 @@ export default function PayTypesPage() {
                 
                 {(selectedPayType.type === 'Hourly') && (
                   <div>
-                    <Label htmlFor="hoursPerWeek" className="mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Hours Per Week
-                    </Label>
-                    <Input
+                    </label>
+                    <input
                       type="number"
-                      id="hoursPerWeek"
-                      value={calculateForm.hoursPerWeek}
-                      onChange={(e) => setCalculateForm(f => ({ ...f, hoursPerWeek: e.target.value }))}
+                      name="hoursPerWeek"
+                      value={calculateFormData.hoursPerWeek}
+                      onChange={handleCalculateFormChange}
+                      className="w-full px-4 py-2 border border-input rounded-lg font-medium text-foreground focus:outline-none focus:ring-ring"
                       placeholder="e.g., 40"
                       min="1"
                       max="168"
@@ -1074,14 +915,15 @@ export default function PayTypesPage() {
 
                 {(selectedPayType.type === 'Hourly' || selectedPayType.type === 'Daily' || selectedPayType.type === 'Weekly') && (
                   <div>
-                    <Label htmlFor="weeksPerMonth" className="mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Weeks Per Month
-                    </Label>
-                    <Input
+                    </label>
+                    <input
                       type="number"
-                      id="weeksPerMonth"
-                      value={calculateForm.weeksPerMonth}
-                      onChange={(e) => setCalculateForm(f => ({ ...f, weeksPerMonth: e.target.value }))}
+                      name="weeksPerMonth"
+                      value={calculateFormData.weeksPerMonth}
+                      onChange={handleCalculateFormChange}
+                      className="w-full px-4 py-2 border border-input rounded-lg font-medium text-foreground focus:outline-none focus:ring-ring"
                       placeholder="e.g., 4"
                       min="1"
                       max="5"
@@ -1092,14 +934,15 @@ export default function PayTypesPage() {
 
                 {selectedPayType.type !== 'Contract-Based' && (
                   <div>
-                    <Label htmlFor="contractDuration" className="mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Contract Duration (Months)
-                    </Label>
-                    <Input
+                    </label>
+                    <input
                       type="number"
-                      id="contractDuration"
-                      value={calculateForm.contractDuration}
-                      onChange={(e) => setCalculateForm(f => ({ ...f, contractDuration: e.target.value }))}
+                      name="contractDuration"
+                      value={calculateFormData.contractDuration}
+                      onChange={handleCalculateFormChange}
+                      className="w-full px-4 py-2 border border-input rounded-lg font-medium text-foreground focus:outline-none focus:ring-ring"
                       placeholder="e.g., 12"
                       min="1"
                       max="60"
@@ -1108,65 +951,60 @@ export default function PayTypesPage() {
                 )}
 
                 <div>
-                  <Label htmlFor="roleType" className="mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Role Type
-                  </Label>
-                  <Select
-                    value={calculateForm.roleType}
-                    onValueChange={(value) => setCalculateForm(f => ({ ...f, roleType: value }))}
+                  </label>
+                  <select
+                    name="roleType"
+                    value={calculateFormData.roleType}
+                    onChange={handleCalculateFormChange}
+                    className="w-full px-4 py-2 border border-input rounded-lg font-medium text-foreground focus:outline-none focus:ring-ring"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="full-time">Full-time</SelectItem>
-                      <SelectItem value="part-time">Part-time</SelectItem>
-                      <SelectItem value="hourly">Hourly</SelectItem>
-                      <SelectItem value="commission-based">Commission-based</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Role type affects the salary multiplier based on employment agreement
-                  </p>
+                    <option value="full-time">Full-time</option>
+                    <option value="part-time">Part-time</option>
+                    <option value="hourly">Hourly</option>
+                    <option value="commission-based">Commission-based</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-1">Role type affects the salary multiplier based on employment agreement</p>
                 </div>
               </div>
 
               {/* Calculation Result */}
               {calculationResult && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
-                  <h4 className="font-semibold text-green-900">Calculation Result</h4>
+                <div className="bg-success/10 border border-border rounded-lg p-4 space-y-3">
+                  <h4 className="font-semibold text-success-foreground">Calculation Result</h4>
                   
-                  <div className="text-sm text-green-700 bg-green-100 p-3 rounded font-mono">
+                  <div className="text-xs text-success-foreground bg-success/20 p-2 rounded font-mono">
                     {calculationResult.calculation}
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-green-700">Total Contract Salary</p>
-                      <p className="text-2xl font-bold text-green-900">
+                      <p className="text-sm text-success-foreground">Total Contract Salary</p>
+                      <p className="text-2xl font-bold text-success-foreground">
                         {formatCurrency(calculationResult.baseSalary)}
                       </p>
                     </div>
                     {calculationResult.payType !== 'Contract-Based' && (
                       <div>
-                        <p className="text-sm text-green-700">Monthly Equivalent</p>
-                        <p className="text-2xl font-bold text-green-900">
+                        <p className="text-sm text-success-foreground">Monthly Equivalent</p>
+                        <p className="text-2xl font-bold text-success-foreground">
                           {formatCurrency(calculationResult.monthlySalary)}
                         </p>
                       </div>
                     )}
                   </div>
                   
-                  <div className="text-xs text-green-600 pt-2 border-t border-green-200">
+                  <div className="text-xs text-success-foreground pt-2 border-t border-border">
                     <p>Based on {calculationResult.roleType} role for {calculationResult.contractDuration} month(s)</p>
                   </div>
                 </div>
               )}
 
               {/* Info Box */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 text-sm mb-2">Calculation Formula</h4>
-                <ul className="text-xs text-blue-800 space-y-1">
+              <div className="bg-muted/10 border border-border rounded-lg p-4">
+                <h4 className="font-semibold text-foreground text-sm mb-2">Calculation Formula</h4>
+                <ul className="text-xs text-muted-foreground space-y-1">
                   <li>• <strong>Hourly:</strong> Rate × Hours/Week × Weeks/Month × Months × Role Multiplier</li>
                   <li>• <strong>Daily:</strong> Rate × 5 Days/Week × Weeks/Month × Months × Role Multiplier</li>
                   <li>• <strong>Weekly:</strong> Rate × Weeks/Month × Months × Role Multiplier</li>
@@ -1175,22 +1013,26 @@ export default function PayTypesPage() {
                 </ul>
               </div>
             </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowCalculateModal(false);
-              setCalculationResult(null);
-            }}>
-              Close
-            </Button>
-            <Button onClick={handleCalculateSalary} className="bg-purple-600 hover:bg-purple-700">
-              Calculate
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+            <div className="p-6 border-t border-border flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowCalculateModal(false);
+                  setCalculationResult(null);
+                }}
+                className="px-4 py-2 border border-input text-foreground rounded-lg hover:bg-muted transition-colors font-medium"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleCalculateSalary}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+              >
+                Calculate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
