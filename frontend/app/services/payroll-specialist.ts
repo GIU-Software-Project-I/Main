@@ -130,26 +130,24 @@ export interface PayrollSummaryReport {
   downloadUrl?: string;
 }
 
-// Types for Dispute Review
+// Types for Dispute Review (matches backend disputes.schema.ts)
 export interface PayrollDispute {
   id: string;
+  disputeId: string; // DISP-0001 format for display
   employeeId: string;
   employeeName: string;
   employeeNumber: string;
-  department: string;
-  type: 'salary' | 'deduction' | 'hours' | 'other';
   description: string;
-  amount?: number;
-  period: string;
-  status: 'under_review' | 'pending payroll Manager approval' | 'approved' | 'rejected';
+  payslipId: string;
+  payPeriod?: string; // from populated payslipId
+  status: 'under review' | 'pending payroll Manager approval' | 'approved' | 'rejected';
   submittedAt: string;
   reviewedAt?: string;
   reviewedBy?: string;
-  notes?: string;
-  rejectionRemarks?: string;
-  attachments?: string[];
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  eligibleForEscalation?: boolean;
+  notes?: string; // resolutionComment from backend
+  rejectionRemarks?: string; // rejectionReason from backend
+  refundId?: string;
+  refundStatus?: string;
 }
 
 export interface DisputeReviewAction {
@@ -163,9 +161,6 @@ export interface DisputeReviewAction {
 export interface DisputeFilters {
   status?: PayrollDispute['status'] | 'all';
   period?: string;
-  department?: string;
-  type?: PayrollDispute['type'] | 'all';
-  priority?: PayrollDispute['priority'] | 'all';
 }
 
 // Types for Expense Claims
@@ -314,9 +309,6 @@ export const payrollSpecialistService = {
     const params = new URLSearchParams();
     if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
     if (filters?.period) params.append('period', filters.period);
-    if (filters?.department) params.append('department', filters.department);
-    if (filters?.type && filters.type !== 'all') params.append('type', filters.type);
-    if (filters?.priority && filters.priority !== 'all') params.append('priority', filters.priority);
 
     const queryString = params.toString();
     const response = await api.get<any>(`/payroll/tracking/disputes${queryString ? `?${queryString}` : ''}`);

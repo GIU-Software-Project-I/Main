@@ -38,17 +38,42 @@ export default function FinanceStaffPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // Load cached data first
+    const cachedStats = localStorage.getItem('finance_staff_stats');
+    const cachedRuns = localStorage.getItem('finance_staff_recent_runs');
+
+    if (cachedStats) {
+      try {
+        setStats(JSON.parse(cachedStats));
+      } catch (e) {
+        console.error('Failed to parse cached stats', e);
+      }
+    }
+
+    if (cachedRuns) {
+      try {
+        setRecentRuns(JSON.parse(cachedRuns));
+      } catch (e) {
+        console.error('Failed to parse cached runs', e);
+      }
+    }
+
+    if (cachedStats || cachedRuns) {
+      setLoading(false);
+    }
+
     fetchStats();
   }, []);
 
   const fetchStats = async () => {
-    setError('');
+    // Don't clear error or set loading to true if we have cached data
+    // to avoid flashing
     try {
       const res = await payrollExecutionService.listRuns({ page: 1, limit: 100 });
 
       if (res?.error) {
         setError(res.error);
-        setLoading(false);
+        if (!stats.totalRuns) setLoading(false); // Only stop loading if we don't have data
         return;
       }
 
@@ -81,13 +106,16 @@ export default function FinanceStaffPage() {
       // For now, count locked runs as having payslips generated
       const withPayslips = lockedRuns.length;
 
-      setStats({
+      const newStats = {
         pendingApprovals: pending,
         totalPayroll: totalPay,
         payslipsReady: withPayslips,
         fullyApproved: fullyApprovedCount,
         totalRuns: items.length,
-      });
+      };
+
+      setStats(newStats);
+      localStorage.setItem('finance_staff_stats', JSON.stringify(newStats));
 
       // Get recent runs for activity feed (sorted by date, top 5)
       const sorted = [...items].sort((a: any, b: any) => {
@@ -95,10 +123,17 @@ export default function FinanceStaffPage() {
         const dateB = new Date(b.createdAt || 0).getTime();
         return dateB - dateA;
       });
-      setRecentRuns(sorted.slice(0, 5));
+      const newRecentRuns = sorted.slice(0, 5);
+      setRecentRuns(newRecentRuns);
+      localStorage.setItem('finance_staff_recent_runs', JSON.stringify(newRecentRuns));
+
     } catch (e: any) {
       console.error('Failed to fetch stats:', e);
-      setError(e?.message || 'Failed to load dashboard data');
+      // Only show error if we don't have cached data, or maybe show ephemeral?
+      // For now, setting error is fine, UI handles it.
+      if (!stats.totalRuns) {
+        setError(e?.message || 'Failed to load dashboard data');
+      }
     } finally {
       setLoading(false);
     }
