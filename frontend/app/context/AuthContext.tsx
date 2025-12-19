@@ -118,25 +118,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Load user from localStorage on mount
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem(USER_STORAGE_KEY);
-      const token = getAccessToken();
+    const loadUser = async () => {
+      try {
+        // Add minimum loading time to prevent flash
+        const startTime = Date.now();
+        const minLoadingTime = 500; // Minimum 500ms loading
 
-      if (storedUser && token) {
-        const parsed = JSON.parse(storedUser);
-        setUser(parsed);
-      } else if (storedUser && !token) {
-        // Token missing but user data exists - session expired
-        console.warn('User data found but no access token. Clearing session.');
+        const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+        const token = getAccessToken();
+
+        if (storedUser && token) {
+          const parsed = JSON.parse(storedUser);
+          setUser(parsed);
+        } else if (storedUser && !token) {
+          // Token missing but user data exists - session expired
+          console.warn('User data found but no access token. Clearing session.');
+          localStorage.removeItem(USER_STORAGE_KEY);
+          setUser(null);
+        }
+
+        // Ensure minimum loading time
+        const elapsed = Date.now() - startTime;
+        if (elapsed < minLoadingTime) {
+          await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsed));
+        }
+      } catch (e) {
+        console.error('Failed to parse stored user:', e);
         localStorage.removeItem(USER_STORAGE_KEY);
-        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (e) {
-      console.error('Failed to parse stored user:', e);
-      localStorage.removeItem(USER_STORAGE_KEY);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    loadUser();
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {

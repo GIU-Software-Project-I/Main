@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import { GlassCard } from '@/app/components/ui/glass-card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { DotPattern } from '@/app/components/dot-pattern';
-import { User, Mail, Lock, Phone, CreditCard, CheckCircle2, AlertCircle } from 'lucide-react';
+import { User, Mail, Lock, Phone, CreditCard, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
 
 // Password strength indicator component
 function PasswordStrength({ password }: { password: string }) {
@@ -53,7 +54,8 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export default function RegisterPage() {
-  const { register, isLoading, error: authError, clearError } = useAuth();
+  const router = useRouter();
+  const { register, isLoading, error: authError, clearError, login } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -66,12 +68,14 @@ export default function RegisterPage() {
   });
   const [localError, setLocalError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Clear errors when component mounts or unmounts
   useEffect(() => {
     clearError();
     return () => clearError();
   }, [clearError]);
+
 
   const displayError = localError || authError;
 
@@ -121,6 +125,30 @@ export default function RegisterPage() {
 
     if (result) {
       setSuccess(true);
+      setIsLoggingIn(true);
+      
+      // After successful registration, auto-login the candidate
+      try {
+        // Use the login function from AuthContext to set user state
+        const loginSuccess = await login(formData.email, formData.password);
+        if (loginSuccess) {
+          // Redirect to candidate dashboard
+          setTimeout(() => {
+            router.push('/dashboard/job-candidate');
+          }, 1000);
+        } else {
+          // If login fails, redirect to login page
+          setTimeout(() => {
+            router.push('/login?registered=true');
+          }, 2000);
+        }
+      } catch (loginErr) {
+        // If auto-login fails, redirect to login page
+        console.error('Auto-login after registration failed:', loginErr);
+        setTimeout(() => {
+          router.push('/login?registered=true');
+        }, 2000);
+      }
     }
   };
 
@@ -137,7 +165,9 @@ export default function RegisterPage() {
             <CheckCircle2 className="w-10 h-10 text-green-500" />
           </div>
           <h2 className="text-3xl font-bold text-foreground mb-3">Registration Successful!</h2>
-          <p className="text-muted-foreground mb-6">Your account has been created. Redirecting to your dashboard...</p>
+          <p className="text-muted-foreground mb-6">
+            {isLoggingIn ? 'Logging you in and redirecting to your dashboard...' : 'Your account has been created. Logging you in...'}
+          </p>
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
         </GlassCard>
       </div>
@@ -154,6 +184,16 @@ export default function RegisterPage() {
       </div>
 
       <div className="w-full max-w-2xl relative z-10">
+        {/* Back to Home Button */}
+        <div className="mb-6">
+          <Link href="/">
+            <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Home
+            </Button>
+          </Link>
+        </div>
+
         <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <Link href="/" className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-primary to-blue-600 rounded-xl mb-4 shadow-lg shadow-primary/20 hover:scale-105 transition-transform duration-300">
             <span className="text-white font-bold text-xl">HR</span>

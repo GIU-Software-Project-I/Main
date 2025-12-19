@@ -2,8 +2,27 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
-import { Card } from '@/app/components/ui/card';
+import { GlassCard } from '@/app/components/ui/glass-card';
 import { getRecruitmentDashboard } from '@/app/services/recruitment';
+import {
+  Plus,
+  FileText,
+  Users,
+  BarChart3,
+  CheckCircle2,
+  Calendar,
+  MessageSquare,
+  UserPlus,
+  Settings,
+  Layers,
+  Search,
+  ChevronRight,
+  Target,
+  Clock,
+  Briefcase
+} from 'lucide-react';
+import { Button } from '@/app/components/ui/button';
+import { Badge } from '@/app/components/ui/badge';
 
 // Interface matching backend getRecruitmentDashboard response
 interface DashboardResponse {
@@ -35,20 +54,20 @@ export default function RecruitmentOverviewPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const dashboardData = await getRecruitmentDashboard() as DashboardResponse;
-      
+
       // Extract stats from backend response
       const activeCandidates = dashboardData?.applicationsByStatus
         ?.filter(s => s._id !== 'rejected' && s._id !== 'hired')
         .reduce((sum, s) => sum + s.count, 0) || 0;
-      
+
       const hiredCount = dashboardData?.applicationsByStatus
         ?.find(s => s._id === 'hired')?.count || 0;
-      
+
       const pendingOffers = dashboardData?.applicationsByStage
         ?.find(s => s._id === 'offer')?.count || 0;
-      
+
       setStats({
         openJobs: dashboardData?.totalOpenPositions || 0,
         activeCandidates: activeCandidates,
@@ -69,152 +88,168 @@ export default function RecruitmentOverviewPage() {
   const modules = [
     {
       title: 'Job Requisitions',
-      description: 'Create, manage, publish and close job postings',
+      description: 'Create, manage, publish and close job postings to attract top talent.',
       href: '/dashboard/hr-manager/recruitment/jobs',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      ),
+      icon: <Briefcase className="w-6 h-6" />,
+      tag: 'Core'
     },
     {
       title: 'Job Templates',
-      description: 'Create and manage standardized job description templates',
+      description: 'Standardize job descriptions and requirements across the organization.',
       href: '/dashboard/hr-manager/recruitment/templates/jobs',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      ),
+      icon: <FileText className="w-6 h-6" />,
+      tag: 'Config'
     },
     {
       title: 'Process Templates',
-      description: 'Define hiring stages and progress tracking',
+      description: 'Define customized hiring stages and evaluation criteria.',
       href: '/dashboard/hr-manager/recruitment/templates/process',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-        </svg>
-      ),
+      icon: <Layers className="w-6 h-6" />,
+      tag: 'Config'
     },
     {
       title: 'Analytics',
-      description: 'Monitor recruitment metrics and performance',
+      description: 'Gain insights into time-to-hire, source effectiveness, and pipeline health.',
       href: '/dashboard/hr-manager/recruitment/analytics',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      ),
+      icon: <BarChart3 className="w-6 h-6" />,
+      tag: 'Reporting'
     },
     {
       title: 'Applications',
-      description: 'Track candidates through hiring stages (REC-008)',
+      description: 'Manage and track candidates as they move through the hiring funnel.',
       href: '/dashboard/hr-manager/recruitment/applications',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-      ),
+      icon: <Users className="w-6 h-6" />,
+      tag: 'Tracking'
     },
     {
       title: 'Interviews',
-      description: 'Schedule and coordinate interview panels (REC-010, REC-021)',
+      description: 'Schedule, coordinate and manage the interview panel experience.',
       href: '/dashboard/hr-manager/recruitment/interviews',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      ),
+      icon: <Calendar className="w-6 h-6" />,
+      tag: 'Coordination'
     },
     {
       title: 'Interview Feedback',
-      description: 'Submit feedback and scores for candidates (REC-011, REC-020)',
+      description: 'Review structured feedback and candidate assessment scores.',
       href: '/dashboard/hr-manager/recruitment/feedback',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-        </svg>
-      ),
+      icon: <CheckCircle2 className="w-6 h-6" />,
+      tag: 'Review'
     },
     {
       title: 'Employee Referrals',
-      description: 'Manage candidate referrals for priority processing (REC-030)',
+      description: 'Track internal employee referrals and manage referral rewards.',
       href: '/dashboard/hr-manager/recruitment/referrals',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      ),
+      icon: <UserPlus className="w-6 h-6" />,
+      tag: 'Sourcing'
     },
     {
       title: 'Offer Approvals',
-      description: 'Review and approve candidate offers (REC-014, REC-018)',
+      description: 'Review, approve, and send digital offers with e-signature tracking.',
       href: '/dashboard/hr-manager/recruitment/offers',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
+      icon: <MessageSquare className="w-6 h-6" />,
+      tag: 'Closing'
     },
   ];
 
-  const statCards = [
-    { label: 'Open Jobs', value: stats.openJobs, color: 'bg-blue-500' },
-    { label: 'Active Candidates', value: stats.activeCandidates, color: 'bg-emerald-500' },
-    { label: 'Pending Offers', value: stats.pendingOffers, color: 'bg-amber-500' },
-    { label: 'Hired This Month', value: stats.hiredThisMonth, color: 'bg-purple-500' },
-  ];
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="border-b border-slate-200 pb-6">
-        <h1 className="text-2xl font-semibold text-slate-900">Recruitment Management</h1>
-        <p className="text-sm text-slate-500 mt-1">Manage job templates, hiring processes, and offers</p>
-      </div>
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] -z-10 rounded-full" />
+      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 blur-[100px] -z-10 rounded-full" />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat) => (
-          <div key={stat.label} className="bg-white rounded-xl border border-slate-200 p-5">
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
-                <span className="text-white text-xl font-bold">
-                  {loading ? '...' : stat.value}
-                </span>
-              </div>
-              <div>
-                <p className="text-sm text-slate-500">{stat.label}</p>
-                <p className="text-2xl font-semibold text-slate-900">
-                  {loading ? '—' : stat.value}
-                </p>
-              </div>
-            </div>
+      <div className="space-y-10">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-2 border-b border-border/50">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              Recruitment Command Center
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Manage your acquisition pipeline from job creation to final offer.
+            </p>
           </div>
-        ))}
-      </div>
+          <div className="flex gap-3">
+            <Button variant="outline" className="h-11 backdrop-blur-md bg-background/50 border-input hover:bg-accent" asChild>
+              <Link href="/dashboard/hr-manager/recruitment/templates/jobs">
+                <Settings className="w-4 h-4 mr-2 text-muted-foreground" />
+                Config Templates
+              </Link>
+            </Button>
+            <Button className="h-11 shadow-lg shadow-primary/20 bg-gradient-to-r from-primary to-blue-600 hover:shadow-xl hover:scale-[1.02] transition-all" asChild>
+              <Link href="/dashboard/hr-manager/recruitment/jobs">
+                <Plus className="w-4 h-4 mr-2" />
+                Post New Job
+              </Link>
+            </Button>
+          </div>
+        </div>
 
-      {/* Module Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {modules.map((module) => (
-          <Link key={module.title} href={module.href}>
-            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600">
-                  {module.icon}
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { label: 'Active Openings', value: stats.openJobs, icon: <Target className="w-5 h-5" />, color: 'from-blue-500/20 to-blue-600/20', iconColor: 'text-blue-500' },
+            { label: 'Total Applicants', value: stats.activeCandidates, icon: <Users className="w-5 h-5" />, color: 'from-emerald-500/20 to-emerald-600/20', iconColor: 'text-emerald-500' },
+            { label: 'Offers Pending', value: stats.pendingOffers, icon: <Clock className="w-5 h-5" />, color: 'from-amber-500/20 to-amber-600/20', iconColor: 'text-amber-500' },
+            { label: 'Hired This Month', value: stats.hiredThisMonth, icon: <CheckCircle2 className="w-5 h-5" />, color: 'from-purple-500/20 to-purple-600/20', iconColor: 'text-purple-500' },
+          ].map((stat, i) => (
+            <GlassCard key={i} variant="hover" className="p-6 overflow-hidden relative group">
+              <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.color} blur-3xl group-hover:blur-2xl transition-all duration-500`} />
+              <div className="relative z-10 flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+                  <p className="text-4xl font-bold text-foreground">
+                    {loading ? '...' : stat.value}
+                  </p>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-slate-900">{module.title}</h3>
-                  <p className="text-sm text-slate-500 mt-1">{module.description}</p>
+                <div className={`p-3 rounded-2xl bg-background/50 border border-border shadow-sm ${stat.iconColor}`}>
+                  {stat.icon}
                 </div>
-                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
               </div>
-            </Card>
-          </Link>
-        ))}
+            </GlassCard>
+          ))}
+        </div>
+
+        {/* Search / Filter Section (Quick Nav) */}
+        <div className="flex items-center gap-4 bg-muted/30 p-2 rounded-2xl border border-border/40 backdrop-blur-sm max-w-2xl">
+          <div className="pl-3">
+            <Search className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <input
+            type="text"
+            placeholder="Quick search recruitment modules, templates, or jobs..."
+            className="flex-1 bg-transparent border-none focus:ring-0 placeholder:text-muted-foreground text-foreground"
+          />
+          <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 cursor-default">
+            v2.4 Live
+          </Badge>
+        </div>
+
+        {/* Module Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+          {modules.map((module) => (
+            <Link key={module.title} href={module.href}>
+              <GlassCard variant="hover" className="p-6 h-full flex flex-col group border-border/40 hover:border-primary/30 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-4 rounded-2xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500 shadow-sm border border-primary/10">
+                    {module.icon}
+                  </div>
+                  <Badge variant="secondary" className="opacity-0 group-hover:opacity-100 transition-opacity bg-muted/60 text-muted-foreground border-border/50">
+                    {module.tag}
+                  </Badge>
+                </div>
+                <div className="space-y-2 flex-1">
+                  <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors flex items-center gap-2">
+                    {module.title}
+                    <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed font-medium">
+                    {module.description}
+                  </p>
+                </div>
+              </GlassCard>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

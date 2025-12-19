@@ -22,8 +22,10 @@ import {
   Search,
   Filter,
   ArrowRight,
-  MoreHorizontal,
-  Calendar
+  Calendar,
+  ShieldCheck,
+  History,
+  TrendingDown
 } from 'lucide-react';
 
 export default function OffboardingDashboard() {
@@ -55,7 +57,6 @@ export default function OffboardingDashboard() {
     }
   };
 
-  // Helper to normalize status/initiator for case-insensitive comparison
   const normalizeValue = (val: string) => val?.toLowerCase?.() || val;
 
   const filteredRequests = requests.filter((request) => {
@@ -108,208 +109,203 @@ export default function OffboardingDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background/50 relative">
-      <div className="absolute top-0 right-0 w-full h-96 bg-gradient-to-b from-orange-500/5 to-transparent -z-10 pointer-events-none"></div>
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-0 right-0 w-full h-[500px] bg-gradient-to-b from-orange-500/5 to-transparent -z-10 pointer-events-none"></div>
+      <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-orange-500/10 blur-[120px] rounded-full -z-10 animate-pulse transition-duration-700"></div>
 
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-10">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
-              Offboarding Management
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 border-b border-border/50 pb-6">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+              Offboarding Protocol
             </h1>
-            <p className="text-muted-foreground text-lg">
-              Manage separations, resignations and exit processes efficiently.
+            <p className="text-muted-foreground text-lg font-medium">
+              Ensure graceful exits and complete compliance for every separation.
             </p>
           </div>
-          <Button size="lg" className="shadow-lg shadow-orange-500/20 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 transition-all hover:scale-105" asChild>
+          <Button size="lg" className="h-11 shadow-lg shadow-orange-500/20 bg-gradient-to-r from-orange-600 to-red-600 hover:shadow-xl transition-all hover:scale-[1.02] gap-2" asChild>
             <Link href="/dashboard/hr-manager/offboarding/termination-reviews">
-              <UserMinus className="w-5 h-5 mr-2" />
-              Initiate Termination
+              <UserMinus className="w-5 h-5" />
+              <span>Initiate Termination</span>
             </Link>
           </Button>
         </div>
 
         {error && (
-          <GlassCard className=" border-destructive/20 bg-destructive/5 text-destructive p-4 flex items-center justify-between">
+          <GlassCard className=" border-destructive/20 bg-destructive/5 text-destructive p-5 flex items-center justify-between animate-in fade-in slide-in-from-top-4">
             <div className="flex items-center gap-3">
               <AlertTriangle className="w-5 h-5" />
-              <span>{error}</span>
+              <span className="font-medium">{error}</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={fetchData} className="hover:bg-destructive/10">Retry</Button>
+            <Button variant="outline" size="sm" onClick={fetchData} className="hover:bg-destructive/10 border-destructive/20 text-destructive">Retry</Button>
           </GlassCard>
         )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <GlassCard variant="hover" className="p-6 relative overflow-hidden group border-l-4 border-l-muted">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <FileX className="w-16 h-16 text-foreground" />
-            </div>
-            <div className="space-y-2 relative z-10">
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Requests</p>
-              <p className="text-4xl font-bold text-foreground">{stats.total}</p>
-            </div>
-          </GlassCard>
-
-          <GlassCard variant="hover" className="p-6 relative overflow-hidden group border-l-4 border-l-amber-500">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <AlertTriangle className="w-16 h-16 text-amber-500" />
-            </div>
-            <div className="space-y-2 relative z-10">
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Pending Review</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-bold text-amber-600 dark:text-amber-400">{stats.pending + stats.underReview}</p>
-                <span className="text-xs text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Needing Attention</span>
-              </div>
-            </div>
-          </GlassCard>
-
-          <GlassCard variant="hover" className="p-6 relative overflow-hidden group border-l-4 border-l-blue-500">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <LogOut className="w-16 h-16 text-blue-500" />
-            </div>
-            <div className="space-y-2 relative z-10">
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Resignations</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">{stats.resignations}</p>
-                <span className="text-xs text-muted-foreground">Voluntary</span>
-              </div>
-            </div>
-          </GlassCard>
-
-          <GlassCard variant="hover" className="p-6 relative overflow-hidden group border-l-4 border-l-orange-500">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <UserMinus className="w-16 h-16 text-orange-500" />
-            </div>
-            <div className="space-y-2 relative z-10">
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Terminations</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-bold text-orange-600 dark:text-orange-400">{stats.terminations}</p>
-                <span className="text-xs text-orange-600 bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 rounded-full">Involuntary</span>
-              </div>
-            </div>
-          </GlassCard>
-        </div>
-
-        {/* Quick Actions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { href: '/dashboard/hr-manager/offboarding/resignations', icon: LogOut, bg: 'bg-blue-50 dark:bg-blue-900/20', color: 'text-blue-600', title: 'Resignations', desc: 'Review employee resignations' },
-            { href: '/dashboard/hr-manager/offboarding/termination-reviews', icon: AlertTriangle, bg: 'bg-orange-50 dark:bg-orange-900/20', color: 'text-orange-600', title: 'Terminations', desc: 'Initiate termination reviews' },
-            { href: '/dashboard/hr-manager/offboarding/checklist', icon: ClipboardCheck, bg: 'bg-green-50 dark:bg-green-900/20', color: 'text-green-600', title: 'Exit Clearance', desc: 'Department sign-offs' },
-            { href: '/dashboard/hr-manager/offboarding/final-settlement', icon: DollarSign, bg: 'bg-purple-50 dark:bg-purple-900/20', color: 'text-purple-600', title: 'Final Settlement', desc: 'Process final payments' }
-          ].map((item, i) => (
-            <Link key={i} href={item.href}>
-              <GlassCard className="p-5 flex items-start gap-4 hover:bg-accent/50 transition-colors h-full group hover:border-primary/30">
-                <div className={`p-3 rounded-xl ${item.bg} group-hover:scale-110 transition-transform`}>
-                  <item.icon className={`w-5 h-5 ${item.color}`} />
+            { label: 'Total Separations', value: stats.total, icon: FileX, color: 'text-foreground', sub: 'Lifetime Volume' },
+            { label: 'Action Required', value: stats.pending + stats.underReview, icon: AlertTriangle, color: 'text-orange-500', sub: 'Pending Review' },
+            { label: 'Voluntary', value: stats.resignations, icon: LogOut, color: 'text-blue-500', sub: 'Resignations' },
+            { label: 'Involuntary', value: stats.terminations, icon: UserMinus, color: 'text-red-500', sub: 'Terminations' },
+          ].map((stat, i) => (
+            <GlassCard key={i} variant="hover" className="p-6 relative overflow-hidden group border-l-4 border-l-border/10">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <stat.icon className={`w-20 h-20 ${stat.color}`} />
+              </div>
+              <div className="space-y-4 relative z-10">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+                  <stat.icon className={`w-4 h-4 ${stat.color}`} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">{item.title}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+                  <p className="text-4xl font-extrabold text-foreground tracking-tight">{stat.value}</p>
+                </div>
+                <p className="text-xs text-muted-foreground font-medium">{stat.sub}</p>
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+
+        {/* Workflow Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { href: '/dashboard/hr-manager/offboarding/resignations', icon: LogOut, color: 'text-blue-500', title: 'Resignations', desc: 'Voluntary separation desk' },
+            { href: '/dashboard/hr-manager/offboarding/termination-reviews', icon: ShieldCheck, color: 'text-orange-500', title: 'Reviews', desc: 'Termination audit trail' },
+            { href: '/dashboard/hr-manager/offboarding/checklist', icon: ClipboardCheck, color: 'text-emerald-500', title: 'Clearance', desc: 'Departmental sign-offs' },
+            { href: '/dashboard/hr-manager/offboarding/final-settlement', icon: DollarSign, color: 'text-purple-500', title: 'Settlement', desc: 'Financial closure' }
+          ].map((item, i) => (
+            <Link key={i} href={item.href}>
+              <GlassCard className="p-5 flex items-center gap-4 hover:bg-muted/50 transition-all group hover:border-primary/20 hover:scale-[1.02]">
+                <div className="p-3 rounded-2xl bg-muted/80 group-hover:bg-background border border-border group-hover:border-primary/10 transition-all shadow-sm">
+                  <item.icon className={`w-6 h-6 ${item.color}`} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-foreground group-hover:text-primary transition-colors text-sm">{item.title}</h3>
+                  <p className="text-[11px] text-muted-foreground font-medium">{item.desc}</p>
                 </div>
               </GlassCard>
             </Link>
           ))}
         </div>
 
-        {/* Filters & List */}
+        {/* Table/List Filter Workspace */}
         <div className="space-y-6">
-          <GlassCard className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <Filter className="w-4 h-4 text-muted-foreground" />
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-muted/20 p-2 rounded-2xl backdrop-blur-md border border-border/50">
+            <div className="flex items-center gap-2 p-1 bg-background/50 rounded-xl border border-border/50 w-full md:w-auto overflow-x-auto">
+              <div className="flex px-2 py-1 items-center gap-1 border-r border-border/50 mr-1">
+                <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+              </div>
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as any)}
-                className="bg-transparent border border-border rounded-md text-sm px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20 w-full md:w-auto"
+                className="bg-transparent text-xs font-bold px-3 py-1.5 focus:outline-none focus:ring-0 text-foreground"
               >
-                <option value="all">All Types</option>
-                <option value="resignations">Resignations</option>
-                <option value="terminations">Terminations</option>
+                <option value="all">Every Move</option>
+                <option value="resignations">Resignation Only</option>
+                <option value="terminations">Terminations Only</option>
               </select>
+              <div className="h-4 w-[1px] bg-border/50 mx-1" />
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="bg-transparent border border-border rounded-md text-sm px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20 w-full md:w-auto"
+                className="bg-transparent text-xs font-bold px-3 py-1.5 focus:outline-none focus:ring-0 text-foreground"
               >
-                <option value="all">All Status</option>
+                <option value="all">Current Status</option>
                 <option value={TerminationStatus.PENDING}>Pending</option>
                 <option value={TerminationStatus.UNDER_REVIEW}>Under Review</option>
                 <option value={TerminationStatus.APPROVED}>Approved</option>
                 <option value={TerminationStatus.REJECTED}>Rejected</option>
               </select>
             </div>
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+
+            <div className="relative group w-full md:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <input
                 type="text"
-                placeholder="Search requests..."
-                className="w-full pl-9 pr-4 py-1.5 bg-muted/50 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                placeholder="Find a specific request..."
+                className="w-full pl-10 pr-4 py-2 bg-background/40 border border-border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
               />
             </div>
-          </GlassCard>
+          </div>
 
-          <GlassCard className="overflow-hidden">
-            <div className="px-6 py-4 border-b border-border/50 bg-muted/20">
-              <h2 className="font-semibold text-foreground">Detailed Requests</h2>
+          <GlassCard className="overflow-hidden border-border/40">
+            <div className="px-6 py-5 border-b border-border/50 bg-muted/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-orange-500 rounded-full" />
+                <h2 className="font-bold text-foreground tracking-tight">Active Separation Cases</h2>
+                <Badge variant="outline" className="bg-orange-500/5 text-orange-600 border-orange-500/10 py-0.5">{filteredRequests.length}</Badge>
+              </div>
+              <Button variant="ghost" size="sm" className="h-9 gap-2 text-xs font-bold hover:bg-background">
+                <History className="w-3.5 h-3.5" />
+                View Archives
+              </Button>
             </div>
 
-            <div className="divide-y divide-border/50">
+            <div className="divide-y divide-border/30">
               {filteredRequests.length === 0 ? (
-                <div className="p-16 text-center flex flex-col items-center">
-                  <div className="w-20 h-20 bg-muted/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
-                    <FileX className="w-10 h-10 text-muted-foreground/50" />
+                <div className="p-20 text-center flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
+                  <div className="w-24 h-24 bg-muted/40 rounded-[2rem] flex items-center justify-center mb-8 rotate-12 transition-transform">
+                    <TrendingDown className="w-10 h-10 text-muted-foreground/30" />
                   </div>
-                  <p className="text-xl font-medium text-foreground">No requests found</p>
-                  <p className="text-muted-foreground mt-2 max-w-sm">No termination or resignation requests match your current filters.</p>
-                  <Button variant="ghost" className="mt-6" onClick={() => { setFilterType('all'); setFilterStatus('all'); }}>Reset Filters</Button>
+                  <h3 className="text-2xl font-bold text-foreground">Minimal Attrition</h3>
+                  <p className="text-muted-foreground mt-3 max-w-sm text-sm font-medium leading-relaxed">
+                    No active separation cases match your current filters. Looking clean!
+                  </p>
+                  <Button variant="outline" className="mt-8 rounded-xl border-border px-8 font-bold" onClick={() => { setFilterType('all'); setFilterStatus('all'); }}>Reset View</Button>
                 </div>
               ) : (
                 filteredRequests.map((request) => {
                   const employee = typeof request.employeeId === 'object' ? request.employeeId as any : null;
                   const employeeName = employee
-                    ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Employee'
-                    : 'Employee';
+                    ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Internal User'
+                    : 'Internal User';
                   const isResignation = request.initiator === TerminationInitiation.EMPLOYEE;
                   return (
                     <Link
                       key={request._id}
                       href={`/dashboard/hr-manager/offboarding/resignations/${request._id}`}
-                      className="block hover:bg-accent/40 transition-all duration-200 group"
+                      className="block hover:bg-muted/30 transition-all duration-300 group"
                     >
-                      <div className="px-6 py-5 flex items-center justify-between">
+                      <div className="px-6 py-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="flex items-center gap-5">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm ${isResignation ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600' : 'bg-orange-100 dark:bg-orange-900/20 text-orange-600'}`}>
-                            {isResignation ? <LogOut className="w-5 h-5" /> : <UserMinus className="w-5 h-5" />}
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm transition-all group-hover:scale-95 ${isResignation ? 'bg-blue-500/10 text-blue-500 border border-blue-500/10' : 'bg-red-500/10 text-red-500 border border-red-500/10'}`}>
+                            {isResignation ? <LogOut className="w-6 h-6" /> : <UserMinus className="w-6 h-6" />}
                           </div>
 
-                          <div className="space-y-1">
+                          <div className="space-y-1.5">
                             <div className="flex items-center gap-3">
-                              <h3 className="font-semibold text-foreground text-lg group-hover:text-primary transition-colors">{employeeName}</h3>
+                              <h3 className="font-bold text-xl text-foreground group-hover:text-primary transition-colors tracking-tight">{employeeName}</h3>
                               <StatusBadge status={request.status} />
                             </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span className="flex items-center gap-1.5 font-medium">
+                            <div className="flex items-center gap-4 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                              <span className="flex items-center gap-1.5">
                                 {isResignation ? <LogOut className="w-3.5 h-3.5" /> : <UserMinus className="w-3.5 h-3.5" />}
                                 {getInitiatorLabel(request.initiator)}
                               </span>
-                              <span className="w-1 h-1 bg-muted-foreground/30 rounded-full"></span>
-                              <span className="italic max-w-md truncate">"{request.reason}"</span>
+                              <span className="w-1 h-1 bg-border rounded-full"></span>
+                              <span className="italic normal-case font-medium text-muted-foreground/80 max-w-md truncate">"{request.reason}"</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="text-right space-y-1">
-                          <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
-                            <Calendar className="w-3.5 h-3.5" />
-                            {new Date(request.createdAt).toLocaleDateString()}
+                        <div className="flex items-center gap-8 justify-between md:justify-end">
+                          <div className="text-right space-y-1.5 font-bold">
+                            <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground tracking-widest uppercase">
+                              <Calendar className="w-3 h-3" />
+                              Logged: {new Date(request.createdAt).toLocaleDateString()}
+                            </div>
+                            {request.terminationDate && (
+                              <p className="text-xs text-orange-500 bg-orange-500/5 px-2 py-0.5 rounded-md border border-orange-500/10">
+                                Last Day: {new Date(request.terminationDate).toLocaleDateString()}
+                              </p>
+                            )}
                           </div>
-                          {request.terminationDate && (
-                            <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">
-                              Effective: {new Date(request.terminationDate).toLocaleDateString()}
-                            </p>
-                          )}
+                          <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all border border-border/50 group-hover:border-primary">
+                            <ArrowRight className="w-5 h-5" />
+                          </div>
                         </div>
                       </div>
                     </Link>

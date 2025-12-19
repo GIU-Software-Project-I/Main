@@ -1274,7 +1274,7 @@ export class PayrollTrackingService {
         };
       }
 
-      acc[deptId].totalGross += payslip.totalGrossSalary || 0;
+      acc[deptId].totalGross += this.resolveTotalGrossSalary(payslip) || 0;
       acc[deptId].totalNet += payslip.netPay || 0;
       acc[deptId].totalTax += payslip.deductionsDetails?.taxes?.reduce((sum, t) => sum + ((t as any)?.amount || 0), 0) || 0;
       acc[deptId].totalInsurance += payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + ((i as any)?.amount || 0), 0) || 0;
@@ -1452,23 +1452,23 @@ export class PayrollTrackingService {
       const originalSpecialistComment = dispute.resolutionComment || '';
       // Append manager confirmation, preserving original comment
       const managerNote = reason || `Confirmed by Payroll Manager ${managerId}`;
-      dispute.resolutionComment = originalSpecialistComment ? 
-        `${originalSpecialistComment} | Manager: ${managerNote}` : 
+      dispute.resolutionComment = originalSpecialistComment ?
+        `${originalSpecialistComment} | Manager: ${managerNote}` :
         managerNote;
       await dispute.save();
-      
+
       // Notify Finance that manager approved the dispute
       try {
         const financeUsers = await this.notificationService.findUsersByRole('Finance');
         console.log('[PayrollManager] Found finance users:', financeUsers.length);
-        
+
         if (financeUsers.length > 0) {
           for (const financeUser of financeUsers) {
             try {
-              const financeUserId = typeof financeUser.employeeProfileId === 'string' 
-                ? new Types.ObjectId(financeUser.employeeProfileId) 
+              const financeUserId = typeof financeUser.employeeProfileId === 'string'
+                ? new Types.ObjectId(financeUser.employeeProfileId)
                 : financeUser.employeeProfileId;
-              
+
               const notification = new this.notificationService['notificationModel']({
                 to: financeUserId,
                 type: 'DISPUTE_APPROVED',
@@ -1594,23 +1594,23 @@ export class PayrollTrackingService {
       const originalSpecialistComment = claim.resolutionComment || '';
       // Append manager confirmation, preserving original comment
       const managerNote = reason || `Confirmed by Payroll Manager ${managerId}`;
-      claim.resolutionComment = originalSpecialistComment ? 
-        `${originalSpecialistComment} | Manager: ${managerNote}` : 
+      claim.resolutionComment = originalSpecialistComment ?
+        `${originalSpecialistComment} | Manager: ${managerNote}` :
         managerNote;
       await claim.save();
-      
+
       // Notify Finance that manager approved the claim
       try {
         const financeUsers = await this.notificationService.findUsersByRole('Finance');
         console.log('[PayrollManager] Found finance users:', financeUsers.length);
-        
+
         if (financeUsers.length > 0) {
           for (const financeUser of financeUsers) {
             try {
-              const financeUserId = typeof financeUser.employeeProfileId === 'string' 
-                ? new Types.ObjectId(financeUser.employeeProfileId) 
+              const financeUserId = typeof financeUser.employeeProfileId === 'string'
+                ? new Types.ObjectId(financeUser.employeeProfileId)
                 : financeUser.employeeProfileId;
-              
+
               const notification = new this.notificationService['notificationModel']({
                 to: financeUserId,
                 type: 'CLAIM_APPROVED',
@@ -1826,7 +1826,7 @@ export class PayrollTrackingService {
         };
       }
 
-      acc[dept].totalGross += payslip.totalGrossSalary || 0;
+      acc[dept].totalGross += this.resolveTotalGrossSalary(payslip) || 0;
       acc[dept].totalNet += payslip.netPay || 0;
       acc[dept].employeeCount.add(payslip.employeeId.toString());
 

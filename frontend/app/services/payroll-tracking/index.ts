@@ -25,8 +25,20 @@ export interface UpdateClaimDto {
 }
 
 export interface CreateRefundDto {
-  amount: number;
+  // Support both a simple shape and the backend's nested `refundDetails` shape
+  amount?: number;
   description?: string;
+  refundDetails?: {
+    amount: number;
+    description?: string;
+  };
+  // backend fields
+  employeeId?: string;
+  claimId?: string;
+  disputeId?: string;
+  financeStaffId?: string;
+  status?: string;
+  paidInPayrollRunId?: string;
 }
 
 export interface UpdateRefundDto {
@@ -58,6 +70,35 @@ const buildQueryString = (params: Record<string, any>): string => {
   
   const queryString = searchParams.toString();
   return queryString ? `?${queryString}` : '';
+};
+
+// Normalize base salary response to frontend `BaseSalaryInfo` shape
+const normalizeBaseSalary = (payload: any) => {
+  if (!payload) return null;
+
+  const currentBaseSalary =
+    (payload.currentBaseSalary ?? payload.currentSalary ?? payload.baseSalary ?? payload.base_salary) || 0;
+
+  const currency = payload.currency || payload.curr || 'EGP';
+
+  const contractType = payload.contractType ?? payload.workType ?? null;
+
+  let payGrade = null;
+  if (payload.payGrade) {
+    payGrade = typeof payload.payGrade === 'string' ? payload.payGrade : (payload.payGrade.grade || payload.payGrade.name || null);
+  }
+
+  const effectiveDate = payload.effectiveDate || payload.lastUpdated || payload.updatedAt || payload.createdAt || payload.periodStart || null;
+
+  return {
+    currentBaseSalary: Number(currentBaseSalary || 0),
+    currency,
+    contractType,
+    payGrade,
+    effectiveDate,
+    workHoursPerWeek: payload.workHoursPerWeek ?? payload.workHours ?? undefined,
+    salaryFrequency: payload.salaryFrequency ?? payload.frequency ?? 'Monthly',
+  };
 };
 
 // Helpers for resolving totals (moved out to avoid referencing the service during initialization)
@@ -127,9 +168,15 @@ export const payrollTrackingService = {
   },
 
   // GET /payroll/tracking/employee/:employeeId/base-salary
-  getBaseSalary: async (employeeId: string) => {
-    return apiService.get(`/payroll/tracking/employee/${employeeId}/base-salary`);
-  },
+    getBaseSalary: async (employeeId: string) => {
+      const res = await apiService.get(`/payroll/tracking/employee/${employeeId}/base-salary`);
+      // If no data, return as-is
+      if (!res || !res.data) return res;
+
+      const mapped = normalizeBaseSalary(res.data);
+      // Return the original response shape but replace data with normalized object
+      return { ...res, data: mapped };
+    },
 
   // GET /payroll/tracking/employee/:employeeId/leave-compensation
   getLeaveCompensation: async (employeeId: string) => {
@@ -321,9 +368,15 @@ export const payrollTrackingService = {
     financeStaffId: string,
     data: CreateRefundDto
   ) => {
+    const refundDetails = data.refundDetails ?? { amount: data.amount ?? 0, description: data.description };
+    const payload: any = {
+      ...data,
+      refundDetails,
+      employeeId: data.employeeId,
+    };
     return apiService.post(
       `/payroll/tracking/refunds/dispute/${disputeId}?financeStaffId=${financeStaffId}`,
-      data
+      payload
     );
   },
 
@@ -333,9 +386,15 @@ export const payrollTrackingService = {
     financeStaffId: string,
     data: CreateRefundDto
   ) => {
+    const refundDetails = data.refundDetails ?? { amount: data.amount ?? 0, description: data.description };
+    const payload: any = {
+      ...data,
+      refundDetails,
+      employeeId: data.employeeId,
+    };
     return apiService.post(
       `/payroll/tracking/refunds/claim/${claimId}?financeStaffId=${financeStaffId}`,
-      data
+      payload
     );
   },
 

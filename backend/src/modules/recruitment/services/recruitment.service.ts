@@ -12,9 +12,10 @@ import { Interview, InterviewDocument } from '../models/interview.schema';
 import { AssessmentResult, AssessmentResultDocument } from '../models/assessment-result.schema';
 import { Offer, OfferDocument } from '../models/offer.schema';
 import { Contract, ContractDocument } from '../models/contract.schema';
+import { EmployeeProfile, EmployeeProfileDocument } from '../../employee/models/employee/employee-profile.schema';
 
 // DTOs
-import {CreateJobTemplateDto, UpdateJobTemplateDto, CreateJobRequisitionDto, PublishJobRequisitionDto, UpdateJobRequisitionDto, CreateApplicationDto, UpdateApplicationStageDto, UpdateApplicationStatusDto, AssignHrDto, CreateReferralDto, ScheduleInterviewDto, UpdateInterviewDto, SubmitFeedbackDto, CreateOfferDto, ApproveOfferDto, CandidateOfferResponseDto, SendNotificationDto, SendRejectionDto,} from '../dto/recruitment';
+import { CreateJobTemplateDto, UpdateJobTemplateDto, CreateJobRequisitionDto, PublishJobRequisitionDto, UpdateJobRequisitionDto, CreateApplicationDto, UpdateApplicationStageDto, UpdateApplicationStatusDto, AssignHrDto, CreateReferralDto, ScheduleInterviewDto, UpdateInterviewDto, SubmitFeedbackDto, CreateOfferDto, ApproveOfferDto, CandidateOfferResponseDto, SendNotificationDto, SendRejectionDto, } from '../dto/recruitment';
 
 // Enums
 import { ApplicationStage } from '../enums/application-stage.enum';
@@ -26,6 +27,7 @@ import { ApprovalStatus } from '../enums/approval-status.enum';
 
 // Shared Services
 import { SharedRecruitmentService } from '../../shared/services/shared-recruitment.service';
+import { OnboardingService } from './onboarding.service';
 
 @Injectable()
 export class RecruitmentService {
@@ -39,8 +41,10 @@ export class RecruitmentService {
         @InjectModel(AssessmentResult.name) private assessmentModel: Model<AssessmentResultDocument>,
         @InjectModel(Offer.name) private offerModel: Model<OfferDocument>,
         @InjectModel(Contract.name) private contractModel: Model<ContractDocument>,
+        @InjectModel(EmployeeProfile.name) private employeeProfileModel: Model<EmployeeProfileDocument>,
         private readonly sharedRecruitmentService: SharedRecruitmentService,
-    ) {}
+        private readonly onboardingService: OnboardingService,
+    ) { }
 
     private validateObjectId(id: string, fieldName: string): void {
         if (!Types.ObjectId.isValid(id)) {
@@ -123,18 +127,132 @@ export class RecruitmentService {
     }
 
     async getJobRequisitionById(id: string): Promise<JobRequisition> {
-        const requisition = await this.jobRequisitionModel
-            .findOne({ requisitionId: id })
-            .exec();
+        // Try to find by MongoDB _id first, then by requisitionId string
+        let requisition: JobRequisitionDocument | null = null;
+        
+        // Check if it's a valid MongoDB ObjectId
+        if (Types.ObjectId.isValid(id)) {
+            requisition = await this.jobRequisitionModel
+                .findById(id)
+                .populate('templateId')
+                .exec();
+        }
+        
+        // If not found by _id, try requisitionId
+        if (!requisition) {
+            requisition = await this.jobRequisitionModel
+                .findOne({ requisitionId: id })
+                .populate('templateId')
+                .exec();
+        }
 
         if (!requisition) {
             throw new NotFoundException(`Job requisition with ID ${id} not found`);
         }
-        return requisition;
+        
+        // Transform the result similar to getPublishedJobs
+        const template = requisition.templateId as any;
+        const job: any = requisition.toObject();
+        
+        // Merge template data if available
+        if (template) {
+            const templateObj = typeof template.toObject === 'function' ? template.toObject() : template;
+            job.templateTitle = templateObj.title || templateObj.templateTitle || '';
+            job.department = templateObj.department || job.department || '';
+            job.description = templateObj.description || job.description || '';
+            job.employmentType = templateObj.employmentType || job.employmentType || '';
+            job.qualifications = templateObj.qualifications || [];
+            job.skills = templateObj.skills || [];
+            if (templateObj.salaryRange) {
+                job.salaryRange = templateObj.salaryRange;
+            }
+        }
+        
+        // Ensure title field exists
+        job.title = job.templateTitle || job.title || 'Untitled Position';
+        
+        // Map openings to numberOfOpenings for frontend compatibility
+        job.numberOfOpenings = job.openings || job.numberOfOpenings || 0;
+        
+        return job;
     }
 
-    async getPublishedJobs(): Promise<JobRequisition[]> {
-        return this.jobRequisitionModel.find({ publishStatus: 'published' }).exec();
+    async getPublishedJobs(): Promise<any[]> {
+        const now = new Date();
+        
+        // Find published jobs that are not expired
+        const requisitions = await this.jobRequisitionModel
+            .find({
+                publishStatus: 'published',
+                $or: [
+                    { expiryDate: { $exists: false } },
+                    { expiryDate: null },
+                    { expiryDate: { $gt: now } }
+                ]
+            })
+            .populate('templateId')
+            .lean()
+            .exec();
+
+        console.log(`[getPublishedJobs] Found ${requisitions.length} published requisitions`);
+
+        // Transform and validate the results
+        const validJobs = requisitions
+            .filter(req => {
+                // Must have a valid ID
+                if (!req._id && !req.requisitionId) return false;
+                
+                // Must have at least one opening
+                const openings = req.openings || 0;
+                if (openings <= 0) return false;
+                
+                // Must have a template with title (template is required for published jobs)
+                const template = req.templateId as any;
+                const hasTitle = template?.title || template?.templateTitle;
+                
+                return !!hasTitle; // Require template with title
+            })
+            .map(req => {
+                const template = req.templateId as any;
+                // Since we're using .lean(), req is already a plain object
+                const job: any = { ...req };
+                
+                // Merge template data if available
+                if (template) {
+                    const templateObj = template;
+                    job.templateTitle = templateObj.title || templateObj.templateTitle || '';
+                    job.department = templateObj.department || job.department || '';
+                    job.description = templateObj.description || job.description || '';
+                    job.employmentType = templateObj.employmentType || job.employmentType || '';
+                    job.qualifications = templateObj.qualifications || [];
+                    job.skills = templateObj.skills || [];
+                    if (templateObj.salaryRange) {
+                        job.salaryRange = templateObj.salaryRange;
+                    }
+                }
+                
+                // Ensure title field exists (from template)
+                job.title = job.templateTitle || 'Untitled Position';
+                
+                // Map openings to numberOfOpenings for frontend compatibility
+                job.numberOfOpenings = job.openings || job.numberOfOpenings || 0;
+                
+                // Ensure location is set
+                job.location = job.location || '';
+                
+                // Ensure _id is set (MongoDB ObjectId as string)
+                if (req._id) {
+                    job._id = typeof req._id === 'object' && req._id.toString ? req._id.toString() : String(req._id);
+                }
+                if (req.requisitionId) {
+                    job.requisitionId = req.requisitionId;
+                }
+                
+                return job;
+            });
+
+        console.log(`[getPublishedJobs] Returning ${validJobs.length} valid jobs after filtering`);
+        return validJobs;
     }
 
     async publishJobRequisition(id: string, dto: PublishJobRequisitionDto): Promise<JobRequisition> {
@@ -219,7 +337,6 @@ export class RecruitmentService {
         await this.logStatusChange(savedApp._id.toString(), {
             stage: ApplicationStage.SCREENING,
             status: ApplicationStatus.SUBMITTED,
-            notes: 'Application submitted',
             changedBy: dto.candidateId || '507f1f77bcf86cd799439000',
         });
 
@@ -310,16 +427,20 @@ export class RecruitmentService {
         const oldStatus = application.status;
 
         application.currentStage = dto.stage;
+        // Update status based on stage
         if (dto.stage === ApplicationStage.OFFER) {
             application.status = ApplicationStatus.OFFER;
+        } else if (application.status === ApplicationStatus.SUBMITTED || application.status === ApplicationStatus.OFFER) {
+            // If moving from SUBMITTED or OFFER to an interview stage, set to IN_PROCESS
+            application.status = ApplicationStatus.IN_PROCESS;
         }
+        // If already IN_PROCESS, HIRED, or REJECTED, keep the current status
 
         const updated = await application.save();
 
         await this.logStatusChange(id, {
             stage: dto.stage,
             status: application.status,
-            notes: dto.notes,
             changedBy: dto.changedBy,
             oldStage: oldStage,
             oldStatus: oldStatus,
@@ -349,7 +470,6 @@ export class RecruitmentService {
         await this.logStatusChange(id, {
             stage: application.currentStage,
             status: dto.status,
-            notes: dto.reason,
             oldStage: oldStage,
             oldStatus: oldStatus,
         });
@@ -398,7 +518,6 @@ export class RecruitmentService {
     private async logStatusChange(applicationId: string, data: {
         stage: ApplicationStage;
         status: ApplicationStatus;
-        notes?: string;
         changedBy?: string;
         oldStage?: ApplicationStage;
         oldStatus?: ApplicationStatus;
@@ -585,15 +704,44 @@ export class RecruitmentService {
 
     async getInterviewById(id: string): Promise<Interview> {
         this.validateObjectId(id, 'id');
-
+        
         const interview = await this.interviewModel
             .findById(id)
+            .populate('applicationId', 'candidateId requisitionId currentStage status')
+            .populate('panel')
             .exec();
-
+        
         if (!interview) {
             throw new NotFoundException(`Interview with ID ${id} not found`);
         }
+        
         return interview;
+    }
+
+    async getAllInterviews(filters?: { applicationId?: string; interviewerId?: string; days?: number }): Promise<Interview[]> {
+        const query: any = {};
+        
+        if (filters?.applicationId) {
+            query.applicationId = new Types.ObjectId(filters.applicationId);
+        }
+        
+        if (filters?.interviewerId) {
+            query.panel = new Types.ObjectId(filters.interviewerId);
+        }
+        
+        if (filters?.days) {
+            const now = new Date();
+            const futureDate = new Date();
+            futureDate.setDate(now.getDate() + filters.days);
+            query.scheduledDate = { $gte: now, $lte: futureDate };
+        }
+        
+        return this.interviewModel
+            .find(query)
+            .populate('applicationId', 'candidateId requisitionId currentStage status')
+            .populate('panel', 'firstName lastName email')
+            .sort({ scheduledDate: 1 })
+            .exec();
     }
 
     async getInterviewsByApplication(applicationId: string): Promise<Interview[]> {
@@ -601,6 +749,8 @@ export class RecruitmentService {
 
         return this.interviewModel
             .find({ applicationId: new Types.ObjectId(applicationId) })
+            .populate('applicationId', 'candidateId requisitionId currentStage status')
+            .populate('panel', 'firstName lastName email')
             .sort({ scheduledDate: 1 })
             .exec();
     }
@@ -610,6 +760,8 @@ export class RecruitmentService {
 
         return this.interviewModel
             .find({ panel: new Types.ObjectId(panelistId) })
+            .populate('applicationId', 'candidateId requisitionId currentStage status')
+            .populate('panel', 'firstName lastName email')
             .sort({ scheduledDate: 1 })
             .exec();
     }
@@ -624,6 +776,8 @@ export class RecruitmentService {
                 scheduledDate: { $gte: now, $lte: futureDate },
                 status: InterviewStatus.SCHEDULED,
             })
+            .populate('applicationId', 'candidateId requisitionId currentStage status')
+            .populate('panel', 'firstName lastName email')
             .sort({ scheduledDate: 1 })
             .exec();
     }
@@ -738,7 +892,7 @@ export class RecruitmentService {
         return saved;
     }
 
-    async getFeedbackByInterview(interviewId: string): Promise<AssessmentResult[]> {
+    async getInterviewFeedback(interviewId: string): Promise<AssessmentResult[]> {
         this.validateObjectId(interviewId, 'interviewId');
 
         return this.assessmentModel
@@ -754,6 +908,8 @@ export class RecruitmentService {
 
         return this.assessmentModel
             .find({ interviewId: { $in: interviewIds } })
+            .populate('interviewId', 'scheduledDate stage status')
+            .sort({ createdAt: -1 })
             .exec();
     }
 
@@ -838,6 +994,8 @@ export class RecruitmentService {
 
         const offer = await this.offerModel
             .findById(id)
+            .populate('applicationId', 'candidateId requisitionId currentStage status')
+            .populate('candidateId', 'firstName lastName personalEmail')
             .exec();
 
         if (!offer) {
@@ -851,12 +1009,89 @@ export class RecruitmentService {
 
         return this.offerModel
             .findOne({ applicationId: new Types.ObjectId(applicationId) })
+            .populate({
+                path: 'applicationId',
+                select: 'candidateId requisitionId currentStage status',
+                populate: [
+                    {
+                        path: 'requisitionId',
+                        select: 'title templateTitle department location openings templateId',
+                        populate: {
+                            path: 'templateId',
+                            select: 'title templateTitle department description employmentType'
+                        }
+                    },
+                    {
+                        path: 'candidateId',
+                        select: 'firstName lastName personalEmail'
+                    }
+                ]
+            })
+            .populate('candidateId', 'firstName lastName personalEmail')
+            .sort({ createdAt: -1 })
+            .exec();
+    }
+
+    async getAllOffers(filters?: { applicationId?: string; status?: OfferFinalStatus }): Promise<Offer[]> {
+        const query: any = {};
+        
+        if (filters?.applicationId) {
+            query.applicationId = new Types.ObjectId(filters.applicationId);
+        }
+        
+        if (filters?.status) {
+            query.finalStatus = filters.status;
+        }
+        
+        return this.offerModel
+            .find(query)
+            .populate({
+                path: 'applicationId',
+                select: 'candidateId requisitionId currentStage status',
+                populate: [
+                    {
+                        path: 'requisitionId',
+                        select: 'title templateTitle department location openings templateId',
+                        populate: {
+                            path: 'templateId',
+                            select: 'title templateTitle department description employmentType'
+                        }
+                    },
+                    {
+                        path: 'candidateId',
+                        select: 'firstName lastName personalEmail'
+                    }
+                ]
+            })
+            .populate('candidateId', 'firstName lastName personalEmail')
             .sort({ createdAt: -1 })
             .exec();
     }
 
     async getPendingOffers(): Promise<Offer[]> {
-        return this.offerModel.find({ finalStatus: OfferFinalStatus.PENDING }).exec();
+        return this.offerModel
+            .find({ finalStatus: OfferFinalStatus.PENDING })
+            .populate({
+                path: 'applicationId',
+                select: 'candidateId requisitionId currentStage status',
+                populate: [
+                    {
+                        path: 'requisitionId',
+                        select: 'title templateTitle department location openings templateId',
+                        populate: {
+                            path: 'templateId',
+                            select: 'title templateTitle department description employmentType'
+                        }
+                    },
+                    {
+                        path: 'candidateId',
+                        select: 'firstName lastName personalEmail'
+                    }
+                ]
+            })
+            .populate('candidateId', 'firstName lastName personalEmail')
+            .sort({ createdAt: -1 })
+            .exec();
     }
 
     async approveOffer(offerId: string, dto: ApproveOfferDto): Promise<Offer> {
@@ -958,7 +1193,9 @@ export class RecruitmentService {
         return contract.save();
     }
 
-    async triggerPreboarding(applicationId: string): Promise<{ triggered: boolean; message: string }> {
+    async triggerPreboarding(applicationId: string): Promise<{ triggered: boolean; message: string; onboardingCreated?: boolean; contractId?: string }> {
+        this.validateObjectId(applicationId, 'applicationId');
+
         const application = await this.applicationModel.findById(applicationId).exec();
         if (!application) {
             throw new NotFoundException(`Application with ID ${applicationId} not found`);
@@ -968,13 +1205,146 @@ export class RecruitmentService {
             throw new BadRequestException('Application must be in HIRED status to trigger preboarding');
         }
 
-        // TODO: Integration with Onboarding module
-        // This would create offboarding.requirements tasks and notify relevant parties
+        // REC-029: Integration with Onboarding module
+        // Get the offer and contract for this application
+        const offer = await this.offerModel
+            .findOne({ applicationId: new Types.ObjectId(applicationId) })
+            .sort({ createdAt: -1 })
+            .exec();
 
-        return {
-            triggered: true,
-            message: 'Pre-boarding tasks triggered successfully. Onboarding module will be initialized.',
-        };
+        if (!offer) {
+            throw new NotFoundException(`No offer found for application ${applicationId}`);
+        }
+
+        if (offer.applicantResponse !== OfferResponseStatus.ACCEPTED) {
+            throw new BadRequestException('Offer must be accepted before triggering preboarding');
+        }
+
+        // Get the contract created from this offer
+        const contract = await this.contractModel.findOne({ offerId: offer._id }).exec();
+
+        if (!contract) {
+            // Contract not created yet - notify candidate about next steps
+            await this.sharedRecruitmentService.sendApplicationStatusNotification({
+                candidateId: application.candidateId.toString(),
+                applicationId: applicationId,
+                status: ApplicationStatus.HIRED,
+                message: 'Congratulations! Your offer has been accepted. Please wait for the contract to be prepared. You will receive further instructions for pre-boarding tasks.',
+            });
+
+            return {
+                triggered: true,
+                message: 'Pre-boarding notification sent. Contract is pending creation. Candidate will be notified when contract is ready.',
+                onboardingCreated: false,
+            };
+        }
+
+        // Check if contract is fully signed
+        if (!contract.employeeSignedAt || !contract.employerSignedAt) {
+            // Contract exists but not fully signed - notify candidate to complete signing
+            await this.sharedRecruitmentService.sendApplicationStatusNotification({
+                candidateId: application.candidateId.toString(),
+                applicationId: applicationId,
+                status: ApplicationStatus.HIRED,
+                message: 'Your contract is ready. Please complete the signing process to proceed with onboarding. You will receive access to pre-boarding tasks once the contract is fully signed.',
+            });
+
+            return {
+                triggered: true,
+                message: 'Pre-boarding notification sent. Contract signing is pending. Candidate will be notified to complete signing.',
+                onboardingCreated: false,
+                contractId: contract._id.toString(),
+            };
+        }
+
+        // Contract is fully signed - check if employee profile exists
+        // Note: Employee profile should be created via ONB-002 (createEmployeeFromContract)
+        // For now, we'll notify that onboarding can be created
+        // The actual onboarding creation requires employeeId, which comes from employee profile
+
+        try {
+            // Try to find employee profile by candidate email
+            // First get candidate details
+            const candidate = await this.sharedRecruitmentService.validateCandidateExists(application.candidateId.toString());
+            const candidateEmail = candidate.personalEmail;
+            
+            // Try to find employee by email (employees created from candidates may have same email)
+            let employee: EmployeeProfileDocument | null = null;
+            if (candidateEmail) {
+                employee = await this.employeeProfileModel.findOne({
+                    $or: [
+                        { personalEmail: candidateEmail },
+                        { workEmail: candidateEmail },
+                    ],
+                }).exec();
+            }
+            
+            if (employee) {
+                // Employee exists - check if onboarding already exists
+                const existingOnboarding = await this.onboardingService.getOnboardingByEmployeeId(employee._id.toString()).catch(() => null);
+                
+                if (existingOnboarding) {
+                    return {
+                        triggered: true,
+                        message: 'Onboarding checklist already exists for this employee.',
+                        onboardingCreated: false,
+                        contractId: contract._id.toString(),
+                    };
+                }
+
+                // Create onboarding checklist automatically
+                // This implements REC-029: trigger pre-boarding tasks after offer acceptance
+                await this.onboardingService.createOnboarding({
+                    employeeId: employee._id.toString(),
+                    contractId: contract._id.toString(),
+                    tasks: [], // Tasks will be auto-generated per BR 9
+                });
+
+                await this.sharedRecruitmentService.sendApplicationStatusNotification({
+                    candidateId: application.candidateId.toString(),
+                    applicationId: applicationId,
+                    status: ApplicationStatus.HIRED,
+                    message: 'Your onboarding checklist has been created! Please log in to view and complete your pre-boarding tasks.',
+                });
+
+                return {
+                    triggered: true,
+                    message: 'Pre-boarding tasks triggered successfully. Onboarding checklist created and candidate notified.',
+                    onboardingCreated: true,
+                    contractId: contract._id.toString(),
+                };
+            } else {
+                // Employee profile doesn't exist yet - notify HR to create it
+                await this.sharedRecruitmentService.sendApplicationStatusNotification({
+                    candidateId: application.candidateId.toString(),
+                    applicationId: applicationId,
+                    status: ApplicationStatus.HIRED,
+                    message: 'Your contract is fully signed. HR will create your employee profile and onboarding checklist shortly. You will receive access to pre-boarding tasks once your profile is created.',
+                });
+
+                return {
+                    triggered: true,
+                    message: 'Pre-boarding notification sent. Employee profile needs to be created first (ONB-002). HR should create employee profile from signed contract, then onboarding will be available.',
+                    onboardingCreated: false,
+                    contractId: contract._id.toString(),
+                };
+            }
+        } catch (error) {
+            // If employee lookup fails, just notify
+            await this.sharedRecruitmentService.sendApplicationStatusNotification({
+                candidateId: application.candidateId.toString(),
+                applicationId: applicationId,
+                status: ApplicationStatus.HIRED,
+                message: 'Your contract is fully signed. HR will set up your onboarding tasks shortly.',
+            });
+
+            return {
+                triggered: true,
+                message: 'Pre-boarding notification sent. Employee profile may need to be created first.',
+                onboardingCreated: false,
+                contractId: contract._id.toString(),
+            };
+        }
     }
 
     async sendOfferLetter(offerId: string): Promise<{ sent: boolean; message: string }> {
@@ -1049,6 +1419,11 @@ export class RecruitmentService {
             sent: true,
             message: 'Rejection notification sent successfully.',
         };
+    }
+
+    async getCandidateById(id: string): Promise<any> {
+        this.validateObjectId(id, 'id');
+        return this.sharedRecruitmentService.validateCandidateExists(id);
     }
 
     async getEmailTemplates(): Promise<any[]> {

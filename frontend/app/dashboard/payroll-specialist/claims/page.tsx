@@ -35,7 +35,36 @@ export default function ClaimsPage() {
     try {
       const response = await claimsService.getAllClaims(filters);
 
-      if (response.data) setClaims(response.data);
+      // Handle both backend formats (raw array vs wrapper object)
+      const claimsData = Array.isArray(response)
+        ? response
+        : (response.data || []);
+
+      let processedClaims = claimsData;
+
+      // Client-side filtering to ensure robustness regardless of backend implementation or data mismatches
+      if (filters.status && filters.status !== 'all') {
+        processedClaims = processedClaims.filter(c => c.status === filters.status);
+      }
+
+      if (filters.claimType && filters.claimType !== 'all') {
+        // Use loose matching (e.g. "travel" matches "Travel Expense")
+        const term = filters.claimType.toLowerCase();
+        processedClaims = processedClaims.filter(c =>
+          c.claimType && c.claimType.toLowerCase().includes(term)
+        );
+      }
+
+      if (filters.startDate) {
+        // Filter for specific date (if user selected "Date Range" which is currently a single date picker)
+        const filterDate = new Date(filters.startDate).toDateString();
+        processedClaims = processedClaims.filter(c => {
+          if (!c.createdAt) return false;
+          return new Date(c.createdAt).toDateString() === filterDate;
+        });
+      }
+
+      setClaims(processedClaims);
     } catch (error) {
       console.error('Failed to load claims:', error);
       setError('Failed to load claims');
@@ -112,6 +141,16 @@ export default function ClaimsPage() {
   };
 
   // Remove unused getPriorityColor function since Claim schema doesn't have priority
+
+  // Helper to normalize claim types for consistent display and coloring
+  const normalizeClaimType = (type: string) => {
+    if (!type) return 'N/A';
+    const lower = type.toLowerCase();
+    if (lower.includes('travel')) return 'travel';
+    if (lower.includes('equipment')) return 'equipment';
+    if (lower.includes('medical')) return 'medical';
+    return type;
+  };
 
   const getStatusColor = (status: ClaimStatus) => {
     switch (status) {
@@ -238,62 +277,65 @@ export default function ClaimsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {claims.map((claim) => (
-                  <tr key={claim._id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-medium text-slate-900">{claim.claimId}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-slate-900">
-                        {typeof claim.employeeId === 'object' && claim.employeeId
-                          ? `${(claim.employeeId as any).firstName || ''} ${(claim.employeeId as any).lastName || ''}`.trim() || (claim.employeeId as any).employeeId || 'N/A'
-                          : claim.employeeId || 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getClaimTypeColor(claim.claimType)}`}>
-                        {claim.claimType}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                      ${claim.amount.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                      {claim.approvedAmount ? `$${claim.approvedAmount.toLocaleString()}` : 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(claim.status)}`}>
-                        {claim.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => setSelectedClaim(claim)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          View
-                        </button>
-                        {claim.status === ClaimStatus.UNDER_REVIEW && (
-                          <>
-                            <button
-                              onClick={() => openReviewModal(claim, 'approve')}
-                              className="text-green-600 hover:text-green-800"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => openReviewModal(claim, 'reject')}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              Reject
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {claims.map((claim) => {
+                  const normalizedType = normalizeClaimType(claim.claimType);
+                  return (
+                    <tr key={claim._id} className="hover:bg-slate-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm font-medium text-slate-900">{claim.claimId}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-slate-900">
+                          {typeof claim.employeeId === 'object' && claim.employeeId
+                            ? `${(claim.employeeId as any).firstName || ''} ${(claim.employeeId as any).lastName || ''}`.trim() || (claim.employeeId as any).employeeId || 'N/A'
+                            : claim.employeeId || 'N/A'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getClaimTypeColor(normalizedType)}`}>
+                          {normalizedType}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                        ${claim.amount.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                        {claim.approvedAmount ? `$${claim.approvedAmount.toLocaleString()}` : 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(claim.status)}`}>
+                          {claim.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => setSelectedClaim(claim)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            View
+                          </button>
+                          {claim.status === ClaimStatus.UNDER_REVIEW && (
+                            <>
+                              <button
+                                onClick={() => openReviewModal(claim, 'approve')}
+                                className="text-green-600 hover:text-green-800"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => openReviewModal(claim, 'reject')}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             {claims.length === 0 && (
@@ -330,8 +372,8 @@ export default function ClaimsPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-500">Claim Type</label>
-                  <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getClaimTypeColor(selectedClaim.claimType)}`}>
-                    {selectedClaim.claimType}
+                  <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getClaimTypeColor(normalizeClaimType(selectedClaim.claimType))}`}>
+                    {normalizeClaimType(selectedClaim.claimType)}
                   </span>
                 </div>
                 <div>

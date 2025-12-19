@@ -23,13 +23,14 @@ export interface DepartmentalReport {
   costCenter: string;
   generatedAt: string;
   status: 'draft' | 'final' | 'archived';
+  reportType?: 'summary' | 'tax' | 'payslip' | 'departmental';
 }
 
 export interface ReportFilters {
   departmentId?: string;
   period?: string;
   periodType?: 'monthly' | 'quarterly' | 'yearly';
-  reportType?: 'summary' | 'tax' | 'payslip';
+  reportType?: 'summary' | 'tax' | 'payslip' | 'departmental';
   startDate?: string;
   endDate?: string;
   status?: 'draft' | 'final' | 'archived';

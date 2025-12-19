@@ -132,6 +132,8 @@ export interface Candidate {
   homePhone?: string;
   address?: Address;
   profilePictureUrl?: string;
+  resumeUrl?: string;
+  notes?: string;
   status: CandidateStatus;
   password?: string;
   accessProfileId?: string;
