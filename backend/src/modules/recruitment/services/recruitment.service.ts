@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
@@ -787,7 +787,24 @@ export class RecruitmentService {
 
         return this.interviewModel
             .find({ panel: new Types.ObjectId(panelistId) })
-            .populate('applicationId', 'candidateId requisitionId currentStage status')
+            .populate({
+                path: 'applicationId',
+                select: 'candidateId requisitionId currentStage status',
+                populate: [
+                    {
+                        path: 'requisitionId',
+                        select: 'title templateTitle department location openings templateId',
+                        populate: {
+                            path: 'templateId',
+                            select: 'title templateTitle department description employmentType'
+                        }
+                    },
+                    {
+                        path: 'candidateId',
+                        select: 'firstName lastName personalEmail'
+                    }
+                ]
+            })
             .populate('panel', 'firstName lastName email')
             .sort({ scheduledDate: 1 })
             .exec();
@@ -1238,7 +1255,24 @@ export class RecruitmentService {
         try {
             const offer = await this.offerModel
                 .findById(id)
-                .populate('applicationId', 'candidateId requisitionId currentStage status')
+                .populate({
+                    path: 'applicationId',
+                    select: 'candidateId requisitionId currentStage status',
+                    populate: [
+                        {
+                            path: 'requisitionId',
+                            select: 'title templateTitle department location openings templateId',
+                            populate: {
+                                path: 'templateId',
+                                select: 'title templateTitle department description employmentType'
+                            }
+                        },
+                        {
+                            path: 'candidateId',
+                            select: 'firstName lastName personalEmail'
+                        }
+                    ]
+                })
                 .populate('candidateId', 'firstName lastName personalEmail')
                 .populate('approvers.employeeId', 'firstName lastName email')
                 .exec();
@@ -1248,6 +1282,7 @@ export class RecruitmentService {
             }
             return offer;
         } catch (error) {
+            console.warn(`Failed to populate offer fields: ${error.message}`);
             // If populate fails, try without populate
             const offer = await this.offerModel.findById(id).exec();
             if (!offer) {
@@ -1309,7 +1344,24 @@ export class RecruitmentService {
         try {
             return await this.offerModel
                 .find(query)
-                .populate('applicationId', 'candidateId requisitionId currentStage status')
+                .populate({
+                    path: 'applicationId',
+                    select: 'candidateId requisitionId currentStage status',
+                    populate: [
+                        {
+                            path: 'requisitionId',
+                            select: 'title templateTitle department location openings templateId',
+                            populate: {
+                                path: 'templateId',
+                                select: 'title templateTitle department description employmentType'
+                            }
+                        },
+                        {
+                            path: 'candidateId',
+                            select: 'firstName lastName personalEmail'
+                        }
+                    ]
+                })
                 .populate('candidateId', 'firstName lastName personalEmail')
                 .populate('approvers.employeeId', 'firstName lastName email')
                 .sort({ createdAt: -1 })
@@ -1325,49 +1377,100 @@ export class RecruitmentService {
     }
 
     async approveOffer(offerId: string, dto: ApproveOfferDto): Promise<Offer> {
-        this.validateObjectId(offerId, 'offerId');
-        this.validateObjectId(dto.approverId, 'approverId');
+        try {
+            this.validateObjectId(offerId, 'offerId');
+            if (!dto.approverId) {
+                throw new BadRequestException('approverId is required');
+            }
+            this.validateObjectId(dto.approverId, 'approverId');
 
-        const offer = await this.offerModel.findById(offerId).exec();
-        if (!offer) {
-            throw new NotFoundException(`Offer with ID ${offerId} not found`);
+            const offer = await this.offerModel.findById(offerId).exec();
+            if (!offer) {
+                throw new NotFoundException(`Offer with ID ${offerId} not found`);
+            }
+
+            // Sanitize existing data to fix any case-sensitivity issues from legacy data
+            if (offer.finalStatus) offer.finalStatus = offer.finalStatus.toLowerCase() as OfferFinalStatus;
+            if (offer.applicantResponse) offer.applicantResponse = offer.applicantResponse.toLowerCase() as OfferResponseStatus;
+            if (offer.approvers && offer.approvers.length > 0) {
+                offer.approvers.forEach(a => {
+                    if (a.status) a.status = a.status.toString().toLowerCase() as ApprovalStatus;
+                });
+            }
+
+            if (offer.finalStatus === OfferFinalStatus.REJECTED) {
+                throw new BadRequestException('Cannot approve a rejected offer');
+            }
+
+            // Safely normalize status
+            const statusString = (dto.status || '').toString().toLowerCase();
+            const status = statusString as ApprovalStatus;
+
+            if (![ApprovalStatus.APPROVED, ApprovalStatus.REJECTED].includes(status)) {
+                throw new BadRequestException(`Invalid approval status: ${dto.status}`);
+            }
+
+            // Initialize approvers if missing
+            if (!offer.approvers) {
+                offer.approvers = [];
+            }
+
+            let approverIndex = offer.approvers.findIndex(
+                a => a && a.employeeId && a.employeeId.toString() === dto.approverId,
+            );
+
+            if (approverIndex === -1) {
+                // Support ad-hoc approval
+                offer.approvers.push({
+                    employeeId: new Types.ObjectId(dto.approverId),
+                    role: 'HR Manager',
+                    status: status,
+                    actionDate: new Date(),
+                    comment: dto.comment,
+                });
+                approverIndex = offer.approvers.length - 1;
+            } else {
+                // Verify status change or re-submission
+                const currentStatus = (offer.approvers[approverIndex].status || '').toString().toLowerCase();
+
+                if (currentStatus === status) {
+                    throw new BadRequestException('You have already submitted this approval decision');
+                }
+
+                offer.approvers[approverIndex].status = status;
+                offer.approvers[approverIndex].actionDate = new Date();
+                offer.approvers[approverIndex].comment = dto.comment;
+            }
+
+            // Re-evaluate final status
+            const allApproved = offer.approvers.length > 0 && offer.approvers.every(
+                a => a && a.status && a.status.toString().toLowerCase() === ApprovalStatus.APPROVED.toLowerCase(),
+            );
+
+            const anyRejected = offer.approvers.some(
+                a => a && a.status && a.status.toString().toLowerCase() === ApprovalStatus.REJECTED.toLowerCase(),
+            );
+
+            if (allApproved) {
+                offer.finalStatus = OfferFinalStatus.APPROVED;
+            } else if (anyRejected) {
+                offer.finalStatus = OfferFinalStatus.REJECTED;
+            }
+
+            // Mark modified for internal field updates
+            offer.markModified('approvers');
+
+            return await offer.save();
+        } catch (error) {
+            console.error('[RecruitmentService.approveOffer] Error:', error);
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            if (error.name === 'ValidationError') {
+                throw new BadRequestException(`Validation Error: ${error.message}`);
+            }
+            throw new InternalServerErrorException(`Failed to approve offer: ${error.message}`);
         }
-
-        if (offer.finalStatus === OfferFinalStatus.REJECTED) {
-            throw new BadRequestException('Cannot approve a rejected offer');
-        }
-
-        const approverIndex = offer.approvers.findIndex(
-            a => a.employeeId.toString() === dto.approverId,
-        );
-
-        if (approverIndex === -1) {
-            throw new BadRequestException('You are not an approver for this offer');
-        }
-
-        if (offer.approvers[approverIndex].status !== ApprovalStatus.PENDING) {
-            throw new BadRequestException('You have already submitted your approval decision');
-        }
-
-        offer.approvers[approverIndex].status = dto.status;
-        offer.approvers[approverIndex].actionDate = new Date();
-        offer.approvers[approverIndex].comment = dto.comment;
-
-        const allApproved = offer.approvers.every(
-            a => a.status === ApprovalStatus.APPROVED,
-        );
-
-        const anyRejected = offer.approvers.some(
-            a => a.status === ApprovalStatus.REJECTED,
-        );
-
-        if (allApproved) {
-            offer.finalStatus = OfferFinalStatus.APPROVED;
-        } else if (anyRejected) {
-            offer.finalStatus = OfferFinalStatus.REJECTED;
-        }
-
-        return offer.save();
     }
 
 

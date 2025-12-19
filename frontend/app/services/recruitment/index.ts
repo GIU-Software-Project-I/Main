@@ -73,6 +73,7 @@ function extractIdValue(idValue: any): string {
 function transformApplication(app: any): Application {
   const candidate = app.candidateId && typeof app.candidateId === 'object' ? app.candidateId : null;
   const requisition = app.requisitionId && typeof app.requisitionId === 'object' ? app.requisitionId : null;
+  const template = requisition?.templateId && typeof requisition.templateId === 'object' ? requisition.templateId : null;
 
   return {
     ...app,
@@ -86,8 +87,8 @@ function transformApplication(app: any): Application {
       ? `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || candidate.personalEmail
       : app.candidateName,
     candidateEmail: candidate?.personalEmail || app.candidateEmail,
-    jobTitle: requisition?.title || requisition?.templateTitle || app.jobTitle,
-    departmentName: requisition?.department || app.departmentName,
+    jobTitle: requisition?.title || requisition?.templateTitle || template?.title || template?.templateTitle || app.jobTitle,
+    departmentName: requisition?.department || template?.department || app.departmentName,
   };
 }
 
@@ -541,7 +542,7 @@ function transformInterview(interview: any): Interview {
 
   // Extract full application data if populated
   const applicationData = typeof interview.applicationId === 'object' && interview.applicationId
-    ? interview.applicationId
+    ? transformApplication(interview.applicationId)
     : undefined;
 
   // Extract full panel data if populated
@@ -557,6 +558,8 @@ function transformInterview(interview: any): Interview {
     // Preserve full populated data for display
     applicationData,
     panelData,
+    jobTitle: applicationData?.jobTitle || interview.jobTitle,
+    candidateName: applicationData?.candidateName || interview.candidateName,
   };
 }
 
@@ -774,13 +777,17 @@ function transformOffer(offer: any): JobOffer {
 
   // Extract full application data if populated (now includes all fields)
   const applicationData = typeof offer.applicationId === 'object' && offer.applicationId
-    ? offer.applicationId
+    ? transformApplication(offer.applicationId)
     : undefined;
 
   // Extract full candidate data if populated (now includes all fields)
   const candidateData = typeof offer.candidateId === 'object' && offer.candidateId
     ? offer.candidateId
     : undefined;
+
+  // Extract derived job info from populated application
+  const positionTitle = offer.positionTitle || offer.role || applicationData?.jobTitle;
+  const departmentName = offer.departmentName || applicationData?.departmentName;
 
   return {
     ...offer,
@@ -792,6 +799,8 @@ function transformOffer(offer: any): JobOffer {
     // Preserve full populated data for display
     applicationData,
     candidateData,
+    positionTitle,
+    departmentName,
     hrEmployeeData: typeof offer.hrEmployeeId === 'object' ? offer.hrEmployeeId : undefined,
   };
 }
