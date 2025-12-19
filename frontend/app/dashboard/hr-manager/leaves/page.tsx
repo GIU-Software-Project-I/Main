@@ -3556,11 +3556,11 @@ export default function HRManagerLeavesPage() {
                       } else if (isStaticPath) {
                         // Static file path - construct static file URL
                         const staticPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
-                        downloadUrl = `http://localhost:9000${staticPath}`;
+                        downloadUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://main-production-ab7f.up.railway.app'}${staticPath}`;
                         showWarning = true; // Show warning that file might not be available
                       } else {
                         // Use download endpoint - it will handle the file appropriately
-                        downloadUrl = `http://localhost:9000/leaves/attachments/${selectedMedicalAttachment.attachmentId}/download`;
+                        downloadUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://main-production-ab7f.up.railway.app'}/leaves/attachments/${selectedMedicalAttachment.attachmentId}/download`;
                       }
 
                       return (
@@ -3628,9 +3628,9 @@ export default function HRManagerLeavesPage() {
                       previewUrl = filePath;
                     } else if (isStaticPath) {
                       const staticPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
-                      previewUrl = `http://localhost:9000${staticPath}`;
+                      previewUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://main-production-ab7f.up.railway.app'}${staticPath}`;
                     } else {
-                      previewUrl = `http://localhost:9000/leaves/attachments/${selectedMedicalAttachment?.attachmentId}/download`;
+                      previewUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://main-production-ab7f.up.railway.app'}/leaves/attachments/${selectedMedicalAttachment?.attachmentId}/download`;
                     }
 
                     return (

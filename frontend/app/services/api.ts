@@ -1,6 +1,6 @@
 
 // Force the correct API URL - environment variable may not be loading correctly
-const API_BASE_URL = 'http://localhost:9000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://main-production-ab7f.up.railway.app';
 
 // Log the API URL at startup for debugging
 if (typeof window !== 'undefined') {
