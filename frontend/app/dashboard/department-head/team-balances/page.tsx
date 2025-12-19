@@ -78,8 +78,8 @@ export default function TeamBalancesPage() {
           from: today,
           limit: 100,
           sort: 'dates.from',
-        }).catch(err => ({ data: [], error: err.message })),
-        leavesService.getLeaveTypes().catch(err => ({ data: [], error: err.message })),
+        }).catch((err: any) => ({ data: [], error: err.message })),
+        leavesService.getLeaveTypes().catch((err: any) => ({ data: [], error: err.message })),
       ]);
 
       // Check for errors

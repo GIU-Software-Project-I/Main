@@ -9,7 +9,8 @@ export * from './enums';
 export * from './auth';
 export * from './employee';
 export * from './organization';
-export * from './recruitment';
+// Namespace recruitment exports to avoid duplicate top-level names (e.g. AuditLog)
+export * as recruitment from './recruitment';
 export * from './onboarding';
 export * from './leaves';
 export * from './payroll';

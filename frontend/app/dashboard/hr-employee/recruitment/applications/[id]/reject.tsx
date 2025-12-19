@@ -290,7 +290,8 @@ export default function RejectApplicationPage({
       // Then send the rejection notification email (REC-022)
       await sendRejectionNotification({
         applicationId: resolvedParams.id,
-        reason: reasonLabel,
+           candidateEmail: candidate?.candidateEmail || '',
+           rejectionReason: reasonLabel,
         templateId: useCustomMessage ? undefined : selectedTemplate,
         customMessage: useCustomMessage ? customMessage : undefined,
       });

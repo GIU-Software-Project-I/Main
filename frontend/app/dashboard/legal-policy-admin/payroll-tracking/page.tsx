@@ -42,15 +42,18 @@ export default function PayrollTrackingPage() {
         
         // Fetch claims/disputes tracking
         const trackingResponse = await payrollTrackingService.trackClaimsAndDisputes(user.id);
-        const tracking = trackingResponse?.data || { claims: [], disputes: [] };
-        
-        const pendingClaims = tracking.claims?.filter((c: any) => c.status === 'PENDING' || c.status === 'IN_REVIEW')?.length || 0;
-        const pendingDisputes = tracking.disputes?.filter((d: any) => d.status === 'PENDING' || d.status === 'IN_REVIEW')?.length || 0;
-        
-        const lastPayslip = payslips[0];
-        
+        let tracking: any = { claims: [], disputes: [] };
+        if (trackingResponse && typeof trackingResponse.data === 'object' && trackingResponse.data !== null) {
+          tracking = trackingResponse.data;
+        }
+        const claimsArr = Array.isArray(tracking.claims) ? tracking.claims : [];
+        const disputesArr = Array.isArray(tracking.disputes) ? tracking.disputes : [];
+        const pendingClaims = claimsArr.filter((c: any) => c.status === 'PENDING' || c.status === 'IN_REVIEW').length;
+        const pendingDisputes = disputesArr.filter((d: any) => d.status === 'PENDING' || d.status === 'IN_REVIEW').length;
+        const payslipsArr = Array.isArray(payslips) ? payslips : [];
+        const lastPayslip = payslipsArr[0];
         setStats({
-          totalPayslips: payslips.length,
+          totalPayslips: payslipsArr.length,
           pendingClaims,
           pendingDisputes,
           lastPayslipDate: lastPayslip?.periodEnd ? new Date(lastPayslip.periodEnd).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A',
