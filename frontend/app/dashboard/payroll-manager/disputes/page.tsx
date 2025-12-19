@@ -102,9 +102,10 @@ export default function PayrollManagerDisputesPage() {
 
   const filterDisputes = () => {
     if (statusFilter === 'all') {
+      // Show only disputes that are pending manager approval (accepted by specialist)
       return allDisputes.filter(d => {
         const s = (d.status || '').toLowerCase();
-        return !s.includes('under') && !s.includes('under-review') && !s.includes('under review');
+        return s.includes('pending') && s.includes('manager') && s.includes('approval');
       });
     }
     if (statusFilter === 'approved') {
@@ -227,14 +228,14 @@ export default function PayrollManagerDisputesPage() {
         <div className="p-6 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">
             {statusFilter === 'all' 
-              ? `All Disputes (${disputes.length})`
+              ? `Pending Disputes (${disputes.length})`
               : statusFilter === 'approved'
               ? `Approved Disputes (${disputes.length})`
               : `Rejected Disputes (${disputes.length})`}
           </h2>
           <p className="text-sm text-slate-600 mt-1">
             {statusFilter === 'all' 
-              ? 'All disputes (pending, approved, and rejected)'
+              ? 'Disputes accepted by specialist, awaiting your approval'
               : statusFilter === 'approved'
               ? 'Disputes that have been approved'
               : 'Disputes that have been rejected'}
@@ -260,8 +261,8 @@ export default function PayrollManagerDisputesPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {disputes.map((dispute) => (
-                  <tr key={dispute.id} className="hover:bg-slate-50">
+                {disputes.map((dispute, index) => (
+                  <tr key={`dispute-${dispute.id || dispute.employeeNumber || index}-${index}`} className="hover:bg-slate-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-slate-900">{dispute.employeeName}</div>
@@ -326,7 +327,7 @@ export default function PayrollManagerDisputesPage() {
             {disputes.length === 0 && (
               <div className="p-6 text-center text-slate-500">
                 {statusFilter === 'all' 
-                  ? 'No disputes pending confirmation'
+                  ? 'No disputes pending your approval'
                   : statusFilter === 'approved'
                   ? 'No approved disputes found'
                   : 'No rejected disputes found'}

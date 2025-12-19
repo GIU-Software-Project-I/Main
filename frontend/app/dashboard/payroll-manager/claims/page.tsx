@@ -101,9 +101,10 @@ export default function PayrollManagerClaimsPage() {
 
   const filterClaims = () => {
     if (statusFilter === 'all') {
+      // Show only claims that are pending manager approval (accepted by specialist)
       return allClaims.filter(c => {
         const s = (c.status || '').toLowerCase();
-        return !s.includes('under') && !s.includes('under-review') && !s.includes('under review');
+        return s.includes('pending') && s.includes('manager') && s.includes('approval');
       });
     }
     if (statusFilter === 'approved') {
@@ -188,14 +189,14 @@ export default function PayrollManagerClaimsPage() {
         <div className="p-6 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">
             {statusFilter === 'all' 
-              ? `All Claims (${claims.length})`
+              ? `Pending Claims (${claims.length})`
               : statusFilter === 'approved'
               ? `Approved Claims (${claims.length})`
               : `Rejected Claims (${claims.length})`}
           </h2>
           <p className="text-sm text-slate-600 mt-1">
             {statusFilter === 'all' 
-              ? 'All claims (pending, approved, and rejected)'
+              ? 'Claims accepted by specialist, awaiting your approval'
               : statusFilter === 'approved'
               ? 'Claims that have been approved'
               : 'Claims that have been rejected'}
@@ -222,8 +223,8 @@ export default function PayrollManagerClaimsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {claims.map((claim) => (
-                  <tr key={claim.id} className="hover:bg-slate-50">
+                {claims.map((claim, index) => (
+                  <tr key={`claim-${claim.id || claim.employeeNumber || index}-${index}`} className="hover:bg-slate-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-slate-900">{claim.employeeName}</div>
@@ -289,7 +290,7 @@ export default function PayrollManagerClaimsPage() {
             {claims.length === 0 && (
               <div className="p-6 text-center text-slate-500">
                 {statusFilter === 'all' 
-                  ? 'No claims pending confirmation'
+                  ? 'No claims pending your approval'
                   : statusFilter === 'approved'
                   ? 'No approved claims found'
                   : 'No rejected claims found'}
