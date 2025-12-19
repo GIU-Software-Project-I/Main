@@ -132,14 +132,23 @@ export default function DepartmentHeadPage() {
       // Filter out requests without valid dates
       const validRequests = requestsData.filter((req) => req.dates && req.dates.from && req.dates.to);
 
-      // Enrich requests with leave type names
-      const enrichedRequests = validRequests.map((req) => {
+      // Enrich requests with leave type names and extract irregular reason from approvalFlow
+      const enrichedRequests = validRequests.map((req: any) => {
         const leaveType = (typesRes.data as LeaveType[])?.find(
           (lt) => lt._id === req.leaveTypeId
         );
+        
+        // Extract irregular reason from approvalFlow if available
+        const irregularEntry = req.approvalFlow?.find(
+          (entry: any) => entry.role === 'manager' && entry.status === 'irregular_flag'
+        );
+        const irregularReason = irregularEntry?.reason;
+        
         return {
           ...req,
           leaveTypeName: leaveType?.name || 'Unknown',
+          flaggedIrregular: req.irregularPatternFlag || false,
+          irregularReason: irregularReason,
         };
       });
 
@@ -182,18 +191,40 @@ export default function DepartmentHeadPage() {
 
     try {
       setActionLoading(flaggingRequestId);
-      const response = await leavesService.flagIrregular(flaggingRequestId, true, flagReason);
+      setError(null);
+      
+      const managerId = user?.id || '';
+      const response = await leavesService.flagIrregular(flaggingRequestId, true, flagReason, managerId);
+
+      console.log('[FlagIrregular] Response:', response);
 
       if (response.error) {
         setError(response.error);
         return;
       }
 
+      if (!response.data) {
+        setError('No data received from server');
+        return;
+      }
+
+      // Extract irregular reason from approvalFlow if available
+      const updatedRequest = response.data;
+      const irregularEntry = updatedRequest.approvalFlow?.find(
+        (entry: any) => entry.role === 'manager' && entry.status === 'irregular_flag'
+      );
+      const savedReason = irregularEntry?.reason || flagReason;
+
       // Update the request in state
       setRequests((prev) =>
         prev.map((r) =>
           r._id === flaggingRequestId
-            ? { ...r, flaggedIrregular: true, irregularReason: flagReason }
+            ? { 
+                ...r, 
+                flaggedIrregular: true, 
+                irregularReason: savedReason,
+                approvalFlow: updatedRequest.approvalFlow || r.approvalFlow,
+              }
             : r
         )
       );
@@ -204,6 +235,7 @@ export default function DepartmentHeadPage() {
       setFlagReason('');
       setFlaggingRequestId(null);
     } catch (err) {
+      console.error('[FlagIrregular] Error:', err);
       setError(err instanceof Error ? err.message : 'Failed to flag request');
     } finally {
       setActionLoading(null);
@@ -214,18 +246,34 @@ export default function DepartmentHeadPage() {
   const handleUnflagIrregular = async (requestId: string) => {
     try {
       setActionLoading(requestId);
+      setError(null);
+      
       const response = await leavesService.flagIrregular(requestId, false);
+
+      console.log('[UnflagIrregular] Response:', response);
 
       if (response.error) {
         setError(response.error);
         return;
       }
 
+      if (!response.data) {
+        setError('No data received from server');
+        return;
+      }
+
+      const updatedRequest = response.data;
+
       // Update the request in state
       setRequests((prev) =>
         prev.map((r) =>
           r._id === requestId
-            ? { ...r, flaggedIrregular: false, irregularReason: undefined }
+            ? { 
+                ...r, 
+                flaggedIrregular: false, 
+                irregularReason: undefined,
+                approvalFlow: updatedRequest.approvalFlow || r.approvalFlow,
+              }
             : r
         )
       );
@@ -233,6 +281,7 @@ export default function DepartmentHeadPage() {
       setSuccessMessage('Irregular flag removed');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
+      console.error('[UnflagIrregular] Error:', err);
       setError(err instanceof Error ? err.message : 'Failed to unflag request');
     } finally {
       setActionLoading(null);
