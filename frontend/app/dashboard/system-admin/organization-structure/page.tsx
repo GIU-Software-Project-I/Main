@@ -169,7 +169,19 @@ export default function OrganizationStructurePage() {
               Manage departments and positions (REQ-OSM-01, REQ-OSM-02, REQ-OSM-05)
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Link
+              href="/dashboard/system-admin/organization-structure/departments"
+              className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-lg hover:bg-muted transition-colors"
+            >
+              Departments
+            </Link>
+            <Link
+              href="/dashboard/system-admin/organization-structure/positions"
+              className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-lg hover:bg-muted transition-colors"
+            >
+              Positions
+            </Link>
             <Link
               href="/dashboard/system-admin/organization-structure/change-requests"
               className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-lg hover:bg-muted transition-colors"
