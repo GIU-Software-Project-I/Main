@@ -85,25 +85,8 @@ async function bootstrap() {
     // });
 
     app.enableCors({
-      origin: (origin, callback) => {
-        const allowedOrigins = [
-          'https://main-nine-rose-81.vercel.app',
-          'https://main-2xxjt6stv-osamaloays-projects.vercel.app',
-          'https://main-git-main-osamaloays-projects.vercel.app',
-        ];
-        // Allow localhost for development
-        if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-          return callback(null, true);
-        }
-        if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
-        return callback(new Error('Not allowed by CORS'), false);
-      },
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-      exposedHeaders: ['Set-Cookie'],
+        origin: true, // Reflects request origin, allows all
+        credentials: true,
     });
     const config = new DocumentBuilder()
         .setTitle('HR System API')
