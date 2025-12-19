@@ -24,6 +24,7 @@ interface LeaveCategory {
 
 interface LeaveType {
   _id: string;
+  id?: string;
   code: string;
   name: string;
   categoryId: string;
@@ -94,25 +95,32 @@ export default function HRAdminLeavesConfigPage() {
 
   const getActorId = () => {
     // adapt if your auth user shape differs
-    return (user as any)?._id || (user as any)?.id || '';
+    return (user as unknown as { _id?: string; id?: string })?._id || (user as unknown as { _id?: string; id?: string })?.id || '';
   };
 
- const getTypeName = (leaveType: any) => {
-  if (!leaveType) return 'Unknown';
+  const getTypeName = (leaveType: LeaveType | string | null | undefined): string => {
+    if (!leaveType) return 'Unknown';
 
-  // لو backend رجّع object populated
-  if (typeof leaveType === 'object') {
-    const name = leaveType.name ?? '';
-    const code = leaveType.code ?? '';
-    const id = leaveType._id || leaveType.id;
-    return name ? `${name}${code ? ` (${code})` : ''}` : (id ?? 'Unknown');
+    // لو backend رجّع object populated
+    if (typeof leaveType === 'object') {
+      const name = leaveType.name ?? '';
+      const code = leaveType.code ?? '';
+      const id = leaveType._id || (leaveType as unknown as Record<string, unknown>).id;
+      return name ? `${name}${code ? ` (${code})` : ''}` : (String(id) ?? 'Unknown');
+    }
+
+    // لو string id
+    const t = types.find((x) => x._id === leaveType);
+    return t ? `${t.name} (${t.code})` : String(leaveType);
+  };
+
+const getErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) {
+    const response = (err as unknown as Record<string, unknown>)?.response as Record<string, unknown> | undefined;
+    return (response?.data as Record<string, unknown>)?.message as string || err.message || 'An error occurred';
   }
-
-  // لو string id
-  const t = types.find((x) => x._id === leaveType);
-  return t ? `${t.name} (${t.code})` : leaveType;
+  return 'An error occurred';
 };
-
 
   // --------------------------
   // Categories
@@ -206,7 +214,7 @@ export default function HRAdminLeavesConfigPage() {
     yearlyEntitlement: '',
   });
   const [entitlements, setEntitlements] = useState<Entitlement[]>([]);
-  const [entSummary, setEntSummary] = useState<any>(null);
+  const [entSummary, setEntSummary] = useState<{ summary?: Record<string, unknown>; data?: Entitlement[] } | null>(null);
 
   // --------------------------
   // Manual adjustments (REQ-013)
@@ -220,7 +228,23 @@ export default function HRAdminLeavesConfigPage() {
     hrUserId: '',
   });
 
-  const [adjHistory, setAdjHistory] = useState<any[]>([]);
+  interface AdjustmentHistory {
+    _id?: string;
+    id?: string;
+    employeeId?: string;
+    leaveTypeId?: string;
+    leaveType?: string;
+    adjustmentType?: string;
+    type?: string;
+    amount?: number;
+    days?: number;
+    reason?: string;
+    appliedAt?: string;
+    createdAt?: string;
+    date?: string;
+  }
+
+  const [adjHistory, setAdjHistory] = useState<AdjustmentHistory[]>([]);
   const [adjHistoryFilter, setAdjHistoryFilter] = useState({
     employeeId: '',
     leaveTypeId: '',
@@ -228,24 +252,32 @@ export default function HRAdminLeavesConfigPage() {
 
   const [adjPreviewEntitlements, setAdjPreviewEntitlements] = useState<Entitlement[]>([]);
 
- // --------------------------
-// Reset leave year
-// --------------------------
-const [resetForm, setResetForm] = useState<{
-  strategy: 'hireDate' | 'calendarYear' | 'custom';
-  referenceDate?: string;
-  dryRun: boolean;
-}>({
-  strategy: 'calendarYear',
-  dryRun: true, // SAFE by default
-});
-
+  // --------------------------
+  // Reset leave year
+  // --------------------------
+  const [resetForm, setResetForm] = useState<{
+    strategy: 'hireDate' | 'calendarYear' | 'custom';
+    referenceDate?: string;
+    dryRun: boolean;
+  }>({
+    strategy: 'calendarYear',
+    dryRun: true, // SAFE by default
+  });
 
   // --------------------------
   // Access control (Roles UI)
   // --------------------------
   const [roleQuery, setRoleQuery] = useState('');
-  const [roleUser, setRoleUser] = useState<any>(null);
+  interface RoleUser {
+    _id?: string;
+    id?: string;
+    name?: string;
+    fullName?: string;
+    fullname?: string;
+    email?: string;
+    role?: AppRole;
+  }
+  const [roleUser, setRoleUser] = useState<RoleUser | null>(null);
   const [newRole, setNewRole] = useState<AppRole>('EMPLOYEE');
 
   // ==========================================================
@@ -264,7 +296,13 @@ const fetchTypes = useCallback(async () => {
   try {
     const response = await leavesService.getLeaveTypes();
     const raw = Array.isArray(response.data) ? response.data : (response.data?.data || []);
-    const normalized = raw.map((t: any) => ({ ...t, _id: t._id || t.id }));
+    interface RawLeaveType extends Omit<LeaveType, '_id'> {
+      id?: string;
+    }
+    const normalized: LeaveType[] = (raw as RawLeaveType[]).map((t: RawLeaveType) => ({
+      ...t,
+      _id: (t as unknown as Record<string, unknown>)._id as string || t.id || '',
+    } as LeaveType));
     setTypes(normalized);
   } catch {
     setTypes([]);
@@ -351,7 +389,7 @@ const fetchTypes = useCallback(async () => {
   }, [user]);
 
   // auto-load balances preview in REQ-013 tab
-  const fetchAdjPreviewEntitlements = async (employeeId: string) => {
+  const fetchAdjPreviewEntitlements = useCallback(async (employeeId: string) => {
     const empId = employeeId.trim();
     if (!empId) {
       setAdjPreviewEntitlements([]);
@@ -363,7 +401,7 @@ const fetchTypes = useCallback(async () => {
     } catch {
       setAdjPreviewEntitlements([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (activeTab !== 'manual-adjustment') return;
@@ -372,8 +410,7 @@ const fetchTypes = useCallback(async () => {
       return;
     }
     fetchAdjPreviewEntitlements(adjForm.employeeId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, adjForm.employeeId]);
+  }, [activeTab, adjForm.employeeId, fetchAdjPreviewEntitlements]);
 
   // ==========================================================
   // Category handlers
@@ -391,8 +428,8 @@ const fetchTypes = useCallback(async () => {
       setSuccess('Category created ✅');
       setCategoryForm({ name: '', description: '' });
       await fetchCategories();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to create category');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to create category');
     } finally {
       setLoading(false);
     }
@@ -407,8 +444,8 @@ const fetchTypes = useCallback(async () => {
       setEditingCategory(null);
       setCategoryForm({ name: '', description: '' });
       await fetchCategories();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to update category');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to update category');
     } finally {
       setLoading(false);
     }
@@ -422,8 +459,8 @@ const fetchTypes = useCallback(async () => {
       await leavesService.deleteCategory(id);
       setSuccess('Category deleted ✅');
       await fetchCategories();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to delete category');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to delete category');
     } finally {
       setLoading(false);
     }
@@ -460,8 +497,8 @@ const fetchTypes = useCallback(async () => {
       setSuccess('Leave type created ✅');
       resetTypeForm();
       await fetchTypes();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to create leave type');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to create leave type');
     } finally {
       setLoading(false);
     }
@@ -476,8 +513,8 @@ const fetchTypes = useCallback(async () => {
       setEditingType(null);
       resetTypeForm();
       await fetchTypes();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to update leave type');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to update leave type');
     } finally {
       setLoading(false);
     }
@@ -491,8 +528,8 @@ const fetchTypes = useCallback(async () => {
       await leavesService.deleteLeaveType(id);
       setSuccess('Leave type deleted ✅');
       await fetchTypes();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to delete leave type');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to delete leave type');
     } finally {
       setLoading(false);
     }
@@ -529,8 +566,8 @@ const fetchTypes = useCallback(async () => {
       setSuccess('Policy created ✅');
       resetPolicyForm();
       await fetchPolicies();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to create policy');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to create policy');
     } finally {
       setLoading(false);
     }
@@ -545,8 +582,8 @@ const fetchTypes = useCallback(async () => {
       setEditingPolicy(null);
       resetPolicyForm();
       await fetchPolicies();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to update policy');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to update policy');
     } finally {
       setLoading(false);
     }
@@ -560,8 +597,8 @@ const fetchTypes = useCallback(async () => {
       await leavesService.deletePolicy(id);
       setSuccess('Policy deleted ✅');
       await fetchPolicies();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to delete policy');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to delete policy');
     } finally {
       setLoading(false);
     }
@@ -583,8 +620,8 @@ const fetchTypes = useCallback(async () => {
       setSuccess('Eligibility saved ✅');
       await fetchTypes(); // keep UI in sync
       await fetchEligibilityForType(selectedTypeForEligibility); // reload from backend to verify persistence
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to save eligibility');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to save eligibility');
     } finally {
       setLoading(false);
     }
@@ -610,8 +647,8 @@ const fetchTypes = useCallback(async () => {
       setSuccess('Holiday added ✅');
       setHolidayForm({ date: '', reason: '' });
       await fetchCalendar(selectedYear);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to add holiday');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to add holiday');
     } finally {
       setLoading(false);
     }
@@ -625,8 +662,8 @@ const fetchTypes = useCallback(async () => {
       await leavesService.removeHoliday(selectedYear, { date });
       setSuccess('Holiday removed ✅');
       await fetchCalendar(selectedYear);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to remove holiday');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to remove holiday');
     } finally {
       setLoading(false);
     }
@@ -650,8 +687,8 @@ const fetchTypes = useCallback(async () => {
       setSuccess('Blocked period added ✅');
       setBlockedPeriodForm({ from: '', to: '', reason: '' });
       await fetchCalendar(selectedYear);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to add blocked period');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to add blocked period');
     } finally {
       setLoading(false);
     }
@@ -665,8 +702,8 @@ const fetchTypes = useCallback(async () => {
       await leavesService.removeBlockedPeriod(selectedYear, { from, to });
       setSuccess('Blocked period removed ✅');
       await fetchCalendar(selectedYear);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to remove blocked period');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to remove blocked period');
     } finally {
       setLoading(false);
     }
@@ -682,8 +719,8 @@ const fetchTypes = useCallback(async () => {
       const response = await leavesService.runAccrual(accrualForm);
       const result = response.data as { processed?: number } | undefined;
       setSuccess(`Accrual done ✅ Processed: ${result?.processed ?? 0}`);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to run accrual');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to run accrual');
     } finally {
       setLoading(false);
     }
@@ -696,8 +733,8 @@ const fetchTypes = useCallback(async () => {
       const response = await leavesService.carryForward(carryForwardForm);
       const result = response.data as { processed?: number } | undefined;
       setSuccess(`Carry forward done ✅ Processed: ${result?.processed ?? 0}`);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to run carry forward');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to run carry forward');
     } finally {
       setLoading(false);
     }
@@ -715,8 +752,8 @@ const fetchTypes = useCallback(async () => {
       clearMessages();
       await leavesService.recalcEmployee(id);
       setSuccess('Employee recalculation done ✅');
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to recalculate employee');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to recalculate employee');
     } finally {
       setLoading(false);
     }
@@ -745,8 +782,8 @@ const fetchTypes = useCallback(async () => {
       const res = await leavesService.getEntitlements(ids[0]);
       setEntitlements(Array.isArray(res.data) ? (res.data as Entitlement[]) : []);
       setSuccess('Entitlements loaded ✅');
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to load entitlements');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to load entitlements');
       setEntitlements([]);
     } finally {
       setLoading(false);
@@ -766,8 +803,8 @@ const fetchTypes = useCallback(async () => {
       const res = await leavesService.getEntitlementSummary(ids[0]);
       setEntSummary(res.data);
       setSuccess('Entitlement summary loaded ✅');
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to load entitlement summary');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to load entitlement summary');
       setEntSummary(null);
     } finally {
       setLoading(false);
@@ -810,8 +847,8 @@ const fetchTypes = useCallback(async () => {
         setEntitlements([]);
         setEntSummary(null);
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to assign entitlement');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to assign entitlement');
     } finally {
       setLoading(false);
     }
@@ -833,8 +870,8 @@ const fetchTypes = useCallback(async () => {
       const res = await leavesService.getAdjustmentHistory(empId, adjHistoryFilter.leaveTypeId || undefined);
       setAdjHistory(Array.isArray(res.data) ? res.data : []);
       setSuccess('Adjustment history loaded ✅');
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to load adjustment history');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to load adjustment history');
       setAdjHistory([]);
     } finally {
       setLoading(false);
@@ -900,8 +937,8 @@ const fetchTypes = useCallback(async () => {
       } catch {
         // ignore
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to create adjustment');
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to create adjustment');
     } finally {
       setLoading(false);
     }
@@ -947,9 +984,9 @@ const handleResetLeaveYear = async () => {
     });
 
     setSuccess(`Applied ✅ processed: ${applyRes.data.processed}`);
-  } catch (err: any) {
+  } catch (err: Error | unknown) {
     setError(
-      err?.response?.data?.message || err?.message || "Failed to reset leave year"
+      getErrorMessage(err) || "Failed to reset leave year"
     );
   } finally {
     setLoading(false);
@@ -971,11 +1008,17 @@ const handleResetLeaveYear = async () => {
       clearMessages();
       const res = await leavesService.getUserByIdOrEmail(q);
       setRoleUser(res.data);
-      setNewRole(((res.data?.role as AppRole) || 'EMPLOYEE') as AppRole);
+      // Map backend SystemRole to AppRole
+      const backendRole = res.data?.role || '';
+      const mappedRole = backendRole === 'HR Admin' ? 'HR_ADMIN' :
+                        backendRole === 'HR Manager' ? 'HR_MANAGER' :
+                        backendRole === 'department head' ? 'MANAGER' :
+                        'EMPLOYEE';
+      setNewRole(mappedRole as AppRole);
       setSuccess('User loaded ✅');
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       setRoleUser(null);
-      setError(err?.response?.data?.message || err?.message || 'Failed to load user');
+      setError(getErrorMessage(err) || 'Failed to load user');
     } finally {
       setLoading(false);
     }
@@ -989,12 +1032,23 @@ const handleResetLeaveYear = async () => {
     try {
       setLoading(true);
       clearMessages();
-      await leavesService.updateUserRole(roleUser._id, { role: newRole, actorId: getActorId() });
+      // Map AppRole back to SystemRole for backend
+      const backendRole = newRole === 'HR_ADMIN' ? 'HR Admin' :
+                         newRole === 'HR_MANAGER' ? 'HR Manager' :
+                         newRole === 'MANAGER' ? 'department head' :
+                         'department employee';
+      await leavesService.updateUserRole(roleUser._id, { role: backendRole, actorId: getActorId() });
       setSuccess('Role updated ✅');
       const res = await leavesService.getUserByIdOrEmail(roleUser._id);
       setRoleUser(res.data);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to update role');
+      // Update newRole to match the response
+      const mappedRole = res.data?.role === 'HR Admin' ? 'HR_ADMIN' :
+                        res.data?.role === 'HR Manager' ? 'HR_MANAGER' :
+                        res.data?.role === 'department head' ? 'MANAGER' :
+                        'EMPLOYEE';
+      setNewRole(mappedRole as AppRole);
+    } catch (err: Error | unknown) {
+      setError(getErrorMessage(err) || 'Failed to update role');
     } finally {
       setLoading(false);
     }
@@ -1032,11 +1086,11 @@ const handleResetLeaveYear = async () => {
   // Render
   // ==========================================================
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-background">
       {/* Header */}
-      <div className="border-b border-gray-200 pb-4">
-        <h1 className="text-2xl font-semibold text-gray-900">Leave Configuration</h1>
-        <p className="text-sm text-gray-500 mt-1">
+      <div className="border-b border-border pb-4">
+        <h1 className="text-2xl font-semibold text-foreground">Leave Configuration</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Configure categories, types, policies, eligibility, calendars, accrual rules, entitlements, and manual
           adjustments.
         </p>
@@ -1044,14 +1098,14 @@ const handleResetLeaveYear = async () => {
 
       {/* Messages */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{error}</div>
+        <div className="bg-destructive/10 dark:bg-destructive/20 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">{error}</div>
       )}
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">{success}</div>
+        <div className="bg-success/10 dark:bg-success/20 border border-success/20 text-success px-4 py-3 rounded-lg">{success}</div>
       )}
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-border">
         <nav className="-mb-px flex flex-wrap gap-x-6 gap-y-2">
           {tabs.map((tab) => (
             <button
@@ -1060,10 +1114,10 @@ const handleResetLeaveYear = async () => {
                 setActiveTab(tab.id);
                 clearMessages();
               }}
-              className={`py-3 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
               }`}
             >
               {tab.label}
@@ -1622,12 +1676,8 @@ const handleResetLeaveYear = async () => {
 
             <div className="space-y-2">
               {policies.map((p) => {
-const leaveTypeId =
-  typeof (p as any).leaveTypeId === 'string'
-    ? (p as any).leaveTypeId
-    : ((p as any).leaveTypeId?._id || (p as any).leaveTypeId?.id);
-
-const t = types.find((x: any) => (x._id || x.id) === leaveTypeId);
+                const leaveTypeId = p.leaveTypeId;
+                const t = types.find((x: LeaveType) => (x._id || x.id) === leaveTypeId);
                 return (
                   <div key={p._id} className="p-4 border border-gray-200 rounded-lg">
                     <div className="flex items-start justify-between">
@@ -1982,7 +2032,7 @@ const t = types.find((x: any) => (x._id || x.id) === leaveTypeId);
                 <label className="block text-sm font-medium text-gray-700 mb-1">Accrual Method</label>
                 <select
                   value={accrualForm.method}
-                  onChange={(e) => setAccrualForm({ ...accrualForm, method: e.target.value as any })}
+                  onChange={(e) => setAccrualForm({ ...accrualForm, method: e.target.value as 'monthly' | 'yearly' | 'per-term' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="monthly">Monthly</option>
@@ -1995,7 +2045,7 @@ const t = types.find((x: any) => (x._id || x.id) === leaveTypeId);
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rounding Rule</label>
                 <select
                   value={accrualForm.roundingRule}
-                  onChange={(e) => setAccrualForm({ ...accrualForm, roundingRule: e.target.value as any })}
+                  onChange={(e) => setAccrualForm({ ...accrualForm, roundingRule: e.target.value as 'none' | 'round' | 'round_up' | 'round_down' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="none">None</option>
@@ -2225,7 +2275,7 @@ const t = types.find((x: any) => (x._id || x.id) === leaveTypeId);
                   <tbody className="bg-white divide-y divide-gray-200">
                     {entitlements.map((e, idx) => (
                       <tr key={e._id ?? `${e.leaveTypeId}-${idx}`}>
-                        <td className="px-4 py-3 text-sm text-gray-900">{getTypeName(e.leaveTypeId)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{String(getTypeName(e.leaveTypeId))}</td>
                         <td className="px-4 py-3 text-sm text-gray-900">{e.yearlyEntitlement ?? '-'}</td>
                         <td className="px-4 py-3 text-sm text-gray-900">
                           {(e.accruedRounded ?? e.accruedActual) ?? '-'}
@@ -2262,7 +2312,7 @@ const t = types.find((x: any) => (x._id || x.id) === leaveTypeId);
                   {adjPreviewEntitlements.map((e, idx) => (
                     <div key={e._id ?? `${e.leaveTypeId}-${idx}`} className="text-xs">
                       <div className="flex justify-between">
-                        <span className="text-blue-900 font-medium">{getTypeName(e.leaveTypeId)}</span>
+                        <span className="text-blue-900 font-medium">{String(getTypeName(e.leaveTypeId))}</span>
                         <span className="text-blue-800">Remaining: {(e.remaining ?? 0).toFixed(2)}</span>
                       </div>
                     </div>
@@ -2446,8 +2496,8 @@ const t = types.find((x: any) => (x._id || x.id) === leaveTypeId);
                       {adjHistory.map((h, idx) => (
                         <tr key={h._id ?? idx}>
                           <td className="px-4 py-3 text-sm">{(h.createdAt || h.date || '').toString().slice(0, 10) || '-'}</td>
-                          <td className="px-4 py-3 text-sm">{getTypeName(h.leaveTypeId || h.leaveType || '')}</td>
-                         <td className="px-4 py-3 text-sm">{h.adjustmentType || h.type || '-'}</td>
+                          <td className="px-4 py-3 text-sm">{String(getTypeName(h.leaveTypeId || h.leaveType || ''))}</td>
+                          <td className="px-4 py-3 text-sm">{h.adjustmentType || h.type || '-'}</td>
                           <td className="px-4 py-3 text-sm">{h.amount ?? h.days ?? '-'}</td>
                           <td className="px-4 py-3 text-sm">{h.reason ?? '-'}</td>
                         </tr>
@@ -2585,18 +2635,18 @@ const t = types.find((x: any) => (x._id || x.id) === leaveTypeId);
       {/* ========================= */}
       {activeTab === 'access-control' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Access Control (Roles & Permissions)</h2>
-            <p className="text-sm text-gray-500 mb-4">Search a user and update their role from the UI.</p>
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-2">Access Control (Roles & Permissions)</h2>
+            <p className="text-sm text-muted-foreground mb-4">Search a user and update their role from the UI.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Find user (id or email)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Find user (id or email)</label>
                 <input
                   type="text"
                   value={roleQuery}
                   onChange={(e) => setRoleQuery(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   placeholder="e.g., 64f0... or user@email.com"
                 />
               </div>
@@ -2604,23 +2654,23 @@ const t = types.find((x: any) => (x._id || x.id) === leaveTypeId);
               <button
                 onClick={handleFindUser}
                 disabled={loading}
-                className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+                className="px-4 py-2 bg-foreground text-background rounded-lg hover:bg-foreground/90 disabled:opacity-50 transition-colors"
               >
                 {loading ? 'Loading...' : 'Load User'}
               </button>
             </div>
 
             {roleUser && (
-              <div className="mt-4 border border-gray-200 rounded-lg p-4">
-                <div className="text-sm text-gray-700 space-y-1">
+              <div className="mt-4 border border-border rounded-lg p-4 bg-card">
+                <div className="text-sm text-foreground space-y-1">
                   <div>
-                    <span className="font-medium">Name:</span> {roleUser.fullname || roleUser.name || '-'}
+                    <span className="font-medium">Name:</span> {roleUser.fullName || roleUser.fullname || roleUser.name || '-'}
                   </div>
                   <div>
                     <span className="font-medium">Email:</span> {roleUser.email || '-'}
                   </div>
                   <div>
-                    <span className="font-medium">User ID:</span> <span className="font-mono">{roleUser._id}</span>
+                    <span className="font-medium">User ID:</span> <span className="font-mono text-muted-foreground">{roleUser._id}</span>
                   </div>
                   <div>
                     <span className="font-medium">Current Role:</span> {roleUser.role || '-'}
@@ -2629,11 +2679,11 @@ const t = types.find((x: any) => (x._id || x.id) === leaveTypeId);
 
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">New Role</label>
+                    <label className="block text-sm font-medium text-foreground mb-1">New Role</label>
                     <select
                       value={newRole}
                       onChange={(e) => setNewRole(e.target.value as AppRole)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                     >
                       <option value="HR_ADMIN">HR_ADMIN</option>
                       <option value="HR_MANAGER">HR_MANAGER</option>
@@ -2645,22 +2695,22 @@ const t = types.find((x: any) => (x._id || x.id) === leaveTypeId);
                   <button
                     onClick={handleUpdateUserRole}
                     disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
                   >
                     {loading ? 'Saving...' : 'Update Role'}
                   </button>
                 </div>
 
-                <p className="mt-2 text-xs text-gray-500">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Backend guards still enforce permissions. This UI only updates the stored role for the user.
                 </p>
               </div>
             )}
 
-            <div className="mt-4 text-xs text-gray-500">
-              Service methods needed:
-              <span className="font-mono"> leavesService.getUserByIdOrEmail(q) </span> and{' '}
-              <span className="font-mono"> leavesService.updateUserRole(userId, payload)</span>
+            <div className="mt-4 text-xs text-muted-foreground">
+              Service methods:
+              <span className="font-mono text-foreground"> leavesService.getUserByIdOrEmail(q) </span> and{' '}
+              <span className="font-mono text-foreground"> leavesService.updateUserRole(userId, payload)</span>
             </div>
           </div>
         </div>

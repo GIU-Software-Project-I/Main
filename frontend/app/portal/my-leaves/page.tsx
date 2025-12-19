@@ -357,35 +357,40 @@ export default function MyLeavesPage() {
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return { bg: 'bg-amber-100', text: 'text-amber-800', label: 'Pending' };
+        return { bg: 'bg-warning/10 dark:bg-warning/20', text: 'text-warning dark:text-warning', label: 'Pending' };
       case 'APPROVED':
-        return { bg: 'bg-green-100', text: 'text-green-800', label: 'Approved' };
+        return { bg: 'bg-success/10 dark:bg-success/20', text: 'text-success dark:text-success', label: 'Approved' };
       case 'REJECTED':
-        return { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' };
+        return { bg: 'bg-destructive/10 dark:bg-destructive/20', text: 'text-destructive dark:text-destructive', label: 'Rejected' };
       case 'CANCELLED':
-        return { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Cancelled' };
+        return { bg: 'bg-muted', text: 'text-muted-foreground', label: 'Cancelled' };
       case 'RETURNED_FOR_CORRECTION':
       case 'returned_for_correction':
-        return { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Needs Correction' };
+        return { bg: 'bg-warning/10 dark:bg-warning/20', text: 'text-warning dark:text-warning', label: 'Needs Correction' };
       default:
-        return { bg: 'bg-gray-100', text: 'text-gray-800', label: status };
+        return { bg: 'bg-muted', text: 'text-muted-foreground', label: status };
     }
   };
 
   const getLeaveTypeColor = (type: string | undefined) => {
-    if (!type) return 'bg-gray-500';
+    if (!type) return 'bg-muted';
     switch (type.toLowerCase()) {
       case 'annual':
       case 'annual leave':
-        return 'bg-blue-500';
+        return 'bg-primary';
       case 'sick':
       case 'sick leave':
-        return 'bg-red-500';
+        return 'bg-destructive';
       case 'personal':
       case 'personal leave':
-        return 'bg-purple-500';
+      case 'unpaid':
+      case 'unpaid leave':
+      case 'paternity':
+      case 'maternity':
+      case 'compassionate':
+        return 'bg-accent';
       default:
-        return 'bg-gray-500';
+        return 'bg-muted';
     }
   };
 
@@ -529,7 +534,7 @@ export default function MyLeavesPage() {
                   >
                     <button
                       onClick={() => dismissNotification(notification._id)}
-                      className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Dismiss"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -550,7 +555,7 @@ export default function MyLeavesPage() {
                         </p>
                         <p className={`text-sm ${style.textColor} mt-1`}>{notification.message}</p>
                         {notification.createdAt && (
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {new Date(notification.createdAt).toLocaleDateString()} at{' '}
                             {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </p>
@@ -609,61 +614,61 @@ export default function MyLeavesPage() {
         <GlassCard className="p-4">
           <div className="flex flex-wrap gap-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-warning/10 dark:bg-warning/20 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Pending</p>
-                <p className="font-semibold text-gray-900">{requests.filter(r => r.status === 'PENDING').length}</p>
+                <p className="text-sm text-muted-foreground">Pending</p>
+                <p className="font-semibold text-foreground">{requests.filter(r => r.status === 'PENDING').length}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-success/10 dark:bg-success/20 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Approved</p>
-                <p className="font-semibold text-green-600">{requests.filter(r => r.status === 'APPROVED').length}</p>
+                <p className="text-sm text-muted-foreground">Approved</p>
+                <p className="font-semibold text-success">{requests.filter(r => r.status === 'APPROVED').length}</p>
               </div>
             </div>
             {requests.filter(r => r.status === 'REJECTED').length > 0 && (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 bg-destructive/10 dark:bg-destructive/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Rejected</p>
-                  <p className="font-semibold text-red-600">{requests.filter(r => r.status === 'REJECTED').length}</p>
+                  <p className="text-sm text-muted-foreground">Rejected</p>
+                  <p className="font-semibold text-destructive">{requests.filter(r => r.status === 'REJECTED').length}</p>
                 </div>
               </div>
             )}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total Requests</p>
-                <p className="font-semibold text-gray-900">{requests.length}</p>
+                <p className="text-sm text-muted-foreground">Total Requests</p>
+                <p className="font-semibold text-foreground">{requests.length}</p>
               </div>
             </div>
             {requests.filter(r => r.status === 'RETURNED_FOR_CORRECTION').length > 0 && (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 bg-warning/10 dark:bg-warning/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Needs Correction</p>
-                  <p className="font-semibold text-orange-600">{requests.filter(r => r.status === 'RETURNED_FOR_CORRECTION').length}</p>
+                  <p className="text-sm text-muted-foreground">Needs Correction</p>
+                  <p className="font-semibold text-warning">{requests.filter(r => r.status === 'RETURNED_FOR_CORRECTION').length}</p>
                 </div>
               </div>
             )}
@@ -690,7 +695,7 @@ export default function MyLeavesPage() {
                   </svg>
                   Filters
                   {(filterLeaveType !== 'all' || filterDateFrom || filterDateTo) && (
-                    <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                    <span className="w-2 h-2 bg-primary rounded-full"></span>
                   )}
                 </button>
               </div>
@@ -783,7 +788,7 @@ export default function MyLeavesPage() {
                       setFilterDateTo('');
                       setSortBy('-dates.from');
                     }}
-                    className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+                    className="text-sm text-muted-foreground hover:text-foreground font-medium"
                   >
                     Clear All Filters
                   </button>
@@ -794,12 +799,12 @@ export default function MyLeavesPage() {
 
           {requests.length === 0 ? (
             <div className="p-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <p className="text-gray-500">
+              <p className="text-muted-foreground">
                 {filterStatus !== 'all' || filterLeaveType !== 'all' || filterDateFrom || filterDateTo
                   ? 'No leave requests match your filters'
                   : 'No leave requests found'}
@@ -807,7 +812,7 @@ export default function MyLeavesPage() {
               {filterStatus === 'all' && filterLeaveType === 'all' && !filterDateFrom && !filterDateTo && (
                 <Link
                   href="/portal/my-leaves/request"
-                  className="inline-block mt-4 text-sm font-medium text-blue-600 hover:text-blue-700"
+                  className="inline-block mt-4 text-sm font-medium text-primary hover:text-primary/80"
                 >
                   Submit a Leave Request
                 </Link>
@@ -820,7 +825,7 @@ export default function MyLeavesPage() {
                     setFilterDateFrom('');
                     setFilterDateTo('');
                   }}
-                  className="inline-block mt-4 text-sm font-medium text-blue-600 hover:text-blue-700"
+                  className="inline-block mt-4 text-sm font-medium text-primary hover:text-primary/80"
                 >
                   Clear Filters
                 </button>
@@ -942,9 +947,9 @@ function BalanceCard({
   const percentage = totalEntitled > 0 ? ((taken / totalEntitled) * 100) : 0;
 
   const colorClasses = {
-    blue: { bg: 'bg-blue-500', light: 'bg-blue-100', text: 'text-blue-600' },
-    red: { bg: 'bg-red-500', light: 'bg-red-100', text: 'text-red-600' },
-    purple: { bg: 'bg-purple-500', light: 'bg-purple-100', text: 'text-purple-600' },
+    blue: { bg: 'bg-primary', light: 'bg-primary/10 dark:bg-primary/20', text: 'text-primary' },
+    red: { bg: 'bg-destructive', light: 'bg-destructive/10 dark:bg-destructive/20', text: 'text-destructive' },
+    purple: { bg: 'bg-accent', light: 'bg-accent/10 dark:bg-accent/20', text: 'text-accent-foreground' },
   };
 
   const colors = colorClasses[color];
@@ -972,7 +977,7 @@ function BalanceCard({
 
       <div className="flex justify-between text-sm">
         <span className="text-muted-foreground">Used: {taken}</span>
-        {pending > 0 && <span className="text-amber-600 dark:text-amber-400">Pending: {pending}</span>}
+        {pending > 0 && <span className="text-warning">Pending: {pending}</span>}
       </div>
     </GlassCard>
   );

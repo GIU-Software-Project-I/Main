@@ -907,4 +907,39 @@ async resetLeaveYear(@Body() body: {
     }
     return this.service.fixUnpaidLeaveBalances(employeeId, daysToAdd);
   }
+
+  // -------------------------
+  // User Role Management (REQ: HR Admin manages user roles and permissions)
+  // -------------------------
+
+  /**
+   * GET /leaves/users/search?q=userIdOrEmail
+   * Search for a user by ID or email for role management
+   * @param q - User ID (ObjectId) or email address
+   * @returns User profile with roles
+   */
+  @Get('users/search')
+  @Roles(SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  async getUserByIdOrEmail(@Query('q') q: string) {
+    if (!q) {
+      return { error: 'Query parameter "q" is required' };
+    }
+    return this.service.getUserByIdOrEmail(q);
+  }
+
+  /**
+   * PATCH /leaves/users/:userId/role
+   * Update user role for leave management
+   * @param userId - User ID (ObjectId)
+   * @param body - Update payload with role and optional actorId
+   * @returns Updated user profile with roles
+   */
+  @Patch('users/:userId/role')
+  @Roles(SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+  async updateUserRole(
+    @Param('userId') userId: string,
+    @Body() body: { role: string; actorId?: string },
+  ) {
+    return this.service.updateUserRole(userId, body);
+  }
 }
