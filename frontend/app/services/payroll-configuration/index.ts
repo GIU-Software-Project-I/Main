@@ -310,12 +310,18 @@ export const payrollConfigurationService = {
   },
 
   // ========== COMPANY SETTINGS ==========
-  getCompanyWideSettings: async () => {
-    return apiService.get('/payroll-configuration-requirements/company-settings');
-  },
 
-  updateCompanyWideSettings: async (data: any) => {
-    return apiService.put('/payroll-configuration-requirements/company-settings', data);
-  },
+    getCompanyWideSettings: async () => {
+      return apiService.get('/payroll-configuration-requirements/company-settings');
+    },
+
+    updateCompanyWideSettings: async (data: any) => {
+      return apiService.put('/payroll-configuration-requirements/company-settings', data);
+    },
+
+    // New: Get only the company currency
+    getCompanyCurrency: async () => {
+      return apiService.get('/payroll-configuration-requirements/company-currency');
+    },
 
 };

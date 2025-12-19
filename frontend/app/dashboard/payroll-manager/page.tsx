@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ThemeCustomizer, ThemeCustomizerTrigger } from '@/app/components/theme-customizer';
 import { payrollExecutionService } from '@/app/services/payroll-execution';
+import { payrollConfigurationService } from '@/app/services/payroll-configuration';
 import {
   Card,
   CardContent,
@@ -43,6 +44,7 @@ interface Stats {
   totalPayroll: number;
   exceptions: number;
   frozenRuns: number;
+  currency: string;
 }
 
 export default function PayrollManagerPage() {
@@ -51,12 +53,29 @@ export default function PayrollManagerPage() {
     totalPayroll: 0,
     exceptions: 0,
     frozenRuns: 0,
+    currency: '',
   });
   const [loading, setLoading] = useState(true);
   const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
 
+
   useEffect(() => {
     fetchStatsAndIrregularities();
+  }, []);
+
+  // Fetch company currency on mount
+  useEffect(() => {
+    const fetchCurrency = async () => {
+      try {
+        const res = await payrollConfigurationService.getCompanyCurrency();
+        const data = (res as any)?.data ?? (res as any);
+        const currency = (data && (data.currency ?? '')) || '';
+        setStats((prev) => ({ ...prev, currency }));
+      } catch (e) {
+        // fallback: do not update currency
+      }
+    };
+    fetchCurrency();
   }, []);
 
   const fetchStatsAndIrregularities = async () => {
@@ -67,6 +86,7 @@ export default function PayrollManagerPage() {
       let pending = 0;
       let totalPay = 0;
       let frozen = 0;
+      let currency = '';
       if (!res?.error) {
         const data = (res?.data || res) as any;
         const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
@@ -80,6 +100,10 @@ export default function PayrollManagerPage() {
           const status = (r.status || '').toLowerCase();
           return status === 'locked' || status === 'frozen' || r.frozen === true;
         }).length;
+        // Get currency from first run, fallback to empty string
+        if (items.length > 0) {
+          currency = items[0].currency || '';
+        }
       }
 
       // Fetch irregularities count for exceptions
@@ -106,12 +130,13 @@ export default function PayrollManagerPage() {
         }
       }
 
-      setStats({
+      setStats((prev) => ({
         pendingApprovals: pending,
         totalPayroll: totalPay,
         exceptions: irregularitiesCount,
         frozenRuns: frozen,
-      });
+        currency: prev.currency || currency,
+      }));
     } catch (e: any) {
       console.error('Failed to fetch stats:', e);
       setStats({
@@ -119,14 +144,18 @@ export default function PayrollManagerPage() {
         totalPayroll: 0,
         exceptions: 0,
         frozenRuns: 0,
+        currency: '',
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return `EGP ${amount.toLocaleString()}`;
+  // Accept currency param, fallback to empty string
+  const formatCurrency = (amount: number, currency?: string) => {
+    const curr = currency || stats.currency || '';
+    if (!curr) return amount.toLocaleString();
+    return `${curr} ${amount.toLocaleString()}`;
   };
 
   return (
@@ -220,7 +249,7 @@ export default function PayrollManagerPage() {
               ) : (
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-bold text-foreground">
-                    {formatCurrency(stats.totalPayroll)}
+                    {formatCurrency(stats.totalPayroll, stats.currency)}
                   </span>
                 </div>
               )}
