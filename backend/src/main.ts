@@ -85,7 +85,6 @@ async function bootstrap() {
     // });
 
     app.enableCors({
-        // Allow all localhost origins during development
         origin: (origin, callback) => {
             // Allow requests with no origin (like mobile apps, curl, Postman)
             if (!origin) return callback(null, true);
@@ -93,11 +92,16 @@ async function bootstrap() {
             if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
                 return callback(null, true);
             }
+            // Allow Vercel frontend domain
+            if (origin === 'https://main-nine-rose-81.vercel.app') {
+                return callback(null, true);
+            }
             // Allow any origin in development
             if (process.env.NODE_ENV !== 'production') {
                 return callback(null, true);
             }
-            callback(null, true);
+            // Otherwise, block
+            return callback(new Error('Not allowed by CORS'), false);
         },
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
