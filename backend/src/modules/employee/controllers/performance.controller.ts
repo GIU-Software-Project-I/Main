@@ -171,7 +171,7 @@ export class PerformanceController {
 
     @Post('assignments/bulk')
     @HttpCode(HttpStatus.CREATED)
-    @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+    @Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
     async bulkCreateAssignments(@Body() dto: BulkCreateAppraisalAssignmentDto) {
         return this.performanceService.bulkCreateAssignments(dto);
     }

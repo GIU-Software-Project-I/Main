@@ -65,6 +65,13 @@ export class EmployeeAuthService {
     // Hash password
     const hashedPassword = await this.hashPassword(dto.password);
 
+    // BR 2g, 2n, 2o: Validate contact info - at least one contact method required
+    const hasPhone = !!(dto.mobilePhone);
+    const hasEmail = !!(dto.personalEmail || dto.workEmail);
+    if (!hasPhone && !hasEmail) {
+      throw new BadRequestException('At least one contact method is required: phone (mobile) or email (personal or work)');
+    }
+
     // Create full name
     const fullName = dto.middleName
       ? `${dto.firstName} ${dto.middleName} ${dto.lastName}`
