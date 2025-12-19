@@ -18,58 +18,58 @@ export enum NotificationType {
 }
 
 export class SendNotificationDto {
-    @ApiProperty({ 
-        description: 'Application ID', 
-        example: '692df406e5d9b085bcd29cc6' 
+    @ApiProperty({
+        description: 'Application ID',
+        example: '692df406e5d9b085bcd29cc6'
     })
     @IsMongoId()
     @IsNotEmpty()
     applicationId: string;
 
-    @ApiProperty({ 
-        description: 'Candidate ID', 
-        example: '675c1a2b3d4e5f6789012345' 
+    @ApiProperty({
+        description: 'Candidate ID',
+        example: '675c1a2b3d4e5f6789012345'
     })
     @IsMongoId()
     @IsNotEmpty()
     candidateId: string;
 
-    @ApiProperty({ 
-        description: 'Candidate email', 
-        example: 'candidate@example.com' 
+    @ApiProperty({
+        description: 'Candidate email',
+        example: 'candidate@example.com'
     })
     @IsEmail()
     @IsNotEmpty()
     email: string;
 
-    @ApiProperty({ 
-        description: 'Notification type', 
+    @ApiProperty({
+        description: 'Notification type',
         enum: NotificationType,
-        example: 'application_received' 
+        example: 'application_received'
     })
     @IsEnum(NotificationType)
     @IsNotEmpty()
     type: NotificationType;
 
-    @ApiPropertyOptional({ 
+    @ApiPropertyOptional({
         description: 'Email subject',
-        example: 'Application Status Update' 
+        example: 'Application Status Update'
     })
     @IsString()
     @IsOptional()
     subject?: string;
 
-    @ApiPropertyOptional({ 
+    @ApiPropertyOptional({
         description: 'Email content',
-        example: 'Your application status has been updated. Please check your portal for details.' 
+        example: 'Your application status has been updated. Please check your portal for details.'
     })
     @IsString()
     @IsOptional()
     content?: string;
 
-    @ApiPropertyOptional({ 
+    @ApiPropertyOptional({
         description: 'Use template ID',
-        example: '507f1f77bcf86cd799439020' 
+        example: '507f1f77bcf86cd799439020'
     })
     @IsMongoId()
     @IsOptional()
@@ -80,17 +80,17 @@ export class SendNotificationDto {
  * REC-022: Rejection notification with template
  */
 export class SendRejectionDto {
-    @ApiProperty({ 
-        description: 'Application ID', 
-        example: '692df406e5d9b085bcd29cc6' 
+    @ApiProperty({
+        description: 'Application ID',
+        example: '692df406e5d9b085bcd29cc6'
     })
     @IsMongoId()
     @IsNotEmpty()
     applicationId: string;
 
-    @ApiProperty({ 
+    @ApiProperty({
         description: 'Candidate email',
-        example: 'candidate@example.com' 
+        example: 'candidate@example.com'
     })
     @IsEmail()
     @IsNotEmpty()
@@ -106,9 +106,14 @@ export class SendRejectionDto {
     @IsOptional()
     customMessage?: string;
 
-    @ApiPropertyOptional({ 
+    @ApiPropertyOptional({ description: 'Full email body message' })
+    @IsString()
+    @IsOptional()
+    message?: string;
+
+    @ApiPropertyOptional({
         description: 'Use specific template ID',
-        example: '507f1f77bcf86cd799439021' 
+        example: '507f1f77bcf86cd799439021'
     })
     @IsMongoId()
     @IsOptional()

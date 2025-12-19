@@ -23,7 +23,7 @@ export class SharedRecruitmentService {
         @InjectModel(AppraisalRecord.name) private appraisalRecordModel: Model<AppraisalRecordDocument>,
         @InjectConnection() private readonly connection: Connection,
         @Inject(forwardRef(() => EmployeeAuthService)) private readonly employeeAuthService: EmployeeAuthService,
-    ) {}
+    ) { }
 
     private validateObjectId(id: string, fieldName: string): void {
         if (!Types.ObjectId.isValid(id)) {
@@ -464,11 +464,12 @@ export class SharedRecruitmentService {
         candidateId: string;
         applicationId: string;
         rejectionReason?: string;
+        message?: string;
     }): Promise<NotificationLog> {
         return this.createNotification(
             data.candidateId,
             'APPLICATION_REJECTED',
-            data.rejectionReason || 'Thank you for your interest. After careful consideration, we have decided to move forward with other candidates.',
+            data.message || data.rejectionReason || 'Thank you for your interest. After careful consideration, we have decided to move forward with other candidates.',
         );
     }
 

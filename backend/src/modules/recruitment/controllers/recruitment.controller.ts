@@ -229,6 +229,14 @@ export class RecruitmentController {
         return this.recruitmentService.getApplicationHistory(id);
     }
 
+
+    @Get('candidates')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER)
+    @ApiOperation({ summary: 'REC-017: Get all candidates' })
+    @ApiResponse({ status: 200, description: 'List of all candidates' })
+    async getAllCandidates() {
+        return this.recruitmentService.getAllCandidates();
+    }
+
     @Get('candidates/:id')//@Roles(SystemRole.HR_EMPLOYEE, SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.RECRUITER, SystemRole.JOB_CANDIDATE)
     @ApiOperation({ summary: 'REC-017: Get candidate by ID' })
     @ApiParam({ name: 'id', description: 'Candidate ID' })
