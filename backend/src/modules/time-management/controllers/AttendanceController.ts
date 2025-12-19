@@ -18,6 +18,7 @@ import {
     UpdateAttendanceRecordDto,
     CorrectAttendanceDto,
     BulkReviewAttendanceDto,
+    CreateAttendanceRecordDto,
 } from '../dto/AttendanceDtos';
 import { AttendanceService } from "../services/AttendanceService";
 
@@ -336,5 +337,66 @@ export class AttendanceController {
             throw new BadRequestException('employeeId, startDate, and endDate are required');
         }
         return this.attendanceService.bulkReviewAttendance(dto);
+    }
+
+    // --------------------------------------------------
+    // CREATE ATTENDANCE RECORD (Department Head)
+    // --------------------------------------------------
+    @Post('create')
+    @ApiOperation({
+        summary: 'Create Attendance Record',
+        description: 'Manually create an attendance record for an employee (Department Head use). Creates audit trail.'
+    })
+    @ApiBody({
+        type: CreateAttendanceRecordDto,
+        description: 'Details for creating a new attendance record',
+        examples: {
+            'Single Day Record': {
+                summary: 'Create single day record',
+                description: 'Create attendance for one day with IN and OUT',
+                value: {
+                    employeeId: '692cdd8e67a40875239080d0',
+                    punches: [
+                        { type: 'IN', time: '16/12/2025 09:00' },
+                        { type: 'OUT', time: '16/12/2025 17:00' }
+                    ],
+                    createdBy: '674c1a1b2c3d4e5f6a7b8c8a',
+                    reason: 'System malfunction - manual creation for missed record'
+                }
+            },
+            'With Lunch Break': {
+                summary: 'Create record with lunch break',
+                description: 'Create attendance with lunch break punches',
+                value: {
+                    employeeId: '692cdd8e67a40875239080d0',
+                    punches: [
+                        { type: 'IN', time: '16/12/2025 09:00' },
+                        { type: 'OUT', time: '16/12/2025 12:30' },
+                        { type: 'IN', time: '16/12/2025 13:30' },
+                        { type: 'OUT', time: '16/12/2025 17:00' }
+                    ],
+                    createdBy: '674c1a1b2c3d4e5f6a7b8c8a',
+                    reason: 'Create attendance with lunch break'
+                }
+            }
+        }
+    })
+    @ApiResponse({
+        status: 201,
+        description: 'Attendance record created successfully',
+        schema: {
+            type: 'object',
+            properties: {
+                record: { type: 'object', description: 'Created attendance record' },
+                message: { type: 'string' }
+            }
+        }
+    })
+    @ApiResponse({ status: 400, description: 'Invalid parameters' })
+    async createAttendanceRecord(@Body() dto: CreateAttendanceRecordDto) {
+        if (!dto.employeeId || !dto.punches || dto.punches.length === 0) {
+            throw new BadRequestException('employeeId and punches array are required');
+        }
+        return this.attendanceService.createAttendanceRecord(dto);
     }
 }

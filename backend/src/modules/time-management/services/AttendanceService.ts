@@ -1951,4 +1951,83 @@ export class AttendanceService {
             return 0;
         }
     }
+
+    async createAttendanceRecord(dto: any) {
+        if (!dto.employeeId || !dto.punches || dto.punches.length === 0) {
+            throw new BadRequestException('employeeId and punches array are required');
+        }
+
+        let empOid: Types.ObjectId;
+        try {
+            empOid = new Types.ObjectId(dto.employeeId);
+        } catch (e) {
+            throw new BadRequestException(`Invalid employee ID format: ${dto.employeeId}`);
+        }
+
+        // Parse and validate punches
+        const parsedPunches: Array<{ type: PunchType; time: Date }> = [];
+        for (const punch of dto.punches) {
+            const isIn = (typeof punch.type === 'string' && punch.type.toUpperCase() === 'IN') || punch.type === PunchType.IN || punch.type === 1;
+            const punchType = isIn ? PunchType.IN : PunchType.OUT;
+
+            let punchTime: Date | null = null;
+            if (typeof punch.time === 'string') {
+                punchTime = this.parseCustomDateFormat(punch.time);
+                if (!punchTime) {
+                    throw new BadRequestException(`Invalid punch time format: ${punch.time}`);
+                }
+            } else if (punch.time instanceof Date) {
+                punchTime = punch.time;
+            } else {
+                throw new BadRequestException(`Invalid punch time: ${punch.time}`);
+            }
+
+            // At this point, punchTime is guaranteed to be Date (not null)
+            parsedPunches.push({ type: punchType, time: punchTime as Date });
+        }
+
+        // Check if attendance record already exists for that day
+        const firstPunch = parsedPunches[0].time;
+        const dayStart = new Date(firstPunch);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(firstPunch);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        const existingRecord = await this.attendanceModel.findOne({
+            employeeId: empOid,
+            'punches.time': {
+                $gte: dayStart,
+                $lte: dayEnd
+            }
+        });
+
+        if (existingRecord) {
+            throw new BadRequestException(`Attendance record already exists for this employee on ${dayStart.toLocaleDateString()}`);
+        }
+
+        // Create new attendance record
+        const newRecord = new this.attendanceModel({
+            employeeId: empOid,
+            punches: parsedPunches,
+            totalWorkMinutes: 0,
+            hasMissedPunch: false,
+            finalisedForPayroll: false,
+            exceptionIds: []
+        });
+
+        await newRecord.save();
+
+        // Recompute to calculate totalWorkMinutes and other properties
+        await this.recompute(newRecord._id);
+
+        const updatedRecord = await this.attendanceModel.findById(newRecord._id);
+
+        this.logger.log(`[createAttendanceRecord] Created new attendance record for employee ${empOid} on ${firstPunch.toLocaleDateString()} by ${dto.createdBy || 'SYSTEM'}`);
+
+        return {
+            message: 'Attendance record created successfully',
+            record: updatedRecord?.toObject(),
+            reason: dto.reason || 'Manual creation by department head'
+        };
+    }
 }
