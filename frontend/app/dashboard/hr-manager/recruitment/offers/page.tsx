@@ -5,14 +5,16 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
-import { 
-  getOffers, 
-  approveOffer, 
+import {
+  getOffers,
+  approveOffer,
   rejectOffer,
+  sendOffer,
   getCandidateById,
   getApplicationById,
   getJobById,
-  triggerPreboarding
+  triggerPreboarding,
+  getFeedbackByApplication
 } from '@/app/services/recruitment';
 import { useAuth } from '@/app/context/AuthContext';
 import { JobOffer, Candidate, Application, JobRequisition } from '@/app/types/recruitment';
@@ -31,7 +33,7 @@ interface OfferDisplay {
   signingBonus?: number;
   benefits?: string[];
   deadline: string;
-  status: 'pending_approval' | 'approved' | 'rejected' | 'sent' | 'accepted' | 'declined';
+  status: 'pending_approval' | 'approved' | 'rejected' | 'sent' | 'signed' | 'accepted' | 'declined';
   createdAt: string;
   approvers: Array<{
     employeeId: string;
@@ -79,8 +81,10 @@ export default function OffersPage() {
   const mapOfferStatus = (
     finalStatus?: string,
     applicantResponse?: string,
+    candidateSignedAt?: string,
   ): OfferDisplay['status'] => {
     if (applicantResponse === 'accepted') return 'accepted';
+    if (candidateSignedAt) return 'signed';
     if (applicantResponse === 'rejected') return 'declined';
     if (finalStatus === 'rejected') return 'rejected';
     if (finalStatus === 'approved') return 'approved';
@@ -92,48 +96,68 @@ export default function OffersPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const offersData = await getOffers();
-      
-      // Fetch related data for each offer (candidate + application + job)
+
+      // Use populated data from backend, with fallbacks for manual fetching if needed
       const transformedOffers: OfferDisplay[] = await Promise.all(
-        offersData.map(async (offer) => {
+        offersData.map(async (offer: any) => {
+          // Use populated candidate data if available
           let candidateName = 'Unknown Candidate';
           let candidateEmail = '';
-          let jobTitle = offer.role || 'Unknown Position';
-          let department = '';
-
-          // Try to fetch candidate details
-          try {
-            if (offer.candidateId) {
+          if (offer.candidateData) {
+            candidateName = offer.candidateData.fullName || 
+              `${offer.candidateData.firstName || ''} ${offer.candidateData.lastName || ''}`.trim() || 
+              'Unknown Candidate';
+            candidateEmail = offer.candidateData.personalEmail || '';
+          } else if (offer.candidateId) {
+            // Fallback: fetch candidate if not populated
+            try {
               const candidate = await getCandidateById(offer.candidateId);
               candidateName = candidate.fullName || `${candidate.firstName} ${candidate.lastName}`;
               candidateEmail = candidate.personalEmail || '';
+            } catch {
+              candidateName = offer.candidateName || 'Unknown Candidate';
             }
-          } catch {
-            // Candidate lookup failed, use fallback
-            candidateName = offer.candidateName || 'Unknown Candidate';
           }
 
-          // Try to fetch application and job details
-          try {
-            if (offer.applicationId) {
+          // Use populated application data if available
+          let jobTitle = offer.role || 'Unknown Position';
+          let department = '';
+          if (offer.applicationData) {
+            // Extract job title from nested application data (application -> requisition -> template)
+            const requisition = offer.applicationData.requisitionId;
+            if (requisition && typeof requisition === 'object') {
+              jobTitle = requisition.title || requisition.templateTitle || 
+                        (requisition.templateId && typeof requisition.templateId === 'object'
+                          ? (requisition.templateId.title || requisition.templateId.templateTitle)
+                          : undefined) ||
+                        offer.role || 
+                        'Unknown Position';
+              department = requisition.department ||
+                          (requisition.templateId && typeof requisition.templateId === 'object'
+                            ? requisition.templateId.department
+                            : '') ||
+                          '';
+            }
+          } else if (offer.applicationId) {
+            // Fallback: fetch application and job if not populated
+            try {
               const application = await getApplicationById(offer.applicationId);
               if (application.requisitionId) {
                 const job = await getJobById(application.requisitionId);
                 jobTitle = job.templateTitle || offer.role || 'Unknown Position';
                 department = application.departmentName || '';
               }
+            } catch {
+              jobTitle = offer.positionTitle || offer.role || 'Unknown Position';
+              department = offer.departmentName || '';
             }
-          } catch {
-            // Application/Job lookup failed, use offer.role as fallback
-            jobTitle = offer.positionTitle || offer.role || 'Unknown Position';
-            department = offer.departmentName || '';
           }
 
           // Check if any approver has approved/rejected
-          const approvedApprover = offer.approvers?.find(a => a.status === 'approved');
-          const rejectedApprover = offer.approvers?.find(a => a.status === 'rejected');
+          const approvedApprover = offer.approvers?.find((a: any) => a.status === 'approved');
+          const rejectedApprover = offer.approvers?.find((a: any) => a.status === 'rejected');
 
           return {
             id: offer.id,
@@ -147,7 +171,7 @@ export default function OffersPage() {
             signingBonus: offer.signingBonus,
             benefits: offer.benefits,
             deadline: offer.deadline || '',
-            status: mapOfferStatus(offer.finalStatus, offer.applicantResponse),
+            status: mapOfferStatus(offer.finalStatus, offer.applicantResponse, offer.candidateSignedAt),
             createdAt: offer.createdAt || '',
             approvers: offer.approvers || [],
             approvedBy: approvedApprover?.employeeId,
@@ -157,7 +181,7 @@ export default function OffersPage() {
           };
         })
       );
-      
+
       setOffers(transformedOffers);
       setLogs([]);
     } catch (err) {
@@ -189,18 +213,18 @@ export default function OffersPage() {
     try {
       setProcessing(true);
       setError(null);
-      
+
       await approveOffer(selectedOffer.id, user.id);
 
       setOffers((prev) =>
         prev.map((o) =>
           o.id === selectedOffer.id
             ? {
-                ...o,
-                status: 'approved',
-                approvedBy: `${user.firstName} ${user.lastName}`,
-                approvedAt: new Date().toISOString().split('T')[0],
-              }
+              ...o,
+              status: 'approved',
+              approvedBy: `${user.firstName} ${user.lastName}`,
+              approvedAt: new Date().toISOString().split('T')[0],
+            }
             : o
         )
       );
@@ -231,7 +255,7 @@ export default function OffersPage() {
     try {
       setProcessing(true);
       setError(null);
-      
+
       await rejectOffer(selectedOffer.id, user.id, rejectionReason);
 
       setOffers((prev) =>
@@ -258,6 +282,39 @@ export default function OffersPage() {
       setRejectionReason('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reject offer');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleSendOffer = async (offer: OfferDisplay) => {
+    try {
+      setProcessing(true);
+      setError(null);
+
+      await sendOffer(offer.id);
+
+      setOffers((prev) =>
+        prev.map((o) =>
+          o.id === offer.id
+            ? { ...o, status: 'sent' }
+            : o
+        )
+      );
+
+      // Add log
+      const newLog: CommunicationLog = {
+        id: Date.now().toString(),
+        offerId: offer.id,
+        type: 'email',
+        message: 'Offer letter sent to candidate email',
+        timestamp: new Date().toLocaleString(),
+        user: 'System',
+      };
+      setLogs((prev) => [newLog, ...prev]);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send offer');
     } finally {
       setProcessing(false);
     }
@@ -291,7 +348,7 @@ export default function OffersPage() {
 
       setShowPreboardingModal(false);
       setPreboardingOffer(null);
-      
+
       // Show success message
       alert(`Pre-boarding initiated successfully for ${preboardingOffer.candidateName}. The candidate will receive onboarding documents and tasks.`);
     } catch (err) {
@@ -307,6 +364,7 @@ export default function OffersPage() {
     if (filter === 'pending') return offer.status === 'pending_approval';
     if (filter === 'approved') return offer.status === 'approved';
     if (filter === 'sent') return offer.status === 'sent';
+    if (filter === 'signed') return offer.status === 'signed';
     if (filter === 'accepted') return offer.status === 'accepted';
     if (filter === 'rejected') return offer.status === 'rejected' || offer.status === 'declined';
     return true;
@@ -321,7 +379,8 @@ export default function OffersPage() {
       approved: 'bg-blue-100 text-blue-700',
       rejected: 'bg-red-100 text-red-700',
       sent: 'bg-purple-100 text-purple-700',
-      accepted: 'bg-emerald-100 text-emerald-700',
+      signed: 'bg-emerald-100 text-emerald-700 font-bold',
+      accepted: 'bg-emerald-600 text-white',
       declined: 'bg-slate-100 text-slate-700',
     };
     const labels: Record<OfferDisplay['status'], string> = {
@@ -329,6 +388,7 @@ export default function OffersPage() {
       approved: 'Approved',
       rejected: 'Rejected',
       sent: 'Sent to Candidate',
+      signed: 'Digitally Signed',
       accepted: 'Accepted',
       declined: 'Declined',
     };
@@ -396,14 +456,14 @@ export default function OffersPage() {
           { label: 'Pending', count: offers.filter((o) => o.status === 'pending_approval').length, color: 'bg-amber-500' },
           { label: 'Approved', count: offers.filter((o) => o.status === 'approved').length, color: 'bg-blue-500' },
           { label: 'Sent', count: offers.filter((o) => o.status === 'sent').length, color: 'bg-purple-500' },
-          { label: 'Accepted', count: offers.filter((o) => o.status === 'accepted').length, color: 'bg-emerald-500' },
+          { label: 'Signed', count: offers.filter((o) => o.status === 'signed').length, color: 'bg-emerald-500' },
+          { label: 'Accepted', count: offers.filter((o) => o.status === 'accepted').length, color: 'bg-emerald-600' },
           { label: 'Rejected', count: offers.filter((o) => o.status === 'rejected' || o.status === 'declined').length, color: 'bg-red-500' },
         ].map((stat) => (
           <div
             key={stat.label}
-            className={`bg-white rounded-lg border border-slate-200 p-4 cursor-pointer hover:shadow-md transition-shadow ${
-              filter === stat.label.toLowerCase() ? 'ring-2 ring-blue-500' : ''
-            }`}
+            className={`bg-white rounded-lg border border-slate-200 p-4 cursor-pointer hover:shadow-md transition-shadow ${filter === stat.label.toLowerCase() ? 'ring-2 ring-blue-500' : ''
+              }`}
             onClick={() => setFilter(stat.label.toLowerCase())}
           >
             <div className="flex items-center gap-3">
@@ -416,15 +476,14 @@ export default function OffersPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-slate-200">
-        {['all', 'pending', 'approved', 'sent', 'accepted', 'rejected'].map((tab) => (
+      <div className="flex gap-2 border-b border-slate-200 overflow-x-auto">
+        {['all', 'pending', 'approved', 'sent', 'signed', 'accepted', 'rejected'].map((tab) => (
           <button
             key={tab}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              filter === tab
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${filter === tab
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
             onClick={() => setFilter(tab)}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -516,10 +575,24 @@ export default function OffersPage() {
                           </Button>
                         </>
                       )}
-                      {/* REC-029: Pre-boarding trigger for accepted offers */}
-                      {offer.status === 'accepted' && (
-                        <Button 
-                          size="sm" 
+
+                      {offer.status === 'approved' && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleSendOffer(offer)}
+                          disabled={processing}
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          </svg>
+                          Send Offer
+                        </Button>
+                      )}
+
+                      {/* REC-029: Pre-boarding trigger for accepted/signed offers */}
+                      {(offer.status === 'accepted' || offer.status === 'signed') && (
+                        <Button
+                          size="sm"
                           onClick={() => handleTriggerPreboarding(offer)}
                           disabled={triggeringPreboarding === offer.id}
                           className="bg-indigo-600 hover:bg-indigo-700"
@@ -586,11 +659,10 @@ export default function OffersPage() {
                 ) : (
                   logs.map((log) => (
                     <div key={log.id} className="flex gap-3 p-3 bg-slate-50 rounded-lg">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        log.type === 'email' ? 'bg-blue-100 text-blue-600' :
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${log.type === 'email' ? 'bg-blue-100 text-blue-600' :
                         log.type === 'system' ? 'bg-emerald-100 text-emerald-600' :
-                        'bg-slate-100 text-slate-600'
-                      }`}>
+                          'bg-slate-100 text-slate-600'
+                        }`}>
                         {log.type === 'email' ? (
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -636,7 +708,7 @@ export default function OffersPage() {
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">Approve Offer</h3>
                 <p className="text-sm text-slate-600 mb-4">
-                  Are you sure you want to approve the offer for <strong>{selectedOffer.candidateName}</strong> 
+                  Are you sure you want to approve the offer for <strong>{selectedOffer.candidateName}</strong>
                   for the position of <strong>{selectedOffer.jobTitle}</strong>?
                 </p>
                 <div className="bg-slate-50 rounded-lg p-3 mb-6 text-sm text-left">
@@ -755,8 +827,8 @@ export default function OffersPage() {
                   <Button variant="outline" className="w-full" onClick={() => setShowPreboardingModal(false)}>
                     Cancel
                   </Button>
-                  <Button 
-                    className="w-full bg-indigo-600 hover:bg-indigo-700" 
+                  <Button
+                    className="w-full bg-indigo-600 hover:bg-indigo-700"
                     onClick={confirmPreboarding}
                     disabled={triggeringPreboarding !== null}
                   >

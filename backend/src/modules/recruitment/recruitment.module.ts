@@ -40,24 +40,24 @@ import { PayrollConfigurationModule } from "../payroll/payroll-configuration/pay
 
 // controllers
 import { RecruitmentController } from "./controllers/recruitment.controller";
-import {OffboardingController} from "./controllers/offboarding.controller";
-import {OnboardingController} from "./controllers/onboarding.controller";
+import { OffboardingController } from "./controllers/offboarding.controller";
+import { OnboardingController } from "./controllers/onboarding.controller";
 
 // services
 import { RecruitmentService } from "./services/recruitment.service";
-import {OffboardingService} from "./services/offboarding.service";
-import {OnboardingService} from "./services/onboarding.service";
+import { OffboardingService } from "./services/offboarding.service";
+import { OnboardingService } from "./services/onboarding.service";
 
 // Shared Module
 import { SharedModule } from "../shared/shared.module";
-import {AuthModule} from "../auth/auth-module";
+import { AuthModule } from "../auth/auth-module";
 
 
 @Module({
     imports: [
         AuthModule,
         forwardRef(() => PayrollExecutionModule),
-        forwardRef(()=>PayrollConfigurationModule),
+        forwardRef(() => PayrollConfigurationModule),
         MongooseModule.forFeature([
             // Recruitment Models
             { name: JobTemplate.name, schema: JobTemplateSchema },
@@ -96,5 +96,5 @@ import {AuthModule} from "../auth/auth-module";
     providers: [RecruitmentService, OnboardingService, OffboardingService],
     exports: [RecruitmentService, OnboardingService, OffboardingService]
 })
-export class RecruitmentModule {}
+export class RecruitmentModule { }
 

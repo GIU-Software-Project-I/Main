@@ -98,7 +98,7 @@ export default function MySchedulePage() {
       case ShiftAssignmentStatus.CANCELLED:
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
       case ShiftAssignmentStatus.EXPIRED:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300';
+        return 'bg-muted text-muted-foreground';
       default:
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
     }

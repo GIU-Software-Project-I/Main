@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  getUpcomingInterviews,
+  getInterviews,
   scheduleInterview,
   cancelInterview,
   completeInterview,
@@ -68,7 +68,7 @@ export default function InterviewsPage() {
       setError(null);
 
       const [interviewsData, appsData, employeesData] = await Promise.all([
-        getUpcomingInterviews(30), // Get next 30 days
+        getInterviews(), // Get all interviews
         getApplications({}), // Get all applications
         getEmployees(),
       ]);
