@@ -909,15 +909,36 @@ export default function TaxRulesPage() {
                         {group.description && (
                           <p className="text-slate-600 text-sm mt-1">{group.description}</p>
                         )}
+                        {/* Status summary for the group */}
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-slate-500">Status:</span>
+                            <div className="flex items-center gap-1">
+                              {(() => {
+                                const statusCounts = group.rules.reduce((acc, rule) => {
+                                  acc[rule.status] = (acc[rule.status] || 0) + 1;
+                                  return acc;
+                                }, {} as Record<string, number>);
+                                
+                                return Object.entries(statusCounts).map(([status, count]) => (
+                                  <span 
+                                    key={status}
+                                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}
+                                    title={`${count} rule(s) ${statusLabels[status as keyof typeof statusLabels] || status}`}
+                                  >
+                                    {statusLabels[status as keyof typeof statusLabels] || status}: {count}
+                                  </span>
+                                ));
+                              })()}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-sm text-slate-500">
                       {group.rules.length} rule(s)
-                    </span>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusColors[group.rules[0]?.status] || 'bg-gray-100 text-gray-800'}`}>
-                      {statusLabels[group.rules[0]?.status] || group.rules[0]?.status}
                     </span>
                     {group.rules.every(rule => rule.status === 'draft') && (
                       <button
@@ -953,14 +974,19 @@ export default function TaxRulesPage() {
                                     {isBracket ? 'Bracket' : isComponent ? 'Component' : 'Simple'}
                                   </span>
                                   <div>
-                                    <h4 className="font-medium text-slate-900">
-                                      {isBracket 
-                                        ? taxRule.name.replace(`${group.baseName} - `, '')
-                                        : isComponent
-                                        ? taxRule.name.replace(`${group.baseName} - `, '')
-                                        : 'Base Rate'
-                                      }
-                                    </h4>
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="font-medium text-slate-900">
+                                        {isBracket 
+                                          ? taxRule.name.replace(`${group.baseName} - `, '')
+                                          : isComponent
+                                          ? taxRule.name.replace(`${group.baseName} - `, '')
+                                          : 'Base Rate'
+                                        }
+                                      </h4>
+                                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors[taxRule.status] || 'bg-gray-100 text-gray-800'}`}>
+                                        {statusLabels[taxRule.status] || taxRule.status}
+                                      </span>
+                                    </div>
                                     {taxRule.description && taxRule.description.includes('\n') && (
                                       <div className="mt-1 space-y-1">
                                         {taxRule.description.split('\n').slice(1).map((line, idx) => (
