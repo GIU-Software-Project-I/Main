@@ -229,6 +229,13 @@ export interface CorrectAttendanceDto {
     correctedBy?: string;
 }
 
+export interface CreateAttendanceRecordDto {
+    employeeId: string;
+    punches: Array<{ type: PunchType; time: string | Date }>;
+    createdBy?: string;
+    reason?: string;
+}
+
 export interface RequestCorrectionDto {
     employeeId: string;
     attendanceRecordId: string;
@@ -606,6 +613,11 @@ export const timeManagementService = {
     // Correct attendance record - POST /attendance/correct
     correctAttendanceRecord: async (data: CorrectAttendanceDto) => {
         return apiService.post('/attendance/correct', data);
+    },
+
+    // Create attendance record (Department Head) - POST /attendance/create
+    createAttendanceRecord: async (data: CreateAttendanceRecordDto) => {
+        return apiService.post('/attendance/create', data);
     },
 
     // Bulk review attendance - POST /attendance/review/bulk

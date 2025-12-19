@@ -24,32 +24,71 @@ interface Notification {
 
 // Helper function to convert API notification to UI notification
 const convertApiNotificationToUI = (apiNotif: any): Notification => {
-  const apiType = apiNotif.type || '';
+    const apiType = apiNotif.type || '';
 
-  // Determine category and display info based on API notification type
-  let category: Notification['category'] = 'system';
-  let type: Notification['type'] = 'info';
-  let title = 'Notification';
-  let actionUrl: string | undefined;
-  let actionLabel: string | undefined;
+    // Determine category and display info based on API notification type
+    let category: Notification['category'] = 'system';
+    let type: Notification['type'] = 'info';
+    let title = 'Notification';
+    let actionUrl: string | undefined;
+    let actionLabel: string | undefined;
 
-  if (apiType.includes('SHIFT_')) {
-    category = 'shift';
-    if (apiType.includes('EXPIRED')) {
-      type = 'error';
-      title = 'Shift Assignment Expired';
-    } else if (apiType.includes('EXPIRING') || apiType.includes('NEARING')) {
-      type = 'warning';
-      title = 'Shift Assignment Expiring Soon';
-    } else if (apiType.includes('ASSIGNED')) {
-      type = 'info';
-      title = 'Shift Assignment Created';
-    } else if (apiType.includes('STATUS_UPDATED')) {
-      type = 'info';
-      title = 'Shift Assignment Status Updated';
-    } else {
-      type = 'warning';
-      title = 'Shift Assignment Update';
+    if (apiType.includes('SHIFT_')) {
+        category = 'shift';
+        if (apiType.includes('EXPIRED')) {
+            type = 'error';
+            title = 'Shift Assignment Expired';
+        } else if (apiType.includes('EXPIRING') || apiType.includes('NEARING')) {
+            type = 'warning';
+            title = 'Shift Assignment Expiring Soon';
+        } else if (apiType.includes('ASSIGNED')) {
+            type = 'info';
+            title = 'Shift Assignment Created';
+        } else if (apiType.includes('STATUS_UPDATED')) {
+            type = 'info';
+            title = 'Shift Assignment Status Updated';
+        } else {
+            type = 'warning';
+            title = 'Shift Assignment Update';
+        }
+        actionUrl = '/dashboard/hr-admin/time-management/ShiftAssignments';
+        actionLabel = 'View Shift Assignments';
+    } else if (apiType.includes('LEAVE_')) {
+        category = 'leave';
+        if (apiType.includes('APPROVED')) type = 'success';
+        else if (apiType.includes('REJECTED')) type = 'error';
+        else type = 'action';
+        title = apiType.replace('LEAVE_', '').replace(/_/g, ' ');
+    } else if (apiType.includes('PAYROLL_')) {
+        category = 'payroll';
+        type = 'info';
+        title = 'Payroll Update';
+        actionUrl = '/portal/my-payslips';
+        actionLabel = 'View Payslips';
+    } else if (apiType === 'DISPUTE_APPROVED' || apiType === 'CLAIM_APPROVED') {
+        category = 'payroll';
+        type = 'success';
+        if (apiType === 'DISPUTE_APPROVED') {
+            title = 'Dispute Approved by Manager';
+            actionUrl = '/dashboard/finance-staff/notifications';
+            actionLabel = 'View Disputes';
+        } else {
+            title = 'Claim Approved by Manager';
+            actionUrl = '/dashboard/finance-staff/notifications';
+            actionLabel = 'View Claims';
+        }
+    } else if (apiType.includes('ATTENDANCE_')) {
+        category = 'attendance';
+        type = 'warning';
+        title = 'Attendance Alert';
+        actionUrl = '/portal/my-attendance';
+        actionLabel = 'View Attendance';
+    } else if (apiType.includes('PERFORMANCE_')) {
+        category = 'performance';
+        type = 'info';
+        title = 'Performance Update';
+        actionUrl = '/portal/my-performance';
+        actionLabel = 'View Performance';
     }
     actionUrl = '/dashboard/hr-admin/time-management/ShiftAssignments';
     actionLabel = 'View Shift Assignments';

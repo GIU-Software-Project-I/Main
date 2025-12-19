@@ -6,11 +6,11 @@ import { disputes, disputesDocument } from '../models/disputes.schema';
 import { refunds, refundsDocument } from '../models/refunds.schema';
 
 import { ClaimStatus, DisputeStatus, RefundStatus } from '../enums/payroll-tracking-enum';
-import {paySlip, PayslipDocument} from "../../payroll-execution/models/payslip.schema";
-import {employeePayrollDetails, employeePayrollDetailsDocument} from "../../payroll-execution/models/employeePayrollDetails.schema";
-import {EmployeeProfile} from "../../../employee/models/employee/employee-profile.schema";
-import {Department, DepartmentDocument} from "../../../employee/models/organization-structure/department.schema";
-import {ContractType, WorkType} from "../../../employee/enums/employee-profile.enums";
+import { paySlip, PayslipDocument } from "../../payroll-execution/models/payslip.schema";
+import { employeePayrollDetails, employeePayrollDetailsDocument } from "../../payroll-execution/models/employeePayrollDetails.schema";
+import { EmployeeProfile } from "../../../employee/models/employee/employee-profile.schema";
+import { Department, DepartmentDocument } from "../../../employee/models/organization-structure/department.schema";
+import { ContractType, WorkType } from "../../../employee/enums/employee-profile.enums";
 import { PayrollConfigurationService } from "../../payroll-configuration/services/payroll-configuration.service";
 import { UnifiedLeaveService } from "../../../leaves/services/leaves.service";
 import { NotificationService } from "../../../time-management/services/NotificationService";
@@ -39,7 +39,7 @@ export class PayrollTrackingService {
     private readonly payrollConfigService: PayrollConfigurationService,
     private readonly leavesService: UnifiedLeaveService,
     private readonly notificationService: NotificationService,
-  ) {}
+  ) { }
 
   // ========== Employee Self-Service Methods ==========
 
@@ -70,8 +70,8 @@ export class PayrollTrackingService {
       payrollRunId: payslip.payrollRunId,
       earningsDetails: payslip.earningsDetails,
       deductionsDetails: payslip.deductionsDetails,
-      totalGrossSalary: payslip.totalGrossSalary,
-      totalDeductions: payslip.totaDeductions,
+      totalGrossSalary: this.resolveTotalGrossSalary(payslip),
+      totalDeductions: this.resolveTotalDeductions(payslip),
       netPay: payslip.netPay,
       paymentStatus: payslip.paymentStatus,
       createdAt: (payslip as any)?.createdAt,
@@ -106,13 +106,13 @@ export class PayrollTrackingService {
         bonuses: payslip.earningsDetails?.bonuses || [],
         benefits: payslip.earningsDetails?.benefits || [],
         refunds: payslip.earningsDetails?.refunds || [],
-        totalEarnings: payslip.totalGrossSalary || 0,
+        totalEarnings: this.resolveTotalGrossSalary(payslip) || 0,
       },
       deductions: {
         taxes: payslip.deductionsDetails?.taxes || [],
         insurances: payslip.deductionsDetails?.insurances || [],
         penalties: payslip.deductionsDetails?.penalties || null,
-        totalDeductions: payslip.totaDeductions || 0,
+        totalDeductions: this.resolveTotalDeductions(payslip) || 0,
       },
       netPay: payslip.netPay || 0,
       createdAt: (payslip as any)?.createdAt,
@@ -124,21 +124,21 @@ export class PayrollTrackingService {
   async getPayslipDetails(payslipId: string, employeeId: string) {
     const objectId = new Types.ObjectId(payslipId);
     const employeeObjectId = new Types.ObjectId(employeeId);
-    
+
     const payslip = await this.payslipModel.findOne({
       _id: objectId,
       employeeId: employeeObjectId
     }).exec();
-    
+
     if (!payslip) {
       throw new NotFoundException('Payslip not found');
     }
-    
+
     // Get any disputes for this payslip
     const payslipDisputes = await this.disputesModel.find({
       payslipId: objectId
     }).exec();
-    
+
     return {
       payslip,
       disputes: payslipDisputes
@@ -151,7 +151,7 @@ export class PayrollTrackingService {
     if (!employee) {
       throw new NotFoundException('Employee not found');
     }
-    
+
     // Get contract type and work type from employee profile
     const contractType: ContractType | undefined = employee.contractType;
     const workType: WorkType | undefined = employee.workType;
@@ -193,9 +193,9 @@ export class PayrollTrackingService {
         .exec();
 
       if (latestPayslip) {
-        baseSalary = 
-          (latestPayslip as any).baseSalary ?? 
-          latestPayslip.earningsDetails?.baseSalary ?? 
+        baseSalary =
+          (latestPayslip as any).baseSalary ??
+          latestPayslip.earningsDetails?.baseSalary ??
           undefined;
       }
     }
@@ -235,7 +235,7 @@ export class PayrollTrackingService {
   }
 
   // REQ-PY-5: View compensation for unused leave days (integrated with Leaves module)
-async getLeaveCompensation(employeeId: string) {
+  async getLeaveCompensation(employeeId: string) {
     // Validate employee exists
     const employee = await this.employeeModel.findById(employeeId).exec();
     if (!employee) {
@@ -317,14 +317,14 @@ async getLeaveCompensation(employeeId: string) {
       }
     }
 
-    // STEP 4: Get unused leave days from Leaves module
+    // STEP 5: Get unused leave days from Leaves module
     let totalUnusedDays = 0;
     const leaveEntitlements: any[] = [];
 
     try {
       const balances = await this.leavesService.getEmployeeBalances(employeeId);
       const allLeaveTypes = await this.leavesService.getAllLeaveTypes();
-      
+
       // Build a map of unpaid leave type IDs (we want to EXCLUDE unpaid leave from compensation)
       const unpaidLeaveTypeIds = allLeaveTypes
         .filter((lt: any) => lt.paid === false)
@@ -333,7 +333,7 @@ async getLeaveCompensation(employeeId: string) {
       if (Array.isArray(balances) && balances.length > 0) {
         for (const balance of balances) {
           const leaveTypeIdStr = balance.leaveTypeId?.toString();
-          
+
           // Skip only if explicitly marked as unpaid leave
           // If leave type not found, include it (safer to include than exclude)
           if (unpaidLeaveTypeIds.includes(leaveTypeIdStr)) {
@@ -359,7 +359,7 @@ async getLeaveCompensation(employeeId: string) {
       // Could not fetch leave balances
     }
 
-    // STEP 5: Get leave encashment policy (only if it's specifically for leave encashment)
+    // STEP 6: Get leave encashment policy (only if it's specifically for leave encashment)
     let encashmentRate = 100; // Default to 100% if no specific leave policy
     let policyDetails: any = null;
 
@@ -376,7 +376,7 @@ async getLeaveCompensation(employeeId: string) {
           const description = policy.description?.toLowerCase() || '';
           // Only match if it's specifically about leave/encashment
           return policyName.includes('leave') || policyName.includes('encashment') ||
-                 description.includes('leave') || description.includes('encashment');
+            description.includes('leave') || description.includes('encashment');
         });
 
         if (leavePolicy) {
@@ -395,7 +395,7 @@ async getLeaveCompensation(employeeId: string) {
       // Could not fetch policies, use default encashment rate
     }
 
-    // STEP 6: Calculate daily rate and total compensation
+    // STEP 7: Calculate daily rate and total compensation
     const dailyRate = baseSalary > 0 ? baseSalary / 30 : 0;
     const totalCompensation = dailyRate * totalUnusedDays * (encashmentRate / 100);
 
@@ -423,11 +423,11 @@ async getLeaveCompensation(employeeId: string) {
       .sort({ createdAt: -1 })
       .limit(1)
       .exec();
-    
+
     if (payslips.length === 0) {
       return { transportationAllowance: 0 };
     }
-    
+
     const latestPayslip = payslips[0];
     // Get transportation allowance from earnings details
     let transportationAllowance = 0;
@@ -445,34 +445,31 @@ async getLeaveCompensation(employeeId: string) {
   // REQ-PY-8: View tax deductions (BR 5: Identify tax brackets through Local Tax Law, BR 6: Support multiple tax components)
   async getTaxDeductions(employeeId: string, payslipId?: string) {
     let query: any = { employeeId: new Types.ObjectId(employeeId) };
-    
+
     if (payslipId) {
       query._id = new Types.ObjectId(payslipId);
     }
-    
+
     const payslips = await this.payslipModel.find(query)
       .sort({ createdAt: -1 })
       .exec();
-    
+
     // Get all active tax rules to fetch law references and brackets
     let activeTaxRules: any[] = [];
     try {
       const taxRulesResponse = await this.payrollConfigService.getTaxRules();
-      activeTaxRules = Array.isArray(taxRulesResponse) 
+      activeTaxRules = Array.isArray(taxRulesResponse)
         ? taxRulesResponse.filter((rule: any) => rule.status === 'approved')
         : [];
     } catch (error) {
       // Continue without tax rules if service unavailable
       console.warn('Could not fetch tax rules:', error);
     }
-    
+
     return payslips.map(payslip => {
       const taxes = (payslip.deductionsDetails?.taxes || []) as any[];
 
-      const taxableBase =
-        payslip.totalGrossSalary ||
-        (payslip.earningsDetails as any)?.baseSalary ||
-        0;
+      const taxableBase = this.resolveTotalGrossSalary(payslip) || (payslip.earningsDetails as any)?.baseSalary || 0;
 
       const taxDetails = taxes.map((tax: any) => {
         // In this codebase, payslip.deductionsDetails.taxes stores embedded Tax Rule config
@@ -561,11 +558,11 @@ async getLeaveCompensation(employeeId: string) {
   // REQ-PY-9: View insurance deductions
   async getInsuranceDeductions(employeeId: string, payslipId?: string) {
     let query: any = { employeeId: new Types.ObjectId(employeeId) };
-    
+
     if (payslipId) {
       query._id = new Types.ObjectId(payslipId);
     }
-    
+
     const payslips = await this.payslipModel.find(query)
       .sort({ createdAt: -1 })
       .exec();
@@ -613,15 +610,15 @@ async getLeaveCompensation(employeeId: string) {
   // REQ-PY-10: View misconduct/absenteeism deductions
   async getMisconductDeductions(employeeId: string, payslipId?: string) {
     let query: any = { employeeId: new Types.ObjectId(employeeId) };
-    
+
     if (payslipId) {
       query._id = new Types.ObjectId(payslipId);
     }
-    
+
     const payslips = await this.payslipModel.find(query)
       .sort({ createdAt: -1 })
       .exec();
-    
+
     return payslips.map(payslip => {
       const penaltiesObj = payslip.deductionsDetails?.penalties as any;
       const penaltiesArr = Array.isArray(penaltiesObj?.penalties) ? penaltiesObj.penalties : [];
@@ -705,9 +702,9 @@ async getLeaveCompensation(employeeId: string) {
 
     // Categorize exceptions
     const misconductExceptions = timeExceptions.filter(
-      ex => ex.type === TimeExceptionType.LATE || 
-            ex.type === TimeExceptionType.EARLY_LEAVE ||
-            ex.type === TimeExceptionType.SHORT_TIME
+      ex => ex.type === TimeExceptionType.LATE ||
+        ex.type === TimeExceptionType.EARLY_LEAVE ||
+        ex.type === TimeExceptionType.SHORT_TIME
     );
 
     const missedPunchExceptions = timeExceptions.filter(
@@ -754,7 +751,7 @@ async getLeaveCompensation(employeeId: string) {
 
       // Get the range for this assignment
       const assignmentStart = new Date(Math.max(new Date(assignment.startDate).getTime(), fromDate.getTime()));
-      const assignmentEnd = assignment.endDate 
+      const assignmentEnd = assignment.endDate
         ? new Date(Math.min(new Date(assignment.endDate).getTime(), toDate.getTime()))
         : toDate;
 
@@ -762,7 +759,7 @@ async getLeaveCompensation(employeeId: string) {
       const current = new Date(assignmentStart);
       while (current <= assignmentEnd) {
         const dateKey = `${current.getFullYear()}-${current.getMonth()}-${current.getDate()}`;
-        
+
         // Check if this day has attendance
         if (!attendanceDates.has(dateKey)) {
           missingDaysCount++;
@@ -771,7 +768,7 @@ async getLeaveCompensation(employeeId: string) {
             reason: 'No attendance record - unapproved absence',
           });
         }
-        
+
         current.setDate(current.getDate() + 1);
       }
     }
@@ -794,7 +791,7 @@ async getLeaveCompensation(employeeId: string) {
 
     // Calculate total deductions
     const missingDaysDeduction = missingDaysCount * dailyRate;
-    
+
     // Count unresolved exceptions that may lead to deductions
     const unresolvedMisconductCount = misconductExceptions.filter(
       ex => ex.status !== TimeExceptionStatus.RESOLVED && ex.status !== TimeExceptionStatus.APPROVED
@@ -825,7 +822,7 @@ async getLeaveCompensation(employeeId: string) {
       },
       baseSalary,
       dailyRate,
-      
+
       // Misconduct Deductions (from time exceptions)
       misconductDeductions: {
         lateArrivals: misconductExceptions.filter(ex => ex.type === TimeExceptionType.LATE).length,
@@ -938,7 +935,7 @@ async getLeaveCompensation(employeeId: string) {
     const unpaidLeaveTypeIds = unpaidLeaveTypes
       .filter((lt: any) => lt.paid === false)
       .map((lt: any) => lt._id.toString());
-    
+
     // Get unpaid leave type names for reference
     const unpaidLeaveTypeNames = unpaidLeaveTypes
       .filter((lt: any) => lt.paid === false)
@@ -1083,7 +1080,7 @@ async getLeaveCompensation(employeeId: string) {
         0,
       ),
       lastUpdated: new Date().toISOString(),
-      note: totalUnpaidLeaveDays === 0 
+      note: totalUnpaidLeaveDays === 0
         ? 'No approved unpaid leave requests found. The daily rate shown is the deduction amount per unpaid leave day.'
         : 'Unpaid leave deduction amounts are calculated based on daily rate × unpaid leave days.',
     };
@@ -1091,18 +1088,20 @@ async getLeaveCompensation(employeeId: string) {
 
   // REQ-PY-13: View salary history
   async getSalaryHistory(employeeId: string) {
-    const payslips = await this.payslipModel.find({ 
-      employeeId: new Types.ObjectId(employeeId) 
+    const payslips = await this.payslipModel.find({
+      employeeId: new Types.ObjectId(employeeId)
     })
-    .sort({ createdAt: -1 })
-    .exec();
-    
+      .sort({ createdAt: -1 })
+      .exec();
+
     return payslips.map(payslip => ({
       payslipId: payslip._id,
-      grossSalary: payslip.totalGrossSalary || 0,
+      grossSalary: this.resolveTotalGrossSalary(payslip) || 0,
       netSalary: payslip.netPay || 0,
       status: payslip.paymentStatus,
-      totalDeductions: payslip.totaDeductions || 0,
+      totalDeductions: this.resolveTotalDeductions(payslip) || 0,
+      earningsDetails: payslip.earningsDetails || {},
+      deductionsDetails: payslip.deductionsDetails || {},
       createdAt: (payslip as any)?.createdAt || new Date(),
     }));
   }
@@ -1166,7 +1165,7 @@ async getLeaveCompensation(employeeId: string) {
     const summary = payslips.reduce(
       (acc, payslip: any) => {
         const taxableBase =
-          payslip.totalGrossSalary || payslip.earningsDetails?.baseSalary || 0;
+          this.resolveTotalGrossSalary(payslip) || payslip.earningsDetails?.baseSalary || 0;
         const totalTaxForSlip = (payslip.deductionsDetails?.taxes || []).reduce(
           (sum: number, tax: any) => sum + (tax.amount || 0),
           0,
@@ -1221,24 +1220,24 @@ async getLeaveCompensation(employeeId: string) {
   // REQ-PY-38: Generate payroll reports by department
   async generateDepartmentPayrollReport(departmentId?: string, startDate?: Date, endDate?: Date) {
     const query: any = {};
-    
+
     if (startDate && endDate) {
       query.createdAt = {
         $gte: startDate,
         $lte: endDate
       };
     }
-    
+
     const payslips = await this.payslipModel.find(query).exec();
-    
+
     // Get unique employee IDs
     const employeeIds = [...new Set(payslips.map(p => p.employeeId))];
-    
+
     // Fetch employees with populated departments
     const employees = await this.employeeModel.find({ _id: { $in: employeeIds } })
       .populate('primaryDepartmentId')
       .exec();
-    
+
     // Create map of employeeId to department
     const employeeDepartmentMap = new Map();
     const employeeDepartmentIdMap = new Map();
@@ -1249,18 +1248,18 @@ async getLeaveCompensation(employeeId: string) {
       employeeDepartmentMap.set(emp._id.toString(), deptName);
       employeeDepartmentIdMap.set(emp._id.toString(), deptId);
     });
-    
+
     // Group by department
     const departmentSummary = payslips.reduce((acc, payslip) => {
       const empIdStr = payslip.employeeId.toString();
       const deptName = employeeDepartmentMap.get(empIdStr) || 'Unknown';
       const deptId = employeeDepartmentIdMap.get(empIdStr) || 'unknown';
-      
+
       // If departmentId is specified, only include matching departments
       if (departmentId && deptId !== departmentId) {
         return acc;
       }
-      
+
       if (!acc[deptId]) {
         acc[deptId] = {
           departmentId: deptId,
@@ -1275,22 +1274,22 @@ async getLeaveCompensation(employeeId: string) {
         };
       }
       
-      acc[deptId].totalGross += payslip.totalGrossSalary || 0;
+      acc[deptId].totalGross += this.resolveTotalGrossSalary(payslip) || 0;
       acc[deptId].totalNet += payslip.netPay || 0;
       acc[deptId].totalTax += payslip.deductionsDetails?.taxes?.reduce((sum, t) => sum + ((t as any)?.amount || 0), 0) || 0;
       acc[deptId].totalInsurance += payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + ((i as any)?.amount || 0), 0) || 0;
-      acc[deptId].totalDeductions += payslip.totaDeductions || 0;
+      acc[deptId].totalDeductions += this.resolveTotalDeductions(payslip) || 0;
       acc[deptId].employees.add(empIdStr);
-      
+
       return acc;
     }, {});
-    
+
     // Convert to array format expected by frontend
     const reportsArray = Object.values(departmentSummary).map((dept: any) => ({
       id: `${dept.departmentId}_${Date.now()}`,
       departmentId: dept.departmentId,
       departmentName: dept.departmentName,
-      period: startDate && endDate 
+      period: startDate && endDate
         ? `${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`
         : 'All Time',
       totalEmployees: dept.employees.size,
@@ -1303,7 +1302,7 @@ async getLeaveCompensation(employeeId: string) {
       generatedAt: new Date().toISOString(),
       status: 'final' as const
     }));
-    
+
     return {
       success: true,
       data: reportsArray.length > 0 ? reportsArray[0] : null,
@@ -1318,7 +1317,7 @@ async getLeaveCompensation(employeeId: string) {
   async generatePayrollSummary(reportType: 'monthly' | 'yearly', period?: string) {
     const now = new Date();
     let startDate: Date, endDate: Date;
-    
+
     if (reportType === 'monthly') {
       const yearMonth = period || `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
       const [year, month] = yearMonth.split('-').map(Number);
@@ -1329,16 +1328,16 @@ async getLeaveCompensation(employeeId: string) {
       startDate = new Date(year, 0, 1);
       endDate = new Date(year, 11, 31);
     }
-    
+
     const payslips = await this.payslipModel.find({
       createdAt: {
         $gte: startDate,
         $lte: endDate
       }
     }).exec();
-    
+
     const summary = {
-      totalGross: payslips.reduce((sum, p) => sum + (p.totalGrossSalary || 0), 0),
+      totalGross: payslips.reduce((sum, p) => sum + (this.resolveTotalGrossSalary(p) || 0), 0),
       totalNet: payslips.reduce((sum, p) => sum + (p.netPay || 0), 0),
       totalTax: payslips.reduce((sum, p) => sum + (p.deductionsDetails?.taxes?.reduce((s, t) => s + ((t as any)?.amount || 0), 0) || 0), 0),
       totalInsurance: payslips.reduce((sum, p) => sum + (p.deductionsDetails?.insurances?.reduce((s, i) => s + ((i as any)?.amount || 0), 0) || 0), 0),
@@ -1346,10 +1345,10 @@ async getLeaveCompensation(employeeId: string) {
       totalEmployees: new Set(payslips.map(p => p.employeeId.toString())).size,
       totalPayslips: payslips.length
     };
-    
+
     return {
       reportType: `${reportType.toUpperCase()}_PAYROLL_SUMMARY`,
-      period: reportType === 'monthly' 
+      period: reportType === 'monthly'
         ? `${startDate.getFullYear()}-${(startDate.getMonth() + 1).toString().padStart(2, '0')}`
         : startDate.getFullYear().toString(),
       startDate: startDate.toISOString(),
@@ -1365,16 +1364,16 @@ async getLeaveCompensation(employeeId: string) {
     const targetYear = year || new Date().getFullYear();
     const startDate = new Date(targetYear, 0, 1);
     const endDate = new Date(targetYear, 11, 31);
-    
+
     const payslips = await this.payslipModel.find({
       createdAt: {
         $gte: startDate,
         $lte: endDate
       }
     }).exec();
-    
+
     let reportData;
-    
+
     switch (reportType.toLowerCase()) {
       case 'tax':
         reportData = this.generateTaxReport(payslips, targetYear);
@@ -1388,7 +1387,7 @@ async getLeaveCompensation(employeeId: string) {
       default:
         throw new BadRequestException('Invalid report type');
     }
-    
+
     return reportData;
   }
 
@@ -1398,7 +1397,7 @@ async getLeaveCompensation(employeeId: string) {
   async reviewDispute(disputeId: string, specialistId: string, action: 'approve' | 'reject', reason?: string) {
     try {
       console.log('reviewDispute called with:', { disputeId, action });
-      
+
       // Try finding by custom disputeId first, then by MongoDB _id
       let dispute = await this.disputesModel.findOne({ disputeId: disputeId });
       if (!dispute) {
@@ -1407,9 +1406,9 @@ async getLeaveCompensation(employeeId: string) {
       if (!dispute) {
         throw new NotFoundException('Dispute not found');
       }
-      
+
       console.log('Before update - Dispute ID:', dispute._id, 'Current Status:', dispute.status);
-      
+
       if (action === 'approve') {
         // When specialist approves, set status to PENDING_MANAGER_APPROVAL (escalates to manager)
         dispute.status = DisputeStatus.PENDING_MANAGER_APPROVAL;
@@ -1418,16 +1417,16 @@ async getLeaveCompensation(employeeId: string) {
         dispute.status = DisputeStatus.REJECTED;
         dispute.rejectionReason = reason || 'Rejected by Payroll Specialist';
       }
-      
+
       await dispute.save();
       console.log('After save - Dispute ID:', dispute._id, 'New Status:', dispute.status);
-      
+
       // Return populated dispute
       const updated = await this.disputesModel.findById(dispute._id)
         .populate('employeeId', 'firstName lastName employeeId')
         .populate('payslipId', 'payPeriod netSalary')
         .exec();
-      
+
       console.log('Returning dispute with status:', updated?.status);
       return updated;
     } catch (error) {
@@ -1442,11 +1441,11 @@ async getLeaveCompensation(employeeId: string) {
     if (!dispute) {
       throw new NotFoundException('Dispute not found');
     }
-    
+
     if (dispute.status !== DisputeStatus.PENDING_MANAGER_APPROVAL) {
       throw new BadRequestException('Only disputes pending manager approval can be confirmed by manager');
     }
-    
+
     if (action === 'confirm') {
       dispute.status = DisputeStatus.APPROVED;
       // Preserve original specialist comment - store it before overwriting
@@ -1458,25 +1457,41 @@ async getLeaveCompensation(employeeId: string) {
         managerNote;
       await dispute.save();
       
-      // Find finance users to notify (REQ-PY-41)
-      const financeUsers = await this.notificationService.findUsersByRole('Finance');
-      
-      if (financeUsers.length > 0) {
-        // Create notifications for all finance users
-        for (const financeUser of financeUsers) {
-          await this.notificationService['notificationModel'].create({
-            to: financeUser.employeeProfileId,
-            type: 'DISPUTE_APPROVED',
-            message: `New approved dispute requires processing for employee ${dispute.employeeId}`,
-          } as any);
+      // Notify Finance that manager approved the dispute
+      try {
+        const financeUsers = await this.notificationService.findUsersByRole('Finance');
+        console.log('[PayrollManager] Found finance users:', financeUsers.length);
+        
+        if (financeUsers.length > 0) {
+          for (const financeUser of financeUsers) {
+            try {
+              const financeUserId = typeof financeUser.employeeProfileId === 'string' 
+                ? new Types.ObjectId(financeUser.employeeProfileId) 
+                : financeUser.employeeProfileId;
+              
+              const notification = new this.notificationService['notificationModel']({
+                to: financeUserId,
+                type: 'DISPUTE_APPROVED',
+                message: `Dispute has been approved by Payroll Manager for employee ${dispute.employeeId}`,
+              });
+              const saved = await notification.save();
+              console.log('[PayrollManager] Notification created for finance user:', String(financeUserId), 'Notification ID:', saved._id);
+            } catch (notifError) {
+              console.error('[PayrollManager] Failed to create notification for finance user:', financeUser.employeeProfileId, notifError);
+            }
+          }
+        } else {
+          console.warn('[PayrollManager] No finance users found');
         }
+      } catch (error) {
+        console.error('[PayrollManager] Error notifying finance users:', error);
       }
     } else {
       dispute.status = DisputeStatus.REJECTED;
       dispute.rejectionReason = reason || 'Rejected by Payroll Manager';
       await dispute.save();
     }
-    
+
     return dispute;
   }
 
@@ -1485,11 +1500,11 @@ async getLeaveCompensation(employeeId: string) {
     // Only return disputes with APPROVED status (confirmed by manager)
     // APPROVED_BY_SPECIALIST means pending manager confirmation, not fully approved
     const query: any = { status: DisputeStatus.APPROVED };
-    
+
     if (financeStaffId) {
       query.financeStaffId = new Types.ObjectId(financeStaffId);
     }
-    
+
     const disputes = await this.disputesModel.find(query)
       .lean()
       .exec();
@@ -1513,7 +1528,7 @@ async getLeaveCompensation(employeeId: string) {
         return String(val);
       };
       const refund = refundByDisputeId.get(String(dispute._id));
-      
+
       return {
         id: toStr(dispute._id),
         employeeId: toStr(dispute.employeeId), // Pure string ID, no population
@@ -1532,7 +1547,7 @@ async getLeaveCompensation(employeeId: string) {
         needsRefund: Boolean(dispute.needsRefund)
       };
     });
-    
+
     console.log('[getApprovedDisputes] First result:', JSON.stringify(result[0], null, 2));
     return result;
   }
@@ -1544,11 +1559,11 @@ async getLeaveCompensation(employeeId: string) {
     if (!claim) {
       claim = await this.claimsModel.findById(claimId);
     }
-    
+
     if (!claim) {
       throw new NotFoundException('Claim not found');
     }
-    
+
     if (action === 'approve') {
       // When specialist approves, set status to PENDING_MANAGER_APPROVAL (escalates to manager)
       claim.status = ClaimStatus.PENDING_MANAGER_APPROVAL;
@@ -1558,7 +1573,7 @@ async getLeaveCompensation(employeeId: string) {
       claim.status = ClaimStatus.REJECTED;
       claim.rejectionReason = reason || 'Rejected by Payroll Specialist';
     }
-    
+
     return claim.save();
   }
 
@@ -1568,11 +1583,11 @@ async getLeaveCompensation(employeeId: string) {
     if (!claim) {
       throw new NotFoundException('Claim not found');
     }
-    
+
     if (claim.status !== ClaimStatus.PENDING_MANAGER_APPROVAL) {
       throw new BadRequestException('Only claims pending manager approval can be confirmed by manager');
     }
-    
+
     if (action === 'confirm') {
       claim.status = ClaimStatus.APPROVED;
       // Preserve original specialist comment - store it before overwriting
@@ -1584,25 +1599,41 @@ async getLeaveCompensation(employeeId: string) {
         managerNote;
       await claim.save();
       
-      // Find finance users to notify (REQ-PY-44)
-      const financeUsers = await this.notificationService.findUsersByRole('Finance');
-      
-      if (financeUsers.length > 0) {
-        // Create notifications for all finance users
-        for (const financeUser of financeUsers) {
-          await this.notificationService['notificationModel'].create({
-            to: financeUser.employeeProfileId,
-            type: 'CLAIM_APPROVED',
-            message: `New approved claim requires processing for employee ${claim.employeeId} - Amount: ${claim.amount}`,
-          } as any);
+      // Notify Finance that manager approved the claim
+      try {
+        const financeUsers = await this.notificationService.findUsersByRole('Finance');
+        console.log('[PayrollManager] Found finance users:', financeUsers.length);
+        
+        if (financeUsers.length > 0) {
+          for (const financeUser of financeUsers) {
+            try {
+              const financeUserId = typeof financeUser.employeeProfileId === 'string' 
+                ? new Types.ObjectId(financeUser.employeeProfileId) 
+                : financeUser.employeeProfileId;
+              
+              const notification = new this.notificationService['notificationModel']({
+                to: financeUserId,
+                type: 'CLAIM_APPROVED',
+                message: `Claim has been approved by Payroll Manager for employee ${claim.employeeId} - Amount: ${claim.amount}`,
+              });
+              const saved = await notification.save();
+              console.log('[PayrollManager] Notification created for finance user:', String(financeUserId), 'Notification ID:', saved._id);
+            } catch (notifError) {
+              console.error('[PayrollManager] Failed to create notification for finance user:', financeUser.employeeProfileId, notifError);
+            }
+          }
+        } else {
+          console.warn('[PayrollManager] No finance users found');
         }
+      } catch (error) {
+        console.error('[PayrollManager] Error notifying finance users:', error);
       }
     } else {
       claim.status = ClaimStatus.REJECTED;
       claim.rejectionReason = reason || 'Rejected by Payroll Manager';
       await claim.save();
     }
-    
+
     return claim;
   }
 
@@ -1610,29 +1641,29 @@ async getLeaveCompensation(employeeId: string) {
   async getApprovedClaims(financeStaffId?: string) {
     // Only return claims with APPROVED status
     const query: any = { status: ClaimStatus.APPROVED };
-    
+
     if (financeStaffId) {
       query.financeStaffId = new Types.ObjectId(financeStaffId);
     }
-    
+
     // Get approved claims - NO POPULATION
     const claims = await this.claimsModel.find(query)
       .lean()
       .exec();
-    
+
     console.log(`[getApprovedClaims] Found ${claims.length} claims with APPROVED status`);
-    
+
     // Mark CLAIM_APPROVED notifications as read for this finance staff member
     if (financeStaffId) {
       await this.notificationService['notificationModel'].updateMany(
-        { 
+        {
           to: new Types.ObjectId(financeStaffId),
           type: 'CLAIM_APPROVED'
         },
         { $set: { isRead: true } }
       ).exec();
     }
-    
+
     // Fetch any refunds related to these claims so we can compute refund status without modifying the claim schema
     const claimIds = claims.map(c => c._id).filter(Boolean);
     const relatedClaimRefunds = claimIds.length ? await this.refundsModel.find({ claimId: { $in: claimIds } }).lean().exec() : [];
@@ -1650,9 +1681,10 @@ async getLeaveCompensation(employeeId: string) {
         return String(val);
       };
       const refund = refundByClaimId.get(String(claim._id));
-      
+
       return {
         id: toStr(claim._id),
+        claimId: toStr(claim.claimId), // Added claimId
         employeeId: toStr(claim.employeeId), // Pure string ID, no population
         employeeName: 'Employee ' + toStr(claim.employeeId).slice(-6), // Simple fallback
         employeeNumber: 'N/A',
@@ -1670,7 +1702,7 @@ async getLeaveCompensation(employeeId: string) {
         needsRefund: Boolean(claim.needsRefund)
       };
     });
-    
+
     console.log('[getApprovedClaims] First result:', JSON.stringify(result[0], null, 2));
     return result;
   }
@@ -1687,21 +1719,21 @@ async getLeaveCompensation(employeeId: string) {
         dispute = await this.disputesModel.findById(disputeId);
       }
     }
-    
+
     if (!dispute) {
       throw new NotFoundException(`Dispute not found with ID: ${disputeId}`);
     }
-    
+
     if (dispute.status !== DisputeStatus.APPROVED) {
       throw new BadRequestException('Only approved disputes can generate refunds');
     }
-    
+
     // Check if refund already exists using the dispute's MongoDB _id
     const existingRefund = await this.refundsModel.findOne({ disputeId: dispute._id });
     if (existingRefund) {
       throw new BadRequestException('Refund already exists for this dispute');
     }
-    
+
     const refund = new this.refundsModel({
       disputeId: dispute._id, // Use the dispute's MongoDB _id
       employeeId: dispute.employeeId,
@@ -1712,7 +1744,7 @@ async getLeaveCompensation(employeeId: string) {
       },
       status: RefundStatus.PENDING
     });
-    
+
     // No direct modifications to dispute schema — refunds are tracked in the `refunds` collection.
     // The refund document already captures the association (disputeId), so we just save the refund.
     return refund.save();
@@ -1728,21 +1760,21 @@ async getLeaveCompensation(employeeId: string) {
         claim = await this.claimsModel.findById(claimId);
       }
     }
-    
+
     if (!claim) {
       throw new NotFoundException(`Claim not found with ID: ${claimId}`);
     }
-    
+
     if (claim.status !== ClaimStatus.APPROVED) {
       throw new BadRequestException('Only approved claims can generate refunds');
     }
-    
+
     // Check if refund already exists using the claim's MongoDB _id
     const existingRefund = await this.refundsModel.findOne({ claimId: claim._id });
     if (existingRefund) {
       throw new BadRequestException('Refund already exists for this claim');
     }
-    
+
     const refund = new this.refundsModel({
       claimId: claim._id, // Use the claim's MongoDB _id
       employeeId: claim.employeeId,
@@ -1753,7 +1785,7 @@ async getLeaveCompensation(employeeId: string) {
       },
       status: RefundStatus.PENDING
     });
-    
+
     // No direct modifications to claim schema — refunds are tracked in the `refunds` collection.
     // The refund document already captures the association (claimId), so we just save the refund.
     return refund.save();
@@ -1774,10 +1806,10 @@ async getLeaveCompensation(employeeId: string) {
     if (!refund) {
       throw new NotFoundException('Refund not found');
     }
-    
+
     refund.status = RefundStatus.PAID;
     refund.paidInPayrollRunId = new Types.ObjectId(payrollRunId);
-    
+
     return refund.save();
   }
 
@@ -1794,12 +1826,57 @@ async getLeaveCompensation(employeeId: string) {
         };
       }
       
-      acc[dept].totalGross += payslip.totalGrossSalary || 0;
+      acc[dept].totalGross += this.resolveTotalGrossSalary(payslip) || 0;
       acc[dept].totalNet += payslip.netPay || 0;
       acc[dept].employeeCount.add(payslip.employeeId.toString());
-      
+
       return acc;
     }, {});
+  }
+
+  // Helper: resolve total deductions from payslip robustly (handles legacy typo and computes if missing)
+  private resolveTotalDeductions(payslip: any): number {
+    if (!payslip) return 0;
+
+    // Prefer existing numeric fields (handle legacy typo 'totaDeductions')
+    const asAny: any = payslip as any;
+    if (typeof asAny.totaDeductions === 'number') return asAny.totaDeductions;
+    if (typeof asAny.totalDeductions === 'number') return asAny.totalDeductions;
+    if (typeof asAny.totals?.totalDeductions === 'number') return asAny.totals.totalDeductions;
+
+    // Otherwise compute from deductionsDetails
+    const dd = payslip.deductionsDetails || {};
+    const taxes = Array.isArray(dd.taxes) ? dd.taxes : [];
+    const insurances = Array.isArray(dd.insurances) ? dd.insurances : [];
+
+    let penaltiesArr: any[] = [];
+    if (Array.isArray(dd.penalties)) penaltiesArr = dd.penalties;
+    else if (Array.isArray(dd.penalties?.penalties)) penaltiesArr = dd.penalties.penalties;
+
+    const sumFrom = (arr: any[]) => arr.reduce((s: number, it: any) => s + (typeof it?.amount === 'number' ? it.amount : (typeof it === 'number' ? it : 0)), 0);
+
+    const total = sumFrom(taxes) + sumFrom(insurances) + sumFrom(penaltiesArr);
+    return Math.round((total || 0) * 100) / 100;
+  }
+
+  // Helper: resolve total gross salary from payslip (prefer stored total, else sum earnings details)
+  private resolveTotalGrossSalary(payslip: any): number {
+    if (!payslip) return 0;
+    const asAny: any = payslip as any;
+    if (typeof asAny.totalGrossSalary === 'number') return asAny.totalGrossSalary;
+    if (typeof asAny.totals?.totalGrossSalary === 'number') return asAny.totals.totalGrossSalary;
+
+    const ed = payslip.earningsDetails || {};
+    const base = typeof ed.baseSalary === 'number' ? ed.baseSalary : (typeof payslip.baseSalary === 'number' ? payslip.baseSalary : 0);
+    const sumArr = (arr: any[]) => Array.isArray(arr) ? arr.reduce((s: number, it: any) => s + (typeof it?.amount === 'number' ? it.amount : (typeof it === 'number' ? it : 0)), 0) : 0;
+
+    const allowances = sumArr(ed.allowances);
+    const bonuses = sumArr(ed.bonuses);
+    const benefits = sumArr(ed.benefits);
+    const refunds = sumArr(ed.refunds);
+
+    const total = base + allowances + bonuses + benefits + refunds;
+    return Math.round((total || 0) * 100) / 100;
   }
 
   private generateTaxReport(payslips: any[], year: number) {
@@ -1812,11 +1889,11 @@ async getLeaveCompensation(employeeId: string) {
           payslipsCount: 0
         };
       }
-      
+
       const totalTax = payslip.deductionsDetails?.taxes?.reduce((sum, tax) => sum + (tax.amount || 0), 0) || 0;
       acc[employeeId].totalTax += totalTax;
       acc[employeeId].payslipsCount++;
-      
+
       // Aggregate by tax type if available
       if (payslip.deductionsDetails?.taxes && Array.isArray(payslip.deductionsDetails.taxes)) {
         payslip.deductionsDetails.taxes.forEach((tax: any) => {
@@ -1827,10 +1904,10 @@ async getLeaveCompensation(employeeId: string) {
           acc[employeeId].taxBreakdown[taxType] += tax.amount || 0;
         });
       }
-      
+
       return acc;
     }, {});
-    
+
     return {
       reportType: 'TAX_COMPLIANCE_REPORT',
       year,
@@ -1851,11 +1928,11 @@ async getLeaveCompensation(employeeId: string) {
           payslipsCount: 0
         };
       }
-      
+
       const totalInsurance = payslip.deductionsDetails?.insurances?.reduce((sum, i) => sum + ((i as any).amount || 0), 0) || 0;
       acc[employeeId].employeeContribution += totalInsurance;
       acc[employeeId].payslipsCount++;
-      
+
       // Aggregate by insurance type if available
       if (payslip.deductionsDetails?.insurances && Array.isArray(payslip.deductionsDetails.insurances)) {
         payslip.deductionsDetails.insurances.forEach((insurance: any) => {
@@ -1866,10 +1943,10 @@ async getLeaveCompensation(employeeId: string) {
           acc[employeeId].insuranceBreakdown[insuranceType] += insurance.amount || 0;
         });
       }
-      
+
       return acc;
     }, {});
-    
+
     return {
       reportType: 'INSURANCE_CONTRIBUTIONS_REPORT',
       year,
@@ -1890,7 +1967,7 @@ async getLeaveCompensation(employeeId: string) {
           payslipsCount: 0
         };
       }
-      
+
       // Sum up all benefits
       if (payslip.earningsDetails?.benefits && Array.isArray(payslip.earningsDetails.benefits)) {
         payslip.earningsDetails.benefits.forEach((benefit: any) => {
@@ -1902,12 +1979,12 @@ async getLeaveCompensation(employeeId: string) {
           acc[employeeId].totalBenefits += benefit.amount || 0;
         });
       }
-      
+
       acc[employeeId].payslipsCount++;
-      
+
       return acc;
     }, {});
-    
+
     return {
       reportType: 'BENEFITS_REPORT',
       year,
@@ -1943,7 +2020,7 @@ async getLeaveCompensation(employeeId: string) {
       if (filters.minAmount !== undefined) query.amount.$gte = filters.minAmount;
       if (filters.maxAmount !== undefined) query.amount.$lte = filters.maxAmount;
     }
-    
+
     return this.claimsModel.find(query)
       .populate('employeeId', 'firstName lastName employeeId')
       .populate('financeStaffId', 'firstName lastName employeeId')
@@ -1956,11 +2033,11 @@ async getLeaveCompensation(employeeId: string) {
       .populate('employeeId', 'firstName lastName employeeId')
       .populate('financeStaffId', 'firstName lastName employeeId')
       .exec();
-    
+
     if (!claim) {
       throw new NotFoundException('Claim not found');
     }
-    
+
     return claim;
   }
 
@@ -1970,17 +2047,17 @@ async getLeaveCompensation(employeeId: string) {
       updateClaimDto,
       { new: true }
     ).exec();
-    
+
     if (!claim) {
       throw new NotFoundException('Claim not found');
     }
-    
+
     return claim;
   }
 
   async deleteClaimById(id: string) {
     const result = await this.claimsModel.findByIdAndDelete(id).exec();
-    
+
     if (!result) {
       throw new NotFoundException('Claim not found');
     }
@@ -1992,14 +2069,29 @@ async getLeaveCompensation(employeeId: string) {
     const query: any = {};
     if (status && status !== 'all') query.status = status;
     if (employeeId) query.employeeId = new Types.ObjectId(employeeId);
-    
+
     const disputes = await this.disputesModel.find(query)
       .populate('employeeId', 'firstName lastName employeeId')
-      .populate('payslipId', 'payPeriod netSalary')
+      .populate({
+        path: 'payslipId',
+        select: 'payrollRunId netPay totalGrossSalary',
+        populate: {
+          path: 'payrollRunId',
+          select: 'payrollPeriod runId'
+        }
+      })
       .populate('financeStaffId', 'firstName lastName employeeId')
       .sort({ createdAt: -1 })
       .exec();
-    
+
+    // Debug logging
+    console.log('[getAllDisputes] Found disputes:', disputes.length);
+    if (disputes.length > 0) {
+      const firstDispute: any = disputes[0];
+      console.log('[getAllDisputes] First dispute payslipId:', firstDispute.payslipId);
+      console.log('[getAllDisputes] First dispute payslipId type:', typeof firstDispute.payslipId);
+    }
+
     return {
       success: true,
       data: disputes,
@@ -2013,11 +2105,11 @@ async getLeaveCompensation(employeeId: string) {
       .populate('payslipId', 'payPeriod netSalary grossSalary')
       .populate('financeStaffId', 'firstName lastName employeeId')
       .exec();
-    
+
     if (!dispute) {
       throw new NotFoundException('Dispute not found');
     }
-    
+
     return dispute;
   }
 
@@ -2027,17 +2119,17 @@ async getLeaveCompensation(employeeId: string) {
       updateDisputeDto,
       { new: true }
     ).exec();
-    
+
     if (!dispute) {
       throw new NotFoundException('Dispute not found');
     }
-    
+
     return dispute;
   }
 
   async deleteDisputeById(id: string) {
     const result = await this.disputesModel.findByIdAndDelete(id).exec();
-    
+
     if (!result) {
       throw new NotFoundException('Dispute not found');
     }
@@ -2049,7 +2141,7 @@ async getLeaveCompensation(employeeId: string) {
     const query: any = {};
     if (status) query.status = status;
     if (employeeId) query.employeeId = new Types.ObjectId(employeeId);
-    
+
     return this.refundsModel.find(query)
       .populate('employeeId', 'firstName lastName employeeId')
       .populate('claimId', 'claimId description')
@@ -2067,11 +2159,11 @@ async getLeaveCompensation(employeeId: string) {
       .populate('financeStaffId', 'firstName lastName employeeId')
       .populate('paidInPayrollRunId', 'runId period')
       .exec();
-    
+
     if (!refund) {
       throw new NotFoundException('Refund not found');
     }
-    
+
     return refund;
   }
 
@@ -2081,122 +2173,122 @@ async getLeaveCompensation(employeeId: string) {
       updateRefundDto,
       { new: true }
     ).exec();
-    
+
     if (!refund) {
       throw new NotFoundException('Refund not found');
     }
-    
+
     return refund;
   }
 
   async deleteRefundById(id: string) {
     const result = await this.refundsModel.findByIdAndDelete(id).exec();
-    
+
     if (!result) {
       throw new NotFoundException('Refund not found');
     }
   }
 
-// Add these methods to your existing PayrollTrackingService class:
+  // Add these methods to your existing PayrollTrackingService class:
 
-// REQ-PY-16: Dispute payroll errors
-async createDispute(employeeId: string, createDisputeDto: any) {
-  try {
-    // Validate employeeId is a valid ObjectId
-    if (!Types.ObjectId.isValid(employeeId)) {
-      throw new BadRequestException(`Invalid employee ID format: ${employeeId}`);
-    }
+  // REQ-PY-16: Dispute payroll errors
+  async createDispute(employeeId: string, createDisputeDto: any) {
+    try {
+      // Validate employeeId is a valid ObjectId
+      if (!Types.ObjectId.isValid(employeeId)) {
+        throw new BadRequestException(`Invalid employee ID format: ${employeeId}`);
+      }
 
-    // Generate dispute ID - find the highest existing dispute number
-    const allDisputes = await this.disputesModel.find({}, { disputeId: 1 }).exec();
-    
-    let maxNumber = 0;
-    for (const dispute of allDisputes) {
-      if (dispute.disputeId) {
-        const match = dispute.disputeId.match(/DISP-(\d+)/);
-        if (match) {
-          const num = parseInt(match[1]);
-          if (num > maxNumber) {
-            maxNumber = num;
+      // Generate dispute ID - find the highest existing dispute number
+      const allDisputes = await this.disputesModel.find({}, { disputeId: 1 }).exec();
+
+      let maxNumber = 0;
+      for (const dispute of allDisputes) {
+        if (dispute.disputeId) {
+          const match = dispute.disputeId.match(/DISP-(\d+)/);
+          if (match) {
+            const num = parseInt(match[1]);
+            if (num > maxNumber) {
+              maxNumber = num;
+            }
           }
         }
       }
-    }
-    
-    const disputeId = `DISP-${(maxNumber + 1).toString().padStart(4, '0')}`;
-    
-    console.log('Creating dispute with data:', {
-      disputeId,
-      employeeId,
-      createDisputeDto,
-    });
 
-    const dispute = new this.disputesModel({
-      disputeId,
-      employeeId: new Types.ObjectId(employeeId),
-      ...createDisputeDto,
-      payslipId: new Types.ObjectId(createDisputeDto.payslipId),
-      status: DisputeStatus.UNDER_REVIEW
-    });
-    
-    const savedDispute = await dispute.save();
-    console.log('Dispute saved successfully:', savedDispute);
-    return savedDispute;
-  } catch (error) {
-    console.error('Error creating dispute:', error);
-    throw error;
+      const disputeId = `DISP-${(maxNumber + 1).toString().padStart(4, '0')}`;
+
+      console.log('Creating dispute with data:', {
+        disputeId,
+        employeeId,
+        createDisputeDto,
+      });
+
+      const dispute = new this.disputesModel({
+        disputeId,
+        employeeId: new Types.ObjectId(employeeId),
+        ...createDisputeDto,
+        payslipId: new Types.ObjectId(createDisputeDto.payslipId),
+        status: DisputeStatus.UNDER_REVIEW
+      });
+
+      const savedDispute = await dispute.save();
+      console.log('Dispute saved successfully:', savedDispute);
+      return savedDispute;
+    } catch (error) {
+      console.error('Error creating dispute:', error);
+      throw error;
+    }
   }
-}
 
-// REQ-PY-17: Submit expense reimbursement claims
-async createClaim(employeeId: string, createClaimDto: any) {
-  try {
-    // Validate employeeId is a valid ObjectId
-    if (!Types.ObjectId.isValid(employeeId)) {
-      throw new BadRequestException(`Invalid employee ID format: ${employeeId}`);
-    }
+  // REQ-PY-17: Submit expense reimbursement claims
+  async createClaim(employeeId: string, createClaimDto: any) {
+    try {
+      // Validate employeeId is a valid ObjectId
+      if (!Types.ObjectId.isValid(employeeId)) {
+        throw new BadRequestException(`Invalid employee ID format: ${employeeId}`);
+      }
 
-    // Generate claim ID - find the highest existing claim number
-    const allClaims = await this.claimsModel.find({}, { claimId: 1 }).exec();
-    
-    let maxNumber = 0;
-    for (const claim of allClaims) {
-      if (claim.claimId) {
-        const match = claim.claimId.match(/CLAIM-(\d+)/);
-        if (match) {
-          const num = parseInt(match[1]);
-          if (num > maxNumber) {
-            maxNumber = num;
+      // Generate claim ID - find the highest existing claim number
+      const allClaims = await this.claimsModel.find({}, { claimId: 1 }).exec();
+
+      let maxNumber = 0;
+      for (const claim of allClaims) {
+        if (claim.claimId) {
+          const match = claim.claimId.match(/CLAIM-(\d+)/);
+          if (match) {
+            const num = parseInt(match[1]);
+            if (num > maxNumber) {
+              maxNumber = num;
+            }
           }
         }
       }
+
+      const claimId = `CLAIM-${(maxNumber + 1).toString().padStart(4, '0')}`;
+
+      console.log('Creating claim with data:', {
+        claimId,
+        employeeId,
+        createClaimDto,
+      });
+
+      const claim = new this.claimsModel({
+        claimId,
+        employeeId: new Types.ObjectId(employeeId),
+        ...createClaimDto,
+        status: ClaimStatus.UNDER_REVIEW
+      });
+
+      const savedClaim = await claim.save();
+      console.log('Claim saved successfully:', savedClaim);
+      return savedClaim;
+    } catch (error) {
+      console.error('Error creating claim:', error);
+      throw error;
     }
-    
-    const claimId = `CLAIM-${(maxNumber + 1).toString().padStart(4, '0')}`;
-    
-    console.log('Creating claim with data:', {
-      claimId,
-      employeeId,
-      createClaimDto,
-    });
-
-    const claim = new this.claimsModel({
-      claimId,
-      employeeId: new Types.ObjectId(employeeId),
-      ...createClaimDto,
-      status: ClaimStatus.UNDER_REVIEW
-    });
-    
-    const savedClaim = await claim.save();
-    console.log('Claim saved successfully:', savedClaim);
-    return savedClaim;
-  } catch (error) {
-    console.error('Error creating claim:', error);
-    throw error;
   }
-}
 
-// REQ-PY-18: Track the approval and payment status of my claims, disputes
+  // REQ-PY-18: Track the approval and payment status of my claims, disputes
   async trackClaimsAndDisputes(employeeId: string) {
     const [claimsList, disputesList] = await Promise.all([
       this.claimsModel
@@ -2227,8 +2319,8 @@ async createClaim(employeeId: string, createClaimDto: any) {
         description: dispute.description,
         payslipId: dispute.payslipId,
         status: dispute.status,
-        createdAt: (dispute as any).createdAt,
-        updatedAt: (dispute as any).updatedAt,
+        createdAt: (dispute as any)?.createdAt,
+        updatedAt: (dispute as any)?.updatedAt,
       })),
     };
   }

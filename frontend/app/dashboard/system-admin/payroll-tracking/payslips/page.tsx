@@ -130,10 +130,24 @@ export default function PayslipsPage() {
       try {
         setLoading(true);
         const response = await payrollTrackingService.getEmployeePayslips(user.id);
-        // Map backend payslips to frontend format
+        // Map backend payslips to frontend format and normalize
         const backendPayslips = (response?.data || []) as BackendPayslip[];
         const mappedPayslips = backendPayslips.map(mapPayslip);
-        setPayslips(mappedPayslips);
+        const normalizePayslip = (p: any): Payslip => ({
+          id: p.id || p.payslipId || p._id || '',
+          periodStart: p.periodStart || new Date().toISOString(),
+          periodEnd: p.periodEnd || p.payDate || new Date().toISOString(),
+          payDate: p.payDate || p.periodEnd || new Date().toISOString(),
+          status: p.status || p.paymentStatus || 'unknown',
+          baseSalary: Number(p.baseSalary ?? 0) || 0,
+          grossPay: Number(p.grossPay ?? 0) || 0,
+          totalDeductions: Number(p.totalDeductions ?? 0) || 0,
+          netPay: Number(p.netPay ?? 0) || 0,
+          currency: p.currency || 'EGP',
+          earnings: Array.isArray(p.earnings) ? p.earnings : [],
+          deductions: Array.isArray(p.deductions) ? p.deductions : [],
+        });
+        setPayslips(mappedPayslips.map(normalizePayslip));
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load payslips';
         setError(errorMessage);
@@ -208,11 +222,13 @@ export default function PayslipsPage() {
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
+  const formatCurrency = (amount: number | undefined | null, currency: string = 'USD') => {
+    const safeAmount = Number(amount ?? 0);
+    const value = isNaN(safeAmount) ? 0 : safeAmount;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
-    }).format(amount);
+    }).format(value);
   };
 
   const formatDate = (dateString: string) => {

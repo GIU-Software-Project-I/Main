@@ -315,7 +315,7 @@ async calculateContributions(
     }
 
     @Delete('pay-types/:id')
-    @Roles(SystemRole.PAYROLL_MANAGER)
+    @Roles(SystemRole.PAYROLL_MANAGER, SystemRole.PAYROLL_SPECIALIST)
     @HttpCode(HttpStatus.OK)
     async removePayType(@Param('id') id: string) {
         const result = await this.payrollConfigService.removePayType(id);
@@ -406,7 +406,7 @@ async calculateContributions(
     }
 
     @Delete('allowances/:id')
-    @Roles(SystemRole.PAYROLL_MANAGER)
+    @Roles(SystemRole.PAYROLL_MANAGER, SystemRole.PAYROLL_SPECIALIST)
     @HttpCode(HttpStatus.OK)
     async removeAllowance(@Param('id') id: string) {
         const result = await this.payrollConfigService.removeAllowance(id);
@@ -497,7 +497,7 @@ async calculateContributions(
     }
 
     @Delete('signing-bonuses/:id')
-    @Roles(SystemRole.PAYROLL_MANAGER)
+    @Roles(SystemRole.PAYROLL_MANAGER, SystemRole.PAYROLL_SPECIALIST)
     @HttpCode(HttpStatus.OK)
     async removeSigningBonus(@Param('id') id: string) {
         const result = await this.payrollConfigService.removeSigningBonus(id);
@@ -588,7 +588,7 @@ async calculateContributions(
     }
 
     @Delete('termination-benefits/:id')
-    @Roles(SystemRole.PAYROLL_MANAGER)
+    @Roles(SystemRole.PAYROLL_MANAGER, SystemRole.PAYROLL_SPECIALIST)
     @HttpCode(HttpStatus.OK)
     async removeTerminationBenefit(@Param('id') id: string) {
         const result = await this.payrollConfigService.removeTerminationBenefit(id);
@@ -673,7 +673,7 @@ async calculateContributions(
     }
 
     @Delete('pay-grades/:id')
-    @Roles(SystemRole.PAYROLL_MANAGER)
+    @Roles(SystemRole.PAYROLL_SPECIALIST, SystemRole.PAYROLL_MANAGER)
     @HttpCode(HttpStatus.OK)
     async deletePayGrade(@Param('id') id: string) {
         const result = await this.payrollConfigService.deletePayGrade(id);

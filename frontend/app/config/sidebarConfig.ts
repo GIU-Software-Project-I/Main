@@ -412,8 +412,13 @@ const HR_ADMIN_SECTIONS: NavSection[] = [
       },
       {
         label: 'Leaves',
-        href: '/dashboard/hr-manager/leaves',
+        href: '/dashboard/hr-admin/leaves-config',
         icon: 'calendar',
+        children: [
+          {label: 'Policies', href: '/dashboard/hr-admin/leaves-config', icon: 'settings'},
+        //  {label: 'Leave Types', href: '/dashboard/hr-admin/leaves-config/leave-types', icon: 'list'},
+          //{label: 'Manual Adjustments', href: '/dashboard/hr-admin/leaves-config/manual-adjustment', icon: 'edit'},
+        ],
       },
       {
         label: 'Offboarding',
