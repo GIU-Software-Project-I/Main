@@ -102,7 +102,10 @@ export default function PayrollManagerDisputesPage() {
 
   const filterDisputes = () => {
     if (statusFilter === 'all') {
-      return allDisputes.filter(d => d.status?.toLowerCase().includes('pending'));
+      return allDisputes.filter(d => {
+        const s = (d.status || '').toLowerCase();
+        return !s.includes('under') && !s.includes('under-review') && !s.includes('under review');
+      });
     }
     if (statusFilter === 'approved') {
       return allDisputes.filter(d => d.status?.toLowerCase() === 'approved' || d.status?.toLowerCase() === 'confirmed');
@@ -224,14 +227,14 @@ export default function PayrollManagerDisputesPage() {
         <div className="p-6 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">
             {statusFilter === 'all' 
-              ? `Pending Disputes Approval (${disputes.length})`
+              ? `All Disputes (${disputes.length})`
               : statusFilter === 'approved'
               ? `Approved Disputes (${disputes.length})`
               : `Rejected Disputes (${disputes.length})`}
           </h2>
           <p className="text-sm text-slate-600 mt-1">
             {statusFilter === 'all' 
-              ? 'Disputes approved by specialists awaiting your confirmation'
+              ? 'All disputes (pending, approved, and rejected)'
               : statusFilter === 'approved'
               ? 'Disputes that have been approved'
               : 'Disputes that have been rejected'}

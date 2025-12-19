@@ -25,8 +25,20 @@ export interface UpdateClaimDto {
 }
 
 export interface CreateRefundDto {
-  amount: number;
+  // Support both a simple shape and the backend's nested `refundDetails` shape
+  amount?: number;
   description?: string;
+  refundDetails?: {
+    amount: number;
+    description?: string;
+  };
+  // backend fields
+  employeeId?: string;
+  claimId?: string;
+  disputeId?: string;
+  financeStaffId?: string;
+  status?: string;
+  paidInPayrollRunId?: string;
 }
 
 export interface UpdateRefundDto {
@@ -356,9 +368,15 @@ export const payrollTrackingService = {
     financeStaffId: string,
     data: CreateRefundDto
   ) => {
+    const refundDetails = data.refundDetails ?? { amount: data.amount ?? 0, description: data.description };
+    const payload: any = {
+      ...data,
+      refundDetails,
+      employeeId: data.employeeId,
+    };
     return apiService.post(
       `/payroll/tracking/refunds/dispute/${disputeId}?financeStaffId=${financeStaffId}`,
-      data
+      payload
     );
   },
 
@@ -368,9 +386,15 @@ export const payrollTrackingService = {
     financeStaffId: string,
     data: CreateRefundDto
   ) => {
+    const refundDetails = data.refundDetails ?? { amount: data.amount ?? 0, description: data.description };
+    const payload: any = {
+      ...data,
+      refundDetails,
+      employeeId: data.employeeId,
+    };
     return apiService.post(
       `/payroll/tracking/refunds/claim/${claimId}?financeStaffId=${financeStaffId}`,
-      data
+      payload
     );
   },
 

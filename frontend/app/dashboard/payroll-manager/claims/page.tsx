@@ -101,7 +101,10 @@ export default function PayrollManagerClaimsPage() {
 
   const filterClaims = () => {
     if (statusFilter === 'all') {
-      return allClaims.filter(c => c.status?.toLowerCase().includes('pending'));
+      return allClaims.filter(c => {
+        const s = (c.status || '').toLowerCase();
+        return !s.includes('under') && !s.includes('under-review') && !s.includes('under review');
+      });
     }
     if (statusFilter === 'approved') {
       return allClaims.filter(c => {
@@ -185,14 +188,14 @@ export default function PayrollManagerClaimsPage() {
         <div className="p-6 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">
             {statusFilter === 'all' 
-              ? `Pending Claims Approval (${claims.length})`
+              ? `All Claims (${claims.length})`
               : statusFilter === 'approved'
               ? `Approved Claims (${claims.length})`
               : `Rejected Claims (${claims.length})`}
           </h2>
           <p className="text-sm text-slate-600 mt-1">
             {statusFilter === 'all' 
-              ? 'Claims approved by specialists awaiting your confirmation'
+              ? 'All claims (pending, approved, and rejected)'
               : statusFilter === 'approved'
               ? 'Claims that have been approved'
               : 'Claims that have been rejected'}

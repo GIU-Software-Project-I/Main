@@ -64,11 +64,17 @@ class PayrollManagerService {
   }
 
   async getConfirmedDisputes(): Promise<ApiResponse<DisputeConfirmation[]>> {
-    return api.get<DisputeConfirmation[]>('/payroll-manager/disputes/confirmed');
+    const res = await api.get<DisputeConfirmation[]>('/payroll/tracking/disputes/approved');
+    // backend returns an array for this endpoint; normalize just in case
+    if (res.data && Array.isArray((res.data as any))) return res;
+    if (res.data && (res.data as any).data && Array.isArray((res.data as any).data)) {
+      return { ...res, data: (res.data as any).data };
+    }
+    return { ...res, data: [] };
   }
 
   async getConfirmedClaims(): Promise<ApiResponse<ClaimConfirmation[]>> {
-    return api.get<ClaimConfirmation[]>('/payroll-manager/claims/confirmed');
+    return api.get<ClaimConfirmation[]>('/payroll/tracking/claims/approved');
   }
 
   async getUnderReviewDisputes(): Promise<ApiResponse<DisputeConfirmation[]>> {
@@ -80,11 +86,43 @@ class PayrollManagerService {
   }
 
   async getAllClaims(): Promise<ApiResponse<ClaimConfirmation[]>> {
-    return api.get<ClaimConfirmation[]>('/payroll-manager/claims/all');
+    // backend accepts GET /payroll/tracking/claims with optional ?status=...; omit status to get all
+    const res = await api.get<ClaimConfirmation[]>('/payroll/tracking/claims');
+    if (res.data && Array.isArray((res.data as any))) return res;
+    if (res.data && (res.data as any).data && Array.isArray((res.data as any).data)) {
+      return { ...res, data: (res.data as any).data };
+    }
+    return { ...res, data: [] };
   }
 
   async getAllDisputes(): Promise<ApiResponse<DisputeConfirmation[]>> {
-    return api.get<DisputeConfirmation[]>('/payroll-manager/disputes/all');
+    // backend accepts GET /payroll/tracking/disputes with optional ?status=...; omit status to get all
+    const res = await api.get<DisputeConfirmation[]>('/payroll/tracking/disputes');
+    // backend `getAllDisputes` returns a wrapper { success, data, count }
+    if (res.data && Array.isArray((res.data as any))) return res;
+    if (res.data && (res.data as any).data && Array.isArray((res.data as any).data)) {
+      return { ...res, data: (res.data as any).data };
+    }
+    return { ...res, data: [] };
+  }
+
+  // Client-side helpers to fetch rejected items without backend changes
+  async getRejectedClaims(): Promise<ApiResponse<ClaimConfirmation[]>> {
+    const res = await api.get<ClaimConfirmation[]>('/payroll/tracking/claims?status=rejected');
+    if (res.data && Array.isArray((res.data as any))) return res;
+    if (res.data && (res.data as any).data && Array.isArray((res.data as any).data)) {
+      return { ...res, data: (res.data as any).data };
+    }
+    return { ...res, data: [] };
+  }
+
+  async getRejectedDisputes(): Promise<ApiResponse<DisputeConfirmation[]>> {
+    const res = await api.get<DisputeConfirmation[]>('/payroll/tracking/disputes?status=rejected');
+    if (res.data && Array.isArray((res.data as any))) return res;
+    if (res.data && (res.data as any).data && Array.isArray((res.data as any).data)) {
+      return { ...res, data: (res.data as any).data };
+    }
+    return { ...res, data: [] };
   }
 }
 
