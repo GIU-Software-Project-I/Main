@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ThemeCustomizer, ThemeCustomizerTrigger } from '@/app/components/theme-customizer';
 import { useSearchParams } from 'next/navigation';
 import { payrollExecutionService } from '@/app/services/payroll-execution';
+import { payrollConfigurationService } from '@/app/services/payroll-configuration';
 import {
   Card,
   CardContent,
@@ -97,11 +98,12 @@ interface PayrollRun {
   frozenAt?: string;
   frozenReason?: string;
   unfreezeReason?: string;
-  employeePayrollDetails?: any[];
+  employeePayrollDetails?: EmployeePayrollDetail[];
   managerApprovalDate?: string;
   financeApprovalDate?: string;
   payrollManagerId?: string;
   financeStaffId?: string;
+  currency?: string;
 }
 
 interface EmployeePayrollDetail {
@@ -122,6 +124,7 @@ interface EmployeePayrollDetail {
   terminationBenefit?: number;
   status?: string;
   exceptions?: string[];
+  currency?: string;
 }
 
 export default function PayrollManagerRunsPage() {
@@ -304,9 +307,19 @@ export default function PayrollManagerRunsPage() {
     return 'secondary';
   };
 
-  const formatCurrency = (amount: number | undefined) => {
-    if (amount === undefined || amount === null) return 'EGP 0';
-    return `EGP ${amount.toLocaleString()}`;
+  // Use companywide currency
+  const [companyCurrency, setCompanyCurrency] = useState<string>('');
+  useEffect(() => {
+    payrollConfigurationService.getCompanyCurrency().then((res: any) => {
+      setCompanyCurrency(res?.data?.currency || res?.currency || '');
+    }).catch(() => {
+      setCompanyCurrency('');
+    });
+  }, []);
+  const formatCurrency = (amount: number | undefined, currency?: string) => {
+    const curr = currency || companyCurrency || '';
+    if (amount === undefined || amount === null) return `${curr} 0`;
+    return `${curr} ${amount.toLocaleString()}`;
   };
 
   const formatDate = (dateStr: string | undefined) => {
@@ -546,7 +559,7 @@ export default function PayrollManagerRunsPage() {
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-sm text-muted-foreground">Total Net Pay</span>
                           <span className="text-lg font-bold text-success">
-                            {formatCurrency(run.totalnetpay)}
+                            {formatCurrency(run.totalnetpay, run.currency)}
                           </span>
                         </div>
                         {/* Approval Status */}
@@ -646,19 +659,19 @@ export default function PayrollManagerRunsPage() {
                     <div className="bg-muted/50 rounded-lg p-4">
                       <div className="text-sm text-muted-foreground">Gross Pay</div>
                       <div className="text-xl font-bold text-foreground">
-                        {formatCurrency(selectedRun.totalGrossPay || runDetails?.totalGrossPay)}
+                        {formatCurrency(selectedRun.totalGrossPay || runDetails?.totalGrossPay, selectedRun.currency || runDetails?.currency)}
                       </div>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-4">
                       <div className="text-sm text-muted-foreground">Deductions</div>
                       <div className="text-xl font-bold text-destructive">
-                        -{formatCurrency(selectedRun.totalDeductions || runDetails?.totalDeductions)}
+                        -{formatCurrency(selectedRun.totalDeductions || runDetails?.totalDeductions, selectedRun.currency || runDetails?.currency)}
                       </div>
                     </div>
                     <div className="bg-success/10 border border-success/20 rounded-lg p-4">
                       <div className="text-sm text-success">Net Pay</div>
                       <div className="text-2xl font-bold text-success">
-                        {formatCurrency(selectedRun.totalnetpay)}
+                        {formatCurrency(selectedRun.totalnetpay, selectedRun.currency)}
                       </div>
                     </div>
                   </div>
@@ -866,11 +879,11 @@ export default function PayrollManagerRunsPage() {
                                   </div>
                                 </div>
                               </td>
-                              <td className="text-right p-3 font-medium">{formatCurrency(emp.grossPay)}</td>
+                              <td className="text-right p-3 font-medium">{formatCurrency(emp.grossPay, emp.currency)}</td>
                               <td className="text-right p-3 text-destructive">
-                                -{formatCurrency((emp.taxDeductions || 0) + (emp.insuranceDeductions || 0) + (emp.otherDeductions || 0))}
+                                -{formatCurrency((emp.taxDeductions || 0) + (emp.insuranceDeductions || 0) + (emp.otherDeductions || 0), emp.currency)}
                               </td>
-                              <td className="text-right p-3 font-bold text-success">{formatCurrency(emp.netPay)}</td>
+                              <td className="text-right p-3 font-bold text-success">{formatCurrency(emp.netPay, emp.currency)}</td>
                               <td className="text-center p-3">
                                 <Badge variant="outline" className="capitalize">
                                   {emp.status || '-'}

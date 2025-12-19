@@ -283,8 +283,9 @@ export default function PayGradesPage() {
     }
   }
   
-  function formatCurrency(amount: number) {
-    return `EGP ${amount.toLocaleString('en-US', {
+  // Accept currency param, fallback to EGP
+  function formatCurrency(amount: number, currency: string = 'EGP') {
+    return `${currency} ${amount.toLocaleString('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     })}`;

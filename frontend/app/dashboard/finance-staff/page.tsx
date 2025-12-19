@@ -170,8 +170,9 @@ export default function FinanceStaffPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return `EGP ${amount.toLocaleString()}`;
+  // Accept currency param, fallback to EGP
+  const formatCurrency = (amount: number, currency: string = 'EGP') => {
+    return `${currency} ${amount.toLocaleString()}`;
   };
 
   const formatPeriod = (period: any): string => {

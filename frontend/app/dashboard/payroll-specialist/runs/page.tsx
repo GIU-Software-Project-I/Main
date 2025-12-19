@@ -18,8 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
-// Update the import path below to the correct location if your Dialog component is elsewhere.
-// For example, if it's at 'components/ui/dialog.tsx' relative to your project root, use:
 import {
   Dialog,
   DialogContent,
@@ -78,6 +76,9 @@ import {
 
 type Tab = 'runs' | 'create' | 'bonuses' | 'termination' | 'payslips' | 'diagnostics';
 
+// Import the correct service for company-wide settings
+import { payrollConfigurationService } from '../../../services/payroll-configuration';
+
 // Helper function to format payrollPeriod object to string
 const formatPayrollPeriod = (period: any): string => {
   if (!period) return 'No Period';
@@ -109,15 +110,11 @@ const formatPayrollPeriod = (period: any): string => {
 // Helper function for consistent date/time formatting
 const formatDateTime = (dateString: string | Date, includeTime: boolean = false): string => {
   if (!dateString) return '-';
-  
   try {
     const date = new Date(dateString);
-    
-    // Check if date is valid
     if (isNaN(date.getTime())) {
       return 'Invalid date';
     }
-    
     if (includeTime) {
       return date.toLocaleString('en-US', {
         year: 'numeric',
@@ -163,6 +160,57 @@ export default function PayrollSpecialistRunsPage() {
   const tabFromUrl = searchParams.get('tab') as Tab | null;
   const [activeTab, setActiveTab] = useState<Tab>(tabFromUrl || 'runs');
 
+  // Use companywide currency from CompanyWideSettings API
+  const [companyCurrency, setCompanyCurrency] = useState<string>('EGP');
+  const [loadingCurrency, setLoadingCurrency] = useState<boolean>(true);
+  
+  // Helper to format currency with dynamic currency code
+  const formatCurrency = (amount: number | undefined | null, currency?: string): string => {
+    const curr = currency || companyCurrency || 'EGP';
+    if (amount === undefined || amount === null || isNaN(amount)) {
+      return `${curr} 0`;
+    }
+    return `${curr} ${amount.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
+  };
+
+  // Fetch company currency on mount from CompanyWideSettings API
+  useEffect(() => {
+    const fetchCompanyCurrency = async () => {
+      try {
+        setLoadingCurrency(true);
+        const response = await payrollConfigurationService.getCompanyWideSettings() as any;
+        
+        // Extract currency from the response based on your API structure
+        if (response?.data) {
+          const settings = response.data;
+          // Try different possible property names for currency
+          const currency = 
+            settings.currency ||
+            settings.companyCurrency ||
+            settings.defaultCurrency ||
+            settings.financialSettings?.currency ||
+            'EGP';
+          
+          setCompanyCurrency(currency);
+        } else if (response?.currency) {
+          // Direct currency property
+          setCompanyCurrency(response.currency);
+        }
+      } catch (error) {
+        console.error('Failed to fetch company currency from CompanyWideSettings:', error);
+        // Fallback to EGP if API fails
+        setCompanyCurrency('EGP');
+      } finally {
+        setLoadingCurrency(false);
+      }
+    };
+
+    fetchCompanyCurrency();
+  }, []);
+
   // Sync tab with URL changes
   useEffect(() => {
     if (tabFromUrl && ['runs', 'create', 'bonuses', 'termination', 'payslips', 'diagnostics'].includes(tabFromUrl)) {
@@ -197,6 +245,8 @@ export default function PayrollSpecialistRunsPage() {
   // Payslips (REQ-PY-8)
   const [payslips, setPayslips] = useState<any[]>([]);
   const [selectedPayslip, setSelectedPayslip] = useState<any>(null);
+    const [payslipDialogLoading, setPayslipDialogLoading] = useState(false);
+    const [payslipDialogError, setPayslipDialogError] = useState('');
   const [payslipsRunId, setPayslipsRunId] = useState<string>('');
   
   // Edit mode (REQ-PY-26)
@@ -238,7 +288,48 @@ export default function PayrollSpecialistRunsPage() {
       
       const data = (res?.data || res) as any;
       const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-      setRuns(items);
+      // Normalize: map _id to id and include all backend fields
+      setRuns(items.map((run: any) => ({
+        id: run._id,
+        payrollPeriod: run.payrollPeriod,
+        entity: run.entity,
+        status: run.status,
+        employees: run.employees,
+        exceptions: run.exceptions,
+        totalnetpay: run.totalnetpay,
+        totalGrossPay: run.totalGrossPay,
+        totalDeductions: run.totalDeductions,
+        totalAllowances: run.totalAllowances,
+        totalBaseSalary: run.totalBaseSalary,
+        totalOvertime: run.totalOvertime,
+        totalPenalties: run.totalPenalties,
+        totalTaxDeductions: run.totalTaxDeductions,
+        totalInsuranceDeductions: run.totalInsuranceDeductions,
+        totalTaxes: run.totalTaxes,
+        totalInsurance: run.totalInsurance,
+        createdAt: run.createdAt,
+        processedAt: run.processedAt,
+        paymentStatus: run.paymentStatus,
+        approvedByManager: run.approvedByManager,
+        approvedByManagerAt: run.approvedByManagerAt,
+        approvedByFinance: run.approvedByFinance,
+        approvedByFinanceAt: run.approvedByFinanceAt,
+        frozen: run.frozen,
+        frozenAt: run.frozenAt,
+        frozenReason: run.frozenReason,
+        unfreezeReason: run.unfreezeReason,
+        payslipsGenerated: run.payslipsGenerated,
+        payslipsGeneratedAt: run.payslipsGeneratedAt,
+        irregularitiesCount: run.irregularitiesCount,
+        irregularities: run.irregularities,
+        employeePayrollDetails: run.employeePayrollDetails,
+        managerApprovalDate: run.managerApprovalDate,
+        financeApprovalDate: run.financeApprovalDate,
+        payrollManagerId: run.payrollManagerId,
+        financeStaffId: run.financeStaffId,
+        // Spread any other fields for future-proofing
+        ...run
+      })));
     } catch (e: any) {
       setError(e?.message || 'Failed to load runs');
     } finally {
@@ -355,7 +446,7 @@ export default function PayrollSpecialistRunsPage() {
         };
         // Add status and employeeName to normalized payslip
         return {
-          _id: p._id, // <-- Add this line
+          _id: p._id,
           baseSalary: p.baseSalary ?? earnings.baseSalary ?? 0,
           allowances: Array.isArray(earnings.allowances)
       ? {
@@ -384,7 +475,7 @@ export default function PayrollSpecialistRunsPage() {
     grossPay: p.grossPay ?? p.totalGrossSalary ?? 0,
     netPay: p.netPay ?? 0,
     deductions,
-    status:  p.paymentStatus || p.status, // <-- Only use paymentStatus
+    status:  p.paymentStatus || p.status,
     employeeName: p.employeeName || p.employee,
     paymentStatus : p.paymentStatus || 'pending',
     // Add other fields as needed
@@ -531,6 +622,14 @@ export default function PayrollSpecialistRunsPage() {
     }
   };
 
+  // Add currency badge to header
+  const CurrencyBadge = () => (
+    <Badge variant="outline" className="px-3 py-1">
+      <DollarSign className="h-3 w-3 mr-1" />
+      {loadingCurrency ? '...' : companyCurrency}
+    </Badge>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-6 relative">
       {/* Theme Customizer Trigger */}
@@ -558,6 +657,7 @@ export default function PayrollSpecialistRunsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <CurrencyBadge />
             <Badge variant="outline" className="px-3 py-1">
               <Users className="h-3 w-3 mr-1" />
               {departments.length} Departments
@@ -629,7 +729,6 @@ export default function PayrollSpecialistRunsPage() {
                           <SelectValue placeholder="Filter by status" />
                         </SelectTrigger>
                         <SelectContent>
-                          {/* Use value="all" instead of "" */}
                           <SelectItem value="all">All Statuses</SelectItem>
                           <SelectItem value="draft">Draft</SelectItem>
                           <SelectItem value="under review">Under Review</SelectItem>
@@ -698,7 +797,7 @@ export default function PayrollSpecialistRunsPage() {
                                 Total Net Pay
                               </span>
                               <span className="font-medium text-green-600">
-                                ${(run.totalnetpay ?? run.totalNetPay)?.toLocaleString() || '-'}
+                                {formatCurrency(run.totalnetpay ?? run.totalNetPay)}
                               </span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
@@ -761,6 +860,26 @@ export default function PayrollSpecialistRunsPage() {
                               {selectedRun.exceptions ?? 0}
                             </p>
                           </div>
+                          <div>
+                            <Label className="text-muted-foreground">Frozen Reason</Label>
+                            <p className="font-medium">{selectedRun.frozenReason || '-'}</p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">Unfreeze Reason</Label>
+                            <p className="font-medium">{selectedRun.unfreezeReason || '-'}</p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">Manager Approval Date</Label>
+                            <p className="font-medium">{formatDateTime(selectedRun.managerApprovalDate)}</p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">Finance Approval Date</Label>
+                            <p className="font-medium">{formatDateTime(selectedRun.financeApprovalDate)}</p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">Irregularities</Label>
+                            <p className="font-medium">{selectedRun.irregularities?.join(', ') || '-'}</p>
+                          </div>
                         </div>
 
                         {/* Financial Summary */}
@@ -774,31 +893,31 @@ export default function PayrollSpecialistRunsPage() {
                             {selectedRun.totalBaseSalary !== undefined && (
                               <div className="flex justify-between">
                                 <span>Base Salaries</span>
-                                <span>EGP {selectedRun.totalBaseSalary?.toLocaleString()}</span>
+                                <span>{formatCurrency(selectedRun.totalBaseSalary, selectedRun.currency)}</span>
                               </div>
                             )}
                             {selectedRun.totalAllowances !== undefined && (
                               <div className="flex justify-between text-green-600">
                                 <span>Allowances</span>
-                                <span>+EGP {selectedRun.totalAllowances?.toLocaleString()}</span>
+                                <span>+{formatCurrency(selectedRun.totalAllowances, selectedRun.currency)}</span>
                               </div>
                             )}
                             {selectedRun.totalGrossPay !== undefined && (
                               <div className="flex justify-between font-medium pt-2 border-t">
                                 <span>Gross Pay</span>
-                                <span>EGP {selectedRun.totalGrossPay?.toLocaleString()}</span>
+                                <span>{formatCurrency(selectedRun.totalGrossPay, selectedRun.currency)}</span>
                               </div>
                             )}
                             {selectedRun.totalDeductions !== undefined && (
                               <div className="flex justify-between text-destructive">
                                 <span>Deductions</span>
-                                <span>-EGP {selectedRun.totalDeductions?.toLocaleString()}</span>
+                                <span>-{formatCurrency(selectedRun.totalDeductions, selectedRun.currency)}</span>
                               </div>
                             )}
                             <div className="flex justify-between font-bold text-lg pt-2 border-t">
                               <span>Net Pay</span>
                               <span className="text-green-600">
-                                EGP {(selectedRun.totalnetpay ?? selectedRun.totalNetPay)?.toLocaleString() || '0'}
+                                {formatCurrency((selectedRun.totalnetpay ?? selectedRun.totalNetPay) || 0, selectedRun.currency)}
                               </span>
                             </div>
                           </div>
@@ -965,6 +1084,7 @@ export default function PayrollSpecialistRunsPage() {
                     <Info className="h-4 w-4" />
                     <AlertDescription>
                       Employee count and payroll totals will be calculated automatically when processed.
+                      All amounts will be displayed in {loadingCurrency ? '...' : companyCurrency} currency.
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -1007,6 +1127,10 @@ export default function PayrollSpecialistRunsPage() {
                       <div>
                         <Label className="text-muted-foreground">Department</Label>
                         <p className="font-semibold text-lg">{form.entity || '-'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground">Currency</Label>
+                        <p className="font-semibold text-lg">{loadingCurrency ? '...' : companyCurrency}</p>
                       </div>
                     </div>
                   </div>
@@ -1092,7 +1216,7 @@ export default function PayrollSpecialistRunsPage() {
                           <div className="flex items-center justify-between">
                             <span className="text-muted-foreground">Amount</span>
                             <span className="text-2xl font-bold text-foreground">
-                              ${(b.givenAmount || b.amount || 0).toLocaleString()}
+                              {formatCurrency(b.givenAmount || b.amount || 0)}
                             </span>
                           </div>
                         </CardContent>
@@ -1228,7 +1352,7 @@ export default function PayrollSpecialistRunsPage() {
                           <div className="flex items-center justify-between">
                             <span className="text-muted-foreground">Amount</span>
                             <span className="text-2xl font-bold text-foreground">
-                              ${(t.givenAmount || t.amount || 0).toLocaleString()}
+                              {formatCurrency(t.givenAmount || t.amount || 0)}
                             </span>
                           </div>
                         </CardContent>
@@ -1391,19 +1515,19 @@ export default function PayrollSpecialistRunsPage() {
                             <div className="text-center">
                               <div className="text-sm text-muted-foreground">Total Gross</div>
                               <div className="text-2xl font-bold text-green-600">
-                                ${payslips.reduce((sum, p) => sum + (p.grossPay || 0), 0).toLocaleString()}
+                                {formatCurrency(payslips.reduce((sum, p) => sum + (p.grossPay || 0), 0))}
                               </div>
                             </div>
                             <div className="text-center">
                               <div className="text-sm text-muted-foreground">Total Deductions</div>
                               <div className="text-2xl font-bold text-destructive">
-                                ${payslips.reduce((sum, p) => sum + (p.deductions?.total || 0), 0).toLocaleString()}
+                                {formatCurrency(payslips.reduce((sum, p) => sum + (p.deductions?.total || 0), 0))}
                               </div>
                             </div>
                             <div className="text-center">
                               <div className="text-sm text-muted-foreground">Total Net Pay</div>
                               <div className="text-2xl font-bold text-primary">
-                                ${payslips.reduce((sum, p) => sum + (p.netPay || 0), 0).toLocaleString()}
+                                {formatCurrency(payslips.reduce((sum, p) => sum + (p.netPay || 0), 0))}
                               </div>
                             </div>
                           </div>
@@ -1415,7 +1539,24 @@ export default function PayrollSpecialistRunsPage() {
                           <Card 
                             key={index} 
                             className="cursor-pointer hover:shadow-md transition-all"
-                            onClick={() => setSelectedPayslip(slip)}
+                            onClick={async () => {
+                              setPayslipDialogLoading(true);
+                              setPayslipDialogError('');
+                              try {
+                                const res = await payrollExecutionService.getPayslip(slip.id || slip._id);
+                                if (res?.error) {
+                                  setPayslipDialogError(res.error);
+                                  setSelectedPayslip(null);
+                                } else {
+                                  setSelectedPayslip(res.data || res);
+                                }
+                              } catch (e: any) {
+                                setPayslipDialogError(e?.message || 'Failed to fetch payslip');
+                                setSelectedPayslip(null);
+                              } finally {
+                                setPayslipDialogLoading(false);
+                              }
+                            }}
                           >
                             <CardHeader className="pb-3">
                               <div className="flex justify-between items-start">
@@ -1436,16 +1577,16 @@ export default function PayrollSpecialistRunsPage() {
                               <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground">Gross Pay</span>
-                                  <span className="font-medium">${(slip.grossPay || 0).toLocaleString()}</span>
+                                  <span className="font-medium">{formatCurrency(slip.grossPay || 0)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground">Deductions</span>
-                                  <span className="text-destructive">-${(slip.deductions?.total || 0).toLocaleString()}</span>
+                                  <span className="text-destructive">-{formatCurrency(slip.deductions?.total || 0)}</span>
                                 </div>
                                 <Separator />
                                 <div className="flex justify-between font-semibold">
                                   <span>Net Pay</span>
-                                  <span className="text-green-600">${(slip.netPay || 0).toLocaleString()}</span>
+                                  <span className="text-green-600">{formatCurrency(slip.netPay || 0)}</span>
                                 </div>
                               </div>
                             </CardContent>
@@ -1465,9 +1606,30 @@ export default function PayrollSpecialistRunsPage() {
             </Card>
 
             {/* Payslip Details Dialog */}
-            <Dialog open={!!selectedPayslip} onOpenChange={() => setSelectedPayslip(null)}>
+            <Dialog open={!!selectedPayslip || payslipDialogLoading || !!payslipDialogError} onOpenChange={() => { setSelectedPayslip(null); setPayslipDialogError(''); setPayslipDialogLoading(false); }}>
               <DialogContent className="max-w-3xl">
-                {selectedPayslip && (
+                {payslipDialogLoading ? (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle>Payslip Details</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col items-center justify-center py-12">
+                      <Skeleton className="h-12 w-12 mb-4 rounded-full" />
+                      <div className="text-lg font-medium">Loading payslip details...</div>
+                    </div>
+                  </>
+                ) : payslipDialogError ? (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle>Payslip Details</DialogTitle>
+                    </DialogHeader>
+                    <Alert variant="destructive" className="mb-6">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>{payslipDialogError}</AlertDescription>
+                    </Alert>
+                  </>
+                ) : selectedPayslip ? (
                   <>
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
@@ -1475,7 +1637,7 @@ export default function PayrollSpecialistRunsPage() {
                         Payslip Details
                       </DialogTitle>
                       <DialogDescription>
-                        Detailed breakdown of earnings and deductions
+                        Detailed breakdown of earnings and deductions (All amounts in {companyCurrency})
                       </DialogDescription>
                     </DialogHeader>
                     <ScrollArea className="max-h-[70vh] pr-4">
@@ -1485,7 +1647,7 @@ export default function PayrollSpecialistRunsPage() {
                           <CardContent className="pt-6">
                             <div className="flex justify-between items-start">
                               <div>
-                                <h3 className="text-lg font-semibold">{selectedPayslip.employeeName || 'Unknown Employee'}</h3>
+                                <h3 className="text-lg font-semibold">{selectedPayslip.employeeName || selectedPayslip.employee || 'Unknown Employee'}</h3>
                                 {selectedPayslip.employeeNumber && (
                                   <p className="text-muted-foreground">Employee #: {selectedPayslip.employeeNumber}</p>
                                 )}
@@ -1509,26 +1671,49 @@ export default function PayrollSpecialistRunsPage() {
                             <div className="space-y-3">
                               <div className="flex justify-between">
                                 <span>Base Salary</span>
-                                <span className="font-medium">${(selectedPayslip.baseSalary || 0).toLocaleString()}</span>
+                                <span className="font-medium">{formatCurrency(selectedPayslip.baseSalary || selectedPayslip.earningsDetails?.baseSalary || 0)}</span>
                               </div>
-                              {selectedPayslip.allowances?.total > 0 && (
+                              {/* Allowances */}
+                              {selectedPayslip.allowances?.total > 0 || (selectedPayslip.earningsDetails?.allowances?.length > 0) ? (
                                 <>
                                   <div className="flex justify-between text-green-600">
                                     <span>Allowances</span>
-                                    <span>+${(selectedPayslip.allowances.total || 0).toLocaleString()}</span>
+                                    <span>+{formatCurrency(selectedPayslip.allowances?.total || selectedPayslip.earningsDetails?.allowances?.reduce((sum: any, a: any) => sum + (a.amount || 0), 0) || 0)}</span>
                                   </div>
-                                  {selectedPayslip.allowances.items?.map((item: any, idx: number) => (
+                                  {(selectedPayslip.allowances?.items || selectedPayslip.earningsDetails?.allowances)?.map((item: any, idx: number) => (
                                     <div key={idx} className="flex justify-between text-sm text-muted-foreground ml-4">
                                       <span>{item.name || 'Allowance'}</span>
-                                      <span>+${(item.amount || 0).toLocaleString()}</span>
+                                      <span>+{formatCurrency(item.amount || 0)}</span>
                                     </div>
                                   ))}
                                 </>
+                              ) : null}
+                              {/* Bonuses */}
+                              {selectedPayslip.bonuses?.total > 0 || (selectedPayslip.earningsDetails?.bonuses?.length > 0) ? (
+                                <>
+                                  <div className="flex justify-between text-green-600">
+                                    <span>Bonuses</span>
+                                    <span>+{formatCurrency(selectedPayslip.bonuses?.total || selectedPayslip.earningsDetails?.bonuses?.reduce((sum: any, b: any) => sum + (b.amount || 0), 0) || 0)}</span>
+                                  </div>
+                                  {(selectedPayslip.bonuses?.items || selectedPayslip.earningsDetails?.bonuses)?.map((item: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between text-sm text-muted-foreground ml-4">
+                                      <span>{item.name || 'Bonus'}</span>
+                                      <span>+{formatCurrency(item.amount || 0)}</span>
+                                    </div>
+                                  ))}
+                                </>
+                              ) : null}
+                              {/* Refunds */}
+                              {(selectedPayslip.refunds > 0 || (Array.isArray(selectedPayslip.refunds) && selectedPayslip.refunds.length > 0) || selectedPayslip.earningsDetails?.refunds?.length > 0) && (
+                                <div className="flex justify-between text-green-600">
+                                  <span>Refunds</span>
+                                  <span>+{formatCurrency(typeof selectedPayslip.refunds === 'number' ? selectedPayslip.refunds : (Array.isArray(selectedPayslip.refunds) ? selectedPayslip.refunds.reduce((sum: any, r: any) => sum + (r.amount || 0), 0) : (selectedPayslip.earningsDetails?.refunds?.reduce((sum: any, r: any) => sum + (r.amount || 0), 0) || 0)))}</span>
+                                </div>
                               )}
                               <Separator />
                               <div className="flex justify-between font-bold text-lg">
                                 <span>Total Gross Salary</span>
-                                <span className="text-green-700">${(selectedPayslip.grossPay || 0).toLocaleString()}</span>
+                                <span className="text-green-700">{formatCurrency(selectedPayslip.grossPay || selectedPayslip.totalGrossSalary || 0)}</span>
                               </div>
                             </div>
                           </CardContent>
@@ -1544,22 +1729,32 @@ export default function PayrollSpecialistRunsPage() {
                           </CardHeader>
                           <CardContent className="pt-6">
                             <div className="space-y-3">
-                              {selectedPayslip.deductions?.tax > 0 && (
+                              {/* Deductions breakdown: show all items */}
+                              {selectedPayslip.deductions?.items?.length > 0 || selectedPayslip.deductionsDetails?.taxes?.length > 0 ? (
+                                <ul className="list-disc pl-6 space-y-1">
+                                  {(selectedPayslip.deductions?.items || selectedPayslip.deductionsDetails?.taxes)?.map((d: any, idx: number) => (
+                                    <li key={idx}>
+                                      <span className="font-medium">{d.type || d.name}</span>: {d.name || d.type} - {formatCurrency(d.amount)}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : null}
+                              {selectedPayslip.deductions?.tax > 0 || selectedPayslip.deductionsDetails?.taxAmount > 0 ? (
                                 <div className="flex justify-between text-red-600">
                                   <span>Income Tax</span>
-                                  <span>-${(selectedPayslip.deductions.tax || 0).toLocaleString()}</span>
+                                  <span>- {formatCurrency(selectedPayslip.deductions?.tax || selectedPayslip.deductionsDetails?.taxAmount || 0)}</span>
                                 </div>
-                              )}
-                              {selectedPayslip.deductions?.socialSecurity > 0 && (
+                              ) : null}
+                              {selectedPayslip.deductions?.socialSecurity > 0 || selectedPayslip.deductionsDetails?.insuranceAmount > 0 ? (
                                 <div className="flex justify-between text-red-600">
                                   <span>Social Security</span>
-                                  <span>-${(selectedPayslip.deductions.socialSecurity || 0).toLocaleString()}</span>
+                                  <span>- {formatCurrency(selectedPayslip.deductions?.socialSecurity || selectedPayslip.deductionsDetails?.insuranceAmount || 0)}</span>
                                 </div>
-                              )}
+                              ) : null}
                               <Separator />
                               <div className="flex justify-between font-bold text-lg">
                                 <span>Total Deductions</span>
-                                <span className="text-red-700">-${(selectedPayslip.deductions?.total || 0).toLocaleString()}</span>
+                                <span className="text-red-700">- {formatCurrency(selectedPayslip.deductions?.total || selectedPayslip.totaDeductions || selectedPayslip.deductionsDetails?.totalDeductions || 0)}</span>
                               </div>
                             </div>
                           </CardContent>
@@ -1574,7 +1769,7 @@ export default function PayrollSpecialistRunsPage() {
                                 <p className="text-muted-foreground text-sm">Amount after all deductions</p>
                               </div>
                               <div className="text-3xl font-bold text-primary">
-                                ${(selectedPayslip.netPay || 0).toLocaleString()}
+                                {formatCurrency(selectedPayslip.netPay || 0)}
                               </div>
                             </div>
                           </CardContent>
@@ -1582,7 +1777,7 @@ export default function PayrollSpecialistRunsPage() {
                       </div>
                     </ScrollArea>
                   </>
-                )}
+                ) : null}
               </DialogContent>
             </Dialog>
           </TabsContent>

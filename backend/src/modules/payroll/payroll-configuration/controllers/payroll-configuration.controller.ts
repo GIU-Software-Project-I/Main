@@ -717,6 +717,12 @@ async calculateContributions(
         return this.payrollConfigService.getCompanyWideSettings();
     }
 
+    // New endpoint to get only the currency
+    @Get('company-currency')
+    async getCompanyCurrency() {
+        return this.payrollConfigService.getCompanyCurrency();
+    }
+
     @Put('company-settings')
     @Roles(SystemRole.SYSTEM_ADMIN, SystemRole.PAYROLL_MANAGER)
     updateCompanyWideSettings(@Body() updateDto: UpdateCompanyWideSettingsDto) {
