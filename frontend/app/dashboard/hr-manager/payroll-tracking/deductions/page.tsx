@@ -305,7 +305,7 @@ export default function DeductionsPage() {
             <p className="text-4xl font-bold mt-2">{formatCurrency(getTotalDeductions())}</p>
             <p className="text-red-100 mt-1">Combined deductions from all categories</p>
           </div>
-          <div className="text-6xl">💸</div>
+          <div className="text-6xl"></div>
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
@@ -362,14 +362,14 @@ export default function DeductionsPage() {
       {/* Tax Deductions Tab */}
       {activeTab === 'tax' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">🏛️ Tax Deductions</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Tax Deductions</h3>
           <p className="text-slate-600 text-sm mb-6">
             Detailed breakdown of tax deductions including income tax and social contributions.
           </p>
           
           {taxDeductions.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-2">📋</div>
+              <div className="text-4xl mb-2"></div>
               No tax deductions recorded
             </div>
           ) : (
@@ -418,14 +418,14 @@ export default function DeductionsPage() {
       {/* Insurance Deductions Tab */}
       {activeTab === 'insurance' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">🏥 Insurance Deductions</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Insurance Deductions</h3>
           <p className="text-slate-600 text-sm mb-6">
             Health, pension, unemployment, and other insurance contributions.
           </p>
           
           {insuranceDeductions.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-2">🏥</div>
+              <div className="text-4xl mb-2"></div>
               No insurance deductions recorded
             </div>
           ) : (
@@ -516,7 +516,7 @@ export default function DeductionsPage() {
           
           {unpaidLeaveDeductions.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-2">📅</div>
+              <div className="text-4xl mb-2"></div>
               No unpaid leave deductions
             </div>
           ) : (

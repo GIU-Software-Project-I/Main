@@ -261,7 +261,7 @@ export default function ContributionsPage() {
         </div>
         <Link href="/dashboard/department-employee/payroll-tracking">
           <button className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50">
-            ← Back to Payroll Tracking
+            Back to Payroll Tracking
           </button>
         </Link>
       </div>
@@ -276,7 +276,7 @@ export default function ContributionsPage() {
             </p>
             <p className="text-purple-100 mt-1">Combined employer contributions and compensations</p>
           </div>
-          <div className="text-6xl">🎁</div>
+          <div className="text-6xl"></div>
         </div>
         
         <div className="grid grid-cols-3 gap-4 mt-6">
@@ -321,14 +321,14 @@ export default function ContributionsPage() {
       {/* Employer Contributions Tab */}
       {activeTab === 'employer' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">💼 Employer Contributions</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Employer Contributions</h3>
           <p className="text-slate-600 text-sm mb-6">
             Your employer makes these contributions on your behalf for insurance, pension, and other benefits.
           </p>
           
           {employerContributions.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-2">📋</div>
+              <div className="text-4xl mb-2"></div>
               No employer contributions recorded
             </div>
           ) : (
@@ -376,14 +376,14 @@ export default function ContributionsPage() {
       {/* Leave Encashment Tab */}
       {activeTab === 'leave' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">📅 Leave Encashment</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Leave Encashment</h3>
           <p className="text-slate-600 text-sm mb-6">
             Compensation for unused or encashed leave days converted into monetary value.
           </p>
           
           {leaveCompensation.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-2">📅</div>
+              <div className="text-4xl mb-2"></div>
               No leave encashment records
             </div>
           ) : (
@@ -395,7 +395,7 @@ export default function ContributionsPage() {
                       <h4 className="font-semibold text-slate-900">{compensation.leaveType}</h4>
                       <div className="flex gap-4 mt-2 text-sm text-slate-600">
                         <span>{compensation.unusedDays} days unused</span>
-                        <span>×</span>
+                        <span>x</span>
                         <span>{formatCurrency(compensation.dailyRate)}/day</span>
                       </div>
                       {compensation.encashmentDate && (
@@ -427,14 +427,14 @@ export default function ContributionsPage() {
       {/* Transportation Tab */}
       {activeTab === 'transportation' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">🚗 Transportation Compensation</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Transportation Compensation</h3>
           <p className="text-slate-600 text-sm mb-6">
             Compensation for transportation or commuting costs covered by your employer.
           </p>
           
           {transportationCompensation.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-2">🚗</div>
+              <div className="text-4xl mb-2"></div>
               No transportation compensation records
             </div>
           ) : (
@@ -474,8 +474,8 @@ export default function ContributionsPage() {
 
       {/* Information Card */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <span className="text-2xl">ℹ️</span>
+          <div className="flex items-start gap-3">
+          <span className="text-2xl"></span>
           <div>
             <h4 className="font-semibold text-blue-900">Understanding Your Benefits</h4>
             <p className="text-sm text-blue-700 mt-1">

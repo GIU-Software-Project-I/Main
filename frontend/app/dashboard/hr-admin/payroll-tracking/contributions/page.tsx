@@ -259,10 +259,10 @@ export default function ContributionsPage() {
           <h1 className="text-3xl font-bold text-slate-900">Compensation & Benefits</h1>
           <p className="text-slate-600 mt-2">View your employer contributions, leave encashment, and transportation compensation</p>
         </div>
-        <Link href="/dashboard/department-employee/payroll-tracking">
-          <button className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50">
-            ← Back to Payroll Tracking
-          </button>
+          <Link href="/dashboard/department-employee/payroll-tracking">
+            <button className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50">
+              Back to Payroll Tracking
+            </button>
         </Link>
       </div>
 
@@ -395,7 +395,7 @@ export default function ContributionsPage() {
                       <h4 className="font-semibold text-slate-900">{compensation.leaveType}</h4>
                       <div className="flex gap-4 mt-2 text-sm text-slate-600">
                         <span>{compensation.unusedDays} days unused</span>
-                        <span>×</span>
+                          <span>x</span>
                         <span>{formatCurrency(compensation.dailyRate)}/day</span>
                       </div>
                       {compensation.encashmentDate && (

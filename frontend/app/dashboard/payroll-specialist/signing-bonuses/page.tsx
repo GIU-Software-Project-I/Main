@@ -66,6 +66,17 @@ export default function SigningBonusesPage() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedSigningBonus, setSelectedSigningBonus] = useState<SigningBonus | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showCalculateModal, setShowCalculateModal] = useState(false);
+  const [calcInputs, setCalcInputs] = useState({
+    monthlySalary: '',
+    startDate: '',
+    resignationDate: '',
+    lastWorkingDate: '',
+    accruedLeaveDays: '',
+    pendingAllowances: '',
+  });
+  const [calcResult, setCalcResult] = useState<null | any>(null);
+  const [showCalculateSummaryModal, setShowCalculateSummaryModal] = useState(false);
   
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -503,6 +514,16 @@ export default function SigningBonusesPage() {
             {loading ? 'Refreshing...' : 'Refresh'}
           </button>
           <button
+            onClick={() => {
+              setSelectedSigningBonus(null);
+              setCalcInputs(prev => ({ ...prev, pendingAllowances: '' }));
+              setShowCalculateModal(true);
+            }}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+          >
+            Calculate Entitelments
+          </button>
+          <button
             onClick={handleCreateClick}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
@@ -668,6 +689,7 @@ export default function SigningBonusesPage() {
                               Edit
                             </button>
                           )}
+                          {/* per-row Calculate removed — use header 'Calculate Entitelments' button */}
                           
                           {/* Delete button - Only for DRAFT signing bonuses
                           {signingBonus.status === 'draft' && (
@@ -747,13 +769,11 @@ export default function SigningBonusesPage() {
         <ul className="text-blue-800 text-sm space-y-2">
           <li>• As a Payroll Specialist, you can <span className="font-semibold">create draft</span> signing bonus policies</li>
           <li>• You can <span className="font-semibold">edit draft</span> signing bonus policies only</li>
-          <li>• You can <span className="font-semibold">delete draft</span> signing bonus policies only</li>
           <li>• You can <span className="font-semibold">view all</span> signing bonus policies (draft, approved, rejected)</li>
           <li>• <span className="font-semibold">Approved</span> and <span className="font-semibold">rejected</span> signing bonuses cannot be modified or deleted</li>
           <li>• Only Payroll Managers can <span className="font-semibold">approve</span> or <span className="font-semibold">reject</span> signing bonus policies</li>
-          <li>• Signing bonuses are used to reward new hires for joining the company</li>
           <li>• Duplicate position names are not allowed</li>
-          <li>• These policies are linked to contract details from the Onboarding module</li>
+
         </ul>
       </div>
 
@@ -947,11 +967,11 @@ export default function SigningBonusesPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="text-lg font-bold text-slate-900">{selectedSigningBonus.positionName}</h4>
+                  <p className="text-sm text-slate-500 mt-2">Status</p>
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-2 ${statusColors[selectedSigningBonus.status] || 'bg-gray-100 text-gray-800'}`}>
                     {statusLabels[selectedSigningBonus.status] || selectedSigningBonus.status}
                   </span>
                 </div>
-                <div className="text-slate-600 text-sm">v{selectedSigningBonus.__v || 1}</div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -961,10 +981,6 @@ export default function SigningBonusesPage() {
                   <p className="text-xs text-slate-500 mt-1">One-time payment for new hires</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Status</p>
-                  <p className="font-medium text-slate-900">{statusLabels[selectedSigningBonus.status]}</p>
-                </div>
-                <div>
                   <p className="text-sm text-slate-500">Created</p>
                   <p className="font-medium text-slate-900">{formatDate(selectedSigningBonus.createdAt)}</p>
                 </div>
@@ -972,33 +988,29 @@ export default function SigningBonusesPage() {
                   <p className="text-sm text-slate-500">Last Modified</p>
                   <p className="font-medium text-slate-900">{formatDate(selectedSigningBonus.updatedAt)}</p>
                 </div>
-                {selectedSigningBonus.createdBy && (
-                  <div>
-                    <p className="text-sm text-slate-500">Created By</p>
-                    <p className="font-medium text-slate-900">Employee ID: {selectedSigningBonus.createdBy.substring(0, 8)}...</p>
-                  </div>
-                )}
-                {selectedSigningBonus.approvedBy && (
+                <div>
+                  <p className="text-sm text-slate-500">Created By</p>
+                  <p className="font-medium text-slate-900">{selectedSigningBonus.createdBy || 'N/A'}</p>
+                </div>
+                {(selectedSigningBonus.status === 'approved' || selectedSigningBonus.status === 'rejected') && (
                   <div>
                     <p className="text-sm text-slate-500">
                       {selectedSigningBonus.status === 'approved' ? 'Approved By' : 'Rejected By'}
                     </p>
-                    <p className="font-medium text-slate-900">Employee ID: {selectedSigningBonus.approvedBy.substring(0, 8)}...</p>
-                    {selectedSigningBonus.approvedAt && (
-                      <p className="text-xs text-slate-500 mt-1">
-                        {formatDate(selectedSigningBonus.approvedAt)}
-                      </p>
-                    )}
+                    <p className="font-medium text-slate-900">{selectedSigningBonus.approvedBy || 'N/A'}</p>
+                  </div>
+                )}
+                {(selectedSigningBonus.status === 'approved' || selectedSigningBonus.status === 'rejected') && (
+                  <div>
+                    <p className="text-sm text-slate-500">
+                      {selectedSigningBonus.status === 'rejected' ? 'Rejected At' : 'Approved At'}
+                    </p>
+                    <p className="font-medium text-slate-900">{selectedSigningBonus.approvedAt ? formatDate(selectedSigningBonus.approvedAt) : 'N/A'}</p>
                   </div>
                 )}
               </div>
               
-              <div className="border-t border-slate-200 pt-4">
-                <p className="text-sm text-slate-500 mb-2">Policy ID</p>
-                <code className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded font-mono">
-                  {selectedSigningBonus._id}
-                </code>
-              </div>
+             
             </div>
             <div className="p-6 border-t border-slate-200 flex justify-end">
               <button
@@ -1007,6 +1019,115 @@ export default function SigningBonusesPage() {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Calculate Entitlements Modal */}
+      {showCalculateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200">
+              <h3 className="text-xl font-bold text-slate-900">Calculate Resignation Entitlements</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-sm text-slate-600 mb-1">Monthly Salary (USD)</label>
+                  <input
+                    type="number"
+                    name="monthlySalary"
+                    value={calcInputs.monthlySalary}
+                    onChange={(e) => setCalcInputs(prev => ({ ...prev, monthlySalary: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded"
+                    placeholder="e.g., 2000"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-600 mb-1">Employment Start Date</label>
+                  <input type="date" value={calcInputs.startDate} onChange={(e) => setCalcInputs(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-600 mb-1">Resignation Date</label>
+                  <input type="date" value={calcInputs.resignationDate} onChange={(e) => setCalcInputs(prev => ({ ...prev, resignationDate: e.target.value }))} className="w-full px-3 py-2 border rounded" />
+                </div>
+                {/* Removed Last Working Date - not required for this calculation flow. */}
+                <div>
+                  <label className="block text-sm text-slate-600 mb-1">Accrued Leave Days</label>
+                  <input type="number" value={calcInputs.accruedLeaveDays} onChange={(e) => setCalcInputs(prev => ({ ...prev, accruedLeaveDays: e.target.value }))} className="w-full px-3 py-2 border rounded" min="0" />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-600 mb-1">Pending Allowances (total USD)</label>
+                  <input type="number" value={calcInputs.pendingAllowances} onChange={(e) => setCalcInputs(prev => ({ ...prev, pendingAllowances: e.target.value }))} className="w-full px-3 py-2 border rounded" min="0" />
+                </div>
+              </div>
+
+              {/* Results are shown in the summary modal below; inline results removed. */}
+
+              {/* Calculation Rules Explanation */}
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
+                <h4 className="font-semibold mb-2 text-blue-900">Calculation Rules (summary)</h4>
+                <ul className="text-sm text-blue-800 space-y-2">
+                  <li>• Accrued leave = accrued_days × (monthly_salary / 30).</li>
+                  <li>• Pending allowances = added as entered.</li>
+                  <li>• Gratuity (default): first 5 years = 21 days/year; after 5 years = 30 days/year.</li>
+                </ul>
+              </div>
+            </div>
+              <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+                <button onClick={() => { setShowCalculateModal(false); setCalcResult(null); }} className="px-4 py-2 border rounded">Cancel</button>
+                <button
+                  onClick={() => {
+                    const monthly = parseFloat(calcInputs.monthlySalary || '0');
+                    const accruedDays = parseFloat(calcInputs.accruedLeaveDays || '0');
+                    const pending = parseFloat(calcInputs.pendingAllowances || '0');
+                    const start = calcInputs.startDate ? new Date(calcInputs.startDate) : null;
+                    const resign = calcInputs.resignationDate ? new Date(calcInputs.resignationDate) : null;
+                    let years = 0;
+                    if (start && resign && !isNaN(start.getTime()) && !isNaN(resign.getTime())) {
+                      years = (resign.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365);
+                    }
+                    const accruedLeavePayout = Math.max(0, accruedDays) * (monthly / 30);
+                    const fullYears = Math.floor(Math.max(0, years));
+                    // Tiered gratuity: first 5 years = 21 days/year, after 5 years = 30 days/year
+                    const yearsFirstTier = Math.min(fullYears, 5);
+                    const yearsSecondTier = Math.max(0, fullYears - 5);
+                    const gratuity = (yearsFirstTier * (monthly * (21 / 30))) + (yearsSecondTier * (monthly * (30 / 30)));
+                    const totalPayout = accruedLeavePayout + pending + gratuity;
+                    setCalcResult({ accruedLeavePayout, pendingAllowances: pending, gratuity, totalPayout, years: fullYears });
+                    setShowCalculateSummaryModal(true);
+                  }}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  Calculate
+                </button>
+              </div>
+          </div>
+        </div>
+      )}
+
+      {/* Calculate Summary Modal */}
+      {showCalculateSummaryModal && calcResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200">
+              <h3 className="text-xl font-bold text-slate-900">Calculated Entitlements Summary</h3>
+              <p className="text-sm text-slate-600 mt-1">Review the breakdown below. These values are estimates based on entered data and default rules.</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 gap-2">
+                <div><span className="text-sm text-slate-500">Service Years (rounded down):</span> <span className="font-medium">{calcResult.years}</span></div>
+                <div><span className="text-sm text-slate-500">Accrued Leave Payout:</span> <span className="font-medium">{formatCurrency(calcResult.accruedLeavePayout)}</span></div>
+                <div><span className="text-sm text-slate-500">Pending Allowances:</span> <span className="font-medium">{formatCurrency(calcResult.pendingAllowances)}</span></div>
+                <div><span className="text-sm text-slate-500">Estimated Gratuity:</span> <span className="font-medium">{formatCurrency(calcResult.gratuity)}</span></div>
+                <div className="border-t pt-2"><span className="text-sm text-slate-500">Total Estimated Payout:</span> <span className="font-medium">{formatCurrency(calcResult.totalPayout)}</span></div>
+              </div>
+              <div className="text-xs text-slate-500">Note: These calculations use default rule multipliers (first 5 years: 21 days/year; after 5 years: 30 days/year).</div>
+            </div>
+            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+              <button onClick={() => { setShowCalculateSummaryModal(false); setShowCalculateModal(false); setCalcResult(null); }} className="px-4 py-2 border rounded">Close</button>
             </div>
           </div>
         </div>

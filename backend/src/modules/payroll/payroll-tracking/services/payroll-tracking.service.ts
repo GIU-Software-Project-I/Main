@@ -1449,7 +1449,13 @@ export class PayrollTrackingService {
 
     if (action === 'confirm') {
       dispute.status = DisputeStatus.APPROVED;
-      dispute.resolutionComment = reason || `Confirmed by Payroll Manager ${managerId}`;
+      // Preserve original specialist comment - store it before overwriting
+      const originalSpecialistComment = dispute.resolutionComment || '';
+      // Append manager confirmation, preserving original comment
+      const managerNote = reason || `Confirmed by Payroll Manager ${managerId}`;
+      dispute.resolutionComment = originalSpecialistComment ? 
+        `${originalSpecialistComment} | Manager: ${managerNote}` : 
+        managerNote;
       await dispute.save();
 
       // Find finance users to notify (REQ-PY-41)
@@ -1464,6 +1470,58 @@ export class PayrollTrackingService {
             message: `New approved dispute requires processing for employee ${dispute.employeeId}`,
           } as any);
         }
+      }
+      
+      // Notify Payroll Specialist that manager approved the dispute
+      try {
+        // Try to notify the specific specialist who reviewed this dispute if available
+        if (dispute.payrollSpecialistId) {
+          try {
+            const notification = await this.notificationService['notificationModel'].create({
+              to: dispute.payrollSpecialistId,
+              type: 'DISPUTE_APPROVED',
+              message: `Dispute has been approved by Payroll Manager for employee ${dispute.employeeId}`,
+              read: false,
+            } as any);
+            console.log('[PayrollManager] Notification created for specialist:', dispute.payrollSpecialistId, 'Notification ID:', notification._id);
+          } catch (notifError) {
+            console.error('[PayrollManager] Failed to create notification for specialist:', dispute.payrollSpecialistId, notifError);
+          }
+        }
+        
+        // Always notify all payroll specialists as well
+        let payrollSpecialists = await this.notificationService.findUsersByRole('Payroll Specialist');
+        console.log('[PayrollManager] Found payroll specialists with "Payroll Specialist":', payrollSpecialists.length, payrollSpecialists);
+        
+        // If no specialists found, try alternative role name
+        if (payrollSpecialists.length === 0) {
+          payrollSpecialists = await this.notificationService.findUsersByRole('PAYROLL_SPECIALIST');
+          console.log('[PayrollManager] Found payroll specialists with "PAYROLL_SPECIALIST":', payrollSpecialists.length, payrollSpecialists);
+        }
+        
+        if (payrollSpecialists.length > 0) {
+          for (const specialist of payrollSpecialists) {
+            try {
+              // Skip if we already notified this specific specialist
+              if (dispute.payrollSpecialistId && String(specialist.employeeProfileId) === String(dispute.payrollSpecialistId)) {
+                continue;
+              }
+              const notification = await this.notificationService['notificationModel'].create({
+                to: specialist.employeeProfileId,
+                type: 'DISPUTE_APPROVED',
+                message: `Dispute has been approved by Payroll Manager for employee ${dispute.employeeId}`,
+                read: false,
+              } as any);
+              console.log('[PayrollManager] Notification created for specialist:', specialist.employeeProfileId, 'Notification ID:', notification._id);
+            } catch (notifError) {
+              console.error('[PayrollManager] Failed to create notification for specialist:', specialist.employeeProfileId, notifError);
+            }
+          }
+        } else {
+          console.warn('[PayrollManager] No payroll specialists found with role "Payroll Specialist" or "PAYROLL_SPECIALIST"');
+        }
+      } catch (error) {
+        console.error('[PayrollManager] Error notifying payroll specialist:', error);
       }
     } else {
       dispute.status = DisputeStatus.REJECTED;
@@ -1569,7 +1627,13 @@ export class PayrollTrackingService {
 
     if (action === 'confirm') {
       claim.status = ClaimStatus.APPROVED;
-      claim.resolutionComment = reason || `Confirmed by Payroll Manager ${managerId}`;
+      // Preserve original specialist comment - store it before overwriting
+      const originalSpecialistComment = claim.resolutionComment || '';
+      // Append manager confirmation, preserving original comment
+      const managerNote = reason || `Confirmed by Payroll Manager ${managerId}`;
+      claim.resolutionComment = originalSpecialistComment ? 
+        `${originalSpecialistComment} | Manager: ${managerNote}` : 
+        managerNote;
       await claim.save();
 
       // Find finance users to notify (REQ-PY-44)
@@ -1584,6 +1648,58 @@ export class PayrollTrackingService {
             message: `New approved claim requires processing for employee ${claim.employeeId} - Amount: ${claim.amount}`,
           } as any);
         }
+      }
+      
+      // Notify Payroll Specialist that manager approved the claim
+      try {
+        // Try to notify the specific specialist who reviewed this claim if available
+        if (claim.payrollSpecialistId) {
+          try {
+            const notification = await this.notificationService['notificationModel'].create({
+              to: claim.payrollSpecialistId,
+              type: 'CLAIM_APPROVED',
+              message: `Claim has been approved by Payroll Manager for employee ${claim.employeeId} - Amount: ${claim.amount}`,
+              read: false,
+            } as any);
+            console.log('[PayrollManager] Notification created for specialist:', claim.payrollSpecialistId, 'Notification ID:', notification._id);
+          } catch (notifError) {
+            console.error('[PayrollManager] Failed to create notification for specialist:', claim.payrollSpecialistId, notifError);
+          }
+        }
+        
+        // Always notify all payroll specialists as well
+        let payrollSpecialists = await this.notificationService.findUsersByRole('Payroll Specialist');
+        console.log('[PayrollManager] Found payroll specialists with "Payroll Specialist":', payrollSpecialists.length, payrollSpecialists);
+        
+        // If no specialists found, try alternative role name
+        if (payrollSpecialists.length === 0) {
+          payrollSpecialists = await this.notificationService.findUsersByRole('PAYROLL_SPECIALIST');
+          console.log('[PayrollManager] Found payroll specialists with "PAYROLL_SPECIALIST":', payrollSpecialists.length, payrollSpecialists);
+        }
+        
+        if (payrollSpecialists.length > 0) {
+          for (const specialist of payrollSpecialists) {
+            try {
+              // Skip if we already notified this specific specialist
+              if (claim.payrollSpecialistId && String(specialist.employeeProfileId) === String(claim.payrollSpecialistId)) {
+                continue;
+              }
+              const notification = await this.notificationService['notificationModel'].create({
+                to: specialist.employeeProfileId,
+                type: 'CLAIM_APPROVED',
+                message: `Claim has been approved by Payroll Manager for employee ${claim.employeeId} - Amount: ${claim.amount}`,
+                read: false,
+              } as any);
+              console.log('[PayrollManager] Notification created for specialist:', specialist.employeeProfileId, 'Notification ID:', notification._id);
+            } catch (notifError) {
+              console.error('[PayrollManager] Failed to create notification for specialist:', specialist.employeeProfileId, notifError);
+            }
+          }
+        } else {
+          console.warn('[PayrollManager] No payroll specialists found with role "Payroll Specialist" or "PAYROLL_SPECIALIST"');
+        }
+      } catch (error) {
+        console.error('[PayrollManager] Error notifying payroll specialist:', error);
       }
     } else {
       claim.status = ClaimStatus.REJECTED;

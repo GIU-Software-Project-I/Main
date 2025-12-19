@@ -323,7 +323,7 @@ export default function DeductionsPage() {
         </div>
         <Link href="/dashboard/department-employee/payroll-tracking">
           <button className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50">
-            ← Back to Payroll Tracking
+            Back to Payroll Tracking
           </button>
         </Link>
       </div>
@@ -456,7 +456,7 @@ export default function DeductionsPage() {
           
           {insuranceDeductions.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <div className="text-4xl mb-2">🏥</div>
+              <div className="text-4xl mb-2"></div>
               No insurance deductions recorded
             </div>
           ) : (

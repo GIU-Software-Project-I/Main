@@ -12,6 +12,7 @@ export interface DisputeConfirmation {
   status: 'pending payroll Manager approval' | 'approved' | 'rejected';
   specialistName: string;
   specialistNotes?: string;
+  managerNotes?: string;
   submittedAt: string;
   reviewedAt: string;
 }
@@ -28,6 +29,7 @@ export interface ClaimConfirmation {
   status: 'pending payroll Manager approval' | 'approved' | 'rejected';
   specialistName: string;
   specialistNotes?: string;
+  managerNotes?: string;
   submittedAt: string;
   reviewedAt: string;
 }
@@ -75,6 +77,14 @@ class PayrollManagerService {
 
   async getUnderReviewClaims(): Promise<ApiResponse<ClaimConfirmation[]>> {
     return api.get<ClaimConfirmation[]>('/payroll-manager/claims/under-review');
+  }
+
+  async getAllClaims(): Promise<ApiResponse<ClaimConfirmation[]>> {
+    return api.get<ClaimConfirmation[]>('/payroll-manager/claims/all');
+  }
+
+  async getAllDisputes(): Promise<ApiResponse<DisputeConfirmation[]>> {
+    return api.get<DisputeConfirmation[]>('/payroll-manager/disputes/all');
   }
 }
 

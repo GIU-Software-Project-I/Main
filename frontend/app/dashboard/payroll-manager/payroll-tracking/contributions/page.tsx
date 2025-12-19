@@ -261,7 +261,7 @@ export default function ContributionsPage() {
         </div>
         <Link href="/dashboard/department-employee/payroll-tracking">
           <button className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50">
-            ← Back to Payroll Tracking
+            Back to Payroll Tracking
           </button>
         </Link>
       </div>
@@ -395,7 +395,7 @@ export default function ContributionsPage() {
                       <h4 className="font-semibold text-slate-900">{compensation.leaveType}</h4>
                       <div className="flex gap-4 mt-2 text-sm text-slate-600">
                         <span>{compensation.unusedDays} days unused</span>
-                        <span>×</span>
+                        <span>x</span>
                         <span>{formatCurrency(compensation.dailyRate)}/day</span>
                       </div>
                       {compensation.encashmentDate && (
@@ -475,7 +475,7 @@ export default function ContributionsPage() {
       {/* Information Card */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">ℹ️</span>
+          <span className="text-2xl"></span>
           <div>
             <h4 className="font-semibold text-blue-900">Understanding Your Benefits</h4>
             <p className="text-sm text-blue-700 mt-1">

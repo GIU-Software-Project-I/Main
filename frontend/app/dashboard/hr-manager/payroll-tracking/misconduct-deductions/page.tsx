@@ -257,7 +257,7 @@ export default function MisconductDeductionsPage() {
               {/* Misconduct Deductions List */}
               {filteredMisconductData.length === 0 ? (
                 <div className="bg-slate-50 rounded-lg border border-slate-200 shadow-sm p-12 text-center">
-                  <div className="text-6xl mb-4">✅</div>
+                  <div className="text-6xl mb-4"></div>
                   <p className="text-slate-700 font-medium text-lg">No misconduct deductions found</p>
                   <p className="text-slate-500 text-sm mt-2">
                     No salary deductions for misconduct or absenteeism in your payslips
@@ -326,7 +326,7 @@ export default function MisconductDeductionsPage() {
               {/* Attendance-Based Deductions */}
               {!attendanceData || !attendanceData.deductions || attendanceData.deductions.length === 0 ? (
                 <div className="bg-slate-50 rounded-lg border border-slate-200 shadow-sm p-12 text-center">
-                  <div className="text-6xl mb-4">✅</div>
+                  <div className="text-6xl mb-4"></div>
                   <p className="text-slate-700 font-medium text-lg">No attendance-based deductions</p>
                   <p className="text-slate-500 text-sm mt-2">
                     No deductions from unapproved absences or time management violations
@@ -400,7 +400,7 @@ export default function MisconductDeductionsPage() {
       {/* Information Panel */}
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">💡</span>
+          <span className="text-2xl"></span>
           <div>
             <h4 className="font-semibold text-red-900 mb-2">Understanding Misconduct & Absenteeism Deductions</h4>
             <ul className="text-sm text-red-800 space-y-1 list-disc list-inside">

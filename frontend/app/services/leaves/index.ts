@@ -411,6 +411,17 @@ export const leavesService: Record<string, any> = {
   getEntitlements: async (employeeId: string) => {
     return apiService.get(`/leaves/entitlements/${employeeId}`);
   },
+// Get employee entitlement summary
+getEntitlementSummary: async (employeeId: string) => {
+  return apiService.get(`/leaves/employees/${employeeId}/entitlement-summary`);
+},
+// Get adjustment history
+getAdjustmentHistory: async (employeeId: string, leaveTypeId?: string) => {
+  const qs = leaveTypeId ? `?leaveTypeId=${leaveTypeId}` : '';
+  return apiService.get(`/leaves/employees/${employeeId}/adjustment-history${qs}`);
+},
+
+
 
   // Create manual balance adjustment
   createAdjustment: async (data: {
@@ -641,13 +652,14 @@ export const leavesService: Record<string, any> = {
     return apiService.get(`/leaves/accruals/employee/${employeeId}/recalc`);
   },
 
-  // Leave Year Reset
-  resetLeaveYear: async (data: {
-    strategy: 'hireDate' | 'calendarYear' | 'custom';
-    referenceDate?: string;
-  }) => {
-    return apiService.post('/leaves/accruals/reset-year', data);
-  },
+ // Leave Year Reset
+resetLeaveYear: async (data: {
+  strategy: "hireDate" | "calendarYear" | "custom";
+  referenceDate?: string;
+  dryRun?: boolean;
+}) => apiService.post("/leaves/accruals/reset-year", data),
+
+
 
   // ============================================
   // LEAVE REQUEST VALIDATION HELPERS

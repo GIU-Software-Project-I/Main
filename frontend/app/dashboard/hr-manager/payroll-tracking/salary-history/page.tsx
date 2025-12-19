@@ -190,7 +190,7 @@ export default function SalaryHistoryPage() {
         </div>
         <Link href="/dashboard/department-employee/payroll-tracking">
           <button className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50">
-            ← Back to Payroll Tracking
+            Back to Payroll Tracking
           </button>
         </Link>
       </div>
@@ -213,7 +213,7 @@ export default function SalaryHistoryPage() {
               <p className="text-green-100 mt-2">No salary information available</p>
             )}
           </div>
-          <div className="text-6xl">💵</div>
+          <div className="text-6xl"></div>
         </div>
       </div>
 

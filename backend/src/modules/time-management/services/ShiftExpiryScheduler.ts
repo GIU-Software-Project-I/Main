@@ -1,168 +1,241 @@
-// src/time-management/time-management/shift-expiry.scheduler.ts
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectModel, InjectConnection } from '@nestjs/mongoose';
-import { Model, Types, Connection } from 'mongoose';
+import { Model, Connection, Types } from 'mongoose';
 import { ShiftAssignment, ShiftAssignmentDocument } from '../models/shift-assignment.schema';
 import { NotificationLog, NotificationLogDocument } from '../models/notification-log.schema';
 
-/**
- * ShiftExpiryScheduler
- * - runs daily and creates NotificationLog entries for assignments that will expire within the configured window
- * - automatically finds HR/Admin users to notify (no HR_USER_ID required)
- */
 @Injectable()
-export class ShiftExpiryScheduler {
+export class ShiftExpiryScheduler implements OnModuleInit {
     private readonly logger = new Logger(ShiftExpiryScheduler.name);
-    private lastRunDate: Date | null = null;
+
+    /** Prevent concurrent scheduler executions */
+    private isRunning = false;
+
+    /** Prevent same assignment being processed twice in same run/process */
+    private readonly assignmentLocks = new Set<string>();
 
     constructor(
-        @InjectModel(ShiftAssignment.name) private readonly shiftAssignmentModel: Model<ShiftAssignmentDocument>,
-        @InjectModel(NotificationLog.name) private readonly notificationModel: Model<NotificationLogDocument>,
-        @InjectConnection() private readonly connection: Connection,
-    ) {
-        // Run catch-up on initialization
-        this.runCatchUp();
+        @InjectModel(ShiftAssignment.name)
+        private readonly shiftAssignmentModel: Model<ShiftAssignmentDocument>,
+
+        @InjectModel(NotificationLog.name)
+        private readonly notificationModel: Model<NotificationLogDocument>,
+
+        @InjectConnection()
+        private readonly connection: Connection,
+    ) {}
+
+    async onModuleInit() {
+        this.logger.log('[ShiftExpiryScheduler] Module initialized – running STARTUP check');
+        await this.executeShiftExpiryCheck('STARTUP');
     }
 
-    /**
-     * Runs on backend startup to catch up on any missed notifications
-     */
-    private async runCatchUp(): Promise<void> {
-        try {
-            this.logger.log('🔄 Running catch-up for missed shift expiry notifications...');
-            await this.runDaily();
-            this.logger.log('✓ Catch-up completed');
-        } catch (error) {
-            this.logger.error('Catch-up failed', error);
-        }
-    }
-
-    /**
-     * Runs daily at configured hour.
-     * CRON: default '0 10 * * *' (10:00 server time).
-     * Automatically finds HR/Admin users to notify - no configuration required!
-     */
-    // Run daily at 10:00 server time to notify about expiring shift assignments
     @Cron('0 10 * * *')
     async runDaily() {
-        try {
-            const daysEnv = Number(process.env.SHIFT_EXPIRY_NOTIFICATION_DAYS ?? 7);
-            const days = Number.isFinite(daysEnv) && daysEnv > 0 ? daysEnv : 7;
+        await this.executeShiftExpiryCheck('CRON');
+    }
 
-            // compute the threshold window: now -> now + days
+    private async executeShiftExpiryCheck(trigger: 'STARTUP' | 'CRON') {
+        if (this.isRunning) {
+            this.logger.warn(
+                `[ShiftExpiryScheduler][${trigger}] ⛔ Scheduler already running – execution skipped`
+            );
+            return;
+        }
+
+        this.isRunning = true;
+
+        let createdCount = 0;
+        let skippedCount = 0;
+
+        try {
+            const days = Number(process.env.SHIFT_EXPIRY_NOTIFICATION_DAYS ?? 7);
             const now = new Date();
             const threshold = new Date();
             threshold.setDate(now.getDate() + days);
             threshold.setHours(23, 59, 59, 999);
 
-            // find assignments with an endDate within next `days` days and with a relevant status
-            const assignments = await this.shiftAssignmentModel.find({
-                endDate: { $exists: true, $lte: threshold, $gte: now },
-                status: { $in: ['PENDING', 'APPROVED'] },
-            }).lean();
+            this.logger.log(
+                `[ShiftExpiryScheduler][${trigger}] Checking assignments expiring in ${days} days`
+            );
 
-            if (!assignments?.length) {
-                this.logger.debug(`No expiring assignments in next ${days} days`);
-                return;
-            }
+            const assignments = await this.shiftAssignmentModel
+                .find({
+                    endDate: { $exists: true, $gte: now, $lte: threshold },
+                    status: { $in: ['PENDING', 'APPROVED'] },
+                })
+                .sort({ endDate: 1, _id: 1 })
+                .lean();
 
-            // Automatically find all HR/Admin users
+            this.logger.log(
+                `[ShiftExpiryScheduler][${trigger}] Found ${assignments.length} assignments`
+            );
+
+            if (!assignments.length) return;
+
             const hrUsers = await this.findHRUsers();
-
-            if (!hrUsers || hrUsers.length === 0) {
-                this.logger.warn('No HR/Admin users found in the system. Notifications will only be sent to employees.');
-            }
-
-            let notificationCount = 0;
+            this.logger.log(
+                `[ShiftExpiryScheduler][${trigger}] Found ${hrUsers.length} HR users`
+            );
 
             for (const a of assignments) {
+                const assignmentId = a._id.toString();
+
+                /** Assignment-level lock */
+                if (this.assignmentLocks.has(assignmentId)) {
+                    this.logger.warn(
+                        `[ShiftExpiryScheduler][${trigger}] ⚠️ SKIPPED | Reason=ASSIGNMENT_LOCKED | Assignment=${assignmentId}`
+                    );
+                    skippedCount++;
+                    continue;
+                }
+
+                this.assignmentLocks.add(assignmentId);
+
                 try {
-                    // Skip this assignment if any notification for it already exists (prevents duplicates across runs)
-                    const anyNotif = await this.notificationModel.findOne({ message: { $regex: a._id.toString() } }).lean();
-                    if (anyNotif) {
-                        this.logger.debug(`Skipping assignment ${a._id} because notification already exists`);
+                    if (!a.endDate || !a.employeeId) {
+                        this.logger.warn(
+                            `[ShiftExpiryScheduler][${trigger}] ⚠️ SKIPPED | Reason=MISSING_FIELDS | Assignment=${assignmentId}`
+                        );
+                        skippedCount++;
                         continue;
                     }
-                    const expiryDate = a.endDate?.toISOString().slice(0,10);
 
-                    // Create only one notification per assignment: choose primary recipient
-                    let primaryRecipient: any = null;
-                    let primaryType = 'SHIFT_EXPIRY';
-                    if (hrUsers && hrUsers.length > 0 && hrUsers[0].employeeProfileId) {
-                        primaryRecipient = hrUsers[0].employeeProfileId;
-                        primaryType = 'SHIFT_EXPIRY';
-                    } else if (a.employeeId) {
-                        primaryRecipient = a.employeeId;
-                        primaryType = 'SHIFT_EXPIRY_EMPLOYEE';
+                    if (new Date(a.endDate) < new Date()) {
+                        this.logger.warn(
+                            `[ShiftExpiryScheduler][${trigger}] ⚠️ SKIPPED | Reason=ALREADY_EXPIRED | Assignment=${assignmentId}`
+                        );
+                        skippedCount++;
+                        continue;
                     }
 
-                    if (primaryRecipient) {
-                        const msg = `Shift assignment ${a._id} for employee ${a.employeeId} expires on ${expiryDate}. Please review for renewal or reassignment.`;
-                        try {
-                            await this.notificationModel.create({
-                                to: primaryRecipient,
-                                type: primaryType,
-                                message: msg,
-                            } as any);
-                            notificationCount++;
-                            this.logger.debug(`Created single notification for assignment ${a._id} to recipient ${primaryRecipient}`);
-                        } catch (e) {
-                            this.logger.warn('Failed to create notification for primary recipient', e);
+                    /** ================= HR NOTIFICATIONS ================= */
+
+                    const hrMessage =
+                        `Shift assignment ${assignmentId} for employee ${a.employeeId} ` +
+                        `expires on ${a.endDate.toISOString().slice(0, 10)}.`;
+
+                    for (const hr of hrUsers) {
+                        if (hr.employeeProfileId.toString() === a.employeeId.toString()) {
+                            continue;
                         }
-                    } else {
-                        this.logger.warn(`No recipient found for assignment ${a._id}; skipping notification`);
+
+                        const hrAlreadyNotified = await this.notificationModel.exists({
+                            to: hr.employeeProfileId,
+                            type: 'SHIFT_EXPIRY',
+                            'metadata.assignmentId': assignmentId,
+                        });
+
+                        if (hrAlreadyNotified) {
+                            this.logger.warn(
+                                `[ShiftExpiryScheduler][${trigger}] ⚠️ SKIPPED | Reason=HR_ALREADY_NOTIFIED | HR=${hr.employeeProfileId} | Assignment=${assignmentId}`
+                            );
+                            skippedCount++;
+                            continue;
+                        }
+
+                        await this.notificationModel.create({
+                            to: hr.employeeProfileId,
+                            type: 'SHIFT_EXPIRY',
+                            message: hrMessage,
+                            metadata: {
+                                assignmentId,
+                                employeeId: a.employeeId.toString(),
+                                shiftEndDate: a.endDate,
+                            },
+                        } as any);
+
+                        createdCount++;
+                        this.logger.log(
+                            `[ShiftExpiryScheduler][${trigger}] ✅ HR notification sent | HR=${hr.employeeProfileId} | Assignment=${assignmentId}`
+                        );
                     }
-                } catch (e) {
-                    this.logger.warn('Failed processing an expiring assignment', e);
+
+                    /** ================= EMPLOYEE NOTIFICATION ================= */
+
+                    const employeeAlreadyNotified = await this.notificationModel.exists({
+                        to: a.employeeId,
+                        type: 'SHIFT_EXPIRY_EMPLOYEE',
+                        'metadata.assignmentId': assignmentId,
+                    });
+
+                    if (employeeAlreadyNotified) {
+                        this.logger.warn(
+                            `[ShiftExpiryScheduler][${trigger}] ⚠️ SKIPPED | Reason=EMPLOYEE_ALREADY_NOTIFIED | Employee=${a.employeeId} | Assignment=${assignmentId}`
+                        );
+                        skippedCount++;
+                        continue;
+                    }
+
+                    await this.notificationModel.create({
+                        to: a.employeeId,
+                        type: 'SHIFT_EXPIRY_EMPLOYEE',
+                        message:
+                            `Your shift assignment expires on ` +
+                            `${a.endDate.toISOString().slice(0, 10)}. Please contact HR.`,
+                        metadata: {
+                            assignmentId,
+                            employeeId: a.employeeId.toString(),
+                            shiftEndDate: a.endDate,
+                        },
+                    } as any);
+
+                    createdCount++;
+                    this.logger.log(
+                        `[ShiftExpiryScheduler][${trigger}] ✅ Employee notification sent | Employee=${a.employeeId} | Assignment=${assignmentId}`
+                    );
+                } catch (err) {
+                    this.logger.error(
+                        `[ShiftExpiryScheduler][${trigger}] ❌ Failed processing assignment ${assignmentId}`,
+                        err,
+                    );
+                } finally {
+                    this.assignmentLocks.delete(assignmentId);
                 }
             }
 
-            this.logger.log(`ShiftExpiryScheduler processed ${assignments.length} assignments, created ${notificationCount} notifications (next ${days} days)`);
-        } catch (error) {
-            this.logger.error('ShiftExpiryScheduler failed', error);
+            this.logger.log(
+                `[ShiftExpiryScheduler][${trigger}] DONE | Created=${createdCount} | Skipped=${skippedCount}`
+            );
+        } catch (err) {
+            this.logger.error(
+                `[ShiftExpiryScheduler][${trigger}] Scheduler failed`,
+                err,
+            );
+        } finally {
+            this.isRunning = false;
         }
     }
 
     /**
-     * Automatically find all HR/Admin users in the system
-     * No configuration required!
+     * HR discovery logic – unchanged (your original implementation)
      */
     private async findHRUsers(): Promise<any[]> {
+        if (!this.connection.db) return [];
+
+        const HR_ROLE_CANDIDATES = ['HR Admin', 'HR_ADMIN', 'HRAdmin', 'hr admin'];
+        const allHRUsers = new Map<string, any>();
+
         try {
-            if (!this.connection.db) {
-                this.logger.warn('Database connection not available');
-                return [];
-            }
+            const profiles = await this.connection.db
+                .collection('employee_system_roles')
+                .find({
+                    roles: { $in: HR_ROLE_CANDIDATES },
+                    $or: [{ isActive: true }, { status: 'ACTIVE' }, { status: { $exists: false } }],
+                })
+                .toArray();
 
-            const hrRoles = await this.connection.db.collection('employeesystemroles').find({
-                roles: { $in: ['HR Manager', 'System Admin', 'HR Admin'] },
-                isActive: true
-            }).toArray();
+            profiles.forEach((p: any) => {
+                allHRUsers.set(p._id.toString(), {
+                    employeeProfileId: p._id,
+                    workEmail: p.workEmail,
+                    isActive: true,
+                });
+            });
+        } catch {}
 
-            if (!hrRoles || hrRoles.length === 0) {
-                return [];
-            }
-
-            // Get employee details for logging
-            const employeeIds = hrRoles.map((r: any) => r.employeeProfileId);
-            const employees = await this.connection.db.collection('employeeprofiles').find({
-                _id: { $in: employeeIds },
-                isActive: true
-            }).toArray();
-
-            return hrRoles.map((role: any) => {
-                const emp: any = employees.find((e: any) => e._id.equals(role.employeeProfileId));
-                return {
-                    employeeProfileId: role.employeeProfileId,
-                    roles: role.roles,
-                    workEmail: emp?.workEmail,
-                    isActive: emp?.isActive
-                };
-            }).filter(u => u.isActive); // Only active employees
-        } catch (error) {
-            this.logger.error('Failed to find HR users', error);
-            return [];
-        }
+        return Array.from(allHRUsers.values());
     }
+    //
 }

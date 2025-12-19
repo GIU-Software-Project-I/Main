@@ -160,7 +160,18 @@ export default function PayrollTrackingPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div
+      className="space-y-8"
+      style={{
+        ['--background' as any]: '#ffffff',
+        ['--foreground' as any]: '#111827',
+        ['--card' as any]: '#ffffff',
+        ['--card-foreground' as any]: '#111827',
+        ['--primary' as any]: '#111827',
+        ['--muted' as any]: '#f3f4f6',
+        ['--border' as any]: '#e5e7eb',
+      } as any}
+    >
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Payroll Tracking</h1>
@@ -168,7 +179,7 @@ export default function PayrollTrackingPage() {
       </div>
 
       {/* Overview Stats */}
-      <div className="bg-gradient-to-r from-amber-600 to-amber-700 rounded-lg p-8 text-white">
+      <div className="bg-white rounded-lg border border-slate-200 p-8 text-slate-900 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Payroll Tracking Overview</h2>
@@ -235,29 +246,29 @@ export default function PayrollTrackingPage() {
         <h2 className="text-xl font-bold text-slate-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Link href="/dashboard/department-employee/payroll-tracking/payslips">
-            <button className="w-full p-4 border border-slate-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-center group">
-              <div className="text-2xl mb-2">📥</div>
-              <p className="font-medium text-slate-900 group-hover:text-blue-700 text-sm">Download Latest Payslip</p>
+              <button className="w-full p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-colors text-center group">
+              <div className="text-2xl mb-2"></div>
+                <p className="font-medium text-slate-900 text-sm">Download Latest Payslip</p>
             </button>
           </Link>
           <Link href="/dashboard/department-employee/payroll-tracking/claims-disputes">
-            <button className="w-full p-4 border border-slate-300 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors text-center group">
-              <div className="text-2xl mb-2">📝</div>
-              <p className="font-medium text-slate-900 group-hover:text-orange-700 text-sm">Submit New Claim</p>
-            </button>
-          </Link>
-          <Link href="/dashboard/department-employee/payroll-tracking/tax-documents">
-            <button className="w-full p-4 border border-slate-300 rounded-lg hover:border-amber-400 hover:bg-amber-50 transition-colors text-center group">
+            <button className="w-full p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-colors text-center group">
               <div className="text-2xl mb-2"></div>
-              <p className="font-medium text-slate-900 group-hover:text-amber-700 text-sm">Tax Documents</p>
+              <p className="font-medium text-slate-900 text-sm">Submit New Claim</p>
             </button>
           </Link>
-          <Link href="/dashboard/department-employee/payroll-tracking/claims-disputes">
-            <button className="w-full p-4 border border-slate-300 rounded-lg hover:border-red-400 hover:bg-red-50 transition-colors text-center group">
-              <div className="text-2xl mb-2"></div>
-              <p className="font-medium text-slate-900 group-hover:text-red-700 text-sm">Report Issue</p>
-            </button>
-          </Link>
+            <Link href="/dashboard/department-employee/payroll-tracking/tax-documents">
+              <button className="w-full p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-colors text-center group">
+                <div className="text-2xl mb-2"></div>
+                <p className="font-medium text-slate-900 text-sm">Tax Documents</p>
+              </button>
+            </Link>
+            <Link href="/dashboard/department-employee/payroll-tracking/claims-disputes">
+              <button className="w-full p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-colors text-center group">
+                <div className="text-2xl mb-2"></div>
+                <p className="font-medium text-slate-900 text-sm">Report Issue</p>
+              </button>
+            </Link>
         </div>
       </div>
 
