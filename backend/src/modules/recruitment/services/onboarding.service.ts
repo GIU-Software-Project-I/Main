@@ -872,6 +872,11 @@ export class OnboardingService {
             throw new NotFoundException('Associated offer not found');
         }
 
+        // BR 3f, 3g: Contract type is required during employee onboarding
+        // For now, default to FULL_TIME_CONTRACT if not specified
+        // In production, contract type should be part of the contract/offer schema
+        const contractType = 'FULL_TIME_CONTRACT'; // TODO: Get from contract or offer when available
+
         const { employee, temporaryPassword } = await this.sharedRecruitmentService.createEmployeeFromContract({
             candidateId: offer.candidateId.toString(),
             role: contract.role,
@@ -879,6 +884,7 @@ export class OnboardingService {
             signingBonus: contract.signingBonus,
             benefits: contract.benefits,
             acceptanceDate: contract.acceptanceDate,
+            contractType: contractType, // BR 3f, 3g: Pass contract type
         });
 
         return { employee, temporaryPassword, contract };

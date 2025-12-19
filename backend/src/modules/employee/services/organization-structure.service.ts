@@ -434,12 +434,30 @@ export class OrganizationStructureService {
  after: updatedPosition.toObject(),
  });
 
- const affectedEmployeeIds = await this.sharedOrganizationService.getEmployeesByPosition(id);
- if (affectedEmployeeIds.length > 0) {
- await this.sharedOrganizationService.sendStructureChangeNotification('Position Updated', position.title, affectedEmployeeIds);
- }
+        const affectedEmployeeIds = await this.sharedOrganizationService.getEmployeesByPosition(id);
+        if (affectedEmployeeIds.length > 0) {
+            // Sync employee profiles when position department changes
+            // BR: If a Position change is approved, trigger update in Organizational Structure module
+            if (dto.departmentId && updatedPosition.departmentId) {
+                const newDepartmentId = updatedPosition.departmentId.toString();
+                for (const employeeId of affectedEmployeeIds) {
+                    try {
+                        await this.sharedOrganizationService.updateEmployeePrimaryPosition(
+                            employeeId,
+                            id,
+                            newDepartmentId
+                        );
+                    } catch (error) {
+                        // Log error but don't fail the position update
+                        console.warn(`Failed to sync employee ${employeeId} after position update: ${error.message}`);
+                    }
+                }
+            }
+            
+            await this.sharedOrganizationService.sendStructureChangeNotification('Position Updated', position.title, affectedEmployeeIds);
+        }
 
- return updatedPosition;
+        return updatedPosition;
  }
 
  private async wouldCreateCircularReporting(positionId: string, newReportsToId: string): Promise<boolean> {
