@@ -85,8 +85,10 @@ async function bootstrap() {
     // });
 
     app.enableCors({
-        origin: true, // Reflects request origin, allows all
+        origin: ['https://main-git-main-osamaloays-projects.vercel.app'],
         credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
     });
     const config = new DocumentBuilder()
         .setTitle('HR System API')
